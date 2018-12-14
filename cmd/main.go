@@ -16,8 +16,19 @@ limitations under the License.
 
 package main
 
-import "fmt"
+import (
+	"flag"
+
+	"github.com/golang/glog"
+	"github.com/kubernetes-sigs/aws-efs-csi-driver/pkg/driver"
+)
 
 func main() {
-	fmt.Println("efs driver")
+	var endpoint = flag.String("endpoint", "unix://tmp/csi.sock", "CSI Endpoint")
+	flag.Parse()
+
+	drv := driver.NewDriver(*endpoint)
+	if err := drv.Run(); err != nil {
+		glog.Fatalln(err)
+	}
 }
