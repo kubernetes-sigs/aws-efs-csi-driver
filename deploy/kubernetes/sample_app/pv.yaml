@@ -10,6 +10,8 @@ spec:
     - ReadWriteOnce
   persistentVolumeReclaimPolicy: Recycle
   storageClassName: efs-sc
+  mountOptions:
+    - tls
   csi:
     driver: efs.csi.aws.com
     volumeHandle: fs-ff2a9557  
