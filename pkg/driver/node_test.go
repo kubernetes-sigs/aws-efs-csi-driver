@@ -78,6 +78,76 @@ func TestNodePublishVolume(t *testing.T) {
 			},
 		},
 		{
+			name: "success: normal with read only mount",
+			testFunc: func(t *testing.T) {
+				mockCtrl := gomock.NewController(t)
+				mockMounter := mocks.NewMockInterface(mockCtrl)
+				driver := &Driver{
+					endpoint: endpoint,
+					nodeID:   nodeID,
+					mounter:  mockMounter,
+				}
+				source := volumeId + ":/"
+
+				ctx := context.Background()
+				req := &csi.NodePublishVolumeRequest{
+					VolumeId:         volumeId,
+					VolumeAttributes: map[string]string{},
+					VolumeCapability: stdVolCap,
+					TargetPath:       targetPath,
+					Readonly:         true,
+				}
+
+				mockMounter.EXPECT().MakeDir(gomock.Eq(targetPath)).Return(nil)
+				mockMounter.EXPECT().Mount(gomock.Eq(source), gomock.Eq(targetPath), gomock.Eq("efs"), gomock.Eq([]string{"ro"})).Return(nil)
+				_, err := driver.NodePublishVolume(ctx, req)
+				if err != nil {
+					t.Fatalf("NodePublishVolume is failed: %v", err)
+				}
+
+				mockCtrl.Finish()
+			},
+		},
+		{
+			name: "success: normal with tls mount options",
+			testFunc: func(t *testing.T) {
+				mockCtrl := gomock.NewController(t)
+				mockMounter := mocks.NewMockInterface(mockCtrl)
+				driver := &Driver{
+					endpoint: endpoint,
+					nodeID:   nodeID,
+					mounter:  mockMounter,
+				}
+				source := volumeId + ":/"
+
+				ctx := context.Background()
+				req := &csi.NodePublishVolumeRequest{
+					VolumeId:         volumeId,
+					VolumeAttributes: map[string]string{},
+					VolumeCapability: &csi.VolumeCapability{
+						AccessType: &csi.VolumeCapability_Mount{
+							Mount: &csi.VolumeCapability_MountVolume{
+								MountFlags: []string{"tls"},
+							},
+						},
+						AccessMode: &csi.VolumeCapability_AccessMode{
+							Mode: csi.VolumeCapability_AccessMode_MULTI_NODE_MULTI_WRITER,
+						},
+					},
+					TargetPath: targetPath,
+				}
+
+				mockMounter.EXPECT().MakeDir(gomock.Eq(targetPath)).Return(nil)
+				mockMounter.EXPECT().Mount(gomock.Eq(source), gomock.Eq(targetPath), gomock.Eq("efs"), gomock.Eq([]string{"tls"})).Return(nil)
+				_, err := driver.NodePublishVolume(ctx, req)
+				if err != nil {
+					t.Fatalf("NodePublishVolume is failed: %v", err)
+				}
+
+				mockCtrl.Finish()
+			},
+		},
+		{
 			name: "fail: missing target path",
 			testFunc: func(t *testing.T) {
 				mockCtrl := gomock.NewController(t)
