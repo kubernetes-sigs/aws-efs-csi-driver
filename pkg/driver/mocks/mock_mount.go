@@ -5,11 +5,10 @@
 package mocks
 
 import (
-	os "os"
-	reflect "reflect"
-
 	gomock "github.com/golang/mock/gomock"
 	mount "k8s.io/kubernetes/pkg/util/mount"
+	os "os"
+	reflect "reflect"
 )
 
 // MockInterface is a mock of Interface interface
