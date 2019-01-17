@@ -29,7 +29,7 @@ One of the advantages of using EFS is that it provides [encryption in transit](h
 
 To enable encryption in transit, `tls` needs to be set at `NodePublishVolumeRequest.VolumeCapability.MountVolume` object's `MountFlags` fields. For example of using it in kuberentes, see persistence volume manifest in [Example](#kubernetes-example)
 
-**Note** Kubernetes version 1.13 and above is required if you are using this driver in Kuberentes.
+**Note** Kubernetes version 1.13 and above is required if you are using this feature in Kuberentes.
 
 # Kubernetes Example
 This example demos how to make a EFS filesystem mounted inside container using the driver. Before this, get yourself familiar with setting up kubernetes on AWS and [creating EFS filesystem](https://docs.aws.amazon.com/efs/latest/ug/getting-started.html). And when creating EFS filesystem, make sure it is accessible from kuberenetes cluster. This can be achieved by creating EFS filesystem inside the same VPC as kubernetes cluster or using VPC peering.
