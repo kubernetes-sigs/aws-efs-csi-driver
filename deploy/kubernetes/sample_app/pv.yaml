@@ -14,4 +14,4 @@ spec:
     - tls
   csi:
     driver: efs.csi.aws.com
-    volumeHandle: fs-ff2a9557  
+    volumeHandle: fs-4af69aab

@@ -2,7 +2,7 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: csi-node-sa
-  namespace: default
+  namespace: kube-system
 
 ---
 
@@ -52,31 +52,50 @@ roleRef:
 kind: DaemonSet
 apiVersion: apps/v1beta2
 metadata:
-  name: csi-node
+  name: efs-csi-node
+  namespace: kube-system
 spec:
   selector:
     matchLabels:
-      app: csi-node
+      app: efs-csi-node
   template:
     metadata:
       labels:
-        app: csi-node
+        app: efs-csi-node
     spec:
       serviceAccount: csi-node-sa
       hostNetwork: true
       containers:
-        - name: csi-driver-registrar
+        - name: efs-plugin
           securityContext:
             privileged: true
+          image: chengpan/aws-efs-csi-driver:testing
           imagePullPolicy: Always
-          image: quay.io/k8scsi/driver-registrar:v0.4.1
           args:
+            - --endpoint=$(CSI_ENDPOINT)
+            - --logtostderr
             - --v=5
+          env:
+            - name: CSI_ENDPOINT
+              value: unix:/csi/csi.sock
+          volumeMounts:
+            - name: kubelet-dir
+              mountPath: /var/lib/kubelet
+              mountPropagation: "Bidirectional"
+            - name: plugin-dir
+              mountPath: /csi
+            - name: device-dir
+              mountPath: /dev
+        - name: csi-driver-registrar
+          image: quay.io/k8scsi/driver-registrar:v0.4.2
+          imagePullPolicy: Always
+          args:
             - --csi-address=$(ADDRESS)
             - --mode=node-register
             - --driver-requires-attachment=true
             - --pod-info-mount-version="v1"
             - --kubelet-registration-path=$(DRIVER_REG_SOCK_PATH)
+            - --v=5
           env:
             - name: ADDRESS
               value: /csi/csi.sock
@@ -91,36 +110,6 @@ spec:
               mountPath: /csi
             - name: registration-dir
               mountPath: /registration
-        - name: efs-plugin
-          securityContext:
-            privileged: true
-          imagePullPolicy: Always
-          image: chengpan/aws-efs-csi-driver:testing
-          args:
-            - --endpoint=$(CSI_ENDPOINT)
-            - --logtostderr
-            - --v=5
-          env:
-            - name: CSI_ENDPOINT
-              value: unix:/csi/csi.sock
-            - name: AWS_ACCESS_KEY_ID
-              valueFrom:
-                secretKeyRef:
-                  name: aws-secret
-                  key: key_id
-            - name: AWS_SECRET_ACCESS_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: aws-secret
-                  key: access_key
-          volumeMounts:
-            - name: kubelet-dir
-              mountPath: /var/lib/kubelet
-              mountPropagation: "Bidirectional"
-            - name: plugin-dir
-              mountPath: /csi
-            - name: device-dir
-              mountPath: /dev
       volumes:
         - name: kubelet-dir
           hostPath:
