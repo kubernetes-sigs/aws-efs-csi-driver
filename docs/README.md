@@ -34,17 +34,10 @@ To enable encryption in transit, `tls` needs to be set at `NodePublishVolumeRequ
 # Kubernetes Example
 This example demos how to make a EFS filesystem mounted inside container using the driver. Before this, get yourself familiar with setting up kubernetes on AWS and [creating EFS filesystem](https://docs.aws.amazon.com/efs/latest/ug/getting-started.html). And when creating EFS filesystem, make sure it is accessible from kuberenetes cluster. This can be achieved by creating EFS filesystem inside the same VPC as kubernetes cluster or using VPC peering.
 
-Once kubernetes cluster and EFS filesystem is created, modify secret manifest file [secret.yaml](../deploy/kubernetes/secret.yaml). 
-
-Then create the secret object:
-```
-kubectl apply -f deploy/kubernetes/secret.yaml 
-```
-
 Deploy AWS EFS CSI driver:
 
 ```
-kubectl apply -f https://raw.githubusercontent.com/aws/aws-efs-csi-driver/master/deploy/kubernetes/attacher.yaml 
+kubectl apply -f https://raw.githubusercontent.com/aws/aws-efs-csi-driver/master/deploy/kubernetes/controller.yaml 
 kubectl apply -f https://raw.githubusercontent.com/aws/aws-efs-csi-driver/master/deploy/kubernetes/node.yaml
 ```
 
