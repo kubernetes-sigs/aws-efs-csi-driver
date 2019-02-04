@@ -41,7 +41,7 @@ kubectl apply -f https://raw.githubusercontent.com/aws/aws-efs-csi-driver/master
 kubectl apply -f https://raw.githubusercontent.com/aws/aws-efs-csi-driver/master/deploy/kubernetes/node.yaml
 ```
 
-Edit the [persistence volume manifest file](../deploy/kubernetes/sample_app/pv.yaml) (note that encryption in transit is enabled using mount option):
+Edit the [persistence volume manifest file](../examples/kubernetes/sample_app/pv.yaml) (note that encryption in transit is enabled using mount option):
 ```
 apiVersion: v1
 kind: PersistentVolume
@@ -69,10 +69,10 @@ aws efs describe-file-systems
 
 Then create PV, persistence volume claim (PVC) and storage class:
 ```
-kubectl apply -f deploy/kubernetes/sample_app/storageclass.yaml
-kubectl apply -f deploy/kubernetes/sample_app/pv.yaml
-kubectl apply -f deploy/kubernetes/sample_app/claim.yaml
-kubectl apply -f deploy/kubernetes/sample_app/pod.yaml
+kubectl apply -f examples/kubernetes/sample_app/storageclass.yaml
+kubectl apply -f examples/kubernetes/sample_app/pv.yaml
+kubectl apply -f examples/kubernetes/sample_app/claim.yaml
+kubectl apply -f examples/kubernetes/sample_app/pod.yaml
 ```
 
 After the objects are created, verify that pod name app is running:
