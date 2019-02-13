@@ -42,11 +42,17 @@ The following sections are Kubernetes specific. If you are Kubernetes user, use 
 * Since EFS is an elastic filesystem that doesn't really enforce any filesystem capacity. The actual storage capacity value in persistence volume and persistence volume claim is not used when creating the filesystem. However, since the storage capacity is a required field, you still need to specify the value and you can use any valid value for the capacity.
 
 ### Installation
-Deploy AWS EFS CSI driver:
-
+Checkout the project:
+```sh
+>> git clone https://github.com/aws/aws-efs-csi-driver.git
+>> cd aws-efs-csi-driver
 ```
-kubectl apply -f https://raw.githubusercontent.com/aws/aws-efs-csi-driver/master/deploy/kubernetes/controller.yaml 
-kubectl apply -f https://raw.githubusercontent.com/aws/aws-efs-csi-driver/master/deploy/kubernetes/node.yaml
+
+Deploy the driver:
+
+```sh
+>> kubectl apply -f deploy/kubernetes/controller.yaml
+>> kubectl apply -f deploy/kubernetes/node.yaml
 ```
 
 ### Examples
