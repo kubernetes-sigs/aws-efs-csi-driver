@@ -38,6 +38,9 @@ The following sections are Kubernetes specific. If you are Kubernetes user, use 
 * Static provisioning - EFS filesystem needs to be created manually first, then it could be mounted inside container as a persistence volume (PV) using the driver.
 * Mount Options - Mount options could be specified in persistence volume (PV) to define how the volume should be mounted. Aside from normal mount options, you can also specify `tls` as mount option to enable encryption in transit of EFS filesystem.
 
+**Notes**:
+* Since EFS is an elastic filesystem that doesn't really enforce any filesystem capacity. The actual storage capacity value in persistence volume and persistence volume claim is not used when creating the filesystem. However, since the storage capacity is a required field, you still need to specify the value and you can use any valid value for the capacity.
+
 ### Installation
 Deploy AWS EFS CSI driver:
 
