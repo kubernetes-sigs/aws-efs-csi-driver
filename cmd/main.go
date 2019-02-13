@@ -19,8 +19,8 @@ package main
 import (
 	"flag"
 
-	"github.com/golang/glog"
 	"github.com/kubernetes-sigs/aws-efs-csi-driver/pkg/driver"
+	"k8s.io/klog"
 )
 
 func main() {
@@ -29,6 +29,6 @@ func main() {
 
 	drv := driver.NewDriver(*endpoint)
 	if err := drv.Run(); err != nil {
-		glog.Fatalln(err)
+		klog.Fatalln(err)
 	}
 }
