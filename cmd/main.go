@@ -25,6 +25,7 @@ import (
 
 func main() {
 	var endpoint = flag.String("endpoint", "unix://tmp/csi.sock", "CSI Endpoint")
+	klog.InitFlags(nil)
 	flag.Parse()
 
 	drv := driver.NewDriver(*endpoint)

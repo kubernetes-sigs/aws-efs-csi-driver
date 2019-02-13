@@ -11,7 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+#
+IMAGE=chengpan/aws-efs-csi-driver
 VERSION=0.1.0
 
 .PHONY: aws-efs-csi-driver
@@ -22,3 +23,11 @@ aws-efs-csi-driver:
 .PHONY: test
 test:
 	go test -v -race ./pkg/...
+
+.PHONY: image
+image:
+	docker build -t $(IMAGE):testing .
+
+.PHONY: push
+push:
+	docker push $(IMAGE):testing

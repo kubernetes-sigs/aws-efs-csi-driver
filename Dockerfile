@@ -18,7 +18,7 @@ ADD . .
 RUN make
 
 FROM amazonlinux:2
-RUN yum update -y && yum install util-linux amazon-efs-utils -y 
+RUN yum install util-linux amazon-efs-utils -y
 COPY --from=builder /go/src/github.com/kubernetes-sigs/aws-efs-csi-driver/bin/aws-efs-csi-driver /bin/aws-efs-csi-driver
 
 ENTRYPOINT ["/bin/aws-efs-csi-driver"]
