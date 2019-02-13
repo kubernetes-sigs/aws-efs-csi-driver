@@ -23,28 +23,28 @@ spec:
 Replace `VolumeHandle` with `FileSystemId` of the EFS filesystem that needs to be mounted.
 
 You can find it using AWS CLI:
-```
-aws efs describe-file-systems 
+```sh
+>> aws efs describe-file-systems
 ```
 
 ### Deploy the Example Application
 Create PV, persistence volume claim (PVC) and storage class:
-```
-kubectl apply -f examples/kubernetes/static_provisioning/storageclass.yaml
-kubectl apply -f examples/kubernetes/static_provisioning/pv.yaml
-kubectl apply -f examples/kubernetes/static_provisioning/claim.yaml
-kubectl apply -f examples/kubernetes/static_provisioning/pod.yaml
+```sh
+>> kubectl apply -f examples/kubernetes/static_provisioning/storageclass.yaml
+>> kubectl apply -f examples/kubernetes/static_provisioning/pv.yaml
+>> kubectl apply -f examples/kubernetes/static_provisioning/claim.yaml
+>> kubectl apply -f examples/kubernetes/static_provisioning/pod.yaml
 ```
 
 ### Check EFS filesystem is used
 After the objects are created, verify that pod is running:
 
-```
-kubectl get pods
+```sh
+>> kubectl get pods
 ```
 
 Also you can verify that data is written onto EFS filesystem:
 
-```
-kubectl exec -ti app -- tail -f /data/out.txt
+```sh
+>> kubectl exec -ti app -- tail -f /data/out.txt
 ```
