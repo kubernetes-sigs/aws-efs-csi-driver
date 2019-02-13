@@ -21,10 +21,10 @@ import (
 	"net"
 
 	csi "github.com/container-storage-interface/spec/lib/go/csi/v0"
-	"github.com/golang/glog"
 	"github.com/kubernetes-sigs/aws-efs-csi-driver/pkg/cloud"
 	"github.com/kubernetes-sigs/aws-efs-csi-driver/pkg/util"
 	"google.golang.org/grpc"
+	"k8s.io/klog"
 	"k8s.io/kubernetes/pkg/util/mount"
 )
 
@@ -59,7 +59,7 @@ type Driver struct {
 func NewDriver(endpoint string) *Driver {
 	cloud, err := cloud.NewCloud()
 	if err != nil {
-		glog.Fatalln(err)
+		klog.Fatalln(err)
 	}
 
 	return &Driver{
@@ -83,7 +83,7 @@ func (d *Driver) Run() error {
 	logErr := func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 		resp, err := handler(ctx, req)
 		if err != nil {
-			glog.Errorf("GRPC error: %v", err)
+			klog.Errorf("GRPC error: %v", err)
 		}
 		return resp, err
 	}
@@ -95,7 +95,7 @@ func (d *Driver) Run() error {
 	csi.RegisterIdentityServer(d.srv, d)
 	csi.RegisterNodeServer(d.srv, d)
 
-	glog.Infof("Listening for connections on address: %#v", listener.Addr())
+	klog.Infof("Listening for connections on address: %#v", listener.Addr())
 	return d.srv.Serve(listener)
 }
 
