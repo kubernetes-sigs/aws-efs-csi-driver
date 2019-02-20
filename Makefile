@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-IMAGE=chengpan/aws-efs-csi-driver
+IMAGE=amazon/aws-efs-csi-driver
 VERSION=0.1.0
 
 .PHONY: aws-efs-csi-driver
@@ -20,14 +20,26 @@ aws-efs-csi-driver:
 	mkdir -p bin
 	CGO_ENABLED=0 GOOS=linux go build -ldflags "-X github.com/kubernetes-sigs/aws-efs-csi-driver/pkg/driver.vendorVersion=${VERSION}" -o bin/aws-efs-csi-driver ./cmd/
 
+.PHONY: verify
+verify:
+	./hack/verify-all
+
 .PHONY: test
 test:
 	go test -v -race ./pkg/...
 
 .PHONY: image
 image:
-	docker build -t $(IMAGE):testing .
+	docker build -t $(IMAGE):latest .
 
 .PHONY: push
 push:
-	docker push $(IMAGE):testing
+	docker push $(IMAGE):latest
+
+.PHONY: image-release
+image-release:
+	docker build -t $(IMAGE):$(VERSION)
+
+.PHONY: push-release
+push-release:
+	docker push $(IMAGE):$(VERSION)
