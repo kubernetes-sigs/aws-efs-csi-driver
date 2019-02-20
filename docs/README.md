@@ -70,7 +70,7 @@ Before the example, you need to:
 Please go through [CSI Spec](https://github.com/container-storage-interface/spec/blob/master/spec.md) and [General CSI driver development guideline](https://kubernetes-csi.github.io/docs/Development.html) to get some basic understanding of CSI driver before you start.
 
 ### Requirements
-* Golang 1.11.2+
+* Golang 1.11.4+
 
 ### Testing
 To execute all unit tests, run: `make test`
