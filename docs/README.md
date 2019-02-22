@@ -6,7 +6,7 @@
 
 ## AWS EFS CSI Driver
 
-The [Amazon Elastic File System](https://aws.amazon.com/efs/) Container Storage Interface (CSI) Driver implements [CSI](https://github.com/container-storage-interface/spec/blob/master/spec.md) interface for container orchestrators to manage lifecycle of Amazon EFS filesystem.
+The [Amazon Elastic File System](https://aws.amazon.com/efs/) Container Storage Interface (CSI) Driver implements [CSI](https://github.com/container-storage-interface/spec/blob/master/spec.md) specification for container orchestrators to manage lifecycle of Amazon EFS filesystems.
 
 ### CSI Specification Compability Matrix
 | AWS EFS CSI Driver \ CSI Version       | v0.3.0| v1.0.0 |
@@ -18,6 +18,7 @@ Currently only static provisioning is supported. This means a AWS EFS filesystem
 
 The following CSI interfaces are implemented:
 * Node Service: NodePublishVolume, NodeUnpublishVolume, NodeGetCapabilities, NodeGetInfo, NodeGetId
+* Identity Service: GetPluginInfo, GetPluginCapabilities, Probe
 
 ### Encryption In Transit
 One of the advantages of using EFS is that it provides [encryption in transit](https://aws.amazon.com/blogs/aws/new-encryption-of-data-in-transit-for-amazon-efs/) support using TLS. Using encryption in transit, data will be encrypted during its transition over the network to EFS service. This provides extra layer of defence-in-depth for applications that requires strict secuity compliance.
@@ -30,9 +31,9 @@ To enable encryption in transit, `tls` needs to be set at `NodePublishVolumeRequ
 The following sections are Kubernetes specific. If you are Kubernetes user, use this for driver features, installation steps and examples.
 
 ### Kubernetes Version Compability Matrix
-| AWS EFS CSI Driver \ Kubernetes Version| v1.12 | v1.13 |
-|----------------------------------------|-------|-------|
-| master branch                          | yes   | yes   |
+| AWS EFS CSI Driver \ Kubernetes Version| v1.11 | v1.12 | v1.13 |
+|----------------------------------------|-------|-------|-------|
+| master branch                          | yes   | yes   | yes   |
 
 ### Features
 * Static provisioning - EFS filesystem needs to be created manually first, then it could be mounted inside container as a persistence volume (PV) using the driver.
