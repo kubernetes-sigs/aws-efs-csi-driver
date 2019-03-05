@@ -1,6 +1,5 @@
-*Issue #, if available:*
+**Is this a bug fix or adding new feature?**
 
-*Description of changes:*
+**What is this PR about? / Why do we need it?**
 
-
-By submitting this pull request, I confirm that my contribution is made under the terms of the Apache 2.0 license.
+**What testing is done?** 
