@@ -73,6 +73,9 @@ Please go through [CSI Spec](https://github.com/container-storage-interface/spec
 ### Requirements
 * Golang 1.11.4+
 
+### Dependency
+Dependencies are managed through go module. To build the project, first turn on go mod using `export GO111MODULE=on`, to build the project run: `make`
+
 ### Testing
 To execute all unit tests, run: `make test`
 
