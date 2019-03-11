@@ -23,7 +23,7 @@ The following CSI interfaces are implemented:
 ### Encryption In Transit
 One of the advantages of using EFS is that it provides [encryption in transit](https://aws.amazon.com/blogs/aws/new-encryption-of-data-in-transit-for-amazon-efs/) support using TLS. Using encryption in transit, data will be encrypted during its transition over the network to EFS service. This provides extra layer of defence-in-depth for applications that requires strict secuity compliance.
 
-To enable encryption in transit, `tls` needs to be set at `NodePublishVolumeRequest.VolumeCapability.MountVolume` object's `MountFlags` fields. For example of using it in kuberentes, see persistence volume manifest in [Encryption in Transit Example](../examples/kubernetes/encryption_in_transit/pv.yaml)
+To enable encryption in transit, `tls` needs to be set at `NodePublishVolumeRequest.VolumeCapability.MountVolume` object's `MountFlags` fields. For example of using it in kuberentes, see persistence volume manifest in [Encryption in Transit Example](../examples/kubernetes/encryption_in_transit/specs/pv.yaml)
 
 **Note** Kubernetes version 1.13+ is required if you are using this feature in Kuberentes.
 
@@ -40,7 +40,7 @@ The following sections are Kubernetes specific. If you are Kubernetes user, use 
 * Mount Options - Mount options could be specified in persistence volume (PV) to define how the volume should be mounted. Aside from normal mount options, you can also specify `tls` as mount option to enable encryption in transit of EFS filesystem.
 
 **Notes**:
-* Since EFS is an elastic filesystem that doesn't really enforce any filesystem capacity. The actual storage capacity value in persistence volume and persistence volume claim is not used when creating the filesystem. However, since the storage capacity is a required field, you still need to specify the value and you can use any valid value for the capacity.
+* Since EFS is an elastic filesystem that doesn't really enforce any filesystem capacity. The actual storage capacity value in persistence volume and persistence volume claim is not used when creating the filesystem. However, since the storage capacity is a required field by Kubernetes, you must specify the value and you can use any valid value for the capacity.
 
 ### Installation
 Checkout the project:
