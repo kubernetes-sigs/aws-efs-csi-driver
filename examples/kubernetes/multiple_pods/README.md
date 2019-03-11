@@ -2,7 +2,7 @@
 This example shows how to create a static provisioned EFS PV and access it from multiple pods with RWX access mode.
 
 ### Edit Persistent Volume
-Edit persistent volume using sample [spec](pv.yaml):
+Edit persistent volume using sample [spec](./specs/pv.yaml):
 ```
 apiVersion: v1
 kind: PersistentVolume

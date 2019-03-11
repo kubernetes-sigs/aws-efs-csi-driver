@@ -3,7 +3,7 @@ This example shows how to make a static provisioned EFS PV mounted inside contai
 
 **Note**: this example requires Kubernetes v1.13+
 
-### Edit [Persistence Volume Spec](pv.yaml) 
+### Edit [Persistence Volume Spec](./specs/pv.yaml) 
 
 ```
 apiVersion: v1

@@ -1,7 +1,7 @@
 ## Static Provisioning
 This example shows how to make a static provisioned EFS PV mounted inside container.
 
-### Edit [Persistence Volume Spec](pv.yaml) 
+### Edit [Persistence Volume Spec](./specs/pv.yaml) 
 
 ```
 apiVersion: v1
