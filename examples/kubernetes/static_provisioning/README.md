@@ -1,5 +1,5 @@
 ## Static Provisioning
-This example shows how to make a static provisioned EFS PV mounted inside container.
+This example shows how to make a static provisioned EFS persistence volume (PV) mounted inside container.
 
 ### Edit [Persistence Volume Spec](./specs/pv.yaml) 
 
@@ -20,20 +20,20 @@ spec:
     driver: efs.csi.aws.com
     volumeHandle: [FileSystemId] 
 ```
-Replace `VolumeHandle` with `FileSystemId` of the EFS filesystem that needs to be mounted.
+Replace `VolumeHandle` value with `FileSystemId` of the EFS filesystem that needs to be mounted.
 
 You can find it using AWS CLI:
 ```sh
->> aws efs describe-file-systems
+>> aws efs describe-file-systems --query "FileSystems[*].FileSystemId"
 ```
 
 ### Deploy the Example Application
 Create PV, persistence volume claim (PVC) and storage class:
 ```sh
->> kubectl apply -f examples/kubernetes/static_provisioning/storageclass.yaml
->> kubectl apply -f examples/kubernetes/static_provisioning/pv.yaml
->> kubectl apply -f examples/kubernetes/static_provisioning/claim.yaml
->> kubectl apply -f examples/kubernetes/static_provisioning/pod.yaml
+>> kubectl apply -f examples/kubernetes/static_provisioning/specs/storageclass.yaml
+>> kubectl apply -f examples/kubernetes/static_provisioning/specs/pv.yaml
+>> kubectl apply -f examples/kubernetes/static_provisioning/specs/claim.yaml
+>> kubectl apply -f examples/kubernetes/static_provisioning/specs/pod.yaml
 ```
 
 ### Check EFS filesystem is used
@@ -46,5 +46,5 @@ After the objects are created, verify that pod is running:
 Also you can verify that data is written onto EFS filesystem:
 
 ```sh
->> kubectl exec -ti app -- tail -f /data/out.txt
+>> kubectl exec -ti efs-app -- tail -f /data/out.txt
 ```
