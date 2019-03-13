@@ -1,10 +1,11 @@
 [![Build Status](https://travis-ci.org/aws/csi-driver-amazon-efs.svg?branch=master)](https://travis-ci.org/aws/csi-driver-amazon-efs)
+[![Coverage Status](https://coveralls.io/repos/github/aws/csi-driver-amazon-efs/badge.svg?branch=master)](https://coveralls.io/github/aws/csi-driver-amazon-efs?branch=master)
 
-**WARNING**: This driver is in pre ALPHA currently. This means that there may potentially be backwards compatible breaking changes moving forward. Do NOT use this driver in a production environment in its current state.
+**WARNING**: This driver is currently an ALPHA release. This means that there may potentially be backwards compatible breaking changes moving forward. Do NOT use this driver in a production environment in its current state.
 
 **DISCLAIMER**: This is not an officially supported Amazon product
 
-## AWS EFS CSI Driver
+## Amazon EFS CSI Driver
 
 The [Amazon Elastic File System](https://aws.amazon.com/efs/) Container Storage Interface (CSI) Driver implements [CSI](https://github.com/container-storage-interface/spec/blob/master/spec.md) specification for container orchestrators to manage lifecycle of Amazon EFS filesystems.
 
@@ -34,6 +35,11 @@ The following sections are Kubernetes specific. If you are Kubernetes user, use 
 | AWS EFS CSI Driver \ Kubernetes Version| v1.11 | v1.12 | v1.13 |
 |----------------------------------------|-------|-------|-------|
 | master branch                          | yes   | yes   | yes   |
+
+### Container Images
+|EFS CSI Driver Version     | Image                               |
+|---------------------------|-------------------------------------|
+|master branch              |amazon/aws-efs-csi-driver:latest     |
 
 ### Features
 * Static provisioning - EFS filesystem needs to be created manually first, then it could be mounted inside container as a persistence volume (PV) using the driver.
