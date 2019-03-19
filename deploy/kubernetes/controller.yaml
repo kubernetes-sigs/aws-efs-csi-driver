@@ -60,7 +60,7 @@ spec:
           operator: Exists
       containers:
         - name: efs-plugin
-          image: amazon/aws-efs-csi-driver:latest
+          image: amazon/aws-efs-csi-driver:v0.1.0
           imagePullPolicy: Always
           args :
             - --endpoint=$(CSI_ENDPOINT)
