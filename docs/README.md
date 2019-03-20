@@ -13,6 +13,7 @@ The [Amazon Elastic File System](https://aws.amazon.com/efs/) Container Storage 
 | AWS EFS CSI Driver \ CSI Version       | v0.3.0| v1.0.0 |
 |----------------------------------------|-------|--------|
 | master branch                          | yes   | no     |
+| v0.1.0                                 | yes   | no     |
 
 ## Features
 Currently only static provisioning is supported. This means a AWS EFS filesystem needs to be created manually on AWS first. After that it could be mounted inside container as a volume using the driver.
@@ -35,11 +36,13 @@ The following sections are Kubernetes specific. If you are Kubernetes user, use 
 | AWS EFS CSI Driver \ Kubernetes Version| v1.11 | v1.12 | v1.13 |
 |----------------------------------------|-------|-------|-------|
 | master branch                          | yes   | yes   | yes   |
+| v0.1.0                                 | yes   | yes   | yes   |
 
 ### Container Images
 |EFS CSI Driver Version     | Image                               |
 |---------------------------|-------------------------------------|
 |master branch              |amazon/aws-efs-csi-driver:latest     |
+|v0.1.0                     |amazon/aws-efs-csi-driver:v0.1.0     |
 
 ### Features
 * Static provisioning - EFS filesystem needs to be created manually first, then it could be mounted inside container as a persistence volume (PV) using the driver.
