@@ -1,5 +1,5 @@
-[![Build Status](https://travis-ci.org/aws/csi-driver-amazon-efs.svg?branch=master)](https://travis-ci.org/aws/csi-driver-amazon-efs)
-[![Coverage Status](https://coveralls.io/repos/github/aws/csi-driver-amazon-efs/badge.svg?branch=master)](https://coveralls.io/github/aws/csi-driver-amazon-efs?branch=master)
+[![Build Status](https://travis-ci.org/kubernetes-sigs/csi-driver-amazon-efs.svg?branch=master)](https://travis-ci.org/kubernetes-sigs/csi-driver-amazon-efs)
+[![Coverage Status](https://coveralls.io/repos/github/kubernetes-sigs/csi-driver-amazon-efs/badge.svg?branch=master)](https://coveralls.io/github/kubernetes-sigs/csi-driver-amazon-efs?branch=master)
 
 **WARNING**: This driver is currently an ALPHA release. This means that there may potentially be backwards compatible breaking changes moving forward. Do NOT use this driver in a production environment in its current state.
 
@@ -55,7 +55,7 @@ The following sections are Kubernetes specific. If you are Kubernetes user, use 
 Deploy the driver:
 
 ```sh
-kubectl apply -f https://raw.githubusercontent.com/aws/aws-efs-csi-driver/master/deploy/kubernetes/manifest.yaml
+kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/aws-efs-csi-driver/master/deploy/kubernetes/manifest.yaml
 ```
 
 ### Examples
@@ -82,4 +82,4 @@ Dependencies are managed through go module. To build the project, first turn on 
 To execute all unit tests, run: `make test`
 
 ## License
-This library is licensed under the Apache 2.0 License. 
+This library is licensed under the Apache 2.0 License.
