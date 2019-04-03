@@ -1,5 +1,5 @@
-[![Build Status](https://travis-ci.org/kubernetes-sigs/csi-driver-amazon-efs.svg?branch=master)](https://travis-ci.org/kubernetes-sigs/csi-driver-amazon-efs)
-[![Coverage Status](https://coveralls.io/repos/github/kubernetes-sigs/csi-driver-amazon-efs/badge.svg?branch=master)](https://coveralls.io/github/kubernetes-sigs/csi-driver-amazon-efs?branch=master)
+[![Build Status](https://travis-ci.org/kubernetes-sigs/aws-efs-csi-driver.svg?branch=master)](https://travis-ci.org/kubernetes-sigs/aws-efs-csi-driver)
+[![Coverage Status](https://coveralls.io/repos/github/kubernetes-sigs/aws-efs-csi-driver/badge.svg?branch=master)](https://coveralls.io/github/kubernetes-sigs/aws-efs-csi-driver?branch=master)
 
 **WARNING**: This driver is currently an ALPHA release. This means that there may potentially be backwards compatible breaking changes moving forward. Do NOT use this driver in a production environment in its current state.
 
