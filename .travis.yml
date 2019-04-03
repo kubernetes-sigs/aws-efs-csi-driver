@@ -1,5 +1,5 @@
 language: go
-go_import_path: github.com/aws/aws-efs-csi-driver
+go_import_path: github.com/kubernetes-sigs/aws-efs-csi-driver
 
 env:
   global:
