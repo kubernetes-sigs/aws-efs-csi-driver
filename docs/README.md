@@ -7,7 +7,7 @@
 
 ## Amazon EFS CSI Driver
 
-The [Amazon Elastic File System](https://aws.amazon.com/efs/) Container Storage Interface (CSI) Driver implements [CSI](https://github.com/container-storage-interface/spec/blob/master/spec.md) specification for container orchestrators to manage lifecycle of Amazon EFS filesystems.
+The [Amazon Elastic File System](https://aws.amazon.com/efs/) Container Storage Interface (CSI) Driver implements the [CSI](https://github.com/container-storage-interface/spec/blob/master/spec.md) specification for container orchestrators to manage the lifecycle of Amazon EFS filesystems.
 
 ### CSI Specification Compability Matrix
 | AWS EFS CSI Driver \ CSI Version       | v0.3.0| v1.0.0 |
@@ -16,21 +16,21 @@ The [Amazon Elastic File System](https://aws.amazon.com/efs/) Container Storage 
 | v0.1.0                                 | yes   | no     |
 
 ## Features
-Currently only static provisioning is supported. This means a AWS EFS filesystem needs to be created manually on AWS first. After that it could be mounted inside container as a volume using the driver.
+Currently only static provisioning is supported. This means an AWS EFS filesystem needs to be created manually on AWS first. After that it can be mounted inside a container as a volume using the driver.
 
 The following CSI interfaces are implemented:
 * Node Service: NodePublishVolume, NodeUnpublishVolume, NodeGetCapabilities, NodeGetInfo, NodeGetId
 * Identity Service: GetPluginInfo, GetPluginCapabilities, Probe
 
 ### Encryption In Transit
-One of the advantages of using EFS is that it provides [encryption in transit](https://aws.amazon.com/blogs/aws/new-encryption-of-data-in-transit-for-amazon-efs/) support using TLS. Using encryption in transit, data will be encrypted during its transition over the network to EFS service. This provides extra layer of defence-in-depth for applications that requires strict secuity compliance.
+One of the advantages of using EFS is that it provides [encryption in transit](https://aws.amazon.com/blogs/aws/new-encryption-of-data-in-transit-for-amazon-efs/) support using TLS. Using encryption in transit, data will be encrypted during its transition over the network to the EFS service. This provides an extra layer of defence-in-depth for applications that requires strict security compliance.
 
-To enable encryption in transit, `tls` needs to be set at `NodePublishVolumeRequest.VolumeCapability.MountVolume` object's `MountFlags` fields. For example of using it in kuberentes, see persistence volume manifest in [Encryption in Transit Example](../examples/kubernetes/encryption_in_transit/specs/pv.yaml)
+To enable encryption in transit, `tls` needs to be set in the `NodePublishVolumeRequest.VolumeCapability.MountVolume` object's `MountFlags` fields. For an example of using it in kubernetes, see the persistence volume manifest in [Encryption in Transit Example](../examples/kubernetes/encryption_in_transit/specs/pv.yaml)
 
-**Note** Kubernetes version 1.13+ is required if you are using this feature in Kuberentes.
+**Note** Kubernetes version 1.13+ is required if you are using this feature in Kubernetes.
 
 ## EFS CSI Driver on Kubernetes
-The following sections are Kubernetes specific. If you are Kubernetes user, use this for driver features, installation steps and examples.
+The following sections are Kubernetes specific. If you are a Kubernetes user, use this for driver features, installation steps and examples.
 
 ### Kubernetes Version Compability Matrix
 | AWS EFS CSI Driver \ Kubernetes Version| v1.11 | v1.12 | v1.13 |
@@ -45,11 +45,11 @@ The following sections are Kubernetes specific. If you are Kubernetes user, use 
 |v0.1.0                     |amazon/aws-efs-csi-driver:v0.1.0     |
 
 ### Features
-* Static provisioning - EFS filesystem needs to be created manually first, then it could be mounted inside container as a persistence volume (PV) using the driver.
-* Mount Options - Mount options could be specified in persistence volume (PV) to define how the volume should be mounted. Aside from normal mount options, you can also specify `tls` as mount option to enable encryption in transit of EFS filesystem.
+* Static provisioning - EFS filesystem needs to be created manually first, then it could be mounted inside container as a persistent volume (PV) using the driver.
+* Mount Options - Mount options can be specified in the persistence volume (PV) to define how the volume should be mounted. Aside from normal mount options, you can also specify `tls` as a mount option to enable encryption in transit of the EFS filesystem.
 
 **Notes**:
-* Since EFS is an elastic filesystem that doesn't really enforce any filesystem capacity. The actual storage capacity value in persistence volume and persistence volume claim is not used when creating the filesystem. However, since the storage capacity is a required field by Kubernetes, you must specify the value and you can use any valid value for the capacity.
+* Since EFS is an elastic filesystem it doesn't really enforce any filesystem capacity. The actual storage capacity value in persistence volume and persistence volume claim is not used when creating the filesystem. However, since the storage capacity is a required field by Kubernetes, you must specify the value and you can use any valid value for the capacity.
 
 ### Installation
 Deploy the driver:
