@@ -68,6 +68,7 @@ Before the example, you need to:
 * [Static provisioning](../examples/kubernetes/static_provisioning/README.md)
 * [Encryption in transit](../examples/kubernetes/encryption_in_transit/README.md)
 * [Accessing the filesystem from multiple pods](../examples/kubernetes/multiple_pods/README.md)
+* [Consume EFS in StatefulSets](../examples/kubernetes/statefulset/README.md)
 
 ## Development
 Please go through [CSI Spec](https://github.com/container-storage-interface/spec/blob/master/spec.md) and [General CSI driver development guideline](https://kubernetes-csi.github.io/docs/Development.html) to get some basic understanding of CSI driver before you start.
