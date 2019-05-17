@@ -18,6 +18,7 @@ package main
 
 import (
 	"flag"
+	"github.com/kubernetes-sigs/aws-efs-csi-driver/pkg/info"
 
 	"github.com/kubernetes-sigs/aws-efs-csi-driver/pkg/driver"
 	"k8s.io/klog"
@@ -25,8 +26,15 @@ import (
 
 func main() {
 	var endpoint = flag.String("endpoint", "unix://tmp/csi.sock", "CSI Endpoint")
+	var version = flag.Bool("version", false, "Print version information")
+
 	klog.InitFlags(nil)
 	flag.Parse()
+
+	if *version {
+		info.Print()
+		return
+	}
 
 	drv := driver.NewDriver(*endpoint)
 	if err := drv.Run(); err != nil {
