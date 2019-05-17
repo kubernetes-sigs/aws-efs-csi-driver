@@ -12,22 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+
+PKG=github.com/kubernetes-sigs/aws-efs-csi-driver
 IMAGE=amazon/aws-efs-csi-driver
 VERSION=0.1.0
-
-FLAG_COMMIT=-X github.com/kubernetes-sigs/aws-efs-csi-driver/pkg/info.commitSha=`git log --pretty=format:'%H' -n 1`
-FLAG_DRIVER=-X github.com/kubernetes-sigs/aws-efs-csi-driver/pkg/driver.vendorVersion=${VERSION} -X github.com/kubernetes-sigs/aws-efs-csi-driver/pkg/info.driver=${VERSION}
-FLAG_ARCH=-X github.com/kubernetes-sigs/aws-efs-csi-driver/pkg/info.arch=`uname -m`
-FLAG_OS=-X github.com/kubernetes-sigs/aws-efs-csi-driver/pkg/info.os=`uname -r`
-FLAG_DATE=-X 'github.com/kubernetes-sigs/aws-efs-csi-driver/pkg/info.buildDate=`date -u '+%Y-%m-%d %H:%M:%S'`'
-FLAG_GO_VERSION=-X 'github.com/kubernetes-sigs/aws-efs-csi-driver/pkg/info.goVersion=`go version`'
-
-LDFLAGS=-ldflags "${FLAG_DRIVER} ${FLAG_COMMIT} ${FLAG_ARCH} ${FLAG_OS} ${FLAG_DATE} ${FLAG_GO_VERSION}"
+GIT_COMMIT?=$(shell git rev-parse HEAD)
+BUILD_DATE?=$(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
+LDFLAGS?="-X ${PKG}/pkg/driver.driverVersion=${VERSION} -X ${PKG}/pkg/driver.gitCommit=${GIT_COMMIT} -X ${PKG}/pkg/driver.buildDate=${BUILD_DATE}"
 
 .PHONY: aws-efs-csi-driver
 aws-efs-csi-driver:
 	mkdir -p bin
-	CGO_ENABLED=0 GOOS=linux go build ${LDFLAGS} -o bin/aws-efs-csi-driver ./cmd/
+	CGO_ENABLED=0 GOOS=linux go build -ldflags ${LDFLAGS} -o bin/aws-efs-csi-driver ./cmd/
 
 .PHONY: verify
 verify:
