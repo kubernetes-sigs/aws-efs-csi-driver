@@ -33,10 +33,6 @@ const (
 )
 
 var (
-	vendorVersion = "0.1.0"
-)
-
-var (
 	volumeCaps = []csi.VolumeCapability_AccessMode{
 		{
 			Mode: csi.VolumeCapability_AccessMode_SINGLE_NODE_WRITER,
