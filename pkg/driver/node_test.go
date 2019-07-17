@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"testing"
 
-	csi "github.com/container-storage-interface/spec/lib/go/csi/v0"
+	"github.com/container-storage-interface/spec/lib/go/csi"
 	"github.com/golang/mock/gomock"
 	"github.com/kubernetes-sigs/aws-efs-csi-driver/pkg/driver/mocks"
 )
@@ -62,7 +62,6 @@ func TestNodePublishVolume(t *testing.T) {
 				ctx := context.Background()
 				req := &csi.NodePublishVolumeRequest{
 					VolumeId:         volumeId,
-					VolumeAttributes: map[string]string{},
 					VolumeCapability: stdVolCap,
 					TargetPath:       targetPath,
 				}
@@ -92,7 +91,6 @@ func TestNodePublishVolume(t *testing.T) {
 				ctx := context.Background()
 				req := &csi.NodePublishVolumeRequest{
 					VolumeId:         volumeId,
-					VolumeAttributes: map[string]string{},
 					VolumeCapability: stdVolCap,
 					TargetPath:       targetPath,
 					Readonly:         true,
@@ -122,8 +120,7 @@ func TestNodePublishVolume(t *testing.T) {
 
 				ctx := context.Background()
 				req := &csi.NodePublishVolumeRequest{
-					VolumeId:         volumeId,
-					VolumeAttributes: map[string]string{},
+					VolumeId: volumeId,
 					VolumeCapability: &csi.VolumeCapability{
 						AccessType: &csi.VolumeCapability_Mount{
 							Mount: &csi.VolumeCapability_MountVolume{
@@ -161,7 +158,6 @@ func TestNodePublishVolume(t *testing.T) {
 				ctx := context.Background()
 				req := &csi.NodePublishVolumeRequest{
 					VolumeId:         volumeId,
-					VolumeAttributes: map[string]string{},
 					VolumeCapability: stdVolCap,
 				}
 
@@ -186,9 +182,8 @@ func TestNodePublishVolume(t *testing.T) {
 
 				ctx := context.Background()
 				req := &csi.NodePublishVolumeRequest{
-					VolumeId:         volumeId,
-					VolumeAttributes: map[string]string{},
-					TargetPath:       targetPath,
+					VolumeId:   volumeId,
+					TargetPath: targetPath,
 				}
 
 				_, err := driver.NodePublishVolume(ctx, req)
@@ -212,8 +207,7 @@ func TestNodePublishVolume(t *testing.T) {
 
 				ctx := context.Background()
 				req := &csi.NodePublishVolumeRequest{
-					VolumeId:         volumeId,
-					VolumeAttributes: map[string]string{},
+					VolumeId: volumeId,
 					VolumeCapability: &csi.VolumeCapability{
 						AccessType: &csi.VolumeCapability_Mount{
 							Mount: &csi.VolumeCapability_MountVolume{},
@@ -247,7 +241,6 @@ func TestNodePublishVolume(t *testing.T) {
 				ctx := context.Background()
 				req := &csi.NodePublishVolumeRequest{
 					VolumeId:         volumeId,
-					VolumeAttributes: map[string]string{},
 					VolumeCapability: stdVolCap,
 					TargetPath:       targetPath,
 				}
@@ -277,7 +270,6 @@ func TestNodePublishVolume(t *testing.T) {
 				ctx := context.Background()
 				req := &csi.NodePublishVolumeRequest{
 					VolumeId:         volumeId,
-					VolumeAttributes: map[string]string{},
 					VolumeCapability: stdVolCap,
 					TargetPath:       targetPath,
 				}
