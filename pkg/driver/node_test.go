@@ -145,6 +145,36 @@ func TestNodePublishVolume(t *testing.T) {
 			},
 		},
 		{
+			name: "success: normal with path volume context",
+			testFunc: func(t *testing.T) {
+				mockCtrl := gomock.NewController(t)
+				mockMounter := mocks.NewMockInterface(mockCtrl)
+				driver := &Driver{
+					endpoint: endpoint,
+					nodeID:   nodeID,
+					mounter:  mockMounter,
+				}
+				source := volumeId + ":/a/b"
+
+				ctx := context.Background()
+				req := &csi.NodePublishVolumeRequest{
+					VolumeId:         volumeId,
+					VolumeCapability: stdVolCap,
+					TargetPath:       targetPath,
+					VolumeContext:    map[string]string{"path": "/a/b"},
+				}
+
+				mockMounter.EXPECT().MakeDir(gomock.Eq(targetPath)).Return(nil)
+				mockMounter.EXPECT().Mount(gomock.Eq(source), gomock.Eq(targetPath), gomock.Eq("efs"), gomock.Any()).Return(nil)
+				_, err := driver.NodePublishVolume(ctx, req)
+				if err != nil {
+					t.Fatalf("NodePublishVolume is failed: %v", err)
+				}
+
+				mockCtrl.Finish()
+			},
+		},
+		{
 			name: "fail: missing target path",
 			testFunc: func(t *testing.T) {
 				mockCtrl := gomock.NewController(t)
@@ -280,6 +310,60 @@ func TestNodePublishVolume(t *testing.T) {
 				mockMounter.EXPECT().Mount(gomock.Eq(source), gomock.Eq(targetPath), gomock.Eq("efs"), gomock.Any()).Return(err)
 
 				_, err = driver.NodePublishVolume(ctx, req)
+				if err == nil {
+					t.Fatalf("NodePublishVolume is not failed: %v", err)
+				}
+
+				mockCtrl.Finish()
+			},
+		},
+		{
+			name: "fail: unsupported volume context",
+			testFunc: func(t *testing.T) {
+				mockCtrl := gomock.NewController(t)
+				mockMounter := mocks.NewMockInterface(mockCtrl)
+				driver := &Driver{
+					endpoint: endpoint,
+					nodeID:   nodeID,
+					mounter:  mockMounter,
+				}
+
+				ctx := context.Background()
+				req := &csi.NodePublishVolumeRequest{
+					VolumeId:         volumeId,
+					VolumeCapability: stdVolCap,
+					TargetPath:       targetPath,
+					VolumeContext:    map[string]string{"asdf": "qwer"},
+				}
+
+				_, err := driver.NodePublishVolume(ctx, req)
+				if err == nil {
+					t.Fatalf("NodePublishVolume is not failed: %v", err)
+				}
+
+				mockCtrl.Finish()
+			},
+		},
+		{
+			name: "fail: relative path volume context",
+			testFunc: func(t *testing.T) {
+				mockCtrl := gomock.NewController(t)
+				mockMounter := mocks.NewMockInterface(mockCtrl)
+				driver := &Driver{
+					endpoint: endpoint,
+					nodeID:   nodeID,
+					mounter:  mockMounter,
+				}
+
+				ctx := context.Background()
+				req := &csi.NodePublishVolumeRequest{
+					VolumeId:         volumeId,
+					VolumeCapability: stdVolCap,
+					TargetPath:       targetPath,
+					VolumeContext:    map[string]string{"path": "a/b"},
+				}
+
+				_, err := driver.NodePublishVolume(ctx, req)
 				if err == nil {
 					t.Fatalf("NodePublishVolume is not failed: %v", err)
 				}
