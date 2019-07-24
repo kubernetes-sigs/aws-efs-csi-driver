@@ -22,6 +22,8 @@ spec:
       labels:
         app: efs-csi-node
     spec:
+      nodeSelector:
+        beta.kubernetes.io/os: linux
       serviceAccount: csi-node-sa
       hostNetwork: true
       containers:
