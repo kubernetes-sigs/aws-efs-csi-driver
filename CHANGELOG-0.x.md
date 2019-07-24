@@ -1,4 +1,23 @@
-#v0.1.0
+# v0.2.0
+
+## Changelog
+
+### Notable changes
+* Combine manifest files ([#35](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/35), [@leakingtapan](https://github.com/leakingtapan))
+* Add example stateful sets ([#43](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/43), [@leakingtapan](https://github.com/leakingtapan))
+* Added flag for version information output ([#44](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/44), [@djcass44](https://github.com/djcass44))
+* fix namespace in csi-node clusterrole ([#47](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/47), [@d-nishi](https://github.com/d-nishi))
+* Update to CSI v1.1.0 ([#48](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/48), [@wongma7](https://github.com/wongma7))
+* Add support for 'path' field in volumeContext ([#52](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/52), [@wongma7](https://github.com/wongma7))
+* Replace deprecated Recycle policy with Retain ([#53](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/53), [@wongma7](https://github.com/wongma7))
+* Add sanity test ([#54](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/54), [@wongma7](https://github.com/wongma7))
+* Run upstream e2e tests  ([#55](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/55), [@wongma7](https://github.com/wongma7))
+* Add linux nodeSelector to manifest.yaml ([#61](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/61), [@wongma7](https://github.com/wongma7))
+* Add liveness probe ([#62](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/62), [@wongma7](https://github.com/wongma7))
+* Add example for volume path ([#65](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/65), [@leakingtapan](https://github.com/leakingtapan))
+* Upgrade to golang 1.12 ([#70](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/70), [@wongma7](https://github.com/wongma7))
+
+# v0.1.0
 [Documentation](https://github.com/kubernetes-sigs/aws-efs-csi-driver/blob/v0.1.0/docs/README.md)
 
 filename  | sha512 hash
