@@ -20,6 +20,8 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
 	"google.golang.org/grpc/codes"
@@ -46,9 +48,6 @@ func (d *Driver) NodeUnstageVolume(ctx context.Context, req *csi.NodeUnstageVolu
 func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolumeRequest) (*csi.NodePublishVolumeResponse, error) {
 	klog.V(4).Infof("NodePublishVolume: called with args %+v", req)
 
-	volumeId := req.GetVolumeId()
-	source := fmt.Sprintf("%s:/", volumeId)
-
 	target := req.GetTargetPath()
 	if len(target) == 0 {
 		return nil, status.Error(codes.InvalidArgument, "Target path not provided")
@@ -62,6 +61,24 @@ func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 	if !d.isValidVolumeCapabilities([]*csi.VolumeCapability{volCap}) {
 		return nil, status.Error(codes.InvalidArgument, "Volume capability not supported")
 	}
+
+	// TODO when CreateVolume is implemented, it must use the same key names
+	path := "/"
+	volContext := req.GetVolumeContext()
+	for k, v := range volContext {
+		switch strings.ToLower(k) {
+		case "path":
+			if !filepath.IsAbs(v) {
+				return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("Volume context property %q must be an absolute path", k))
+			}
+			path = filepath.Join(path, v)
+		default:
+			return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("Volume context property %s not supported", k))
+		}
+	}
+
+	volumeId := req.GetVolumeId()
+	source := fmt.Sprintf("%s:%s", volumeId, path)
 
 	mountOptions := []string{}
 	if req.GetReadonly() {
