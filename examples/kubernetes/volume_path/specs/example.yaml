@@ -1,0 +1,53 @@
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: efs-sc
+provisioner: efs.csi.aws.com
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: efs-pv
+spec:
+  capacity:
+    storage: 5Gi
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: efs-sc
+  csi:
+    driver: efs.csi.aws.com
+    volumeHandle: fs-0434d1e6
+    volumeAttributes:
+      path: /a/b/c/
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: efs-claim
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: efs-sc
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: efs-app
+spec:
+  containers:
+  - name: app
+    image: centos
+    command: ["/bin/sh"]
+    args: ["-c", "while true; do echo $(date -u) >> /data/out.txt; sleep 5; done"]
+    volumeMounts:
+    - name: persistent-storage
+      mountPath: /data
+  volumes:
+  - name: persistent-storage
+    persistentVolumeClaim:
+      claimName: efs-claim
