@@ -3,7 +3,7 @@
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: csi-node-sa
+  name: efs-csi-node-sa
   namespace: kube-system
 
 ---
@@ -24,7 +24,7 @@ spec:
     spec:
       nodeSelector:
         beta.kubernetes.io/os: linux
-      serviceAccount: csi-node-sa
+      serviceAccount: efs-csi-node-sa
       hostNetwork: true
       containers:
         - name: efs-plugin
@@ -45,6 +45,18 @@ spec:
               mountPropagation: "Bidirectional"
             - name: plugin-dir
               mountPath: /csi
+          ports:
+            - containerPort: 9809
+              name: healthz
+              protocol: TCP
+          livenessProbe:
+            failureThreshold: 5
+            httpGet:
+              path: /healthz
+              port: healthz
+            initialDelaySeconds: 10
+            timeoutSeconds: 3
+            periodSeconds: 2
         - name: csi-driver-registrar
           image: quay.io/k8scsi/csi-node-driver-registrar:v1.1.0
           args:
@@ -65,6 +77,15 @@ spec:
               mountPath: /csi
             - name: registration-dir
               mountPath: /registration
+        - name: liveness-probe
+          imagePullPolicy: Always
+          image: quay.io/k8scsi/livenessprobe:v1.1.0
+          args:
+            - --csi-address=/csi/csi.sock
+            - --health-port=9809
+          volumeMounts:
+            - mountPath: /csi
+              name: plugin-dir
       volumes:
         - name: kubelet-dir
           hostPath:
