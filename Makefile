@@ -19,6 +19,10 @@ VERSION=0.1.0
 GIT_COMMIT?=$(shell git rev-parse HEAD)
 BUILD_DATE?=$(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
 LDFLAGS?="-X ${PKG}/pkg/driver.driverVersion=${VERSION} -X ${PKG}/pkg/driver.gitCommit=${GIT_COMMIT} -X ${PKG}/pkg/driver.buildDate=${BUILD_DATE}"
+GO111MODULE=on
+GOPROXY=direct
+
+.EXPORT_ALL_VARIABLES:
 
 .PHONY: aws-efs-csi-driver
 aws-efs-csi-driver:
@@ -32,6 +36,10 @@ verify:
 .PHONY: test
 test:
 	go test -v -race ./pkg/...
+
+.PHONY: test-e2e
+test-e2e:
+	AWS_REGION=us-west-2 AWS_AVAILABILITY_ZONES=us-west-2a,us-west-2b,us-west-2c ./hack/run-e2e-test
 
 .PHONY: image
 image:

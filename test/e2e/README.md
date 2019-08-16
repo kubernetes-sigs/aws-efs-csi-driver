@@ -1,0 +1,15 @@
+# Prerequisites
+- Amazon EFS file system
+- kubernetes 1.14+ cluster whose workers (preferably 2 or more) can mount the Amazon EFS file system
+
+# Run
+```sh
+go test -v -timeout 0 ./... -kubeconfig=$HOME/.kube/config -report-dir=$ARTIFACTS -ginkgo.focus="\[efs-csi\]" -ginkgo.skip="\[Disruptive\]" \
+  -file-system-id=fs-c2a43e69
+```
+
+# Update dependencies
+```sh
+go mod edit -require=k8s.io/kubernetes@v1.15.3
+./hack/update-gomod.sh v1.15.3
+```
