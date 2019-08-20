@@ -13,8 +13,6 @@ before_install:
 
 script:
   - make
-  - ./hack/verify-all
-  - make test
   - go test -covermode=count -coverprofile=profile.cov $(go list ./pkg/... | grep -v /driver)
     # TODO stop skipping controller tests when controller is implemented
   - go test -covermode=count -coverprofile=profile.cov ./pkg/driver/... -ginkgo.skip='\[Controller.Server\]'
