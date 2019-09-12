@@ -25,7 +25,7 @@ spec:
         - name: efs-plugin
           securityContext:
             privileged: true
-          image: amazon/aws-efs-csi-driver:latest
+          image: amazon/aws-efs-csi-driver:v0.2.0
           imagePullPolicy: Always
           args:
             - --endpoint=$(CSI_ENDPOINT)
