@@ -12,6 +12,7 @@ The [Amazon Elastic File System](https://aws.amazon.com/efs/) Container Storage 
 | AWS EFS CSI Driver \ CSI Version       | v0.3.0| v1.1.0 |
 |----------------------------------------|-------|--------|
 | master branch                          | no    | yes    |
+| v0.2.0                                 | no    | yes    |
 | v0.1.0                                 | yes   | no     |
 
 ## Features
@@ -41,6 +42,7 @@ The following sections are Kubernetes specific. If you are a Kubernetes user, us
 |EFS CSI Driver Version     | Image                               |
 |---------------------------|-------------------------------------|
 |master branch              |amazon/aws-efs-csi-driver:latest     |
+|v0.2.0                     |amazon/aws-efs-csi-driver:v0.2.0     |
 |v0.1.0                     |amazon/aws-efs-csi-driver:v0.1.0     |
 
 ### Features
