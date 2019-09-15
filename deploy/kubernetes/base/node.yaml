@@ -26,7 +26,6 @@ spec:
           securityContext:
             privileged: true
           image: amazon/aws-efs-csi-driver:latest
-          imagePullPolicy: Always
           args:
             - --endpoint=$(CSI_ENDPOINT)
             - --logtostderr
@@ -95,11 +94,4 @@ spec:
             path: /var/lib/kubelet/plugins/efs.csi.aws.com/
             type: DirectoryOrCreate
 
----
 
-apiVersion: storage.k8s.io/v1beta1
-kind: CSIDriver
-metadata:
-  name: efs.csi.aws.com
-spec:
-  attachRequired: false

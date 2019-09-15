@@ -77,8 +77,9 @@ done;
 
 
 echo "Deploying driver"
-cat deploy/kubernetes/manifest.yaml | sed s,amazon/aws-efs-csi-driver:.*,$IMAGE_NAME:$IMAGE_TAG, > $TEST_DIR/manifest.yaml
-kubectl apply -f $TEST_DIR/manifest.yaml
+sed -i'' "s,amazon/aws-efs-csi-driver,$IMAGE_NAME," deploy/kubernetes/overlays/dev/kustomization.yaml
+sed -i'' "s,newTag: latest,newTag: \"$IMAGE_TAG\"," deploy/kubernetes/overlays/dev/kustomization.yaml
+kubectl apply -k deploy/kubernetes/overlays/dev/
 
 echo "Creating EFS file system"
 aws efs create-file-system --creation-token $TEST_ID --tags Key=KubernetesCluster,Value=$CLUSTER_NAME.k8s.local --region $REGION

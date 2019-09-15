@@ -56,7 +56,7 @@ The following sections are Kubernetes specific. If you are a Kubernetes user, us
 Deploy the driver:
 
 ```sh
-kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/aws-efs-csi-driver/master/deploy/kubernetes/manifest.yaml
+kubectl apply -k "github.com/kubernetes-sigs/aws-efs-csi-driver/deploy/kubernetes/overlays/dev/?ref=master"
 ```
 
 ### Examples
