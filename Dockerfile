@@ -1,4 +1,4 @@
-# Copyright 2018 The Kubernetes Authors.
+# Copyright 2019 The Kubernetes Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,7 +14,6 @@
 
 FROM golang:1.12.7-stretch as builder
 WORKDIR /go/src/github.com/kubernetes-sigs/aws-efs-csi-driver
-ENV GO111MODULE on
 ADD . .
 RUN make
 
