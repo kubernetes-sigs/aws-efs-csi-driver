@@ -55,6 +55,12 @@ The following sections are Kubernetes specific. If you are a Kubernetes user, us
 ### Installation
 Deploy the driver:
 
+If you want to deploy the stable driver:
+```sh
+kubectl apply -k "github.com/kubernetes-sigs/aws-efs-csi-driver/deploy/kubernetes/overlays/stable/?ref=master"
+```
+
+If you want to deploy the development driver:
 ```sh
 kubectl apply -k "github.com/kubernetes-sigs/aws-efs-csi-driver/deploy/kubernetes/overlays/dev/?ref=master"
 ```
