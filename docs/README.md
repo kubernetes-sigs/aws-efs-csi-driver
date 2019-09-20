@@ -33,10 +33,11 @@ To enable encryption in transit, `tls` needs to be set in the `NodePublishVolume
 The following sections are Kubernetes specific. If you are a Kubernetes user, use this for driver features, installation steps and examples.
 
 ### Kubernetes Version Compability Matrix
-| AWS EFS CSI Driver \ Kubernetes Version| v1.11 | v1.12 | v1.13 | v1.14 |
-|----------------------------------------|-------|-------|-------|-------|
-| master branch                          | no    | no    | no    | yes   |
-| v0.1.0                                 | yes   | yes   | yes   | no    |
+| AWS EFS CSI Driver \ Kubernetes Version| maturity | v1.11 | v1.12 | v1.13 | v1.14 |
+|----------------------------------------|----------|-------|-------|-------|-------|
+| master branch                          | beta     | no    | no    | no    | yes   |
+| v0.2.0                                 | beta     | no    | no    | no    | yes   |
+| v0.1.0                                 | alpha    | yes   | yes   | yes   | no    |
 
 ### Container Images
 |EFS CSI Driver Version     | Image                               |
