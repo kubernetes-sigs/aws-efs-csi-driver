@@ -25,7 +25,6 @@ import (
 	"github.com/kubernetes-sigs/aws-efs-csi-driver/pkg/util"
 	"google.golang.org/grpc"
 	"k8s.io/klog"
-	"k8s.io/kubernetes/pkg/util/mount"
 )
 
 const (
@@ -38,7 +37,7 @@ type Driver struct {
 
 	srv *grpc.Server
 
-	mounter mount.Interface
+	mounter Mounter
 }
 
 func NewDriver(endpoint string) *Driver {
@@ -50,7 +49,7 @@ func NewDriver(endpoint string) *Driver {
 	return &Driver{
 		endpoint: endpoint,
 		nodeID:   cloud.GetMetadata().GetInstanceID(),
-		mounter:  newSafeMounter(),
+		mounter:  newNodeMounter(),
 	}
 }
 
@@ -82,11 +81,4 @@ func (d *Driver) Run() error {
 
 	klog.Infof("Listening for connections on address: %#v", listener.Addr())
 	return d.srv.Serve(listener)
-}
-
-func newSafeMounter() *mount.SafeFormatAndMount {
-	return &mount.SafeFormatAndMount{
-		Interface: mount.New(""),
-		Exec:      mount.NewOsExec(),
-	}
 }

@@ -51,7 +51,7 @@ func TestNodePublishVolume(t *testing.T) {
 			name: "success: normal",
 			testFunc: func(t *testing.T) {
 				mockCtrl := gomock.NewController(t)
-				mockMounter := mocks.NewMockInterface(mockCtrl)
+				mockMounter := mocks.NewMockMounter(mockCtrl)
 				driver := &Driver{
 					endpoint: endpoint,
 					nodeID:   nodeID,
@@ -80,7 +80,7 @@ func TestNodePublishVolume(t *testing.T) {
 			name: "success: normal with read only mount",
 			testFunc: func(t *testing.T) {
 				mockCtrl := gomock.NewController(t)
-				mockMounter := mocks.NewMockInterface(mockCtrl)
+				mockMounter := mocks.NewMockMounter(mockCtrl)
 				driver := &Driver{
 					endpoint: endpoint,
 					nodeID:   nodeID,
@@ -110,7 +110,7 @@ func TestNodePublishVolume(t *testing.T) {
 			name: "success: normal with tls mount options",
 			testFunc: func(t *testing.T) {
 				mockCtrl := gomock.NewController(t)
-				mockMounter := mocks.NewMockInterface(mockCtrl)
+				mockMounter := mocks.NewMockMounter(mockCtrl)
 				driver := &Driver{
 					endpoint: endpoint,
 					nodeID:   nodeID,
@@ -148,7 +148,7 @@ func TestNodePublishVolume(t *testing.T) {
 			name: "success: normal with path volume context",
 			testFunc: func(t *testing.T) {
 				mockCtrl := gomock.NewController(t)
-				mockMounter := mocks.NewMockInterface(mockCtrl)
+				mockMounter := mocks.NewMockMounter(mockCtrl)
 				driver := &Driver{
 					endpoint: endpoint,
 					nodeID:   nodeID,
@@ -178,7 +178,7 @@ func TestNodePublishVolume(t *testing.T) {
 			name: "fail: missing target path",
 			testFunc: func(t *testing.T) {
 				mockCtrl := gomock.NewController(t)
-				mockMounter := mocks.NewMockInterface(mockCtrl)
+				mockMounter := mocks.NewMockMounter(mockCtrl)
 				driver := &Driver{
 					endpoint: endpoint,
 					nodeID:   nodeID,
@@ -203,7 +203,7 @@ func TestNodePublishVolume(t *testing.T) {
 			name: "fail: missing volume capability",
 			testFunc: func(t *testing.T) {
 				mockCtrl := gomock.NewController(t)
-				mockMounter := mocks.NewMockInterface(mockCtrl)
+				mockMounter := mocks.NewMockMounter(mockCtrl)
 				driver := &Driver{
 					endpoint: endpoint,
 					nodeID:   nodeID,
@@ -228,7 +228,7 @@ func TestNodePublishVolume(t *testing.T) {
 			name: "fail: unsupported volume capability",
 			testFunc: func(t *testing.T) {
 				mockCtrl := gomock.NewController(t)
-				mockMounter := mocks.NewMockInterface(mockCtrl)
+				mockMounter := mocks.NewMockMounter(mockCtrl)
 				driver := &Driver{
 					endpoint: endpoint,
 					nodeID:   nodeID,
@@ -261,7 +261,7 @@ func TestNodePublishVolume(t *testing.T) {
 			name: "fail: mounter failed to MakeDir",
 			testFunc: func(t *testing.T) {
 				mockCtrl := gomock.NewController(t)
-				mockMounter := mocks.NewMockInterface(mockCtrl)
+				mockMounter := mocks.NewMockMounter(mockCtrl)
 				driver := &Driver{
 					endpoint: endpoint,
 					nodeID:   nodeID,
@@ -290,7 +290,7 @@ func TestNodePublishVolume(t *testing.T) {
 			name: "fail: mounter failed to Mount",
 			testFunc: func(t *testing.T) {
 				mockCtrl := gomock.NewController(t)
-				mockMounter := mocks.NewMockInterface(mockCtrl)
+				mockMounter := mocks.NewMockMounter(mockCtrl)
 				driver := &Driver{
 					endpoint: endpoint,
 					nodeID:   nodeID,
@@ -321,7 +321,7 @@ func TestNodePublishVolume(t *testing.T) {
 			name: "fail: unsupported volume context",
 			testFunc: func(t *testing.T) {
 				mockCtrl := gomock.NewController(t)
-				mockMounter := mocks.NewMockInterface(mockCtrl)
+				mockMounter := mocks.NewMockMounter(mockCtrl)
 				driver := &Driver{
 					endpoint: endpoint,
 					nodeID:   nodeID,
@@ -348,7 +348,7 @@ func TestNodePublishVolume(t *testing.T) {
 			name: "fail: relative path volume context",
 			testFunc: func(t *testing.T) {
 				mockCtrl := gomock.NewController(t)
-				mockMounter := mocks.NewMockInterface(mockCtrl)
+				mockMounter := mocks.NewMockMounter(mockCtrl)
 				driver := &Driver{
 					endpoint: endpoint,
 					nodeID:   nodeID,
@@ -395,7 +395,7 @@ func TestNodeUnpublishVolume(t *testing.T) {
 			name: "success: normal",
 			testFunc: func(t *testing.T) {
 				mockCtrl := gomock.NewController(t)
-				mockMounter := mocks.NewMockInterface(mockCtrl)
+				mockMounter := mocks.NewMockMounter(mockCtrl)
 				driver := &Driver{
 					endpoint: endpoint,
 					nodeID:   nodeID,
@@ -420,7 +420,7 @@ func TestNodeUnpublishVolume(t *testing.T) {
 			name: "fail: targetPath is missing",
 			testFunc: func(t *testing.T) {
 				mockCtrl := gomock.NewController(t)
-				mockMounter := mocks.NewMockInterface(mockCtrl)
+				mockMounter := mocks.NewMockMounter(mockCtrl)
 				driver := &Driver{
 					endpoint: endpoint,
 					nodeID:   nodeID,
@@ -442,7 +442,7 @@ func TestNodeUnpublishVolume(t *testing.T) {
 			name: "fail: mounter failed to umount",
 			testFunc: func(t *testing.T) {
 				mockCtrl := gomock.NewController(t)
-				mockMounter := mocks.NewMockInterface(mockCtrl)
+				mockMounter := mocks.NewMockMounter(mockCtrl)
 				driver := &Driver{
 					endpoint: endpoint,
 					nodeID:   nodeID,

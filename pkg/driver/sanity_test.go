@@ -50,7 +50,7 @@ func TestSanityEFSCSI(t *testing.T) {
 	drv := Driver{
 		endpoint: endpoint,
 		nodeID:   "sanity",
-		mounter:  mocks.NewMockInterface(mockCtrl),
+		mounter:  mocks.NewMockMounter(mockCtrl),
 	}
 	defer func() {
 		if r := recover(); r != nil {
