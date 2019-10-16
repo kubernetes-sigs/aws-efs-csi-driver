@@ -22,33 +22,49 @@ import (
 	"log"
 	"os"
 	"path"
+	"path/filepath"
 	"testing"
 
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/ginkgo/config"
 	"github.com/onsi/ginkgo/reporters"
 	"github.com/onsi/gomega"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/kubernetes/test/e2e/framework"
+	frameworkconfig "k8s.io/kubernetes/test/e2e/framework/config"
 	"k8s.io/kubernetes/test/e2e/framework/testfiles"
 	"k8s.io/kubernetes/test/e2e/storage/testpatterns"
 	"k8s.io/kubernetes/test/e2e/storage/testsuites"
 )
 
+const kubeconfigEnvVar = "KUBECONFIG"
+
+var (
+	clusterName  = flag.String("cluster-name", "", "the cluster name")
+	region       = flag.String("region", "us-west-2", "the region")
+	fileSystemId string
+)
+
 func init() {
-	framework.HandleFlags()
+	// k8s.io/kubernetes/test/e2e/framework requires env KUBECONFIG to be set
+	// it does not fall back to defaults
+	if os.Getenv(kubeconfigEnvVar) == "" {
+		kubeconfig := filepath.Join(os.Getenv("HOME"), ".kube", "config")
+		os.Setenv(kubeconfigEnvVar, kubeconfig)
+	}
+
 	framework.AfterReadingAllFlags(&framework.TestContext)
 	// PWD is test/e2e inside the git repo
 	testfiles.AddFileSource(testfiles.RootFileSource{Root: "../.."})
+
+	frameworkconfig.CopyFlags(frameworkconfig.Flags, flag.CommandLine)
+	framework.RegisterCommonFlags(flag.CommandLine)
+	framework.RegisterClusterFlags(flag.CommandLine)
+	flag.Parse()
 }
 
-var fileSystemID = flag.String("file-system-id", "", "required. file system ID of the EFS file system to use for the test")
-
 func TestEFSCSI(t *testing.T) {
-	if *fileSystemID == "" {
-		log.Fatalf("file-system-id required. file system ID of the EFS file system to use for the test.")
-	}
 	gomega.RegisterFailHandler(ginkgo.Fail)
 
 	// Run tests through the Ginkgo runner with output to console + JUnit for Jenkins
@@ -80,7 +96,7 @@ func InitEFSCSIDriver() testsuites.TestDriver {
 		driverInfo: testsuites.DriverInfo{
 			Name:                 "efs.csi.aws.com",
 			SupportedFsType:      sets.NewString(""),
-			SupportedMountOption: sets.NewString("tls"),
+			SupportedMountOption: sets.NewString("tls", "ro"),
 			Capabilities: map[testsuites.Capability]bool{
 				testsuites.CapPersistence: true,
 				testsuites.CapExec:        true,
@@ -119,7 +135,7 @@ func (e *efsDriver) GetPersistentVolumeSource(readOnly bool, fsType string, volu
 	pvSource := v1.PersistentVolumeSource{
 		CSI: &v1.CSIPersistentVolumeSource{
 			Driver:       e.driverInfo.Name,
-			VolumeHandle: *fileSystemID,
+			VolumeHandle: fileSystemId,
 		},
 	}
 	return &pvSource, nil
@@ -132,9 +148,29 @@ var csiTestSuites = []func() testsuites.TestSuite{
 	testsuites.InitVolumeModeTestSuite,
 	testsuites.InitSubPathTestSuite,
 	testsuites.InitProvisioningTestSuite,
-	//testsuites.InitSnapshottableTestSuite,
 	testsuites.InitMultiVolumeTestSuite,
 }
+
+var _ = ginkgo.BeforeSuite(func() {
+	ginkgo.By(fmt.Sprintf("Creating EFS filesystem at %s on %s", *region, *clusterName))
+	c := NewCloud(*region)
+	id, err := c.CreateFileSystem(*clusterName)
+	if err != nil {
+		ginkgo.Fail(fmt.Sprintf("failed to create EFS filesystem: %s", err))
+	}
+	fileSystemId = id
+})
+
+var _ = ginkgo.AfterSuite(func() {
+	ginkgo.By(fmt.Sprintf("Deleting EFS filesystem %s", fileSystemId))
+	if len(fileSystemId) != 0 {
+		c := NewCloud(*region)
+		err := c.DeleteFileSystem(fileSystemId)
+		if err != nil {
+			ginkgo.Fail(fmt.Sprintf("failed to delete EFS filesystem: %s", err))
+		}
+	}
+})
 
 var _ = ginkgo.Describe("[efs-csi] EFS CSI", func() {
 	driver := InitEFSCSIDriver()

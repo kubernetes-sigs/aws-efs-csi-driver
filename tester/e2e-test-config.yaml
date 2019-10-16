@@ -1,0 +1,34 @@
+cluster:
+  kops:
+    stateFile: s3://k8s-kops-csi-e2e
+    zones: us-west-2a,us-west-2b,us-west-2c
+    nodeCount: 3
+    nodeSize: c5.large
+    kubernetesVersion: 1.15.3
+
+build: |
+  eval $(aws ecr get-login --region us-west-2 --no-include-email)
+  AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+  IMAGE_TAG={{TEST_ID}}
+  IMAGE_NAME=$AWS_ACCOUNT_ID.dkr.ecr.us-west-2.amazonaws.com/aws-efs-csi-driver
+  docker build -t $IMAGE_NAME:$IMAGE_TAG .
+  docker push $IMAGE_NAME:$IMAGE_TAG
+
+install: |
+  echo "Deploying driver"
+  AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+  IMAGE_TAG={{TEST_ID}}
+  IMAGE_NAME=$AWS_ACCOUNT_ID.dkr.ecr.us-west-2.amazonaws.com/aws-efs-csi-driver
+
+  sed -i'' "s,amazon/aws-efs-csi-driver,$IMAGE_NAME," deploy/kubernetes/overlays/dev/kustomization.yaml
+  sed -i'' "s,newTag: latest,newTag: \"$IMAGE_TAG\"," deploy/kubernetes/overlays/dev/kustomization.yaml
+  kubectl apply -k deploy/kubernetes/overlays/dev/
+
+uninstall: |
+  echo "Removing driver"
+  kubectl delete -k deploy/kubernetes/overlays/dev/
+
+test: |
+  export KUBECONFIG=$HOME/.kube/config
+  cluster_name=test-cluster-{{TEST_ID}}.k8s.local
+  go test ./test/e2e/ -v -timeout=0 -kubeconfig=$HOME/.kube/config --cluster-name=$cluster_name --region=us-west-2 --report-dir=$ARTIFACTS -ginkgo.focus="\[efs-csi\]" -ginkgo.skip="\[Disruptive\]"
