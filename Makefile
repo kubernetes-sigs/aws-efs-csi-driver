@@ -15,7 +15,7 @@
 
 PKG=github.com/kubernetes-sigs/aws-efs-csi-driver
 IMAGE?=amazon/aws-efs-csi-driver
-VERSION=0.3.0-dirty
+VERSION=v0.3.0-dirty
 GIT_COMMIT?=$(shell git rev-parse HEAD)
 BUILD_DATE?=$(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
 LDFLAGS?="-X ${PKG}/pkg/driver.driverVersion=${VERSION} -X ${PKG}/pkg/driver.gitCommit=${GIT_COMMIT} -X ${PKG}/pkg/driver.buildDate=${BUILD_DATE}"
