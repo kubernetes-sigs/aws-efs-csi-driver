@@ -41,7 +41,7 @@ test:
 
 .PHONY: test-e2e
 test-e2e:
-	AWS_REGION=us-west-2 AWS_AVAILABILITY_ZONES=us-west-2a,us-west-2b,us-west-2c ./hack/run-e2e-test
+	TESTCONFIG=./tester/e2e-test-config.yaml go run tester/cmd/main.go
 
 .PHONY: image
 image:
