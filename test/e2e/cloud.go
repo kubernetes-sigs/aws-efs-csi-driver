@@ -44,10 +44,6 @@ func NewCloud(region string) *cloud {
 	}
 }
 
-type FileSystemOptions struct {
-	clusterName string
-}
-
 func (c *cloud) CreateFileSystem(clusterName string) (string, error) {
 	tags := []*efs.Tag{
 		{
