@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -63,22 +64,37 @@ func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 	}
 
 	// TODO when CreateVolume is implemented, it must use the same key names
-	path := "/"
+	subpath := "/"
 	volContext := req.GetVolumeContext()
 	for k, v := range volContext {
 		switch strings.ToLower(k) {
+		//Deprecated
 		case "path":
+			klog.Warning("Use of path under volumeAttributes is depracated. This field will be removed in future release")
 			if !filepath.IsAbs(v) {
 				return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("Volume context property %q must be an absolute path", k))
 			}
-			path = filepath.Join(path, v)
+			subpath = filepath.Join(subpath, v)
 		default:
 			return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("Volume context property %s not supported", k))
 		}
 	}
 
 	volumeId := req.GetVolumeId()
-	source := fmt.Sprintf("%s:%s", volumeId, path)
+	if !isValidFileSystemId(volumeId) {
+		return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("volume ID %s is invalid", volumeId))
+	}
+
+	var source string
+	tokens := strings.Split(volumeId, ":")
+	if len(tokens) == 1 {
+		// fs-xxxxxx
+		source = fmt.Sprintf("%s:%s", volumeId, subpath)
+	} else if len(tokens) == 2 {
+		// fs-xxxxxx:/a/b/c
+		cleanPath := path.Clean(tokens[1])
+		source = fmt.Sprintf("%s:%s", tokens[0], cleanPath)
+	}
 
 	mountOptions := []string{}
 	if req.GetReadonly() {
@@ -180,4 +196,8 @@ func (d *Driver) isValidVolumeCapabilities(volCaps []*csi.VolumeCapability) bool
 		}
 	}
 	return foundAll
+}
+
+func isValidFileSystemId(filesystemId string) bool {
+	return strings.HasPrefix(filesystemId, "fs-")
 }
