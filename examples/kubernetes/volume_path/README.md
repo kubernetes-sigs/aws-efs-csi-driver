@@ -3,12 +3,12 @@ Similar to [static provisioning example](../static_provisioning). A sub director
 
 **Note**: this feature requires the sub directory to mount precreated on EFS before consuming the volume from pod.
 
-### Edit [Persistence Volume Spec](./specs/pv.yaml) 
+### Edit [Persistence Volume Spec](./specs/example.yaml)
 ```
 apiVersion: v1
 kind: PersistentVolume
 metadata:
-  name: efs-pv
+  name: efs-pv1
 spec:
   capacity:
     storage: 5Gi
@@ -19,11 +19,9 @@ spec:
   storageClassName: efs-sc
   csi:
     driver: efs.csi.aws.com
-    volumeHandle: [FileSystemId] 
-    volumeAttriburtes:
-        path: /a/b/c/
+    volumeHandle: [FileSystemId]:[Path]
 ```
-Replace `VolumeHandle` value with `FileSystemId` of the EFS filesystem that needs to be mounted. Note that the path under `volumeAttriburtes` is used as the path from the root of EFS filesystem.
+Replace `FileSystemId` of the EFS filesystem ID that needs to be mounted. And replace `Path` with a existing path on the filesystem.
 
 You can find it using AWS CLI:
 ```sh
@@ -46,5 +44,6 @@ After the objects are created, verify that pod is running:
 Also you can verify that data is written onto EFS filesystem:
 
 ```sh
->> kubectl exec -ti efs-app -- tail -f /data/out.txt
+>> kubectl exec -ti efs-app -- tail -f /data-dir1/out.txt
+>> kubectl exec -ti efs-app -- ls /data-dir2
 ```

@@ -5,3 +5,4 @@ bases:
 images:
 - name: amazon/aws-efs-csi-driver
   newTag: latest
+  newName: chengpan/aws-efs-csi-driver
