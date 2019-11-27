@@ -31,7 +31,7 @@ func TestNodePublishVolume(t *testing.T) {
 	var (
 		endpoint   = "endpoint"
 		nodeID     = "nodeID"
-		volumeId   = "volumeId"
+		volumeId   = "fs-volumeId"
 		targetPath = "/target/path"
 		stdVolCap  = &csi.VolumeCapability{
 			AccessType: &csi.VolumeCapability_Mount{
@@ -175,6 +175,35 @@ func TestNodePublishVolume(t *testing.T) {
 			},
 		},
 		{
+			name: "success: normal with path in volume handle",
+			testFunc: func(t *testing.T) {
+				mockCtrl := gomock.NewController(t)
+				mockMounter := mocks.NewMockMounter(mockCtrl)
+				driver := &Driver{
+					endpoint: endpoint,
+					nodeID:   nodeID,
+					mounter:  mockMounter,
+				}
+				source := volumeId + ":/a/b"
+
+				ctx := context.Background()
+				req := &csi.NodePublishVolumeRequest{
+					VolumeId:         volumeId + ":/a/b/",
+					VolumeCapability: stdVolCap,
+					TargetPath:       targetPath,
+				}
+
+				mockMounter.EXPECT().MakeDir(gomock.Eq(targetPath)).Return(nil)
+				mockMounter.EXPECT().Mount(gomock.Eq(source), gomock.Eq(targetPath), gomock.Eq("efs"), gomock.Any()).Return(nil)
+				_, err := driver.NodePublishVolume(ctx, req)
+				if err != nil {
+					t.Fatalf("NodePublishVolume is failed: %v", err)
+				}
+
+				mockCtrl.Finish()
+			},
+		},
+		{
 			name: "fail: missing target path",
 			testFunc: func(t *testing.T) {
 				mockCtrl := gomock.NewController(t)
@@ -193,7 +222,7 @@ func TestNodePublishVolume(t *testing.T) {
 
 				_, err := driver.NodePublishVolume(ctx, req)
 				if err == nil {
-					t.Fatalf("NodePublishVolume is not failed: %v", err)
+					t.Fatalf("NodePublishVolume is not failed")
 				}
 
 				mockCtrl.Finish()
@@ -218,7 +247,7 @@ func TestNodePublishVolume(t *testing.T) {
 
 				_, err := driver.NodePublishVolume(ctx, req)
 				if err == nil {
-					t.Fatalf("NodePublishVolume is not failed: %v", err)
+					t.Fatalf("NodePublishVolume is not failed")
 				}
 
 				mockCtrl.Finish()
@@ -251,7 +280,7 @@ func TestNodePublishVolume(t *testing.T) {
 
 				_, err := driver.NodePublishVolume(ctx, req)
 				if err == nil {
-					t.Fatalf("NodePublishVolume is not failed: %v", err)
+					t.Fatalf("NodePublishVolume is not failed")
 				}
 
 				mockCtrl.Finish()
@@ -280,7 +309,7 @@ func TestNodePublishVolume(t *testing.T) {
 
 				_, err = driver.NodePublishVolume(ctx, req)
 				if err == nil {
-					t.Fatalf("NodePublishVolume is not failed: %v", err)
+					t.Fatalf("NodePublishVolume is not failed")
 				}
 
 				mockCtrl.Finish()
@@ -311,7 +340,7 @@ func TestNodePublishVolume(t *testing.T) {
 
 				_, err = driver.NodePublishVolume(ctx, req)
 				if err == nil {
-					t.Fatalf("NodePublishVolume is not failed: %v", err)
+					t.Fatalf("NodePublishVolume is not failed")
 				}
 
 				mockCtrl.Finish()
@@ -338,7 +367,7 @@ func TestNodePublishVolume(t *testing.T) {
 
 				_, err := driver.NodePublishVolume(ctx, req)
 				if err == nil {
-					t.Fatalf("NodePublishVolume is not failed: %v", err)
+					t.Fatalf("NodePublishVolume is not failed")
 				}
 
 				mockCtrl.Finish()
@@ -365,7 +394,33 @@ func TestNodePublishVolume(t *testing.T) {
 
 				_, err := driver.NodePublishVolume(ctx, req)
 				if err == nil {
-					t.Fatalf("NodePublishVolume is not failed: %v", err)
+					t.Fatalf("NodePublishVolume is not failed")
+				}
+
+				mockCtrl.Finish()
+			},
+		},
+		{
+			name: "fail: invalid filesystem ID",
+			testFunc: func(t *testing.T) {
+				mockCtrl := gomock.NewController(t)
+				mockMounter := mocks.NewMockMounter(mockCtrl)
+				driver := &Driver{
+					endpoint: endpoint,
+					nodeID:   nodeID,
+					mounter:  mockMounter,
+				}
+
+				ctx := context.Background()
+				req := &csi.NodePublishVolumeRequest{
+					VolumeId:         "invalid-id",
+					VolumeCapability: stdVolCap,
+					TargetPath:       targetPath,
+				}
+
+				_, err := driver.NodePublishVolume(ctx, req)
+				if err == nil {
+					t.Fatalf("NodePublishVolume is not failed")
 				}
 
 				mockCtrl.Finish()
