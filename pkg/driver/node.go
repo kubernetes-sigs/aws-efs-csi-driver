@@ -138,8 +138,25 @@ func (d *Driver) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpublish
 		return nil, status.Error(codes.InvalidArgument, "Target path not provided")
 	}
 
+	// Check if target directory is a mount point. GetDeviceNameFromMount
+	// given a mnt point, finds the device from /proc/mounts
+	// returns the device name, reference count, and error code
+	_, refCount, err := d.mounter.GetDeviceName(target)
+	if err != nil {
+		msg := fmt.Sprintf("failed to check if volume is mounted: %v", err)
+		return nil, status.Error(codes.Internal, msg)
+	}
+
+	// From the spec: If the volume corresponding to the volume_id
+	// is not staged to the staging_target_path, the Plugin MUST
+	// reply 0 OK.
+	if refCount == 0 {
+		klog.V(5).Infof("NodeUnpublishVolume: %s target not mounted", target)
+		return &csi.NodeUnpublishVolumeResponse{}, nil
+	}
+
 	klog.V(5).Infof("NodeUnpublishVolume: unmounting %s", target)
-	err := d.mounter.Unmount(target)
+	err = d.mounter.Unmount(target)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "Could not unmount %q: %v", target, err)
 	}

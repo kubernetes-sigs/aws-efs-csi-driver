@@ -62,3 +62,5 @@ replace k8s.io/sample-apiserver => k8s.io/sample-apiserver v0.0.0-20191003001538
 replace k8s.io/sample-cli-plugin => k8s.io/sample-cli-plugin v0.0.0-20191003002540-40951731b79f
 
 replace k8s.io/sample-controller => k8s.io/sample-controller v0.0.0-20191003001734-27680fba8268
+
+go 1.13

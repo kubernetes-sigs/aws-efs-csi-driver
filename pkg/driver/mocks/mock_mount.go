@@ -33,6 +33,22 @@ func (m *MockMounter) EXPECT() *MockMounterMockRecorder {
 	return m.recorder
 }
 
+// GetDeviceName mocks base method
+func (m *MockMounter) GetDeviceName(arg0 string) (string, int, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetDeviceName", arg0)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(int)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// GetDeviceName indicates an expected call of GetDeviceName
+func (mr *MockMounterMockRecorder) GetDeviceName(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDeviceName", reflect.TypeOf((*MockMounter)(nil).GetDeviceName), arg0)
+}
+
 // GetMountRefs mocks base method
 func (m *MockMounter) GetMountRefs(arg0 string) ([]string, error) {
 	m.ctrl.T.Helper()
