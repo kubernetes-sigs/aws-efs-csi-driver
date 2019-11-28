@@ -23,6 +23,7 @@ import (
 type Mounter interface {
 	mount.Interface
 	MakeDir(pathname string) error
+	GetDeviceName(mountPath string) (string, int, error)
 }
 
 type NodeMounter struct {
@@ -43,4 +44,8 @@ func (m *NodeMounter) MakeDir(pathname string) error {
 		}
 	}
 	return nil
+}
+
+func (m *NodeMounter) GetDeviceName(mountPath string) (string, int, error) {
+	return mount.GetDeviceNameFromMount(m, mountPath)
 }
