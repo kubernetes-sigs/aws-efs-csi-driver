@@ -28,6 +28,15 @@ import (
 	"github.com/kubernetes-sigs/aws-efs-csi-driver/pkg/driver/mocks"
 )
 
+type mockWatchdog struct {
+}
+
+func (w *mockWatchdog) start() {
+}
+
+func (w *mockWatchdog) stop() {
+}
+
 func TestSanityEFSCSI(t *testing.T) {
 	// Setup the full driver and its environment
 	dir, err := ioutil.TempDir("", "sanity-efs-csi")
@@ -48,9 +57,10 @@ func TestSanityEFSCSI(t *testing.T) {
 
 	mockCtrl := gomock.NewController(t)
 	drv := Driver{
-		endpoint: endpoint,
-		nodeID:   "sanity",
-		mounter:  mocks.NewMockMounter(mockCtrl),
+		endpoint:    endpoint,
+		nodeID:      "sanity",
+		mounter:     mocks.NewMockMounter(mockCtrl),
+		efsWatchdog: &mockWatchdog{},
 	}
 	defer func() {
 		if r := recover(); r != nil {

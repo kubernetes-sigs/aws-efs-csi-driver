@@ -38,6 +38,8 @@ type Driver struct {
 	srv *grpc.Server
 
 	mounter Mounter
+
+	efsWatchdog Watchdog
 }
 
 func NewDriver(endpoint string) *Driver {
@@ -46,10 +48,12 @@ func NewDriver(endpoint string) *Driver {
 		klog.Fatalln(err)
 	}
 
+	watchdog := newExecWatchdog("amazon-efs-mount-watchdog")
 	return &Driver{
-		endpoint: endpoint,
-		nodeID:   cloud.GetMetadata().GetInstanceID(),
-		mounter:  newNodeMounter(),
+		endpoint:    endpoint,
+		nodeID:      cloud.GetMetadata().GetInstanceID(),
+		mounter:     newNodeMounter(),
+		efsWatchdog: watchdog,
 	}
 }
 
@@ -78,6 +82,13 @@ func (d *Driver) Run() error {
 
 	csi.RegisterIdentityServer(d.srv, d)
 	csi.RegisterNodeServer(d.srv, d)
+
+	klog.Info("Starting watchdog")
+	d.efsWatchdog.start()
+
+	reaper := newReaper()
+	klog.Info("Staring subreaper")
+	reaper.start()
 
 	klog.Infof("Listening for connections on address: %#v", listener.Addr())
 	return d.srv.Serve(listener)
