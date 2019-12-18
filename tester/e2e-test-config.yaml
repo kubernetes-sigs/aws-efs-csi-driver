@@ -20,7 +20,7 @@ install: |
   IMAGE_TAG={{TEST_ID}}
   IMAGE_NAME=$AWS_ACCOUNT_ID.dkr.ecr.us-west-2.amazonaws.com/aws-efs-csi-driver
 
-  sed -i'' "s,amazon/aws-efs-csi-driver,$IMAGE_NAME," deploy/kubernetes/overlays/dev/kustomization.yaml
+  sed -i'' "s,chengpan/aws-efs-csi-driver,$IMAGE_NAME," deploy/kubernetes/overlays/dev/kustomization.yaml
   sed -i'' "s,newTag: latest,newTag: \"$IMAGE_TAG\"," deploy/kubernetes/overlays/dev/kustomization.yaml
   kubectl apply -k deploy/kubernetes/overlays/dev/
 
