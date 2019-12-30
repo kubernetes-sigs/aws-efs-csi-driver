@@ -16,6 +16,8 @@ spec:
     - ReadWriteMany
   persistentVolumeReclaimPolicy: Retain
   storageClassName: efs-sc
+  mountOptions:
+    - tls
   csi:
     driver: efs.csi.aws.com
     volumeHandle: fs-e8a95a42:/dir1
@@ -44,6 +46,8 @@ spec:
     - ReadWriteMany
   persistentVolumeReclaimPolicy: Retain
   storageClassName: efs-sc
+  mountOptions:
+    - tls
   csi:
     driver: efs.csi.aws.com
     volumeHandle: fs-e8a95a42:/dir2
