@@ -17,6 +17,10 @@ spec:
       nodeSelector:
         beta.kubernetes.io/os: linux
       hostNetwork: true
+      dnsPolicy: "None"
+      dnsConfig:
+        nameservers:
+          - 169.254.169.253
       priorityClassName: system-node-critical
       tolerations:
         - key: CriticalAddonsOnly
