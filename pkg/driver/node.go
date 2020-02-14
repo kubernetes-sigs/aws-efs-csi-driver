@@ -19,6 +19,7 @@ package driver
 import (
 	"context"
 	"fmt"
+	"net"
 	"os"
 	"path"
 	"path/filepath"
@@ -63,7 +64,14 @@ func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 		return nil, status.Error(codes.InvalidArgument, "Volume capability not supported")
 	}
 
+	volumeId := req.GetVolumeId()
+	if !isValidFileSystemId(volumeId) {
+		return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("volume ID %s is invalid", volumeId))
+	}
+
 	// TODO when CreateVolume is implemented, it must use the same key names
+	fstype := "efs"
+	mountOptions := []string{}
 	subpath := "/"
 	volContext := req.GetVolumeContext()
 	for k, v := range volContext {
@@ -75,14 +83,27 @@ func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 				return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("Volume context property %q must be an absolute path", k))
 			}
 			subpath = filepath.Join(subpath, v)
+		case "server":
+			klog.Warning("Use of server under volumeAttributes is depracated. This field will be removed in future release")
+			if net.ParseIP(v) != nil {
+				return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("Volume context property %q is not a correct ip", k))
+			}
+			volumeId = v
+		case "option":
+			klog.Warning("Use of option under volumeAttributes is depracated. This field will be removed in future release")
+			if v == "" {
+				return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("Volume context property %q must be not an empty string", k))
+			}
+			mountOptions = append(mountOptions, v)
+		case "vers":
+			klog.Warning("Use of vers under volumeAttributes is depracated. This field will be removed in future release")
+			if v != "4" {
+				return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("Volume context property %q only support version 4", k))
+			}
+			fstype = "nfs4"
 		default:
 			return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("Volume context property %s not supported", k))
 		}
-	}
-
-	volumeId := req.GetVolumeId()
-	if !isValidFileSystemId(volumeId) {
-		return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("volume ID %s is invalid", volumeId))
 	}
 
 	var source string
@@ -96,7 +117,6 @@ func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 		source = fmt.Sprintf("%s:%s", tokens[0], cleanPath)
 	}
 
-	mountOptions := []string{}
 	if req.GetReadonly() {
 		mountOptions = append(mountOptions, "ro")
 	}
@@ -122,7 +142,7 @@ func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 	}
 
 	klog.V(5).Infof("NodePublishVolume: mounting %s at %s with options %v", source, target, mountOptions)
-	if err := d.mounter.Mount(source, target, "efs", mountOptions); err != nil {
+	if err := d.mounter.Mount(source, target, fstype, mountOptions); err != nil {
 		os.Remove(target)
 		return nil, status.Errorf(codes.Internal, "Could not mount %q at %q: %v", source, target, err)
 	}
