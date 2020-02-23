@@ -38,6 +38,8 @@ spec:
               mountPropagation: "Bidirectional"
             - name: plugin-dir
               mountPath: /csi
+            - name: efs-state-dir
+              mountPath: /var/run/efs
           ports:
             - containerPort: 9809
               name: healthz
@@ -91,6 +93,10 @@ spec:
         - name: plugin-dir
           hostPath:
             path: /var/lib/kubelet/plugins/efs.csi.aws.com/
+            type: DirectoryOrCreate
+        - name: efs-state-dir
+          hostPath:
+            path: /var/run/efs
             type: DirectoryOrCreate
 
 
