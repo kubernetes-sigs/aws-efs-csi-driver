@@ -17,7 +17,7 @@ build: |
 install: |
   echo "Deploying driver"
   #install helm
-  OR_ARCH=$(go env GOOS)-amd64
+  OS_ARCH=$(go env GOOS)-amd64
   helm_name=helm-v3.1.1-linux-amd64.tar.gz
   wget https://get.helm.sh/$helm_name
   tar xvzf $helm_name
