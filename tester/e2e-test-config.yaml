@@ -16,17 +16,25 @@ build: |
 
 install: |
   echo "Deploying driver"
+  #install helm
+  OS_ARCH=$(go env GOOS)-amd64
+  helm_name=helm-v3.1.1-linux-amd64.tar.gz
+  wget https://get.helm.sh/$helm_name
+  tar xvzf $helm_name
+  mv $OS_ARCH/helm /usr/local/bin/helm
+  
   AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
   IMAGE_TAG={{TEST_ID}}
   IMAGE_NAME=$AWS_ACCOUNT_ID.dkr.ecr.us-west-2.amazonaws.com/aws-efs-csi-driver
 
-  sed -i'' "s,chengpan/aws-efs-csi-driver,$IMAGE_NAME," deploy/kubernetes/overlays/dev/kustomization.yaml
-  sed -i'' "s,newTag: latest,newTag: \"$IMAGE_TAG\"," deploy/kubernetes/overlays/dev/kustomization.yaml
-  kubectl apply -k deploy/kubernetes/overlays/dev/
+  helm install aws-efs-csi-driver \
+      --set image.repository=$IMAGE_NAME \
+      --set image.tag=$IMAGE_TAG \
+      ./helm
 
 uninstall: |
   echo "Removing driver"
-  kubectl delete -k deploy/kubernetes/overlays/dev/
+  helm uninstall aws-efs-csi-driver
 
 test: |
   export KUBECONFIG=$HOME/.kube/config

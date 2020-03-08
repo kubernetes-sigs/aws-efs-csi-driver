@@ -64,6 +64,11 @@ If you want to deploy the development driver:
 kubectl apply -k "github.com/kubernetes-sigs/aws-efs-csi-driver/deploy/kubernetes/overlays/dev/?ref=master"
 ```
 
+Alternatively, you could also install the driver using helm:
+```sh
+helm install aws-efs-csi-driver ./helm
+```
+
 ### Examples
 Before the example, you need to:
 * Get yourself familiar with how to setup Kubernetes on AWS and how to [create EFS filesystem](https://docs.aws.amazon.com/efs/latest/ug/getting-started.html).
