@@ -1,3 +1,24 @@
+# v0.3.0
+
+## Notable changes
+### New features
+* Add helm support ([#139](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/139), [@leakingtapan](https://github.com/leakingtapan))
+* Switch to use kustomize for manifest ([#88](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/88), [@leakingtapan](https://github.com/leakingtapan))
+* Update to read subpath from volume handle ([#102](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/102), [@leakingtapan](https://github.com/leakingtapan))
+
+### Bug fixes
+* Migrate to use new test framework ([#96](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/96), [@leakingtapan](https://github.com/leakingtapan))
+* Fix bug when unpublishing already unmounted file system ([#106](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/106), [@leakingtapan](https://github.com/leakingtapan))
+ngtapan))
+* Fix bug in e2e test script for sed ([#114](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/114), [@leakingtapan](https://github.com/leakingtapan))
+* Preserve efs state file across efs driver recycle ([#135](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/135), [@leakingtapan](https://github.com/leakingtapan))
+
+### Improvements
+* Update volume path example for accessing multiple volumes within the same EFS filesystem ([#107](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/107), [@leakingtapan](https://github.com/leaki
+* Add watch dog for efs mount with stunnel ([#113](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/113), [@leakingtapan](https://github.com/leakingtapan))
+* Update daemonset tolerations to run on all nodes ([#133](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/133), [@mikegirard](https://github.com/mikegirard))
+* Fix of url to Kubernetes CSI Developer Documentation ([#137](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/137), [@DmitriyStoyanov](https://github.com/DmitriyStoyanov))
+
 # v0.2.0
 [Documentation](https://github.com/kubernetes-sigs/aws-efs-csi-driver/blob/v0.2.0/docs/README.md)
 
