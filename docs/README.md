@@ -10,6 +10,7 @@ The [Amazon Elastic File System](https://aws.amazon.com/efs/) Container Storage 
 | AWS EFS CSI Driver \ CSI Version       | v0.3.0| v1.1.0 |
 |----------------------------------------|-------|--------|
 | master branch                          | no    | yes    |
+| v0.3.0                                 | no    | yes    |
 | v0.2.0                                 | no    | yes    |
 | v0.1.0                                 | yes   | no     |
 
@@ -34,6 +35,7 @@ The following sections are Kubernetes specific. If you are a Kubernetes user, us
 | AWS EFS CSI Driver \ Kubernetes Version| maturity | v1.11 | v1.12 | v1.13 | v1.14 | v1.15 |
 |----------------------------------------|----------|-------|-------|-------|-------|-------|
 | master branch                          | beta     | no    | no    | no    | yes   | yes   |
+| v0.3.0                                 | beta     | no    | no    | no    | yes   | yes   |
 | v0.2.0                                 | beta     | no    | no    | no    | yes   | yes   |
 | v0.1.0                                 | alpha    | yes   | yes   | yes   | no    | no    |
 
@@ -41,6 +43,7 @@ The following sections are Kubernetes specific. If you are a Kubernetes user, us
 |EFS CSI Driver Version     | Image                               |
 |---------------------------|-------------------------------------|
 |master branch              |amazon/aws-efs-csi-driver:latest     |
+|v0.3.0                     |amazon/aws-efs-csi-driver:v0.3.0     |
 |v0.2.0                     |amazon/aws-efs-csi-driver:v0.2.0     |
 |v0.1.0                     |amazon/aws-efs-csi-driver:v0.1.0     |
 
@@ -66,7 +69,7 @@ kubectl apply -k "github.com/kubernetes-sigs/aws-efs-csi-driver/deploy/kubernete
 
 Alternatively, you could also install the driver using helm:
 ```sh
-helm install aws-efs-csi-driver ./helm
+helm install aws-efs-csi-driver https://github.com/kubernetes-sigs/aws-efs-csi-driver/releases/download/v0.3.0/helm-chart.tgz
 ```
 
 ### Examples
@@ -80,6 +83,7 @@ Before the example, you need to:
 * [Encryption in transit](../examples/kubernetes/encryption_in_transit/README.md)
 * [Accessing the filesystem from multiple pods](../examples/kubernetes/multiple_pods/README.md)
 * [Consume EFS in StatefulSets](../examples/kubernetes/statefulset/README.md)
+* [Mount subpath](../examples/kubernetes/volume_path/README.md)
 
 ## Development
 Please go through [CSI Spec](https://github.com/container-storage-interface/spec/blob/master/spec.md) and [Kubernetes CSI Developer Documentation](https://kubernetes-csi.github.io/docs) to get some basic understanding of CSI driver before you start.
