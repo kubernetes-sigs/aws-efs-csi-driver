@@ -1,4 +1,13 @@
 # v0.3.0
+[Documentation](https://github.com/kubernetes-sigs/aws-efs-csi-driver/blob/v0.3.0/docs/README.md)
+
+filename  | sha512 hash
+--------- | ------------
+[v0.3.0.zip](https://github.com/kubernetes-sigs/aws-efs-csi-driver/archive/v0.3.0.zip) | `08c10d855261d7973e43ca442726e703800f06e23f4b2906f7a0d3433cac4cd12e0c4a3bf809862eabc74082d35ca72fcf7ca9c6c28423e1dd51d0c745607dc3`
+[v0.3.0.tar.gz](https://github.com/kubernetes-sigs/aws-efs-csi-driver/archive/v0.3.0.tar.gz) | `cf4765a1b8930d8cf46175e742977a32d5afac03f818dcc1b6909309fd55f331dd84ca1eb546027d1ffefab1d2ac3e6ca4f207cf74749e61b4d74b5921031491`
+
+## Action required
+If you are mounting subpath as persistent volume, please update the volume path and set it as part of `volumeHandle` instead of `volumeAttributes`. See [volume path example](https://github.com/kubernetes-sigs/aws-efs-csi-driver/blob/master/examples/kubernetes/volume_path/specs/example.yaml#L23) for this use case.
 
 ## Notable changes
 ### New features
@@ -9,12 +18,11 @@
 ### Bug fixes
 * Migrate to use new test framework ([#96](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/96), [@leakingtapan](https://github.com/leakingtapan))
 * Fix bug when unpublishing already unmounted file system ([#106](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/106), [@leakingtapan](https://github.com/leakingtapan))
-ngtapan))
 * Fix bug in e2e test script for sed ([#114](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/114), [@leakingtapan](https://github.com/leakingtapan))
 * Preserve efs state file across efs driver recycle ([#135](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/135), [@leakingtapan](https://github.com/leakingtapan))
 
 ### Improvements
-* Update volume path example for accessing multiple volumes within the same EFS filesystem ([#107](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/107), [@leakingtapan](https://github.com/leaki
+* Update volume path example for accessing multiple volumes within the same EFS filesystem ([#107](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/107), [@leakingtapan](https://github.com/leakingtapan))
 * Add watch dog for efs mount with stunnel ([#113](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/113), [@leakingtapan](https://github.com/leakingtapan))
 * Update daemonset tolerations to run on all nodes ([#133](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/133), [@mikegirard](https://github.com/mikegirard))
 * Fix of url to Kubernetes CSI Developer Documentation ([#137](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/137), [@DmitriyStoyanov](https://github.com/DmitriyStoyanov))
