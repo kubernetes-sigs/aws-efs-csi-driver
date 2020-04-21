@@ -132,6 +132,7 @@ var _ = ginkgo.Describe("[efs-csi] EFS CSI", func() {
 			ginkgo.Fail(fmt.Sprintf("failed to create EFS filesystem: %s", err))
 		}
 		fileSystemId = id
+		ginkgo.By(fmt.Sprintf("Created EFS filesystem %q in region %q for cluster %q", fileSystemId, Region, ClusterName))
 	})
 
 	var once sync.Once
