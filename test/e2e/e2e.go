@@ -87,21 +87,14 @@ var csiTestSuites = []func() testsuites.TestSuite{
 	testsuites.InitMultiVolumeTestSuite,
 }
 
-var _ = ginkgo.BeforeSuite(func() {
-	ginkgo.By(fmt.Sprintf("Creating EFS filesystem in region %q for cluster %q", Region, ClusterName))
-	if Region == "" || ClusterName == "" {
-		ginkgo.Fail("failed to create EFS filesystem: both Region and ClusterName must be non-empty")
-	}
-	c := NewCloud(Region)
-	id, err := c.CreateFileSystem(ClusterName)
-	if err != nil {
-		ginkgo.Fail(fmt.Sprintf("failed to create EFS filesystem: %s", err))
-	}
-	fileSystemId = id
-})
-
 var _ = ginkgo.AfterSuite(func() {
-	ginkgo.By(fmt.Sprintf("Deleting EFS filesystem %s", fileSystemId))
+	// Delete the EFS filesystem *once* for all tests (It blocks)
+	// Do nothing if it was never created if none of these EFS tests were part of
+	// the test suite's focus
+	if fileSystemId == "" {
+		return
+	}
+	ginkgo.By(fmt.Sprintf("Deleting EFS filesystem %q", fileSystemId))
 	if len(fileSystemId) != 0 {
 		c := NewCloud(Region)
 		err := c.DeleteFileSystem(fileSystemId)
@@ -112,6 +105,28 @@ var _ = ginkgo.AfterSuite(func() {
 })
 
 var _ = ginkgo.Describe("[efs-csi] EFS CSI", func() {
+	ginkgo.BeforeEach(func() {
+		// Create the EFS filesystem *once* for all tests (It blocks)
+		// The reason creation should be BeforeEach but deletion AfterSuite is
+		// because if creation were BeforeSuite it would be unnecessarily attempted
+		// even if none of these EFS tests were part of the test suite's focus
+		if fileSystemId != "" {
+			ginkgo.By(fmt.Sprintf("Using EFS filesystem %q in region %q for cluster %q", fileSystemId, Region, ClusterName))
+			return
+		}
+
+		ginkgo.By(fmt.Sprintf("Creating EFS filesystem in region %q for cluster %q", Region, ClusterName))
+		if Region == "" || ClusterName == "" {
+			ginkgo.Fail("failed to create EFS filesystem: both Region and ClusterName must be non-empty")
+		}
+		c := NewCloud(Region)
+		id, err := c.CreateFileSystem(ClusterName)
+		if err != nil {
+			ginkgo.Fail(fmt.Sprintf("failed to create EFS filesystem: %s", err))
+		}
+		fileSystemId = id
+	})
+
 	driver := InitEFSCSIDriver()
 	ginkgo.Context(testsuites.GetDriverNameWithFeatureTags(driver), func() {
 		testsuites.DefineTestSuite(driver, csiTestSuites)
