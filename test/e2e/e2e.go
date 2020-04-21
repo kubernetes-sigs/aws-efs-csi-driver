@@ -2,9 +2,12 @@ package e2e
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/onsi/ginkgo"
 	v1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/kubernetes/test/e2e/framework"
 	"k8s.io/kubernetes/test/e2e/storage/testpatterns"
@@ -15,6 +18,7 @@ var (
 	ClusterName  string
 	Region       string
 	fileSystemId string
+	deployed     bool
 )
 
 type efsDriver struct {
@@ -50,7 +54,6 @@ func (e *efsDriver) GetDriverInfo() *testsuites.DriverInfo {
 func (e *efsDriver) SkipUnsupportedTest(testpatterns.TestPattern) {}
 
 func (e *efsDriver) PrepareTest(f *framework.Framework) (*testsuites.PerTestConfig, func()) {
-	ginkgo.By("Deploying EFS CSI driver")
 	cancelPodLogs := testsuites.StartPodLogs(f)
 
 	return &testsuites.PerTestConfig{
@@ -58,7 +61,6 @@ func (e *efsDriver) PrepareTest(f *framework.Framework) (*testsuites.PerTestConf
 			Prefix:    "efs",
 			Framework: f,
 		}, func() {
-			ginkgo.By("Cleaning up EFS CSI driver")
 			cancelPodLogs()
 		}
 }
@@ -102,6 +104,11 @@ var _ = ginkgo.AfterSuite(func() {
 			ginkgo.Fail(fmt.Sprintf("failed to delete EFS filesystem: %s", err))
 		}
 	}
+
+	if deployed {
+		ginkgo.By("Cleaning up EFS CSI driver")
+		framework.RunKubectlOrDie("delete", "-k", "github.com/kubernetes-sigs/aws-efs-csi-driver/deploy/kubernetes/overlays/stable/?ref=master")
+	}
 })
 
 var _ = ginkgo.Describe("[efs-csi] EFS CSI", func() {
@@ -125,6 +132,28 @@ var _ = ginkgo.Describe("[efs-csi] EFS CSI", func() {
 			ginkgo.Fail(fmt.Sprintf("failed to create EFS filesystem: %s", err))
 		}
 		fileSystemId = id
+	})
+
+	var once sync.Once
+	ginkgo.BeforeEach(func() {
+		// Deploy the EFS CSI driver *once* for all tests (It blocks)
+		// Alternatively, could deploy the driver for each test in PrepareTest
+		once.Do(func() {
+			cs, err := framework.LoadClientset()
+			framework.ExpectNoError(err, "loading kubernetes clientset")
+			_, err = cs.StorageV1beta1().CSIDrivers().Get("efs.csi.aws.com", metav1.GetOptions{})
+			if err == nil {
+				// CSIDriver exists, assume driver has already been deployed
+				ginkgo.By("Using already-deployed EFS CSI driver")
+				return
+			} else if err != nil && !apierrors.IsNotFound(err) {
+				// Non-NotFound errors are unexpected
+				framework.ExpectNoError(err, "getting csidriver efs.csi.aws.com")
+			}
+			ginkgo.By("Deploying EFS CSI driver")
+			framework.RunKubectlOrDie("apply", "-k", "github.com/kubernetes-sigs/aws-efs-csi-driver/deploy/kubernetes/overlays/stable/?ref=master")
+			deployed = true
+		})
 	})
 
 	driver := InitEFSCSIDriver()
