@@ -59,12 +59,19 @@ func (c *cloud) CreateFileSystem(clusterName string) (string, error) {
 		Tags:          tags,
 	}
 
+	var fileSystemId *string
 	response, err := c.efsclient.CreateFileSystem(request)
 	if err != nil {
-		return "", err
+		switch t := err.(type) {
+		case *efs.FileSystemAlreadyExists:
+			fileSystemId = t.FileSystemId
+		default:
+			return "", err
+		}
+	} else {
+		fileSystemId = response.FileSystemId
 	}
 
-	fileSystemId := response.FileSystemId
 	err = c.ensureFileSystemStatus(*fileSystemId, "available")
 	if err != nil {
 		return "", err
@@ -91,7 +98,12 @@ func (c *cloud) CreateFileSystem(clusterName string) (string, error) {
 
 		_, err := c.efsclient.CreateMountTarget(request)
 		if err != nil {
-			return "", err
+			switch err.(type) {
+			case *efs.MountTargetConflict:
+				continue
+			default:
+				return "", err
+			}
 		}
 	}
 
@@ -117,7 +129,12 @@ func (c *cloud) DeleteFileSystem(fileSystemId string) error {
 	}
 	_, err = c.efsclient.DeleteFileSystem(request)
 	if err != nil {
-		return err
+		switch err.(type) {
+		case *efs.FileSystemNotFound:
+			return nil
+		default:
+			return err
+		}
 	}
 
 	return nil
@@ -327,7 +344,12 @@ func (c *cloud) deleteMountTargets(fileSystemId string) error {
 
 		_, err := c.efsclient.DeleteMountTarget(request)
 		if err != nil {
-			return err
+			switch err.(type) {
+			case *efs.MountTargetNotFound:
+				return nil
+			default:
+				return err
+			}
 		}
 	}
 
