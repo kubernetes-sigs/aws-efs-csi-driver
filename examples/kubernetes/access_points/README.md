@@ -6,7 +6,10 @@ In this case, the separation is managed on the EFS side rather than the kubernet
 
 ### Create Access Points (in EFS)
 Following [this doc](https://docs.aws.amazon.com/efs/latest/ug/create-access-point.html), create a separate access point for each independent data store you wish to expose in your cluster, tailoring the ownership and permissions as desired.
-Note that there's no need to use different EFS volumes.
+There is no need to use different EFS volumes.
+
+**Note**: Although it is possible to [configure IAM policies for access points](https://docs.aws.amazon.com/efs/latest/ug/efs-access-points.html#access-points-iam-policy), by default no additional IAM permissions are necessary.
+
 This example assumes you are using two access points.
 
 ### Edit [Persistent Volume Spec](./specs/example.yaml)
