@@ -84,6 +84,7 @@ Before the example, you need to:
 * [Accessing the filesystem from multiple pods](../examples/kubernetes/multiple_pods/README.md)
 * [Consume EFS in StatefulSets](../examples/kubernetes/statefulset/README.md)
 * [Mount subpath](../examples/kubernetes/volume_path/README.md)
+* [Use Access Points](../examples/kubernetes/access_points/README.md)
 
 ## Development
 Please go through [CSI Spec](https://github.com/container-storage-interface/spec/blob/master/spec.md) and [Kubernetes CSI Developer Documentation](https://kubernetes-csi.github.io/docs) to get some basic understanding of CSI driver before you start.
