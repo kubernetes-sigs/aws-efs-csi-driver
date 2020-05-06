@@ -22,6 +22,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
@@ -65,6 +66,7 @@ func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 
 	// TODO when CreateVolume is implemented, it must use the same key names
 	subpath := "/"
+	encryptInTransit := true
 	volContext := req.GetVolumeContext()
 	for k, v := range volContext {
 		switch strings.ToLower(k) {
@@ -75,6 +77,12 @@ func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 				return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("Volume context property %q must be an absolute path", k))
 			}
 			subpath = filepath.Join(subpath, v)
+		case "encryptintransit":
+			var err error
+			encryptInTransit, err = strconv.ParseBool(v)
+			if err != nil {
+				return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("Volume context property %q must be a boolean value: %v", k, err))
+			}
 		default:
 			return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("Volume context property %s not supported", k))
 		}
@@ -101,21 +109,32 @@ func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 		mountOptions = append(mountOptions, "ro")
 	}
 
-	if m := volCap.GetMount(); m != nil {
-		hasOption := func(options []string, opt string) bool {
-			for _, o := range options {
-				if o == opt {
-					return true
-				}
+	hasOption := func(options []string, opt string) bool {
+		for _, o := range options {
+			if o == opt {
+				return true
 			}
-			return false
 		}
+		return false
+	}
+
+	if m := volCap.GetMount(); m != nil {
 		for _, f := range m.MountFlags {
 			if !hasOption(mountOptions, f) {
+				// Ignore "tls" in MountFlags if encryptInTransit is false
+				if f == "tls" && !encryptInTransit {
+					continue
+				}
 				mountOptions = append(mountOptions, f)
 			}
 		}
 	}
+
+	// Ensure "tls" is in mountOptions if encryptInTransit is true
+	if encryptInTransit && !hasOption(mountOptions, "tls") {
+		mountOptions = append(mountOptions, "tls")
+	}
+
 	klog.V(5).Infof("NodePublishVolume: creating dir %s", target)
 	if err := d.mounter.MakeDir(target); err != nil {
 		return nil, status.Errorf(codes.Internal, "Could not create dir %q: %v", target, err)

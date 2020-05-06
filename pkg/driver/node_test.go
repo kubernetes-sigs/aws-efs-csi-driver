@@ -67,7 +67,7 @@ func TestNodePublishVolume(t *testing.T) {
 				}
 
 				mockMounter.EXPECT().MakeDir(gomock.Eq(targetPath)).Return(nil)
-				mockMounter.EXPECT().Mount(gomock.Eq(source), gomock.Eq(targetPath), gomock.Eq("efs"), gomock.Any()).Return(nil)
+				mockMounter.EXPECT().Mount(gomock.Eq(source), gomock.Eq(targetPath), gomock.Eq("efs"), gomock.Eq([]string{"tls"})).Return(nil)
 				_, err := driver.NodePublishVolume(ctx, req)
 				if err != nil {
 					t.Fatalf("NodePublishVolume is failed: %v", err)
@@ -97,7 +97,7 @@ func TestNodePublishVolume(t *testing.T) {
 				}
 
 				mockMounter.EXPECT().MakeDir(gomock.Eq(targetPath)).Return(nil)
-				mockMounter.EXPECT().Mount(gomock.Eq(source), gomock.Eq(targetPath), gomock.Eq("efs"), gomock.Eq([]string{"ro"})).Return(nil)
+				mockMounter.EXPECT().Mount(gomock.Eq(source), gomock.Eq(targetPath), gomock.Eq("efs"), gomock.Eq([]string{"ro", "tls"})).Return(nil)
 				_, err := driver.NodePublishVolume(ctx, req)
 				if err != nil {
 					t.Fatalf("NodePublishVolume is failed: %v", err)
@@ -145,6 +145,66 @@ func TestNodePublishVolume(t *testing.T) {
 			},
 		},
 		{
+			name: "success: normal with encryptInTransit true volume context",
+			testFunc: func(t *testing.T) {
+				mockCtrl := gomock.NewController(t)
+				mockMounter := mocks.NewMockMounter(mockCtrl)
+				driver := &Driver{
+					endpoint: endpoint,
+					nodeID:   nodeID,
+					mounter:  mockMounter,
+				}
+				source := volumeId + ":/"
+
+				ctx := context.Background()
+				req := &csi.NodePublishVolumeRequest{
+					VolumeId:         volumeId,
+					VolumeCapability: stdVolCap,
+					TargetPath:       targetPath,
+					VolumeContext:    map[string]string{"encryptInTransit": "true"},
+				}
+
+				mockMounter.EXPECT().MakeDir(gomock.Eq(targetPath)).Return(nil)
+				mockMounter.EXPECT().Mount(gomock.Eq(source), gomock.Eq(targetPath), gomock.Eq("efs"), gomock.Eq([]string{"tls"})).Return(nil)
+				_, err := driver.NodePublishVolume(ctx, req)
+				if err != nil {
+					t.Fatalf("NodePublishVolume is failed: %v", err)
+				}
+
+				mockCtrl.Finish()
+			},
+		},
+		{
+			name: "success: normal with encryptInTransit false volume context",
+			testFunc: func(t *testing.T) {
+				mockCtrl := gomock.NewController(t)
+				mockMounter := mocks.NewMockMounter(mockCtrl)
+				driver := &Driver{
+					endpoint: endpoint,
+					nodeID:   nodeID,
+					mounter:  mockMounter,
+				}
+				source := volumeId + ":/"
+
+				ctx := context.Background()
+				req := &csi.NodePublishVolumeRequest{
+					VolumeId:         volumeId,
+					VolumeCapability: stdVolCap,
+					TargetPath:       targetPath,
+					VolumeContext:    map[string]string{"encryptInTransit": "false"},
+				}
+
+				mockMounter.EXPECT().MakeDir(gomock.Eq(targetPath)).Return(nil)
+				mockMounter.EXPECT().Mount(gomock.Eq(source), gomock.Eq(targetPath), gomock.Eq("efs"), gomock.Eq([]string{})).Return(nil)
+				_, err := driver.NodePublishVolume(ctx, req)
+				if err != nil {
+					t.Fatalf("NodePublishVolume is failed: %v", err)
+				}
+
+				mockCtrl.Finish()
+			},
+		},
+		{
 			name: "success: normal with path volume context",
 			testFunc: func(t *testing.T) {
 				mockCtrl := gomock.NewController(t)
@@ -165,7 +225,7 @@ func TestNodePublishVolume(t *testing.T) {
 				}
 
 				mockMounter.EXPECT().MakeDir(gomock.Eq(targetPath)).Return(nil)
-				mockMounter.EXPECT().Mount(gomock.Eq(source), gomock.Eq(targetPath), gomock.Eq("efs"), gomock.Any()).Return(nil)
+				mockMounter.EXPECT().Mount(gomock.Eq(source), gomock.Eq(targetPath), gomock.Eq("efs"), gomock.Eq([]string{"tls"})).Return(nil)
 				_, err := driver.NodePublishVolume(ctx, req)
 				if err != nil {
 					t.Fatalf("NodePublishVolume is failed: %v", err)
@@ -194,7 +254,7 @@ func TestNodePublishVolume(t *testing.T) {
 				}
 
 				mockMounter.EXPECT().MakeDir(gomock.Eq(targetPath)).Return(nil)
-				mockMounter.EXPECT().Mount(gomock.Eq(source), gomock.Eq(targetPath), gomock.Eq("efs"), gomock.Any()).Return(nil)
+				mockMounter.EXPECT().Mount(gomock.Eq(source), gomock.Eq(targetPath), gomock.Eq("efs"), gomock.Eq([]string{"tls"})).Return(nil)
 				_, err := driver.NodePublishVolume(ctx, req)
 				if err != nil {
 					t.Fatalf("NodePublishVolume is failed: %v", err)
@@ -363,6 +423,33 @@ func TestNodePublishVolume(t *testing.T) {
 					VolumeCapability: stdVolCap,
 					TargetPath:       targetPath,
 					VolumeContext:    map[string]string{"asdf": "qwer"},
+				}
+
+				_, err := driver.NodePublishVolume(ctx, req)
+				if err == nil {
+					t.Fatalf("NodePublishVolume is not failed")
+				}
+
+				mockCtrl.Finish()
+			},
+		},
+		{
+			name: "fail: invalid encryptInTransit volume context",
+			testFunc: func(t *testing.T) {
+				mockCtrl := gomock.NewController(t)
+				mockMounter := mocks.NewMockMounter(mockCtrl)
+				driver := &Driver{
+					endpoint: endpoint,
+					nodeID:   nodeID,
+					mounter:  mockMounter,
+				}
+
+				ctx := context.Background()
+				req := &csi.NodePublishVolumeRequest{
+					VolumeId:         volumeId,
+					VolumeCapability: stdVolCap,
+					TargetPath:       targetPath,
+					VolumeContext:    map[string]string{"encryptInTransit": "qwer"},
 				}
 
 				_, err := driver.NodePublishVolume(ctx, req)
