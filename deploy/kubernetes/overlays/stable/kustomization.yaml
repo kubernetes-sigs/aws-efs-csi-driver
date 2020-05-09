@@ -5,7 +5,7 @@ bases:
 images:
 - name: amazon/aws-efs-csi-driver
   newName: 602401143452.dkr.ecr.us-west-2.amazonaws.com/eks/aws-efs-csi-driver
-  newTag: v0.2.0
+  newTag: v0.3.0
 - name: quay.io/k8scsi/livenessprobe
   newName: 602401143452.dkr.ecr.us-west-2.amazonaws.com/eks/csi-liveness-probe
   newTag: v1.1.0
