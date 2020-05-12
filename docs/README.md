@@ -24,7 +24,9 @@ The following CSI interfaces are implemented:
 ### Encryption In Transit
 One of the advantages of using EFS is that it provides [encryption in transit](https://aws.amazon.com/blogs/aws/new-encryption-of-data-in-transit-for-amazon-efs/) support using TLS. Using encryption in transit, data will be encrypted during its transition over the network to the EFS service. This provides an extra layer of defence-in-depth for applications that requires strict security compliance.
 
-To enable encryption in transit, `tls` needs to be set in the `NodePublishVolumeRequest.VolumeCapability.MountVolume` object's `MountFlags` fields. For an example of using it in kubernetes, see the persistence volume manifest in [Encryption in Transit Example](../examples/kubernetes/encryption_in_transit/specs/pv.yaml)
+For EFS CSI Driver EFS CSI Driver v0.3.0 or earlier releases, this feature is optional. To enable encryption in transit, `tls` needs to be set in the `NodePublishVolumeRequest.VolumeCapability.MountVolume` object's `MountFlags` fields. For an example of using it in kubernetes, see the persistence volume manifest in [Encryption in Transit Example](../examples/kubernetes/encryption_in_transit/specs/pv.yaml)
+
+For new releases starting v0.4.0, encryption in transit is always enabled.
 
 **Note** Kubernetes version 1.13+ is required if you are using this feature in Kubernetes.
 
@@ -32,12 +34,12 @@ To enable encryption in transit, `tls` needs to be set in the `NodePublishVolume
 The following sections are Kubernetes specific. If you are a Kubernetes user, use this for driver features, installation steps and examples.
 
 ### Kubernetes Version Compability Matrix
-| AWS EFS CSI Driver \ Kubernetes Version| maturity | v1.11 | v1.12 | v1.13 | v1.14 | v1.15 |
-|----------------------------------------|----------|-------|-------|-------|-------|-------|
-| master branch                          | beta     | no    | no    | no    | yes   | yes   |
-| v0.3.0                                 | beta     | no    | no    | no    | yes   | yes   |
-| v0.2.0                                 | beta     | no    | no    | no    | yes   | yes   |
-| v0.1.0                                 | alpha    | yes   | yes   | yes   | no    | no    |
+| AWS EFS CSI Driver \ Kubernetes Version (both master and worker node)| maturity | v1.11 | v1.12 | v1.13 | v1.14 | v1.15 |
+|----------------------------------------------------------------------|----------|-------|-------|-------|-------|-------|
+| master branch                                                        | beta     | no    | no    | no    | yes   | yes   |
+| v0.3.0                                                               | beta     | no    | no    | no    | yes   | yes   |
+| v0.2.0                                                               | beta     | no    | no    | no    | yes   | yes   |
+| v0.1.0                                                               | alpha    | yes   | yes   | yes   | no    | no    |
 
 ### Container Images
 |EFS CSI Driver Version     | Image                               |
@@ -49,7 +51,7 @@ The following sections are Kubernetes specific. If you are a Kubernetes user, us
 
 ### Features
 * Static provisioning - EFS filesystem needs to be created manually first, then it could be mounted inside container as a persistent volume (PV) using the driver.
-* Mount Options - Mount options can be specified in the persistence volume (PV) to define how the volume should be mounted. Aside from normal mount options, you can also specify `tls` as a mount option to enable encryption in transit of the EFS filesystem.
+* Mount Options - Mount options can be specified in the persistence volume (PV) to define how the volume should be mounted. Aside from normal mount options, for EFS CSI Driver v0.3.0 or earlier releases, you can also specify `tls` as a mount option to enable encryption in transit of the EFS filesystem (this feature is always enabled starting release 0.4.0).
 
 **Notes**:
 * Since EFS is an elastic filesystem it doesn't really enforce any filesystem capacity. The actual storage capacity value in persistence volume and persistence volume claim is not used when creating the filesystem. However, since the storage capacity is a required field by Kubernetes, you must specify the value and you can use any valid value for the capacity.

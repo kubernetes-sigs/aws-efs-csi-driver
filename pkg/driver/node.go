@@ -102,14 +102,6 @@ func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 	}
 
 	if m := volCap.GetMount(); m != nil {
-		hasOption := func(options []string, opt string) bool {
-			for _, o := range options {
-				if o == opt {
-					return true
-				}
-			}
-			return false
-		}
 		for _, f := range m.MountFlags {
 			if !hasOption(mountOptions, f) {
 				mountOptions = append(mountOptions, f)
@@ -121,6 +113,11 @@ func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 		return nil, status.Errorf(codes.Internal, "Could not create dir %q: %v", target, err)
 	}
 
+	// Enforcing tls
+	if !hasOption(mountOptions, "tls") {
+		mountOptions = append(mountOptions, "tls")
+	}
+
 	klog.V(5).Infof("NodePublishVolume: mounting %s at %s with options %v", source, target, mountOptions)
 	if err := d.mounter.Mount(source, target, "efs", mountOptions); err != nil {
 		os.Remove(target)
@@ -128,6 +125,15 @@ func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 	}
 
 	return &csi.NodePublishVolumeResponse{}, nil
+}
+
+func hasOption(options []string, opt string) bool {
+	for _, o := range options {
+		if o == opt {
+			return true
+		}
+	}
+	return false
 }
 
 func (d *Driver) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpublishVolumeRequest) (*csi.NodeUnpublishVolumeResponse, error) {

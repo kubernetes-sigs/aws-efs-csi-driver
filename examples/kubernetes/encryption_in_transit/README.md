@@ -1,6 +1,8 @@
 ## Encryption in Transit
 This example shows how to make a static provisioned EFS persistence volume (PV) mounted inside container with encryption in transit enabled.
 
+**Note**: this example is being deprecated starting EFS CSI Driver release v0.4.0 since encryption in transit is always enabled without extra setup.
+
 **Note**: this example requires Kubernetes v1.13+
 
 ### Edit [Persistence Volume Spec](./specs/pv.yaml) 

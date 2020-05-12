@@ -2,7 +2,7 @@
 Like [volume path mounts](../volume_path), mounting [EFS access points](https://docs.aws.amazon.com/efs/latest/ug/efs-access-points.html) allows you to expose separate data stores with independent ownership and permissions from a single EFS volume.
 In this case, the separation is managed on the EFS side rather than the kubernetes side.
 
-**Note**: Because access point mounts require TLS, this is not supported in driver versions at or before `0.3`.
+**Note**: Because access point mounts require TLS, this is not supported in driver versions at or before `0.3.0`.
 
 ### Create Access Points (in EFS)
 Following [this doc](https://docs.aws.amazon.com/efs/latest/ug/create-access-point.html), create a separate access point for each independent data store you wish to expose in your cluster, tailoring the ownership and permissions as desired.
