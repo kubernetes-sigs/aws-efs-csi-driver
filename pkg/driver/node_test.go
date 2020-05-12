@@ -348,6 +348,26 @@ func TestNodePublishVolume(t *testing.T) {
 			},
 		},
 		{
+			name: "fail: unsupported volume access type",
+			req: &csi.NodePublishVolumeRequest{
+				VolumeId: volumeId,
+				VolumeCapability: &csi.VolumeCapability{
+					AccessType: &csi.VolumeCapability_Block{
+						Block: &csi.VolumeCapability_BlockVolume{},
+					},
+					AccessMode: &csi.VolumeCapability_AccessMode{
+						Mode: csi.VolumeCapability_AccessMode_MULTI_NODE_MULTI_WRITER,
+					},
+				},
+				TargetPath: targetPath,
+			},
+			expectMakeDir: false,
+			expectError: errtyp{
+				code:    "InvalidArgument",
+				message: "Volume capability access type must be mount",
+			},
+		},
+		{
 			name: "fail: mounter failed to MakeDir",
 			req: &csi.NodePublishVolumeRequest{
 				VolumeId:         volumeId,
