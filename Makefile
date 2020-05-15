@@ -50,7 +50,7 @@ image:
 	docker build -t $(IMAGE):latest .
 
 .PHONY: push
-push:
+push: image
 	docker push $(IMAGE):latest
 
 .PHONY: image-release

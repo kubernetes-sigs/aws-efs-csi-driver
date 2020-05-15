@@ -31,11 +31,11 @@ You can get `FileSystemId` using AWS CLI:
 ### Deploy the Example Application
 Create PV, persistence volume claim (PVC), storageclass and the pods that consume the PV:
 ```sh
->> kubectl apply -f examples/kubernetes/multiple_pods/specs/storageclass.yaml
->> kubectl apply -f examples/kubernetes/multiple_pods/specs/pv.yaml
->> kubectl apply -f examples/kubernetes/multiple_pods/specs/claim.yaml
->> kubectl apply -f examples/kubernetes/multiple_pods/specs/pod1.yaml
->> kubectl apply -f examples/kubernetes/multiple_pods/specs/pod2.yaml
+kubectl apply -f examples/kubernetes/multiple_pods/specs/storageclass.yaml
+kubectl apply -f examples/kubernetes/multiple_pods/specs/pv.yaml
+kubectl apply -f examples/kubernetes/multiple_pods/specs/claim.yaml
+kubectl apply -f examples/kubernetes/multiple_pods/specs/pod1.yaml
+kubectl apply -f examples/kubernetes/multiple_pods/specs/pod2.yaml
 ```
 
 In the example, both pod1 and pod2 are writing to the same EFS filesystem at the same time.
