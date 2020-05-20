@@ -40,7 +40,7 @@ spec:
     - accesspoint=fsap-19f752f0068c22464
   csi:
     driver: efs.csi.aws.com
-    volumeHandle: fs-e8a95a42
+    volumeHandle: fs-2e48aa59
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
