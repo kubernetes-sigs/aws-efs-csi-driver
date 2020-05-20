@@ -25,7 +25,6 @@ spec:
           securityContext:
             privileged: true
           image: amazon/aws-efs-csi-driver:latest
-          imagePullPolicy: Always
           args:
             - --endpoint=$(CSI_ENDPOINT)
             - --logtostderr
@@ -55,7 +54,6 @@ spec:
             failureThreshold: 5
         - name: csi-driver-registrar
           image: quay.io/k8scsi/csi-node-driver-registrar:v1.3.0
-          imagePullPolicy: Always
           args:
             - --csi-address=$(ADDRESS)
             - --kubelet-registration-path=$(DRIVER_REG_SOCK_PATH)
@@ -75,7 +73,6 @@ spec:
             - name: registration-dir
               mountPath: /registration
         - name: liveness-probe
-          imagePullPolicy: Always
           image: quay.io/k8scsi/livenessprobe:v2.0.0
           args:
             - --csi-address=/csi/csi.sock

@@ -6,13 +6,13 @@
 
 The [Amazon Elastic File System](https://aws.amazon.com/efs/) Container Storage Interface (CSI) Driver implements the [CSI](https://github.com/container-storage-interface/spec/blob/master/spec.md) specification for container orchestrators to manage the lifecycle of Amazon EFS filesystems.
 
-### CSI Specification Compability Matrix
-| AWS EFS CSI Driver \ CSI Version       | v0.3.0| v1.1.0 |
-|----------------------------------------|-------|--------|
-| master branch                          | no    | yes    |
-| v0.3.0                                 | no    | yes    |
-| v0.2.0                                 | no    | yes    |
-| v0.1.0                                 | yes   | no     |
+### CSI Specification Compatibility Matrix
+| AWS EFS CSI Driver \ CSI Spec Version  | v0.3.0| v1.1.0 | v1.2.0 |
+|----------------------------------------|-------|--------|--------|
+| master branch                          | no    | no     | yes    |
+| v0.3.0                                 | no    | yes    | no     |
+| v0.2.0                                 | no    | yes    | no     |
+| v0.1.0                                 | yes   | no     | no     |
 
 ## Features
 Currently only static provisioning is supported. This means an AWS EFS filesystem needs to be created manually on AWS first. After that it can be mounted inside a container as a volume using the driver.

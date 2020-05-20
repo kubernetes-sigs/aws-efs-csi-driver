@@ -16,6 +16,7 @@ FROM golang:1.13.4-stretch as builder
 WORKDIR /go/src/github.com/kubernetes-sigs/aws-efs-csi-driver
 
 # Cache go modules
+ENV GOPROXY=direct
 COPY go.mod .
 COPY go.sum .
 RUN go mod download
