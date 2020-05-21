@@ -22,7 +22,6 @@ spec:
     spec:
       nodeSelector:
         beta.kubernetes.io/os: linux
-      hostNetwork: true
       priorityClassName: system-node-critical
       tolerations:
         - operator: Exists
