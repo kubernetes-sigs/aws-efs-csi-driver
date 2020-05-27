@@ -6,7 +6,8 @@ In this case, the separation is managed on the EFS side rather than the kubernet
 
 ### Create Access Points (in EFS)
 Following [this doc](https://docs.aws.amazon.com/efs/latest/ug/create-access-point.html), create a separate access point for each independent data store you wish to expose in your cluster, tailoring the ownership and permissions as desired.
-There is no need to use different EFS volumes.
+
+**Note**: Until [issue #167](https://github.com/kubernetes-sigs/aws-efs-csi-driver/issues/167) is resolved, you must use a separate file system for each access point if they are to be mounted in the same pod.
 
 **Note**: Although it is possible to [configure IAM policies for access points](https://docs.aws.amazon.com/efs/latest/ug/efs-access-points.html#access-points-iam-policy), by default no additional IAM permissions are necessary.
 
@@ -58,7 +59,8 @@ You can find these values using the AWS CLI:
 ```sh
 >> aws efs describe-access-points --query 'AccessPoints[*].{"FileSystemId": FileSystemId, "AccessPointId": AccessPointId}'
 ```
-If you are using the same underlying EFS volume, the `FileSystemId` will be the same in both PersistentVolume specs, but the `AccessPointId` will differ.
+
+**Note**: Until [issue #167](https://github.com/kubernetes-sigs/aws-efs-csi-driver/issues/167) is resolved, both the `FileSystemId` and the `AccessPointId` must be unique in each PersistentVolume.
 
 ### Deploy the Example Application
 Create PVs, persistent volume claims (PVCs), and storage class:
