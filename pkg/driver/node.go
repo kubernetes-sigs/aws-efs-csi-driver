@@ -126,6 +126,7 @@ func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 		os.Remove(target)
 		return nil, status.Errorf(codes.Internal, "Could not mount %q at %q: %v", source, target, err)
 	}
+	klog.V(5).Infof("NodePublishVolume: %s was mounted", target)
 
 	return &csi.NodePublishVolumeResponse{}, nil
 }
@@ -160,6 +161,7 @@ func (d *Driver) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpublish
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "Could not unmount %q: %v", target, err)
 	}
+	klog.V(5).Infof("NodeUnpublishVolume: %s unmounted", target)
 
 	return &csi.NodeUnpublishVolumeResponse{}, nil
 }
