@@ -4,7 +4,7 @@ cluster:
     zones: us-west-2a,us-west-2b,us-west-2c
     nodeCount: 3
     nodeSize: c5.large
-    kubernetesVersion: 1.15.3
+    kubernetesVersion: 1.17.0
 
 build: |
   eval $(aws ecr get-login --region us-west-2 --no-include-email)
