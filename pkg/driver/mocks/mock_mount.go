@@ -6,7 +6,7 @@ package mocks
 
 import (
 	gomock "github.com/golang/mock/gomock"
-	mount "k8s.io/kubernetes/pkg/util/mount"
+	mount "k8s.io/utils/mount"
 	reflect "reflect"
 )
 
