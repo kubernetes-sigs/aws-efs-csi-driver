@@ -15,16 +15,72 @@ package driver
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
 	"sync"
+	"text/template"
 
 	"k8s.io/klog"
 )
 
+// https://github.com/aws/efs-utils/blob/master/dist/efs-utils.conf
+const efsUtilsConfigTemplate = `
+[DEFAULT]
+logging_level = INFO
+logging_max_bytes = 1048576
+logging_file_count = 10
+# mode for /var/run/efs and subdirectories in octal
+state_file_dir_mode = 750
+
+[mount]
+dns_name_format = {fs_id}.efs.{region}.{dns_name_suffix}
+dns_name_suffix = amazonaws.com
+#The region of the file system when mounting from on-premises or cross region.
+#region = us-east-1
+stunnel_debug_enabled = true
+#Uncomment the below option to save all stunnel logs for a file system to the same file
+stunnel_logs_file = /var/log/amazon/efs/{fs_id}.stunnel.log
+# RootCA on AmazonLinux2/CentOS. https://golang.org/src/crypto/x509/root_linux.go
+stunnel_cafile = /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
+
+# Validate the certificate hostname on mount. This option is not supported by certain stunnel versions.
+stunnel_check_cert_hostname = true
+
+# Use OCSP to check certificate validity. This option is not supported by certain stunnel versions.
+stunnel_check_cert_validity = false
+
+# Define the port range that the TLS tunnel will choose from
+port_range_lower_bound = 20049
+port_range_upper_bound = 20449
+
+[mount.cn-north-1]
+dns_name_suffix = amazonaws.com.cn
+
+[mount.cn-northwest-1]
+dns_name_suffix = amazonaws.com.cn
+
+[mount.us-iso-east-1]
+dns_name_suffix = c2s.ic.gov
+
+[mount.us-isob-east-1]
+dns_name_suffix = sc2s.sgov.gov
+
+[mount-watchdog]
+enabled = true
+poll_interval_sec = 1
+unmount_grace_period_sec = 30
+
+# Set client auth/access point certificate renewal rate. Minimum value is 1 minute.
+tls_cert_renewal_interval_min = 60
+
+[client-info] 
+source=k8s
+`
+
 // Watchdog defines the interface for process monitoring and supervising
 type Watchdog interface {
 	// start starts the watch dog along with the process
-	start()
+	start() error
 
 	// stop stops the watch dog along with the process
 	stop()
@@ -39,22 +95,44 @@ type execWatchdog struct {
 	execArg []string
 	// the cmd that is running
 	cmd *exec.Cmd
+	// efs-utils config file path
+	efsUtilsCfgPath string
 	// stopCh indicates if it should be stopped
 	stopCh chan struct{}
 
 	mu sync.Mutex
 }
 
-func newExecWatchdog(cmd string, arg ...string) Watchdog {
+func newExecWatchdog(efsUtilsCfgPath, cmd string, arg ...string) Watchdog {
 	return &execWatchdog{
-		execCmd: cmd,
-		execArg: arg,
-		stopCh:  make(chan struct{}),
+		efsUtilsCfgPath: efsUtilsCfgPath,
+		execCmd:         cmd,
+		execArg:         arg,
+		stopCh:          make(chan struct{}),
 	}
 }
 
-func (w *execWatchdog) start() {
+func (w *execWatchdog) start() error {
+	if err := w.updateConfig(); err != nil {
+		return err
+	}
+
 	go w.runLoop(w.stopCh)
+
+	return nil
+}
+
+func (w *execWatchdog) updateConfig() error {
+	efsUtilsConfig := template.Must(template.New("efs-utils-config").Parse(efsUtilsConfigTemplate))
+	f, err := os.Create(w.efsUtilsCfgPath)
+	if err != nil {
+		return fmt.Errorf("cannot create config file %s for efs-utils. Error: %v", w.efsUtilsCfgPath, err)
+	}
+	defer f.Close()
+	if err = efsUtilsConfig.Execute(f, efsUtilsConfig); err != nil {
+		return fmt.Errorf("cannot update config %s for efs-utils. Error: %v", w.efsUtilsCfgPath, err)
+	}
+	return nil
 }
 
 // stop kills the underlying process and stops the watchdog

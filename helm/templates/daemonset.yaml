@@ -48,6 +48,8 @@ spec:
               mountPath: /csi
             - name: efs-state-dir
               mountPath: /var/run/efs
+            - name: efs-utils-config
+              mountPath: /etc/amazon/efs
           ports:
             - name: healthz
               containerPort: 9809
@@ -58,7 +60,7 @@ spec:
               port: healthz
             initialDelaySeconds: 10
             timeoutSeconds: 3
-            periodSeconds: 2 
+            periodSeconds: 2
             failureThreshold: 5
         - name: cs-driver-registrar
           image: {{ printf "%s:%s" .Values.sidecars.nodeDriverRegistrarImage.repository .Values.sidecars.nodeDriverRegistrarImage.tag }}
@@ -104,4 +106,8 @@ spec:
         - name: efs-state-dir
           hostPath:
             path: /var/run/efs
+            type: DirectoryOrCreate
+        - name: efs-utils-config
+          hostPath:
+            path: /etc/amazon/efs
             type: DirectoryOrCreate
