@@ -98,7 +98,8 @@ func TestUpdateConfig(t *testing.T) {
 	defer os.Remove(f.Name())
 
 	w := newExecWatchdog(f.Name(), "sleep", "300").(*execWatchdog)
-	if err := w.updateConfig(); err != nil {
+	efsClient := "k8s"
+	if err := w.updateConfig(efsClient); err != nil {
 		t.Fatalf("Failed to update config file %v, %v", f, err)
 	}
 	bytes, err := ioutil.ReadAll(f)

@@ -19,16 +19,19 @@ import (
 	"testing"
 )
 
+const efs_client_source = "dummyEfsClientSource"
+
 func TestGetVersion(t *testing.T) {
 	version := GetVersion()
 
 	expected := VersionInfo{
-		DriverVersion: "",
-		GitCommit:     "",
-		BuildDate:     "",
-		GoVersion:     runtime.Version(),
-		Compiler:      runtime.Compiler,
-		Platform:      fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH),
+		DriverVersion:   "",
+		GitCommit:       "",
+		BuildDate:       "",
+		EfsClientSource: "",
+		GoVersion:       runtime.Version(),
+		Compiler:        runtime.Compiler,
+		Platform:        fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH),
 	}
 
 	if !reflect.DeepEqual(version, expected) {
@@ -44,6 +47,7 @@ func TestGetVersionJSON(t *testing.T) {
   "driverVersion": "",
   "gitCommit": "",
   "buildDate": "",
+  "efsClientSource": "",
   "goVersion": "%s",
   "compiler": "%s",
   "platform": "%s"

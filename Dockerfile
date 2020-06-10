@@ -27,15 +27,6 @@ RUN make aws-efs-csi-driver
 FROM amazonlinux:2
 RUN yum install util-linux amazon-efs-utils -y
 
-# Default client source is k8s which can be overriden with –build-arg when building the Docker image
-ARG client_source=k8s
-RUN echo "client_source:${client_source}"
-RUN printf "\n\
-\n\
-[client-info] \n\
-source=${client_source} \n\
-" >> /etc/amazon/efs/efs-utils.conf
-
 COPY --from=builder /go/src/github.com/kubernetes-sigs/aws-efs-csi-driver/bin/aws-efs-csi-driver /bin/aws-efs-csi-driver
 COPY THIRD-PARTY /
 

@@ -74,7 +74,7 @@ unmount_grace_period_sec = 30
 tls_cert_renewal_interval_min = 60
 
 [client-info] 
-source=k8s
+source={{.EfsClientSource}}
 `
 
 // Watchdog defines the interface for process monitoring and supervising
@@ -103,6 +103,10 @@ type execWatchdog struct {
 	mu sync.Mutex
 }
 
+type efsUtilsConfig struct {
+	EfsClientSource string
+}
+
 func newExecWatchdog(efsUtilsCfgPath, cmd string, arg ...string) Watchdog {
 	return &execWatchdog{
 		efsUtilsCfgPath: efsUtilsCfgPath,
@@ -113,7 +117,7 @@ func newExecWatchdog(efsUtilsCfgPath, cmd string, arg ...string) Watchdog {
 }
 
 func (w *execWatchdog) start() error {
-	if err := w.updateConfig(); err != nil {
+	if err := w.updateConfig(GetVersion().EfsClientSource); err != nil {
 		return err
 	}
 
@@ -122,14 +126,15 @@ func (w *execWatchdog) start() error {
 	return nil
 }
 
-func (w *execWatchdog) updateConfig() error {
-	efsUtilsConfig := template.Must(template.New("efs-utils-config").Parse(efsUtilsConfigTemplate))
+func (w *execWatchdog) updateConfig(efsClientSource string) error {
+	efsCfgTemplate := template.Must(template.New("efs-utils-config").Parse(efsUtilsConfigTemplate))
 	f, err := os.Create(w.efsUtilsCfgPath)
 	if err != nil {
 		return fmt.Errorf("cannot create config file %s for efs-utils. Error: %v", w.efsUtilsCfgPath, err)
 	}
 	defer f.Close()
-	if err = efsUtilsConfig.Execute(f, efsUtilsConfig); err != nil {
+	efsCfg := efsUtilsConfig{EfsClientSource: efsClientSource}
+	if err = efsCfgTemplate.Execute(f, efsCfg); err != nil {
 		return fmt.Errorf("cannot update config %s for efs-utils. Error: %v", w.efsUtilsCfgPath, err)
 	}
 	return nil
