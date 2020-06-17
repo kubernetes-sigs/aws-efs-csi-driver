@@ -27,8 +27,9 @@ import (
 
 func main() {
 	var (
-		endpoint = flag.String("endpoint", "unix://tmp/csi.sock", "CSI Endpoint")
-		version  = flag.Bool("version", false, "Print the version and exit")
+		endpoint        = flag.String("endpoint", "unix://tmp/csi.sock", "CSI Endpoint")
+		version         = flag.Bool("version", false, "Print the version and exit")
+		efsUtilsCfgPath = flag.String("efs-utils-config-path", "/etc/amazon/efs/efs-utils.conf", "The path to efs-utils config")
 	)
 	klog.InitFlags(nil)
 	flag.Parse()
@@ -42,7 +43,7 @@ func main() {
 		os.Exit(0)
 	}
 
-	drv := driver.NewDriver(*endpoint)
+	drv := driver.NewDriver(*endpoint, *efsUtilsCfgPath)
 	if err := drv.Run(); err != nil {
 		klog.Fatalln(err)
 	}
