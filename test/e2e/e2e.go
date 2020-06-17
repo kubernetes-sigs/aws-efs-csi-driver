@@ -17,13 +17,12 @@ import (
 
 var (
 	// Parameters that are expected to be set by consumers of this package.
+	// If FileSystemId is not set, ClusterName and Region must be set so that a
+	// file system can be created
 	ClusterName  string
 	Region       string
 	FileSystemId string
 
-	// CreateFileSystem if set true will create an EFS file system before tests.
-	// If set false then FileSystemId must be set.
-	CreateFileSystem = true
 	deleteFileSystem = false
 
 	// DeployDriver if set true will deploy a stable version of the driver before
@@ -103,14 +102,11 @@ var csiTestSuites = []func() testsuites.TestSuite{
 
 var _ = ginkgo.SynchronizedBeforeSuite(func() []byte {
 	// Validate parameters
-	if !CreateFileSystem && FileSystemId == "" {
-		ginkgo.Fail("Can't run tests without an EFS filesystem: CreateFileSystem is false and FileSystemId is empty")
-	}
-	if CreateFileSystem && (Region == "" || ClusterName == "") {
-		ginkgo.Fail("Can't create EFS filesystem: both Region and ClusterName must be non-empty")
+	if FileSystemId == "" && (Region == "" || ClusterName == "") {
+		ginkgo.Fail("FileSystemId is empty and can't create an EFS filesystem because both Region and ClusterName are empty")
 	}
 
-	if CreateFileSystem {
+	if FileSystemId == "" {
 		ginkgo.By(fmt.Sprintf("Creating EFS filesystem in region %q for cluster %q", Region, ClusterName))
 
 		c := NewCloud(Region)
