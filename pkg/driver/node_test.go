@@ -29,11 +29,12 @@ import (
 func TestNodePublishVolume(t *testing.T) {
 
 	var (
-		endpoint   = "endpoint"
-		nodeID     = "nodeID"
-		volumeId   = "fs-volumeId"
-		targetPath = "/target/path"
-		stdVolCap  = &csi.VolumeCapability{
+		endpoint      = "endpoint"
+		nodeID        = "nodeID"
+		volumeId      = "fs-volumeId"
+		accessPointID = "fsap-abcd1234"
+		targetPath    = "/target/path"
+		stdVolCap     = &csi.VolumeCapability{
 			AccessType: &csi.VolumeCapability_Mount{
 				Mount: &csi.VolumeCapability_MountVolume{},
 			},
@@ -49,12 +50,37 @@ func TestNodePublishVolume(t *testing.T) {
 		expectMakeDir bool
 		mountArgs     []interface{}
 		mountSuccess  bool
+		// TODO: Make this `expectError string` (use "" for successes)
 		expectSuccess bool
 	}{
 		{
 			name: "success: normal",
 			req: &csi.NodePublishVolumeRequest{
 				VolumeId:         volumeId,
+				VolumeCapability: stdVolCap,
+				TargetPath:       targetPath,
+			},
+			expectMakeDir: true,
+			mountArgs:     []interface{}{volumeId + ":/", targetPath, "efs", gomock.Any()},
+			mountSuccess:  true,
+			expectSuccess: true,
+		},
+		{
+			name: "success: empty path",
+			req: &csi.NodePublishVolumeRequest{
+				VolumeId:         volumeId + ":",
+				VolumeCapability: stdVolCap,
+				TargetPath:       targetPath,
+			},
+			expectMakeDir: true,
+			mountArgs:     []interface{}{volumeId + ":/", targetPath, "efs", gomock.Any()},
+			mountSuccess:  true,
+			expectSuccess: true,
+		},
+		{
+			name: "success: empty path and access point",
+			req: &csi.NodePublishVolumeRequest{
+				VolumeId:         volumeId + "::",
 				VolumeCapability: stdVolCap,
 				TargetPath:       targetPath,
 			},
@@ -98,7 +124,8 @@ func TestNodePublishVolume(t *testing.T) {
 			expectSuccess: true,
 		},
 		{
-			name: "success: normal with path volume context",
+			// TODO: Validate deprecation warning
+			name: "success: normal with path in volume context",
 			req: &csi.NodePublishVolumeRequest{
 				VolumeId:         volumeId,
 				VolumeCapability: stdVolCap,
@@ -111,15 +138,129 @@ func TestNodePublishVolume(t *testing.T) {
 			expectSuccess: true,
 		},
 		{
+			name: "fail: path in volume context must be absolute",
+			req: &csi.NodePublishVolumeRequest{
+				VolumeId:         volumeId,
+				VolumeCapability: stdVolCap,
+				TargetPath:       targetPath,
+				VolumeContext:    map[string]string{"path": "a/b"},
+			},
+			expectMakeDir: false,
+			expectSuccess: false,
+		},
+		{
 			name: "success: normal with path in volume handle",
 			req: &csi.NodePublishVolumeRequest{
+				// This also shows that the path gets cleaned
 				VolumeId:         volumeId + ":/a/b/",
 				VolumeCapability: stdVolCap,
 				TargetPath:       targetPath,
 			},
 			expectMakeDir: true,
 			mountArgs:     []interface{}{volumeId + ":/a/b", targetPath, "efs", gomock.Any()},
-			mountSuccess:  false,
+			mountSuccess:  true,
+			expectSuccess: true,
+		},
+		{
+			name: "success: normal with path in volume handle, empty access point",
+			req: &csi.NodePublishVolumeRequest{
+				// This also shows that relative paths are allowed when specified via volume handle
+				VolumeId:         volumeId + ":a/b/:",
+				VolumeCapability: stdVolCap,
+				TargetPath:       targetPath,
+			},
+			expectMakeDir: true,
+			mountArgs:     []interface{}{volumeId + ":a/b", targetPath, "efs", gomock.Any()},
+			mountSuccess:  true,
+			expectSuccess: true,
+		},
+		{
+			name: "success: path in volume handle takes precedence",
+			req: &csi.NodePublishVolumeRequest{
+				VolumeId:         volumeId + ":/a/b/",
+				VolumeCapability: stdVolCap,
+				TargetPath:       targetPath,
+				VolumeContext:    map[string]string{"path": "/c/d"},
+			},
+			expectMakeDir: true,
+			mountArgs:     []interface{}{volumeId + ":/a/b", targetPath, "efs", gomock.Any()},
+			mountSuccess:  true,
+			expectSuccess: true,
+		},
+		{
+			name: "success: access point in volume handle, no path",
+			req: &csi.NodePublishVolumeRequest{
+				VolumeId:         volumeId + "::" + accessPointID,
+				VolumeCapability: stdVolCap,
+				TargetPath:       targetPath,
+			},
+			expectMakeDir: true,
+			mountArgs:     []interface{}{volumeId + ":/", targetPath, "efs", []string{"accesspoint=" + accessPointID, "tls"}},
+			mountSuccess:  true,
+			expectSuccess: true,
+		},
+		{
+			name: "success: path and access point in volume handle",
+			req: &csi.NodePublishVolumeRequest{
+				VolumeId:         volumeId + ":/a/b:" + accessPointID,
+				VolumeCapability: stdVolCap,
+				TargetPath:       targetPath,
+			},
+			expectMakeDir: true,
+			mountArgs:     []interface{}{volumeId + ":/a/b", targetPath, "efs", []string{"accesspoint=" + accessPointID, "tls"}},
+			mountSuccess:  true,
+			expectSuccess: true,
+		},
+		{
+			// TODO: Validate deprecation warning
+			name: "success: same access point in volume handle and mount options",
+			req: &csi.NodePublishVolumeRequest{
+				VolumeId: volumeId + "::" + accessPointID,
+				VolumeCapability: &csi.VolumeCapability{
+					AccessType: &csi.VolumeCapability_Mount{
+						Mount: &csi.VolumeCapability_MountVolume{
+							// This also shows we allow the `tls` option to exist already
+							MountFlags: []string{"tls", "accesspoint=" + accessPointID},
+						},
+					},
+					AccessMode: &csi.VolumeCapability_AccessMode{
+						Mode: csi.VolumeCapability_AccessMode_MULTI_NODE_MULTI_WRITER,
+					},
+				},
+				TargetPath: targetPath,
+			},
+			expectMakeDir: true,
+			mountArgs:     []interface{}{volumeId + ":/", targetPath, "efs", []string{"accesspoint=" + accessPointID, "tls"}},
+			mountSuccess:  true,
+			expectSuccess: true,
+		},
+		{
+			name: "fail: conflicting access point in volume handle and mount options",
+			req: &csi.NodePublishVolumeRequest{
+				VolumeId: volumeId + "::" + accessPointID,
+				VolumeCapability: &csi.VolumeCapability{
+					AccessType: &csi.VolumeCapability_Mount{
+						Mount: &csi.VolumeCapability_MountVolume{
+							MountFlags: []string{"tls", "accesspoint=fsap-deadbeef"},
+						},
+					},
+					AccessMode: &csi.VolumeCapability_AccessMode{
+						Mode: csi.VolumeCapability_AccessMode_MULTI_NODE_MULTI_WRITER,
+					},
+				},
+				TargetPath: targetPath,
+			},
+			expectMakeDir: false,
+			expectSuccess: false,
+		},
+		{
+			name: "fail: too many fields in volume handle",
+			req: &csi.NodePublishVolumeRequest{
+				VolumeId:         volumeId + ":/a/b/::four!",
+				VolumeCapability: stdVolCap,
+				TargetPath:       targetPath,
+			},
+			expectMakeDir: false,
 			expectSuccess: false,
 		},
 		{
@@ -212,6 +353,16 @@ func TestNodePublishVolume(t *testing.T) {
 			expectMakeDir: false,
 			expectSuccess: false,
 		},
+		{
+			name: "fail: invalid access point ID",
+			req: &csi.NodePublishVolumeRequest{
+				VolumeId:         volumeId + "::invalid-id",
+				VolumeCapability: stdVolCap,
+				TargetPath:       targetPath,
+			},
+			expectMakeDir: false,
+			expectSuccess: false,
+		},
 	}
 
 	for _, tc := range testCases {
@@ -242,12 +393,17 @@ func TestNodePublishVolume(t *testing.T) {
 				mockMounter.EXPECT().Mount(tc.mountArgs[0], tc.mountArgs[1], tc.mountArgs[2], tc.mountArgs[3]).Return(err)
 			}
 
-			_, err := driver.NodePublishVolume(ctx, tc.req)
+			ret, err := driver.NodePublishVolume(ctx, tc.req)
 			if !tc.expectSuccess && err == nil {
 				t.Fatalf("NodePublishVolume is not failed")
 			}
-			if tc.expectSuccess && err != nil {
-				t.Fatalf("NodePublishVolume is failed: %v", err)
+			if tc.expectSuccess {
+				if err != nil {
+					t.Fatalf("NodePublishVolume is failed: %v", err)
+				}
+				if ret == nil {
+					t.Fatalf("Expected non-nil return value")
+				}
 			}
 
 			mockCtrl.Finish()

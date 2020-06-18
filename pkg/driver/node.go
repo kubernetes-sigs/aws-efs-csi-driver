@@ -48,6 +48,7 @@ func (d *Driver) NodeUnstageVolume(ctx context.Context, req *csi.NodeUnstageVolu
 
 func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolumeRequest) (*csi.NodePublishVolumeResponse, error) {
 	klog.V(4).Infof("NodePublishVolume: called with args %+v", req)
+	mountOptions := []string{}
 
 	target := req.GetTargetPath()
 	if len(target) == 0 {
@@ -80,23 +81,27 @@ func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 		}
 	}
 
-	volumeId := req.GetVolumeId()
-	if !isValidFileSystemId(volumeId) {
-		return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("volume ID %s is invalid", volumeId))
+	fsid, vpath, apid, err := parseVolumeId(req.GetVolumeId())
+	if err != nil {
+		// parseVolumeId returns the appropriate error
+		return nil, err
+	}
+	// The `vpath` takes precedence if specified. If not specified, we'll either use the
+	// (deprecated) `path` from the volContext, or default to "/" from above.
+	if vpath != "" {
+		subpath = vpath
+	}
+	source := fmt.Sprintf("%s:%s", fsid, subpath)
+
+	// If an access point was specified, we need to include two things in the mountOptions:
+	// - The access point ID, properly prefixed. (Below, we'll check whether an access point was
+	//   also specified in the incoming mount options and react appropriately.)
+	// - The TLS option. Access point mounts won't work without it. (For ease of use, we won't
+	//   require this to be present in the mountOptions already, but we won't complain if it is.)
+	if apid != "" {
+		mountOptions = append(mountOptions, fmt.Sprintf("accesspoint=%s", apid), "tls")
 	}
 
-	var source string
-	tokens := strings.Split(volumeId, ":")
-	if len(tokens) == 1 {
-		// fs-xxxxxx
-		source = fmt.Sprintf("%s:%s", volumeId, subpath)
-	} else if len(tokens) == 2 {
-		// fs-xxxxxx:/a/b/c
-		cleanPath := path.Clean(tokens[1])
-		source = fmt.Sprintf("%s:%s", tokens[0], cleanPath)
-	}
-
-	mountOptions := []string{}
 	if req.GetReadonly() {
 		mountOptions = append(mountOptions, "ro")
 	}
@@ -111,6 +116,26 @@ func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 			return false
 		}
 		for _, f := range m.MountFlags {
+			// Special-case check for access point
+			// Not sure if `accesspoint` is allowed to have mixed case, but this shouldn't hurt,
+			// and it simplifies both matches (HasPrefix, hasOption) below.
+			f = strings.ToLower(f)
+			if strings.HasPrefix(f, "accesspoint=") {
+				// The MountOptions Access Point ID
+				moapid := f[12:]
+				// No matter what, warn that this is not the right way to specify an access point
+				klog.Warning(fmt.Sprintf(
+					"Use of 'accesspoint' under mountOptions is deprecated with this driver. "+
+						"Specify the access point in the volumeHandle instead, e.g. 'volumeHandle: %s:%s:%s'",
+					fsid, subpath, moapid))
+				// If they specified the same access point in both places, let it slide; otherwise, fail.
+				if apid != "" && moapid != apid {
+					return nil, status.Error(codes.InvalidArgument, fmt.Sprintf(
+						"Found conflicting access point IDs in mountOptions (%s) and volumeHandle (%s)", moapid, apid))
+				}
+				// Fall through; the code below will uniq for us.
+			}
+
 			if !hasOption(mountOptions, f) {
 				mountOptions = append(mountOptions, f)
 			}
@@ -217,6 +242,56 @@ func (d *Driver) isValidVolumeCapabilities(volCaps []*csi.VolumeCapability) bool
 	return foundAll
 }
 
+// parseVolumeId accepts a NodePublishVolumeRequest.VolumeId as a colon-delimited string of the
+// form `{fileSystemID}:{mountPath}:{accessPointID}`.
+// - The `{fileSystemID}` is required, and expected to be of the form `fs-...`.
+// - The other two fields are optional -- they may be empty or omitted entirely. For example,
+//   `fs-abcd1234::`, `fs-abcd1234:`, and `fs-abcd1234` are equivalent.
+// - The `{mountPath}`, if specified, is not required to be absolute.
+// - The `{accessPointID}` is expected to be of the form `fsap-...`.
+// parseVolumeId returns the parsed values, of which `subpath` and `apid` may be empty; and an
+// error, which will be a `status.Error` with `codes.InvalidArgument`, or `nil` if the `volumeId`
+// was parsed successfully.
+// See the following issues for some background:
+// - https://github.com/kubernetes-sigs/aws-efs-csi-driver/issues/100
+// - https://github.com/kubernetes-sigs/aws-efs-csi-driver/issues/167
+func parseVolumeId(volumeId string) (fsid, subpath, apid string, err error) {
+	// Might as well do this up front, since the FSID is required and first in the string
+	if !isValidFileSystemId(volumeId) {
+		err = status.Error(codes.InvalidArgument, fmt.Sprintf("volume ID '%s' is invalid: Expected a file system ID of the form 'fs-...'", volumeId))
+		return
+	}
+
+	tokens := strings.Split(volumeId, ":")
+	if len(tokens) > 3 {
+		err = status.Error(codes.InvalidArgument, fmt.Sprintf("volume ID '%s' is invalid: Expected at most three fields separated by ':'", volumeId))
+		return
+	}
+
+	// Okay, we know we have a FSID
+	fsid = tokens[0]
+
+	// Do we have a subpath?
+	if len(tokens) >= 2 && tokens[1] != "" {
+		subpath = path.Clean(tokens[1])
+	}
+
+	// Do we have an access point ID?
+	if len(tokens) == 3 && tokens[2] != "" {
+		apid = tokens[2]
+		if !isValidAccessPointId(apid) {
+			err = status.Error(codes.InvalidArgument, fmt.Sprintf("volume ID '%s' has an invalid access point ID '%s': Expected it to be of the form 'fsap-...'", volumeId, apid))
+			return
+		}
+	}
+
+	return
+}
+
 func isValidFileSystemId(filesystemId string) bool {
 	return strings.HasPrefix(filesystemId, "fs-")
+}
+
+func isValidAccessPointId(accesspointId string) bool {
+	return strings.HasPrefix(accesspointId, "fsap-")
 }
