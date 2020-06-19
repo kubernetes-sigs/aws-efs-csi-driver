@@ -19,6 +19,7 @@ package driver
 import (
 	"context"
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
@@ -26,14 +27,57 @@ import (
 	"github.com/kubernetes-sigs/aws-efs-csi-driver/pkg/driver/mocks"
 )
 
+const (
+	volumeId   = "fs-abc123"
+	targetPath = "/target/path"
+)
+
+type errtyp struct {
+	code    string
+	message string
+}
+
+func setup(mockCtrl *gomock.Controller) (*mocks.MockMounter, *Driver, context.Context) {
+	mockMounter := mocks.NewMockMounter(mockCtrl)
+	driver := &Driver{
+		endpoint: "endpoint",
+		nodeID:   "nodeID",
+		mounter:  mockMounter,
+	}
+	ctx := context.Background()
+	return mockMounter, driver, ctx
+}
+
+func testResult(t *testing.T, funcName string, ret interface{}, err error, expectError errtyp) {
+	if expectError.code == "" {
+		if err != nil {
+			t.Fatalf("%s is failed: %v", funcName, err)
+		}
+		if ret == nil {
+			t.Fatal("Expected non-nil return value")
+		}
+	} else {
+		if err == nil {
+			t.Fatalf("%s is not failed", funcName)
+		}
+		// Sure would be nice if grpc.statusError was exported :(
+		// The error string looks like:
+		// "rpc error: code = {code} desc = {desc}"
+		tokens := strings.SplitN(err.Error(), " = ", 3)
+		expCode := strings.Split(tokens[1], " ")[0]
+		if expCode != expectError.code {
+			t.Fatalf("Expected error code %q but got %q", expCode, expectError.code)
+		}
+		if tokens[2] != expectError.message {
+			t.Fatalf("\nExpected error message: %s\nActual error message:   %s", expectError.message, tokens[2])
+		}
+	}
+}
+
 func TestNodePublishVolume(t *testing.T) {
 
 	var (
-		endpoint      = "endpoint"
-		nodeID        = "nodeID"
-		volumeId      = "fs-volumeId"
 		accessPointID = "fsap-abcd1234"
-		targetPath    = "/target/path"
 		stdVolCap     = &csi.VolumeCapability{
 			AccessType: &csi.VolumeCapability_Mount{
 				Mount: &csi.VolumeCapability_MountVolume{},
@@ -50,8 +94,7 @@ func TestNodePublishVolume(t *testing.T) {
 		expectMakeDir bool
 		mountArgs     []interface{}
 		mountSuccess  bool
-		// TODO: Make this `expectError string` (use "" for successes)
-		expectSuccess bool
+		expectError   errtyp
 	}{
 		{
 			name: "success: normal",
@@ -63,7 +106,6 @@ func TestNodePublishVolume(t *testing.T) {
 			expectMakeDir: true,
 			mountArgs:     []interface{}{volumeId + ":/", targetPath, "efs", gomock.Any()},
 			mountSuccess:  true,
-			expectSuccess: true,
 		},
 		{
 			name: "success: empty path",
@@ -75,7 +117,6 @@ func TestNodePublishVolume(t *testing.T) {
 			expectMakeDir: true,
 			mountArgs:     []interface{}{volumeId + ":/", targetPath, "efs", gomock.Any()},
 			mountSuccess:  true,
-			expectSuccess: true,
 		},
 		{
 			name: "success: empty path and access point",
@@ -87,7 +128,6 @@ func TestNodePublishVolume(t *testing.T) {
 			expectMakeDir: true,
 			mountArgs:     []interface{}{volumeId + ":/", targetPath, "efs", gomock.Any()},
 			mountSuccess:  true,
-			expectSuccess: true,
 		},
 		{
 			name: "success: normal with read only mount",
@@ -100,7 +140,6 @@ func TestNodePublishVolume(t *testing.T) {
 			expectMakeDir: true,
 			mountArgs:     []interface{}{volumeId + ":/", targetPath, "efs", []string{"ro"}},
 			mountSuccess:  true,
-			expectSuccess: true,
 		},
 		{
 			name: "success: normal with tls mount options",
@@ -121,7 +160,6 @@ func TestNodePublishVolume(t *testing.T) {
 			expectMakeDir: true,
 			mountArgs:     []interface{}{volumeId + ":/", targetPath, "efs", []string{"tls"}},
 			mountSuccess:  true,
-			expectSuccess: true,
 		},
 		{
 			// TODO: Validate deprecation warning
@@ -135,7 +173,6 @@ func TestNodePublishVolume(t *testing.T) {
 			expectMakeDir: true,
 			mountArgs:     []interface{}{volumeId + ":/a/b", targetPath, "efs", gomock.Any()},
 			mountSuccess:  true,
-			expectSuccess: true,
 		},
 		{
 			name: "fail: path in volume context must be absolute",
@@ -146,7 +183,10 @@ func TestNodePublishVolume(t *testing.T) {
 				VolumeContext:    map[string]string{"path": "a/b"},
 			},
 			expectMakeDir: false,
-			expectSuccess: false,
+			expectError: errtyp{
+				code:    "InvalidArgument",
+				message: `Volume context property "path" must be an absolute path`,
+			},
 		},
 		{
 			name: "success: normal with path in volume handle",
@@ -159,7 +199,6 @@ func TestNodePublishVolume(t *testing.T) {
 			expectMakeDir: true,
 			mountArgs:     []interface{}{volumeId + ":/a/b", targetPath, "efs", gomock.Any()},
 			mountSuccess:  true,
-			expectSuccess: true,
 		},
 		{
 			name: "success: normal with path in volume handle, empty access point",
@@ -172,7 +211,6 @@ func TestNodePublishVolume(t *testing.T) {
 			expectMakeDir: true,
 			mountArgs:     []interface{}{volumeId + ":a/b", targetPath, "efs", gomock.Any()},
 			mountSuccess:  true,
-			expectSuccess: true,
 		},
 		{
 			name: "success: path in volume handle takes precedence",
@@ -185,7 +223,6 @@ func TestNodePublishVolume(t *testing.T) {
 			expectMakeDir: true,
 			mountArgs:     []interface{}{volumeId + ":/a/b", targetPath, "efs", gomock.Any()},
 			mountSuccess:  true,
-			expectSuccess: true,
 		},
 		{
 			name: "success: access point in volume handle, no path",
@@ -197,7 +234,6 @@ func TestNodePublishVolume(t *testing.T) {
 			expectMakeDir: true,
 			mountArgs:     []interface{}{volumeId + ":/", targetPath, "efs", []string{"accesspoint=" + accessPointID, "tls"}},
 			mountSuccess:  true,
-			expectSuccess: true,
 		},
 		{
 			name: "success: path and access point in volume handle",
@@ -209,7 +245,6 @@ func TestNodePublishVolume(t *testing.T) {
 			expectMakeDir: true,
 			mountArgs:     []interface{}{volumeId + ":/a/b", targetPath, "efs", []string{"accesspoint=" + accessPointID, "tls"}},
 			mountSuccess:  true,
-			expectSuccess: true,
 		},
 		{
 			// TODO: Validate deprecation warning
@@ -232,7 +267,6 @@ func TestNodePublishVolume(t *testing.T) {
 			expectMakeDir: true,
 			mountArgs:     []interface{}{volumeId + ":/", targetPath, "efs", []string{"accesspoint=" + accessPointID, "tls"}},
 			mountSuccess:  true,
-			expectSuccess: true,
 		},
 		{
 			name: "fail: conflicting access point in volume handle and mount options",
@@ -251,7 +285,10 @@ func TestNodePublishVolume(t *testing.T) {
 				TargetPath: targetPath,
 			},
 			expectMakeDir: false,
-			expectSuccess: false,
+			expectError: errtyp{
+				code:    "InvalidArgument",
+				message: "Found conflicting access point IDs in mountOptions (fsap-deadbeef) and volumeHandle (fsap-abcd1234)",
+			},
 		},
 		{
 			name: "fail: too many fields in volume handle",
@@ -261,7 +298,10 @@ func TestNodePublishVolume(t *testing.T) {
 				TargetPath:       targetPath,
 			},
 			expectMakeDir: false,
-			expectSuccess: false,
+			expectError: errtyp{
+				code:    "InvalidArgument",
+				message: "volume ID 'fs-abc123:/a/b/::four!' is invalid: Expected at most three fields separated by ':'",
+			},
 		},
 		{
 			name: "fail: missing target path",
@@ -270,7 +310,10 @@ func TestNodePublishVolume(t *testing.T) {
 				VolumeCapability: stdVolCap,
 			},
 			expectMakeDir: false,
-			expectSuccess: false,
+			expectError: errtyp{
+				code:    "InvalidArgument",
+				message: "Target path not provided",
+			},
 		},
 		{
 			name: "fail: missing volume capability",
@@ -279,7 +322,10 @@ func TestNodePublishVolume(t *testing.T) {
 				TargetPath: targetPath,
 			},
 			expectMakeDir: false,
-			expectSuccess: false,
+			expectError: errtyp{
+				code:    "InvalidArgument",
+				message: "Volume capability not provided",
+			},
 		},
 		{
 			name: "fail: unsupported volume capability",
@@ -296,7 +342,10 @@ func TestNodePublishVolume(t *testing.T) {
 				TargetPath: targetPath,
 			},
 			expectMakeDir: false,
-			expectSuccess: false,
+			expectError: errtyp{
+				code:    "InvalidArgument",
+				message: "Volume capability not supported",
+			},
 		},
 		{
 			name: "fail: mounter failed to MakeDir",
@@ -307,7 +356,10 @@ func TestNodePublishVolume(t *testing.T) {
 			},
 			expectMakeDir: true,
 			mountArgs:     []interface{}{}, // Signal MakeDir failure
-			expectSuccess: false,
+			expectError: errtyp{
+				code:    "Internal",
+				message: `Could not create dir "/target/path": failed to MakeDir`,
+			},
 		},
 		{
 			name: "fail: mounter failed to Mount",
@@ -319,7 +371,10 @@ func TestNodePublishVolume(t *testing.T) {
 			expectMakeDir: true,
 			mountArgs:     []interface{}{volumeId + ":/", targetPath, "efs", gomock.Any()},
 			mountSuccess:  false,
-			expectSuccess: false,
+			expectError: errtyp{
+				code:    "Internal",
+				message: `Could not mount "fs-abc123:/" at "/target/path": failed to Mount`,
+			},
 		},
 		{
 			name: "fail: unsupported volume context",
@@ -330,18 +385,10 @@ func TestNodePublishVolume(t *testing.T) {
 				VolumeContext:    map[string]string{"asdf": "qwer"},
 			},
 			expectMakeDir: false,
-			expectSuccess: false,
-		},
-		{
-			name: "fail: relative path volume context",
-			req: &csi.NodePublishVolumeRequest{
-				VolumeId:         volumeId,
-				VolumeCapability: stdVolCap,
-				TargetPath:       targetPath,
-				VolumeContext:    map[string]string{"path": "a/b"},
+			expectError: errtyp{
+				code:    "InvalidArgument",
+				message: "Volume context property asdf not supported",
 			},
-			expectMakeDir: false,
-			expectSuccess: false,
 		},
 		{
 			name: "fail: invalid filesystem ID",
@@ -351,7 +398,10 @@ func TestNodePublishVolume(t *testing.T) {
 				TargetPath:       targetPath,
 			},
 			expectMakeDir: false,
-			expectSuccess: false,
+			expectError: errtyp{
+				code:    "InvalidArgument",
+				message: "volume ID 'invalid-id' is invalid: Expected a file system ID of the form 'fs-...'",
+			},
 		},
 		{
 			name: "fail: invalid access point ID",
@@ -361,7 +411,10 @@ func TestNodePublishVolume(t *testing.T) {
 				TargetPath:       targetPath,
 			},
 			expectMakeDir: false,
-			expectSuccess: false,
+			expectError: errtyp{
+				code:    "InvalidArgument",
+				message: "volume ID 'fs-abc123::invalid-id' has an invalid access point ID 'invalid-id': Expected it to be of the form 'fsap-...'",
+			},
 		},
 	}
 
@@ -369,14 +422,7 @@ func TestNodePublishVolume(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			mockCtrl := gomock.NewController(t)
 			defer mockCtrl.Finish()
-			mockMounter := mocks.NewMockMounter(mockCtrl)
-			driver := &Driver{
-				endpoint: endpoint,
-				nodeID:   nodeID,
-				mounter:  mockMounter,
-			}
-
-			ctx := context.Background()
+			mockMounter, driver, ctx := setup(mockCtrl)
 
 			if tc.expectMakeDir {
 				var err error
@@ -395,30 +441,12 @@ func TestNodePublishVolume(t *testing.T) {
 			}
 
 			ret, err := driver.NodePublishVolume(ctx, tc.req)
-			if !tc.expectSuccess && err == nil {
-				t.Fatalf("NodePublishVolume is not failed")
-			}
-			if tc.expectSuccess {
-				if err != nil {
-					t.Fatalf("NodePublishVolume is failed: %v", err)
-				}
-				if ret == nil {
-					t.Fatalf("Expected non-nil return value")
-				}
-			}
+			testResult(t, "NodePublishVolume", ret, err, tc.expectError)
 		})
 	}
 }
 
 func TestNodeUnpublishVolume(t *testing.T) {
-
-	var (
-		endpoint   = "endpoint"
-		nodeID     = "nodeID"
-		volumeId   = "volumeId"
-		targetPath = "/target/path"
-	)
-
 	testCases := []struct {
 		name                string
 		req                 *csi.NodeUnpublishVolumeRequest
@@ -426,7 +454,7 @@ func TestNodeUnpublishVolume(t *testing.T) {
 		getDeviceNameReturn []interface{}
 		expectUnmount       bool
 		unmountReturn       error
-		expectSuccess       bool
+		expectError         errtyp
 	}{
 		{
 			name: "success: normal",
@@ -438,7 +466,6 @@ func TestNodeUnpublishVolume(t *testing.T) {
 			getDeviceNameReturn: []interface{}{"", 1, nil},
 			expectUnmount:       true,
 			unmountReturn:       nil,
-			expectSuccess:       true,
 		},
 		{
 			name: "success: unpublish with already unmounted target",
@@ -449,8 +476,7 @@ func TestNodeUnpublishVolume(t *testing.T) {
 			expectGetDeviceName: true,
 			getDeviceNameReturn: []interface{}{"", 0, nil},
 			// NUV returns early if the refcount is zero
-			expectUnmount:       false,
-			expectSuccess:       true,
+			expectUnmount: false,
 		},
 		{
 			name: "fail: targetPath is missing",
@@ -459,7 +485,10 @@ func TestNodeUnpublishVolume(t *testing.T) {
 			},
 			expectGetDeviceName: false,
 			expectUnmount:       false,
-			expectSuccess:       false,
+			expectError: errtyp{
+				code:    "InvalidArgument",
+				message: "Target path not provided",
+			},
 		},
 		{
 			name: "fail: mounter failed to umount",
@@ -471,7 +500,10 @@ func TestNodeUnpublishVolume(t *testing.T) {
 			getDeviceNameReturn: []interface{}{"", 1, nil},
 			expectUnmount:       true,
 			unmountReturn:       fmt.Errorf("Unmount failed"),
-			expectSuccess:       false,
+			expectError: errtyp{
+				code:    "Internal",
+				message: `Could not unmount "/target/path": Unmount failed`,
+			},
 		},
 		{
 			name: "fail: mounter failed to GetDeviceName",
@@ -482,20 +514,17 @@ func TestNodeUnpublishVolume(t *testing.T) {
 			expectGetDeviceName: true,
 			getDeviceNameReturn: []interface{}{"", 1, fmt.Errorf("GetDeviceName failed")},
 			expectUnmount:       false,
-			expectSuccess:       false,
+			expectError: errtyp{
+				code:    "Internal",
+				message: "failed to check if volume is mounted: GetDeviceName failed",
+			},
 		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			mockCtrl := gomock.NewController(t)
 			defer mockCtrl.Finish()
-			mockMounter := mocks.NewMockMounter(mockCtrl)
-			driver := &Driver{
-				endpoint: endpoint,
-				nodeID:   nodeID,
-				mounter:  mockMounter,
-			}
-			ctx := context.Background()
+			mockMounter, driver, ctx := setup(mockCtrl)
 
 			if tc.expectGetDeviceName {
 				mockMounter.EXPECT().
@@ -507,17 +536,7 @@ func TestNodeUnpublishVolume(t *testing.T) {
 			}
 
 			ret, err := driver.NodeUnpublishVolume(ctx, tc.req)
-			if !tc.expectSuccess && err == nil {
-				t.Fatalf("NodeUnpublishVolume is not failed")
-			}
-			if tc.expectSuccess {
-				if err != nil {
-					t.Fatalf("NodeUnpublishVolume is failed: %v", err)
-				}
-				if ret == nil {
-					t.Fatalf("Expected non-nil return value")
-				}
-			}
+			testResult(t, "NodeUnpublishVolume", ret, err, tc.expectError)
 		})
 	}
 }

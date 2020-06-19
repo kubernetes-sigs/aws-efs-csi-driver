@@ -73,11 +73,11 @@ func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 		case "path":
 			klog.Warning("Use of path under volumeAttributes is depracated. This field will be removed in future release")
 			if !filepath.IsAbs(v) {
-				return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("Volume context property %q must be an absolute path", k))
+				return nil, status.Errorf(codes.InvalidArgument, "Volume context property %q must be an absolute path", k)
 			}
 			subpath = filepath.Join(subpath, v)
 		default:
-			return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("Volume context property %s not supported", k))
+			return nil, status.Errorf(codes.InvalidArgument, "Volume context property %s not supported", k)
 		}
 	}
 
@@ -130,8 +130,8 @@ func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 					fsid, subpath, moapid))
 				// If they specified the same access point in both places, let it slide; otherwise, fail.
 				if apid != "" && moapid != apid {
-					return nil, status.Error(codes.InvalidArgument, fmt.Sprintf(
-						"Found conflicting access point IDs in mountOptions (%s) and volumeHandle (%s)", moapid, apid))
+					return nil, status.Errorf(codes.InvalidArgument,
+						"Found conflicting access point IDs in mountOptions (%s) and volumeHandle (%s)", moapid, apid)
 				}
 				// Fall through; the code below will uniq for us.
 			}
@@ -169,8 +169,8 @@ func (d *Driver) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpublish
 	// returns the device name, reference count, and error code
 	_, refCount, err := d.mounter.GetDeviceName(target)
 	if err != nil {
-		msg := fmt.Sprintf("failed to check if volume is mounted: %v", err)
-		return nil, status.Error(codes.Internal, msg)
+		format := "failed to check if volume is mounted: %v"
+		return nil, status.Errorf(codes.Internal, format, err)
 	}
 
 	// From the spec: If the volume corresponding to the volume_id
@@ -258,13 +258,13 @@ func (d *Driver) isValidVolumeCapabilities(volCaps []*csi.VolumeCapability) bool
 func parseVolumeId(volumeId string) (fsid, subpath, apid string, err error) {
 	// Might as well do this up front, since the FSID is required and first in the string
 	if !isValidFileSystemId(volumeId) {
-		err = status.Error(codes.InvalidArgument, fmt.Sprintf("volume ID '%s' is invalid: Expected a file system ID of the form 'fs-...'", volumeId))
+		err = status.Errorf(codes.InvalidArgument, "volume ID '%s' is invalid: Expected a file system ID of the form 'fs-...'", volumeId)
 		return
 	}
 
 	tokens := strings.Split(volumeId, ":")
 	if len(tokens) > 3 {
-		err = status.Error(codes.InvalidArgument, fmt.Sprintf("volume ID '%s' is invalid: Expected at most three fields separated by ':'", volumeId))
+		err = status.Errorf(codes.InvalidArgument, "volume ID '%s' is invalid: Expected at most three fields separated by ':'", volumeId)
 		return
 	}
 
@@ -280,7 +280,7 @@ func parseVolumeId(volumeId string) (fsid, subpath, apid string, err error) {
 	if len(tokens) == 3 && tokens[2] != "" {
 		apid = tokens[2]
 		if !isValidAccessPointId(apid) {
-			err = status.Error(codes.InvalidArgument, fmt.Sprintf("volume ID '%s' has an invalid access point ID '%s': Expected it to be of the form 'fsap-...'", volumeId, apid))
+			err = status.Errorf(codes.InvalidArgument, "volume ID '%s' has an invalid access point ID '%s': Expected it to be of the form 'fsap-...'", volumeId, apid)
 			return
 		}
 	}
