@@ -368,6 +368,7 @@ func TestNodePublishVolume(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			mockCtrl := gomock.NewController(t)
+			defer mockCtrl.Finish()
 			mockMounter := mocks.NewMockMounter(mockCtrl)
 			driver := &Driver{
 				endpoint: endpoint,
@@ -405,8 +406,6 @@ func TestNodePublishVolume(t *testing.T) {
 					t.Fatalf("Expected non-nil return value")
 				}
 			}
-
-			mockCtrl.Finish()
 		})
 	}
 }
@@ -421,142 +420,104 @@ func TestNodeUnpublishVolume(t *testing.T) {
 	)
 
 	testCases := []struct {
-		name     string
-		testFunc func(t *testing.T)
+		name                string
+		req                 *csi.NodeUnpublishVolumeRequest
+		expectGetDeviceName bool
+		getDeviceNameReturn []interface{}
+		expectUnmount       bool
+		unmountReturn       error
+		expectSuccess       bool
 	}{
 		{
 			name: "success: normal",
-			testFunc: func(t *testing.T) {
-				mockCtrl := gomock.NewController(t)
-				mockMounter := mocks.NewMockMounter(mockCtrl)
-				driver := &Driver{
-					endpoint: endpoint,
-					nodeID:   nodeID,
-					mounter:  mockMounter,
-				}
-
-				ctx := context.Background()
-				req := &csi.NodeUnpublishVolumeRequest{
-					VolumeId:   volumeId,
-					TargetPath: targetPath,
-				}
-
-				mockMounter.EXPECT().GetDeviceName(gomock.Eq(targetPath)).Return("", 1, nil)
-				mockMounter.EXPECT().Unmount(gomock.Eq(targetPath)).Return(nil)
-
-				_, err := driver.NodeUnpublishVolume(ctx, req)
-				if err != nil {
-					t.Fatalf("NodeUnpublishVolume is failed: %v", err)
-				}
-				mockCtrl.Finish()
+			req: &csi.NodeUnpublishVolumeRequest{
+				VolumeId:   volumeId,
+				TargetPath: targetPath,
 			},
+			expectGetDeviceName: true,
+			getDeviceNameReturn: []interface{}{"", 1, nil},
+			expectUnmount:       true,
+			unmountReturn:       nil,
+			expectSuccess:       true,
 		},
 		{
 			name: "success: unpublish with already unmounted target",
-			testFunc: func(t *testing.T) {
-				mockCtrl := gomock.NewController(t)
-				mockMounter := mocks.NewMockMounter(mockCtrl)
-				driver := &Driver{
-					endpoint: endpoint,
-					nodeID:   nodeID,
-					mounter:  mockMounter,
-				}
-
-				ctx := context.Background()
-				req := &csi.NodeUnpublishVolumeRequest{
-					VolumeId:   volumeId,
-					TargetPath: targetPath,
-				}
-
-				mockMounter.EXPECT().GetDeviceName(gomock.Eq(targetPath)).Return("", 0, nil)
-
-				_, err := driver.NodeUnpublishVolume(ctx, req)
-				if err != nil {
-					t.Fatalf("NodeUnpublishVolume is failed: %v", err)
-				}
-				mockCtrl.Finish()
+			req: &csi.NodeUnpublishVolumeRequest{
+				VolumeId:   volumeId,
+				TargetPath: targetPath,
 			},
+			expectGetDeviceName: true,
+			getDeviceNameReturn: []interface{}{"", 0, nil},
+			// NUV returns early if the refcount is zero
+			expectUnmount:       false,
+			expectSuccess:       true,
 		},
 		{
 			name: "fail: targetPath is missing",
-			testFunc: func(t *testing.T) {
-				mockCtrl := gomock.NewController(t)
-				mockMounter := mocks.NewMockMounter(mockCtrl)
-				driver := &Driver{
-					endpoint: endpoint,
-					nodeID:   nodeID,
-					mounter:  mockMounter,
-				}
-
-				ctx := context.Background()
-				req := &csi.NodeUnpublishVolumeRequest{
-					VolumeId: volumeId,
-				}
-
-				_, err := driver.NodeUnpublishVolume(ctx, req)
-				if err == nil {
-					t.Fatalf("NodeUnpublishVolume is not failed")
-				}
-				mockCtrl.Finish()
+			req: &csi.NodeUnpublishVolumeRequest{
+				VolumeId: volumeId,
 			},
+			expectGetDeviceName: false,
+			expectUnmount:       false,
+			expectSuccess:       false,
 		},
 		{
 			name: "fail: mounter failed to umount",
-			testFunc: func(t *testing.T) {
-				mockCtrl := gomock.NewController(t)
-				mockMounter := mocks.NewMockMounter(mockCtrl)
-				driver := &Driver{
-					endpoint: endpoint,
-					nodeID:   nodeID,
-					mounter:  mockMounter,
-				}
-
-				ctx := context.Background()
-				req := &csi.NodeUnpublishVolumeRequest{
-					VolumeId:   volumeId,
-					TargetPath: targetPath,
-				}
-
-				mountErr := fmt.Errorf("Unmount failed")
-				mockMounter.EXPECT().GetDeviceName(gomock.Eq(targetPath)).Return("", 1, nil)
-				mockMounter.EXPECT().Unmount(gomock.Eq(targetPath)).Return(mountErr)
-
-				_, err := driver.NodeUnpublishVolume(ctx, req)
-				if err == nil {
-					t.Fatalf("NodeUnpublishVolume is not failed")
-				}
-				mockCtrl.Finish()
+			req: &csi.NodeUnpublishVolumeRequest{
+				VolumeId:   volumeId,
+				TargetPath: targetPath,
 			},
+			expectGetDeviceName: true,
+			getDeviceNameReturn: []interface{}{"", 1, nil},
+			expectUnmount:       true,
+			unmountReturn:       fmt.Errorf("Unmount failed"),
+			expectSuccess:       false,
 		},
 		{
 			name: "fail: mounter failed to GetDeviceName",
-			testFunc: func(t *testing.T) {
-				mockCtrl := gomock.NewController(t)
-				mockMounter := mocks.NewMockMounter(mockCtrl)
-				driver := &Driver{
-					endpoint: endpoint,
-					nodeID:   nodeID,
-					mounter:  mockMounter,
-				}
-
-				ctx := context.Background()
-				req := &csi.NodeUnpublishVolumeRequest{
-					VolumeId:   volumeId,
-					TargetPath: targetPath,
-				}
-
-				gdnErr := fmt.Errorf("GetDeviceName failed")
-				mockMounter.EXPECT().GetDeviceName(gomock.Eq(targetPath)).Return("", 1, gdnErr)
-
-				_, err := driver.NodeUnpublishVolume(ctx, req)
-				if err == nil {
-					t.Fatalf("NodeUnpublishVolume is not failed")
-				}
-				mockCtrl.Finish()
+			req: &csi.NodeUnpublishVolumeRequest{
+				VolumeId:   volumeId,
+				TargetPath: targetPath,
 			},
+			expectGetDeviceName: true,
+			getDeviceNameReturn: []interface{}{"", 1, fmt.Errorf("GetDeviceName failed")},
+			expectUnmount:       false,
+			expectSuccess:       false,
 		},
 	}
 	for _, tc := range testCases {
-		t.Run(tc.name, tc.testFunc)
+		t.Run(tc.name, func(t *testing.T) {
+			mockCtrl := gomock.NewController(t)
+			defer mockCtrl.Finish()
+			mockMounter := mocks.NewMockMounter(mockCtrl)
+			driver := &Driver{
+				endpoint: endpoint,
+				nodeID:   nodeID,
+				mounter:  mockMounter,
+			}
+			ctx := context.Background()
+
+			if tc.expectGetDeviceName {
+				mockMounter.EXPECT().
+					GetDeviceName(targetPath).
+					Return(tc.getDeviceNameReturn[0], tc.getDeviceNameReturn[1], tc.getDeviceNameReturn[2])
+			}
+			if tc.expectUnmount {
+				mockMounter.EXPECT().Unmount(targetPath).Return(tc.unmountReturn)
+			}
+
+			ret, err := driver.NodeUnpublishVolume(ctx, tc.req)
+			if !tc.expectSuccess && err == nil {
+				t.Fatalf("NodeUnpublishVolume is not failed")
+			}
+			if tc.expectSuccess {
+				if err != nil {
+					t.Fatalf("NodeUnpublishVolume is failed: %v", err)
+				}
+				if ret == nil {
+					t.Fatalf("Expected non-nil return value")
+				}
+			}
+		})
 	}
 }
