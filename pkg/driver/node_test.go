@@ -448,6 +448,7 @@ func TestNodeUnpublishVolume(t *testing.T) {
 				if err != nil {
 					t.Fatalf("NodeUnpublishVolume is failed: %v", err)
 				}
+				mockCtrl.Finish()
 			},
 		},
 		{
@@ -474,6 +475,7 @@ func TestNodeUnpublishVolume(t *testing.T) {
 				if err != nil {
 					t.Fatalf("NodeUnpublishVolume is failed: %v", err)
 				}
+				mockCtrl.Finish()
 			},
 		},
 		{
@@ -496,6 +498,7 @@ func TestNodeUnpublishVolume(t *testing.T) {
 				if err == nil {
 					t.Fatalf("NodeUnpublishVolume is not failed")
 				}
+				mockCtrl.Finish()
 			},
 		},
 		{
@@ -523,6 +526,7 @@ func TestNodeUnpublishVolume(t *testing.T) {
 				if err == nil {
 					t.Fatalf("NodeUnpublishVolume is not failed")
 				}
+				mockCtrl.Finish()
 			},
 		},
 		{
@@ -550,6 +554,7 @@ func TestNodeUnpublishVolume(t *testing.T) {
 				if err == nil {
 					t.Fatalf("NodeUnpublishVolume is not failed")
 				}
+				mockCtrl.Finish()
 			},
 		},
 	}
