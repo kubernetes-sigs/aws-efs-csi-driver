@@ -33,7 +33,8 @@ spec:
         - name: efs-plugin
           securityContext:
             privileged: true
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          image: {{ printf "%s:%s" .Values.image.repository .Values.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
           args:
             - --endpoint=$(CSI_ENDPOINT)
             - --logtostderr
@@ -65,6 +66,7 @@ spec:
             failureThreshold: 5
         - name: cs-driver-registrar
           image: {{ printf "%s:%s" .Values.sidecars.nodeDriverRegistrarImage.repository .Values.sidecars.nodeDriverRegistrarImage.tag }}
+          imagePullPolicy: {{ .Values.sidecars.nodeDriverRegistrarImage.pullPolicy }}
           args:
             - --csi-address=$(ADDRESS)
             - --kubelet-registration-path=$(DRIVER_REG_SOCK_PATH)
@@ -85,6 +87,7 @@ spec:
               mountPath: /registration
         - name: liveness-probe
           image: {{ printf "%s:%s" .Values.sidecars.livenessProbeImage.repository .Values.sidecars.livenessProbeImage.tag }}
+          imagePullPolicy: {{ .Values.sidecars.livenessProbeImage.pullPolicy }}
           args:
             - --csi-address=/csi/csi.sock
             - --health-port=9809
