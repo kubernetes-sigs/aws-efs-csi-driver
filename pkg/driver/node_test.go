@@ -448,6 +448,7 @@ func TestNodeUnpublishVolume(t *testing.T) {
 				if err != nil {
 					t.Fatalf("NodeUnpublishVolume is failed: %v", err)
 				}
+				mockCtrl.Finish()
 			},
 		},
 		{
@@ -468,12 +469,12 @@ func TestNodeUnpublishVolume(t *testing.T) {
 				}
 
 				mockMounter.EXPECT().GetDeviceName(gomock.Eq(targetPath)).Return("", 0, nil)
-				mockMounter.EXPECT().Unmount(gomock.Eq(targetPath)).Return(nil)
 
 				_, err := driver.NodeUnpublishVolume(ctx, req)
 				if err != nil {
 					t.Fatalf("NodeUnpublishVolume is failed: %v", err)
 				}
+				mockCtrl.Finish()
 			},
 		},
 		{
@@ -496,6 +497,7 @@ func TestNodeUnpublishVolume(t *testing.T) {
 				if err == nil {
 					t.Fatalf("NodeUnpublishVolume is not failed")
 				}
+				mockCtrl.Finish()
 			},
 		},
 		{
@@ -523,6 +525,7 @@ func TestNodeUnpublishVolume(t *testing.T) {
 				if err == nil {
 					t.Fatalf("NodeUnpublishVolume is not failed")
 				}
+				mockCtrl.Finish()
 			},
 		},
 		{
@@ -542,14 +545,14 @@ func TestNodeUnpublishVolume(t *testing.T) {
 					TargetPath: targetPath,
 				}
 
-				mounterErr := fmt.Errorf("Unmount failed")
-				mockMounter.EXPECT().GetDeviceName(gomock.Eq(targetPath)).Return("", 1, mounterErr)
-				mockMounter.EXPECT().Unmount(gomock.Eq(targetPath)).Return(nil)
+				gdnErr := fmt.Errorf("GetDeviceName failed")
+				mockMounter.EXPECT().GetDeviceName(gomock.Eq(targetPath)).Return("", 1, gdnErr)
 
 				_, err := driver.NodeUnpublishVolume(ctx, req)
 				if err == nil {
 					t.Fatalf("NodeUnpublishVolume is not failed")
 				}
+				mockCtrl.Finish()
 			},
 		},
 	}
