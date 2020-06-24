@@ -2,28 +2,33 @@ package e2e
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/onsi/ginkgo"
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/sets"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/kubernetes/test/e2e/framework"
+	e2enode "k8s.io/kubernetes/test/e2e/framework/node"
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 	"k8s.io/kubernetes/test/e2e/storage/testpatterns"
 	"k8s.io/kubernetes/test/e2e/storage/testsuites"
+	"k8s.io/kubernetes/test/e2e/storage/utils"
 )
 
 var (
 	// Parameters that are expected to be set by consumers of this package.
+	// If FileSystemId is not set, ClusterName and Region must be set so that a
+	// file system can be created
 	ClusterName  string
 	Region       string
 	FileSystemId string
 
-	// CreateFileSystem if set true will create an EFS file system before tests.
-	// If set false then FileSystemId must be set.
-	CreateFileSystem = true
 	deleteFileSystem = false
 
 	// DeployDriver if set true will deploy a stable version of the driver before
@@ -103,14 +108,11 @@ var csiTestSuites = []func() testsuites.TestSuite{
 
 var _ = ginkgo.SynchronizedBeforeSuite(func() []byte {
 	// Validate parameters
-	if !CreateFileSystem && FileSystemId == "" {
-		ginkgo.Fail("Can't run tests without an EFS filesystem: CreateFileSystem is false and FileSystemId is empty")
-	}
-	if CreateFileSystem && (Region == "" || ClusterName == "") {
-		ginkgo.Fail("Can't create EFS filesystem: both Region and ClusterName must be non-empty")
+	if FileSystemId == "" && (Region == "" || ClusterName == "") {
+		ginkgo.Fail("FileSystemId is empty and can't create an EFS filesystem because both Region and ClusterName are empty")
 	}
 
-	if CreateFileSystem {
+	if FileSystemId == "" {
 		ginkgo.By(fmt.Sprintf("Creating EFS filesystem in region %q for cluster %q", Region, ClusterName))
 
 		c := NewCloud(Region)
@@ -122,6 +124,8 @@ var _ = ginkgo.SynchronizedBeforeSuite(func() []byte {
 		FileSystemId = id
 		ginkgo.By(fmt.Sprintf("Created EFS filesystem %q in region %q for cluster %q", FileSystemId, Region, ClusterName))
 		deleteFileSystem = true
+	} else {
+		ginkgo.By(fmt.Sprintf("Using already-created EFS file system %q", FileSystemId))
 	}
 
 	if DeployDriver {
@@ -200,11 +204,59 @@ var _ = ginkgo.Describe("[efs-csi] EFS CSI", func() {
 			framework.ExpectNoError(err, "creating efs pvc & pv with subpath /b")
 			defer func() { _ = f.ClientSet.CoreV1().PersistentVolumes().Delete(pvB.Name, &metav1.DeleteOptions{}) }()
 
-			ginkgo.By("Creating pod on to mount subpaths /a and /b")
+			ginkgo.By("Creating pod to mount subpaths /a and /b")
 			pod = e2epod.MakePod(f.Namespace.Name, nil, []*v1.PersistentVolumeClaim{pvcA, pvcB}, false, "")
 			pod, err = f.ClientSet.CoreV1().Pods(f.Namespace.Name).Create(pod)
 			framework.ExpectNoError(err, "creating pod")
 			framework.ExpectNoError(e2epod.WaitForPodNameRunningInNamespace(f.ClientSet, pod.Name, f.Namespace.Name), "waiting for pod running")
+		})
+
+		ginkgo.It("should continue reading/writing without hanging after the driver pod is restarted", func() {
+			ginkgo.By(fmt.Sprintf("Creating efs pvc & pv"))
+			pvc, pv, err := createEFSPVCPV(f.ClientSet, f.Namespace.Name, f.Namespace.Name, "")
+			framework.ExpectNoError(err, "creating efs pvc & pv")
+			defer func() { _ = f.ClientSet.CoreV1().PersistentVolumes().Delete(pv.Name, &metav1.DeleteOptions{}) }()
+
+			node, err := e2enode.GetRandomReadySchedulableNode(f.ClientSet)
+			framework.ExpectNoError(err, "getting random ready schedulable node")
+			command := fmt.Sprintf("touch /mnt/volume1/%s-%s && trap exit TERM; while true; do sleep 1; done", f.Namespace.Name, time.Now().Format(time.RFC3339))
+
+			ginkgo.By(fmt.Sprintf("Creating pod on node %q to mount pvc %q and run %q", node.Name, pvc.Name, command))
+			pod := e2epod.MakePod(f.Namespace.Name, nil, []*v1.PersistentVolumeClaim{pvc}, false, command)
+			pod, err = f.ClientSet.CoreV1().Pods(f.Namespace.Name).Create(pod)
+			framework.ExpectNoError(err, "creating pod")
+			framework.ExpectNoError(e2epod.WaitForPodNameRunningInNamespace(f.ClientSet, pod.Name, f.Namespace.Name), "waiting for pod running")
+
+			ginkgo.By(fmt.Sprintf("Getting driver pod on node %q", node.Name))
+			labelSelector := labels.SelectorFromSet(labels.Set{"app": "efs-csi-node"}).String()
+			fieldSelector := fields.SelectorFromSet(fields.Set{"spec.nodeName": node.Name}).String()
+			podList, err := f.ClientSet.CoreV1().Pods("kube-system").List(
+				metav1.ListOptions{
+					LabelSelector: labelSelector,
+					FieldSelector: fieldSelector,
+				})
+			framework.ExpectNoError(err, "getting driver pod")
+			framework.ExpectEqual(len(podList.Items), 1, "expected 1 efs csi node pod but got %d", len(podList.Items))
+			driverPod := podList.Items[0]
+
+			ginkgo.By(fmt.Sprintf("Deleting driver pod %q on node %q", driverPod.Name, node.Name))
+			err = e2epod.DeletePodWithWaitByName(f.ClientSet, driverPod.Name, "kube-system")
+			framework.ExpectNoError(err, "deleting driver pod")
+
+			ginkgo.By(fmt.Sprintf("Execing a write via the pod on node %q", node.Name))
+			command = fmt.Sprintf("touch /mnt/volume1/%s-%s", f.Namespace.Name, time.Now().Format(time.RFC3339))
+			done := make(chan bool)
+			go func() {
+				defer ginkgo.GinkgoRecover()
+				utils.VerifyExecInPodSucceed(f, pod, command)
+				done <- true
+			}()
+			select {
+			case <-done:
+				framework.Logf("verified exec in pod succeeded")
+			case <-time.After(30 * time.Second):
+				framework.Failf("timed out verifying exec in pod succeeded")
+			}
 		})
 	})
 })
