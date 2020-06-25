@@ -64,6 +64,10 @@ func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 		return nil, status.Error(codes.InvalidArgument, "Volume capability not supported")
 	}
 
+	if volCap.GetMount() == nil {
+		return nil, status.Error(codes.InvalidArgument, "Volume capability access type must be mount")
+	}
+
 	// TODO when CreateVolume is implemented, it must use the same key names
 	subpath := "/"
 	volContext := req.GetVolumeContext()
