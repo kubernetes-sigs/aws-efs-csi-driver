@@ -24,8 +24,8 @@ RUN go mod download
 ADD . .
 RUN make aws-efs-csi-driver
 
-FROM amazonlinux:2
-RUN yum install util-linux amazon-efs-utils -y
+FROM amazonlinux:2.0.20200406.0
+RUN yum install util-linux-2.30.2-2.amzn2.0.4.x86_64 amazon-efs-utils-1.24-4.amzn2.noarch -y
 
 COPY --from=builder /go/src/github.com/kubernetes-sigs/aws-efs-csi-driver/bin/aws-efs-csi-driver /bin/aws-efs-csi-driver
 COPY THIRD-PARTY /
