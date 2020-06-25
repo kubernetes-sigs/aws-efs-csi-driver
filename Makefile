@@ -18,11 +18,7 @@ IMAGE?=amazon/aws-efs-csi-driver
 VERSION=v0.4.0-dirty
 GIT_COMMIT?=$(shell git rev-parse HEAD)
 BUILD_DATE?=$(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
-EFS_CLIENT_SOURCE?=k8s
-LDFLAGS?="-X ${PKG}/pkg/driver.driverVersion=${VERSION} \
-		  -X ${PKG}/pkg/driver.gitCommit=${GIT_COMMIT} \
-		  -X ${PKG}/pkg/driver.buildDate=${BUILD_DATE} \
-		  -X ${PKG}/pkg/driver.efsClientSource=${EFS_CLIENT_SOURCE}"
+LDFLAGS?="-X ${PKG}/pkg/driver.driverVersion=${VERSION} -X ${PKG}/pkg/driver.gitCommit=${GIT_COMMIT} -X ${PKG}/pkg/driver.buildDate=${BUILD_DATE}"
 GO111MODULE=on
 GOPROXY=direct
 GOPATH=$(shell go env GOPATH)
@@ -33,13 +29,6 @@ GOPATH=$(shell go env GOPATH)
 aws-efs-csi-driver:
 	mkdir -p bin
 	CGO_ENABLED=0 GOOS=linux go build -ldflags ${LDFLAGS} -o bin/aws-efs-csi-driver ./cmd/
-
-build-darwin:
-	mkdir -p bin/darwin/
-	CGO_ENABLED=0 GOOS=darwin go build -ldflags ${LDFLAGS} -o bin/darwin/aws-efs-csi-driver ./cmd/
-
-run-darwin: build-darwin
-	bin/darwin/aws-efs-csi-driver --version
 
 .PHONY: verify
 verify:

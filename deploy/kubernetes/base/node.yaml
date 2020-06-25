@@ -41,8 +41,6 @@ spec:
               mountPath: /csi
             - name: efs-state-dir
               mountPath: /var/run/efs
-            - name: efs-utils-config
-              mountPath: /etc/amazon/efs
           ports:
             - containerPort: 9809
               name: healthz
@@ -100,8 +98,5 @@ spec:
           hostPath:
             path: /var/run/efs
             type: DirectoryOrCreate
-        - name: efs-utils-config
-          hostPath:
-            path: /etc/amazon/efs
-            type: DirectoryOrCreate
+
 
