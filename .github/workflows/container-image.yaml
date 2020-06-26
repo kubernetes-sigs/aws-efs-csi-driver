@@ -15,9 +15,10 @@ jobs:
       run: |
         USER=$(echo $GITHUB_REPOSITORY | cut -d'/' -f1)
         BRANCH=$(echo $GITHUB_REF | cut -d'/' -f3)
+        SHORT_SHA=$(echo $GITHUB_SHA | cut -c -7)
         IMAGE=aws-efs-csi-driver
         if [ "$BRANCH" = "master" ]; then
-          TAG="latest"
+          TAG=$SHORT_SHA
         else
           TAG=$BRANCH
         fi
@@ -27,9 +28,10 @@ jobs:
     - name: Push to Dockerhub registry
       run: |
         BRANCH=$(echo $GITHUB_REF | cut -d'/' -f3)
+        SHORT_SHA=$(echo $GITHUB_SHA | cut -c -7)
         REPO=amazon/aws-efs-csi-driver
         if [ "$BRANCH" = "master" ]; then
-          TAG="latest"
+          TAG=$SHORT_SHA
         else
           TAG=$BRANCH
         fi
