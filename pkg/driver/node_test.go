@@ -460,6 +460,43 @@ func TestNodePublishVolume(t *testing.T) {
 				message: "volume ID 'fs-abc123::invalid-id' has an invalid access point ID 'invalid-id': Expected it to be of the form 'fsap-...'",
 			},
 		},
+		{
+			name: "fail: tls in mount options and encryptInTransit false volume context",
+			req: &csi.NodePublishVolumeRequest{
+				VolumeId: volumeId,
+				VolumeCapability: &csi.VolumeCapability{
+					AccessType: &csi.VolumeCapability_Mount{
+						Mount: &csi.VolumeCapability_MountVolume{
+							MountFlags: []string{"tls"},
+						},
+					},
+					AccessMode: &csi.VolumeCapability_AccessMode{
+						Mode: csi.VolumeCapability_AccessMode_MULTI_NODE_MULTI_WRITER,
+					},
+				},
+				TargetPath:    targetPath,
+				VolumeContext: map[string]string{"encryptInTransit": "false"},
+			},
+			expectMakeDir: false,
+			expectError: errtyp{
+				code:    "InvalidArgument",
+				message: "Found tls in mountOptions but encryptInTransit is false",
+			},
+		},
+		{
+			name: "fail: encryptInTransit invalid boolean value volume context",
+			req: &csi.NodePublishVolumeRequest{
+				VolumeId:         volumeId,
+				VolumeCapability: stdVolCap,
+				TargetPath:       targetPath,
+				VolumeContext:    map[string]string{"encryptInTransit": "asdf"},
+			},
+			expectMakeDir: false,
+			expectError: errtyp{
+				code:    "InvalidArgument",
+				message: "Volume context property \"encryptInTransit\" must be a boolean value: strconv.ParseBool: parsing \"asdf\": invalid syntax",
+			},
+		},
 	}
 
 	for _, tc := range testCases {
