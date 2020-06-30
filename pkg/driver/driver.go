@@ -87,7 +87,7 @@ func (d *Driver) Run() error {
 	d.efsWatchdog.start()
 
 	reaper := newReaper()
-	klog.Info("Staring subreaper")
+	klog.Info("Starting subreaper")
 	reaper.start()
 
 	klog.Infof("Listening for connections on address: %#v", listener.Addr())
