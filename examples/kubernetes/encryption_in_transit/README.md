@@ -1,7 +1,7 @@
 ## Encryption in Transit
-This example shows how to make a static provisioned EFS persistence volume (PV) mounted inside container with encryption in transit enabled.
+This example shows how to make a static provisioned EFS persistent volume (PV) mounted inside container with encryption in transit configured.
 
-**Note**: this example requires Kubernetes v1.13+
+**Note**: this example requires Kubernetes v1.13+ and driver version > 0.3. For driver versions <= 0.3, encryption in transit is enabled (or disabled) by adding (or omitting) mountOption "tls" to (or from) a PV.
 
 ### Edit [Persistence Volume Spec](./specs/pv.yaml) 
 
@@ -18,13 +18,13 @@ spec:
     - ReadWriteOnce
   persistentVolumeReclaimPolicy: Retain
   storageClassName: efs-sc
-  mountOptions:
-    - tls
   csi:
     driver: efs.csi.aws.com
     volumeHandle: [FileSystemId] 
+    volumeAttributes:
+      encryptInTransit: "true"
 ```
-Note that encryption in transit is enabled using mount option `tls`. Replace `VolumeHandle` value with `FileSystemId` of the EFS filesystem that needs to be mounted.
+Note that encryption in transit is configured using volume attribute `encryptInTransit`. By default, encryption in transit is enabled and there is no need to set `encryptInTransit` true. Replace `VolumeHandle` value with `FileSystemId` of the EFS filesystem that needs to be mounted.
 
 You can find it using AWS CLI:
 ```sh
@@ -32,7 +32,7 @@ You can find it using AWS CLI:
 ```
 
 ### Deploy the Example
-Create PV, persistence volume claim (PVC) and storage class:
+Create PV, persistent volume claim (PVC) and storage class:
 ```sh
 >> kubectl apply -f examples/kubernetes/encryption_in_transit/specs/storageclass.yaml
 >> kubectl apply -f examples/kubernetes/encryption_in_transit/specs/pv.yaml

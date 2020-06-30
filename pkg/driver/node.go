@@ -22,6 +22,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
@@ -70,6 +71,7 @@ func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 
 	// TODO when CreateVolume is implemented, it must use the same key names
 	subpath := "/"
+	encryptInTransit := true
 	volContext := req.GetVolumeContext()
 	for k, v := range volContext {
 		switch strings.ToLower(k) {
@@ -80,6 +82,12 @@ func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 				return nil, status.Errorf(codes.InvalidArgument, "Volume context property %q must be an absolute path", k)
 			}
 			subpath = filepath.Join(subpath, v)
+		case "encryptintransit":
+			var err error
+			encryptInTransit, err = strconv.ParseBool(v)
+			if err != nil {
+				return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("Volume context property %q must be a boolean value: %v", k, err))
+			}
 		default:
 			return nil, status.Errorf(codes.InvalidArgument, "Volume context property %s not supported", k)
 		}
@@ -106,19 +114,19 @@ func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 		mountOptions = append(mountOptions, fmt.Sprintf("accesspoint=%s", apid), "tls")
 	}
 
+	if encryptInTransit {
+		// The TLS option may have been added above if apid was set
+		// TODO: mountOptions should be a set to avoid all this hasOption checking
+		if !hasOption(mountOptions, "tls") {
+			mountOptions = append(mountOptions, "tls")
+		}
+	}
+
 	if req.GetReadonly() {
 		mountOptions = append(mountOptions, "ro")
 	}
 
 	if m := volCap.GetMount(); m != nil {
-		hasOption := func(options []string, opt string) bool {
-			for _, o := range options {
-				if o == opt {
-					return true
-				}
-			}
-			return false
-		}
 		for _, f := range m.MountFlags {
 			// Special-case check for access point
 			// Not sure if `accesspoint` is allowed to have mixed case, but this shouldn't hurt,
@@ -138,6 +146,17 @@ func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 						"Found conflicting access point IDs in mountOptions (%s) and volumeHandle (%s)", moapid, apid)
 				}
 				// Fall through; the code below will uniq for us.
+			}
+
+			if f == "tls" {
+				klog.Warning(
+					"Use of 'tls' under mountOptions is deprecated with this driver. " +
+						"Set encrypt in transit in the volumeContext instead, e.g. 'encryptInTransit: true'")
+				// If they set tls and encryptInTransit is true, let it slide; otherwise, fail.
+				if !encryptInTransit {
+					return nil, status.Errorf(codes.InvalidArgument,
+						"Found tls in mountOptions but encryptInTransit is false")
+				}
 			}
 
 			if !hasOption(mountOptions, f) {
@@ -290,6 +309,15 @@ func parseVolumeId(volumeId string) (fsid, subpath, apid string, err error) {
 	}
 
 	return
+}
+
+func hasOption(options []string, opt string) bool {
+	for _, o := range options {
+		if o == opt {
+			return true
+		}
+	}
+	return false
 }
 
 func isValidFileSystemId(filesystemId string) bool {

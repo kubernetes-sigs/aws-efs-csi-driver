@@ -104,7 +104,7 @@ func TestNodePublishVolume(t *testing.T) {
 				TargetPath:       targetPath,
 			},
 			expectMakeDir: true,
-			mountArgs:     []interface{}{volumeId + ":/", targetPath, "efs", gomock.Any()},
+			mountArgs:     []interface{}{volumeId + ":/", targetPath, "efs", []string{"tls"}},
 			mountSuccess:  true,
 		},
 		{
@@ -115,7 +115,7 @@ func TestNodePublishVolume(t *testing.T) {
 				TargetPath:       targetPath,
 			},
 			expectMakeDir: true,
-			mountArgs:     []interface{}{volumeId + ":/", targetPath, "efs", gomock.Any()},
+			mountArgs:     []interface{}{volumeId + ":/", targetPath, "efs", []string{"tls"}},
 			mountSuccess:  true,
 		},
 		{
@@ -126,7 +126,7 @@ func TestNodePublishVolume(t *testing.T) {
 				TargetPath:       targetPath,
 			},
 			expectMakeDir: true,
-			mountArgs:     []interface{}{volumeId + ":/", targetPath, "efs", gomock.Any()},
+			mountArgs:     []interface{}{volumeId + ":/", targetPath, "efs", []string{"tls"}},
 			mountSuccess:  true,
 		},
 		{
@@ -138,7 +138,7 @@ func TestNodePublishVolume(t *testing.T) {
 				Readonly:         true,
 			},
 			expectMakeDir: true,
-			mountArgs:     []interface{}{volumeId + ":/", targetPath, "efs", []string{"ro"}},
+			mountArgs:     []interface{}{volumeId + ":/", targetPath, "efs", []string{"tls", "ro"}},
 			mountSuccess:  true,
 		},
 		{
@@ -171,7 +171,7 @@ func TestNodePublishVolume(t *testing.T) {
 				VolumeContext:    map[string]string{"path": "/a/b"},
 			},
 			expectMakeDir: true,
-			mountArgs:     []interface{}{volumeId + ":/a/b", targetPath, "efs", gomock.Any()},
+			mountArgs:     []interface{}{volumeId + ":/a/b", targetPath, "efs", []string{"tls"}},
 			mountSuccess:  true,
 		},
 		{
@@ -197,7 +197,7 @@ func TestNodePublishVolume(t *testing.T) {
 				TargetPath:       targetPath,
 			},
 			expectMakeDir: true,
-			mountArgs:     []interface{}{volumeId + ":/a/b", targetPath, "efs", gomock.Any()},
+			mountArgs:     []interface{}{volumeId + ":/a/b", targetPath, "efs", []string{"tls"}},
 			mountSuccess:  true,
 		},
 		{
@@ -209,7 +209,7 @@ func TestNodePublishVolume(t *testing.T) {
 				TargetPath:       targetPath,
 			},
 			expectMakeDir: true,
-			mountArgs:     []interface{}{volumeId + ":a/b", targetPath, "efs", gomock.Any()},
+			mountArgs:     []interface{}{volumeId + ":a/b", targetPath, "efs", []string{"tls"}},
 			mountSuccess:  true,
 		},
 		{
@@ -221,7 +221,7 @@ func TestNodePublishVolume(t *testing.T) {
 				VolumeContext:    map[string]string{"path": "/c/d"},
 			},
 			expectMakeDir: true,
-			mountArgs:     []interface{}{volumeId + ":/a/b", targetPath, "efs", gomock.Any()},
+			mountArgs:     []interface{}{volumeId + ":/a/b", targetPath, "efs", []string{"tls"}},
 			mountSuccess:  true,
 		},
 		{
@@ -266,6 +266,30 @@ func TestNodePublishVolume(t *testing.T) {
 			},
 			expectMakeDir: true,
 			mountArgs:     []interface{}{volumeId + ":/", targetPath, "efs", []string{"accesspoint=" + accessPointID, "tls"}},
+			mountSuccess:  true,
+		},
+		{
+			name: "success: normal with encryptInTransit true volume context",
+			req: &csi.NodePublishVolumeRequest{
+				VolumeId:         volumeId,
+				VolumeCapability: stdVolCap,
+				TargetPath:       targetPath,
+				VolumeContext:    map[string]string{"encryptInTransit": "true"},
+			},
+			expectMakeDir: true,
+			mountArgs:     []interface{}{volumeId + ":/", targetPath, "efs", []string{"tls"}},
+			mountSuccess:  true,
+		},
+		{
+			name: "success: normal with encryptInTransit false volume context",
+			req: &csi.NodePublishVolumeRequest{
+				VolumeId:         volumeId,
+				VolumeCapability: stdVolCap,
+				TargetPath:       targetPath,
+				VolumeContext:    map[string]string{"encryptInTransit": "false"},
+			},
+			expectMakeDir: true,
+			mountArgs:     []interface{}{volumeId + ":/", targetPath, "efs", []string{}},
 			mountSuccess:  true,
 		},
 		{
@@ -389,7 +413,7 @@ func TestNodePublishVolume(t *testing.T) {
 				TargetPath:       targetPath,
 			},
 			expectMakeDir: true,
-			mountArgs:     []interface{}{volumeId + ":/", targetPath, "efs", gomock.Any()},
+			mountArgs:     []interface{}{volumeId + ":/", targetPath, "efs", []string{"tls"}},
 			mountSuccess:  false,
 			expectError: errtyp{
 				code:    "Internal",
