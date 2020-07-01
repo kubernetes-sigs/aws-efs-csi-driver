@@ -25,7 +25,7 @@ ADD . .
 RUN make aws-efs-csi-driver
 
 FROM amazonlinux:2.0.20200406.0
-RUN yum install util-linux-2.30.2-2.amzn2.0.4.x86_64 amazon-efs-utils-1.24-4.amzn2.noarch -y
+RUN yum install util-linux-2.30.2-2.amzn2.0.4.x86_64 amazon-efs-utils-1.26-2.amzn2.noarch -y
 
 # Default client source is k8s which can be overriden with –build-arg when building the Docker image
 ARG client_source=k8s
