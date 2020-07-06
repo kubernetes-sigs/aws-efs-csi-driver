@@ -141,7 +141,7 @@ var _ = ginkgo.SynchronizedBeforeSuite(func() []byte {
 			framework.ExpectNoError(err, "getting csidriver efs.csi.aws.com")
 		} else {
 			ginkgo.By("Deploying EFS CSI driver")
-			framework.RunKubectlOrDie("apply", "-k", "github.com/kubernetes-sigs/aws-efs-csi-driver/deploy/kubernetes/overlays/stable/?ref=master")
+			framework.RunKubectlOrDie("apply", "-k", "github.com/kubernetes-sigs/aws-efs-csi-driver/deploy/k8s/v0.3.0/overlays/dockerhub/?ref=master")
 			ginkgo.By("Deployed EFS CSI driver")
 			destroyDriver = true
 		}
@@ -169,7 +169,7 @@ var _ = ginkgo.SynchronizedAfterSuite(func() {
 
 	if destroyDriver {
 		ginkgo.By("Cleaning up EFS CSI driver")
-		framework.RunKubectlOrDie("delete", "-k", "github.com/kubernetes-sigs/aws-efs-csi-driver/deploy/kubernetes/overlays/stable/?ref=master")
+		framework.RunKubectlOrDie("delete", "-k", "github.com/kubernetes-sigs/aws-efs-csi-driver/deploy/k8s/v0.3.0/overlays/dockerhub/?ref=master")
 	}
 })
 

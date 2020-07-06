@@ -55,19 +55,26 @@ The following sections are Kubernetes specific. If you are a Kubernetes user, us
 * Since EFS is an elastic filesystem it doesn't really enforce any filesystem capacity. The actual storage capacity value in persistence volume and persistence volume claim is not used when creating the filesystem. However, since the storage capacity is a required field by Kubernetes, you must specify the value and you can use any valid value for the capacity.
 
 ### Installation
-Deploy the driver:
 
-If you want to deploy the stable driver:
+####Deploy the stable driver
+
+#####From AWS ECR
 ```sh
-kubectl apply -k "github.com/kubernetes-sigs/aws-efs-csi-driver/deploy/kubernetes/overlays/stable/?ref=master"
+kubectl apply -k "github.com/kubernetes-sigs/aws-efs-csi-driver/deploy/k8s/v0.3.0/overlays/ecr"
 ```
 
-If you want to deploy the development driver:
+#####Or from Docker Hub
 ```sh
-kubectl apply -k "github.com/kubernetes-sigs/aws-efs-csi-driver/deploy/kubernetes/overlays/dev/?ref=master"
+kubectl apply -k "github.com/kubernetes-sigs/aws-efs-csi-driver/deploy/k8s/v0.3.0/overlays/dockerhub"
 ```
 
-Alternatively, you could also install the driver using helm:
+####Deploy the driver that is currently under development
+**WARNING: DO NOT use this version of driver in a PRODUCTION environment since it may contain major bugs which are undetected**
+```sh
+kubectl apply -k "github.com/kubernetes-sigs/aws-efs-csi-driver/deploy/k8s/dev"
+```
+
+####Alternatively, install the driver using helm
 ```sh
 helm repo add aws-efs-csi-driver https://kubernetes-sigs.github.io/aws-efs-csi-driver/
 helm install aws-efs-csi-driver aws-efs-csi-driver/aws-efs-csi-driver
