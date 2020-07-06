@@ -24,7 +24,14 @@ spec:
     volumeAttributes:
       encryptInTransit: "true"
 ```
-Note that encryption in transit is configured using volume attribute `encryptInTransit`. By default, encryption in transit is enabled and there is no need to set `encryptInTransit` true. Replace `VolumeHandle` value with `FileSystemId` of the EFS filesystem that needs to be mounted.
+Replace `VolumeHandle` value with `FileSystemId` of the EFS filesystem that
+needs to be mounted. The following table illustrates how the setting of
+`encryptInTransit` determines whether encryption in transit is enabled or not:
+
+|  | encryptInTransit is unset | encryptInTransit is true | encryptInTransit is false |
+| ------------- | ------------- | ------------- | ------------- |
+| "tls" is in mountOptions  | encryption + deprecation warning  | encryption + deprecation warning | error |
+| "tls" isn't in mountOptions | encryption  | encryption | NO encryption |
 
 You can find it using AWS CLI:
 ```sh

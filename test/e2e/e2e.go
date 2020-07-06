@@ -279,7 +279,8 @@ var _ = ginkgo.Describe("[efs-csi] EFS CSI", func() {
 			// to mount.efs is the server is 127.0.0.1
 			// (stunnel proxy running on localhost)
 			// instead of the EFS DNS name
-			// (file-system-id.efs.aws-region.amazonaws.com)
+			// (file-system-id.efs.aws-region.amazonaws.com).
+			// Call `mount` alone first to print it for debugging.
 			command := "mount && mount | grep /mnt/volume1 | grep 127.0.0.1"
 			if encryptInTransit != nil {
 				if !*encryptInTransit {

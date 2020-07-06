@@ -150,8 +150,8 @@ func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 
 			if f == "tls" {
 				klog.Warning(
-					"Use of 'tls' under mountOptions is deprecated with this driver. " +
-						"Set encrypt in transit in the volumeContext instead, e.g. 'encryptInTransit: true'")
+					"Use of 'tls' under mountOptions is deprecated with this driver since tls is enabled by default. " +
+						"To disable it, set encrypt in transit in the volumeContext, e.g. 'encryptInTransit: true'")
 				// If they set tls and encryptInTransit is true, let it slide; otherwise, fail.
 				if !encryptInTransit {
 					return nil, status.Errorf(codes.InvalidArgument,
