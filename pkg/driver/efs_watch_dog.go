@@ -15,16 +15,20 @@ package driver
 
 import (
 	"fmt"
+	"io"
+	"io/ioutil"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"sync"
 	"text/template"
 
 	"k8s.io/klog"
 )
 
-// https://github.com/aws/efs-utils/blob/master/dist/efs-utils.conf
-const efsUtilsConfigTemplate = `
+// https://github.com/aws/efs-utils/blob/v1.26.3/dist/efs-utils.conf
+const (
+	efsUtilsConfigTemplate = `
 [DEFAULT]
 logging_level = INFO
 logging_max_bytes = 1048576
@@ -37,11 +41,10 @@ dns_name_format = {fs_id}.efs.{region}.{dns_name_suffix}
 dns_name_suffix = amazonaws.com
 #The region of the file system when mounting from on-premises or cross region.
 #region = us-east-1
-stunnel_debug_enabled = true
+stunnel_debug_enabled = false
 #Uncomment the below option to save all stunnel logs for a file system to the same file
-stunnel_logs_file = /var/log/amazon/efs/{fs_id}.stunnel.log
-# RootCA on AmazonLinux2/CentOS. https://golang.org/src/crypto/x509/root_linux.go
-stunnel_cafile = /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
+#stunnel_logs_file = /var/log/amazon/efs/{fs_id}.stunnel.log
+stunnel_cafile = /etc/amazon/efs/efs-utils.crt
 
 # Validate the certificate hostname on mount. This option is not supported by certain stunnel versions.
 stunnel_check_cert_hostname = true
@@ -77,6 +80,9 @@ tls_cert_renewal_interval_min = 60
 source={{.EfsClientSource}}
 `
 
+	efsUtilsConfigFileName = "efs-utils.conf"
+)
+
 // Watchdog defines the interface for process monitoring and supervising
 type Watchdog interface {
 	// start starts the watch dog along with the process
@@ -97,6 +103,8 @@ type execWatchdog struct {
 	cmd *exec.Cmd
 	// efs-utils config file path
 	efsUtilsCfgPath string
+	// efs-utils static files path
+	efsUtilsStaticFilesPath string
 	// stopCh indicates if it should be stopped
 	stopCh chan struct{}
 
@@ -107,17 +115,18 @@ type efsUtilsConfig struct {
 	EfsClientSource string
 }
 
-func newExecWatchdog(efsUtilsCfgPath, cmd string, arg ...string) Watchdog {
+func newExecWatchdog(efsUtilsCfgPath, efsUtilsStaticFilesPath, cmd string, arg ...string) Watchdog {
 	return &execWatchdog{
-		efsUtilsCfgPath: efsUtilsCfgPath,
-		execCmd:         cmd,
-		execArg:         arg,
-		stopCh:          make(chan struct{}),
+		efsUtilsCfgPath:         efsUtilsCfgPath,
+		efsUtilsStaticFilesPath: efsUtilsStaticFilesPath,
+		execCmd:                 cmd,
+		execArg:                 arg,
+		stopCh:                  make(chan struct{}),
 	}
 }
 
 func (w *execWatchdog) start() error {
-	if err := w.updateConfig(GetVersion().EfsClientSource); err != nil {
+	if err := w.setup(GetVersion().EfsClientSource); err != nil {
 		return err
 	}
 
@@ -126,9 +135,73 @@ func (w *execWatchdog) start() error {
 	return nil
 }
 
+func (w *execWatchdog) setup(efsClientSource string) error {
+	if err := w.restoreStaticFiles(); err != nil {
+		return err
+	}
+
+	if err := w.updateConfig(efsClientSource); err != nil {
+		return err
+	}
+	return nil
+}
+
+/**
+At image build time, static files installed by efs-utils in the config directory, i.e. CAs file, need
+to be saved in another place so that the other stateful files created at runtime, i.e. private key for
+client certificate, in the same config directory can be persisted to host with a host path volume.
+Otherwise creating a host path volume for that directory will clean up everything inside at the first time.
+Those static files need to be copied back to the config directory when the driver starts up.
+*/
+func (w *execWatchdog) restoreStaticFiles() error {
+	return copyWithoutOverwriting(w.efsUtilsStaticFilesPath, w.efsUtilsCfgPath)
+}
+
+func copyWithoutOverwriting(srcDir, dstDir string) error {
+	if _, err := os.Stat(dstDir); err != nil {
+		return err
+	}
+
+	entries, err := ioutil.ReadDir(srcDir)
+	if err != nil {
+		return err
+	}
+	for _, entry := range entries {
+		src := filepath.Join(srcDir, entry.Name())
+		dst := filepath.Join(dstDir, entry.Name())
+
+		if _, err := os.Stat(dst); os.IsNotExist(err) {
+			klog.Infof("Copying %s since it doesn't exist", dst)
+			if err := copyFile(src, dst); err != nil {
+				return err
+			}
+		} else {
+			klog.Infof("Skip copying %s since it exists already", dst)
+		}
+	}
+	return nil
+}
+
+func copyFile(src, dst string) error {
+	source, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer source.Close()
+
+	destination, err := os.Create(dst)
+	if err != nil {
+		return err
+	}
+	defer destination.Close()
+
+	_, err = io.Copy(destination, source)
+	return err
+}
+
 func (w *execWatchdog) updateConfig(efsClientSource string) error {
 	efsCfgTemplate := template.Must(template.New("efs-utils-config").Parse(efsUtilsConfigTemplate))
-	f, err := os.Create(w.efsUtilsCfgPath)
+	f, err := os.Create(filepath.Join(w.efsUtilsCfgPath, efsUtilsConfigFileName))
 	if err != nil {
 		return fmt.Errorf("cannot create config file %s for efs-utils. Error: %v", w.efsUtilsCfgPath, err)
 	}

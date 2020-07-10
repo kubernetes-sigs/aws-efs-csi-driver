@@ -21,15 +21,17 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/kubernetes-sigs/aws-efs-csi-driver/pkg/driver"
 	"k8s.io/klog"
+
+	"github.com/kubernetes-sigs/aws-efs-csi-driver/pkg/driver"
 )
 
 func main() {
 	var (
-		endpoint        = flag.String("endpoint", "unix://tmp/csi.sock", "CSI Endpoint")
-		version         = flag.Bool("version", false, "Print the version and exit")
-		efsUtilsCfgPath = flag.String("efs-utils-config-path", "/etc/amazon/efs/efs-utils.conf", "The path to efs-utils config")
+		endpoint                = flag.String("endpoint", "unix://tmp/csi.sock", "CSI Endpoint")
+		version                 = flag.Bool("version", false, "Print the version and exit")
+		efsUtilsCfgDirPath      = flag.String("efs-utils-config-dir-path", "/etc/amazon/efs/", "The path to efs-utils config directory")
+		efsUtilsStaticFilesPath = flag.String("efs-utils-static-files-path", "/etc/amazon/efs-static-files/", "The path to efs-utils static files directory")
 	)
 	klog.InitFlags(nil)
 	flag.Parse()
@@ -43,7 +45,7 @@ func main() {
 		os.Exit(0)
 	}
 
-	drv := driver.NewDriver(*endpoint, *efsUtilsCfgPath)
+	drv := driver.NewDriver(*endpoint, *efsUtilsCfgDirPath, *efsUtilsStaticFilesPath)
 	if err := drv.Run(); err != nil {
 		klog.Fatalln(err)
 	}

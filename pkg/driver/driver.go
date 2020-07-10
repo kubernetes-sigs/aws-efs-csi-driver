@@ -43,13 +43,13 @@ type Driver struct {
 	efsWatchdog Watchdog
 }
 
-func NewDriver(endpoint, efsUtilsCfgPath string) *Driver {
+func NewDriver(endpoint, efsUtilsCfgPath, efsUtilsStaticFilesPath string) *Driver {
 	cloud, err := cloud.NewCloud()
 	if err != nil {
 		klog.Fatalln(err)
 	}
 
-	watchdog := newExecWatchdog(efsUtilsCfgPath, "amazon-efs-mount-watchdog")
+	watchdog := newExecWatchdog(efsUtilsCfgPath, efsUtilsStaticFilesPath, "amazon-efs-mount-watchdog")
 	return &Driver{
 		endpoint:    endpoint,
 		nodeID:      cloud.GetMetadata().GetInstanceID(),
