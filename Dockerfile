@@ -27,14 +27,12 @@ RUN make aws-efs-csi-driver
 FROM amazonlinux:2.0.20200406.0
 RUN yum install util-linux-2.30.2-2.amzn2.0.4.x86_64 amazon-efs-utils-1.24-4.amzn2.noarch -y
 
-# Default client source is k8s which can be overriden with –build-arg when building the Docker image
-ARG client_source=k8s
-RUN echo "client_source:${client_source}"
-RUN printf "\n\
-\n\
-[client-info] \n\
-source=${client_source} \n\
-" >> /etc/amazon/efs/efs-utils.conf
+# At image build time, static files installed by efs-utils in the config directory, i.e. CAs file, need
+# to be saved in another place so that the other stateful files created at runtime, i.e. private key for
+# client certificate, in the same config directory can be persisted to host with a host path volume.
+# Otherwise creating a host path volume for that directory will clean up everything inside at the first time.
+# Those static files need to be copied back to the config directory when the driver starts up.
+RUN cp -r /etc/amazon/efs /etc/amazon/efs-static-files
 
 COPY --from=builder /go/src/github.com/kubernetes-sigs/aws-efs-csi-driver/bin/aws-efs-csi-driver /bin/aws-efs-csi-driver
 COPY THIRD-PARTY /

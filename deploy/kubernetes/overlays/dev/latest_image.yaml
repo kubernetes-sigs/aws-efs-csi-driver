@@ -9,4 +9,3 @@ spec:
       containers:
         - name: efs-plugin
           image: amazon/aws-efs-csi-driver:latest
-          imagePullPolicy: Always

@@ -21,10 +21,11 @@ import (
 	"net"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
-	"github.com/kubernetes-sigs/aws-efs-csi-driver/pkg/cloud"
-	"github.com/kubernetes-sigs/aws-efs-csi-driver/pkg/util"
 	"google.golang.org/grpc"
 	"k8s.io/klog"
+
+	"github.com/kubernetes-sigs/aws-efs-csi-driver/pkg/cloud"
+	"github.com/kubernetes-sigs/aws-efs-csi-driver/pkg/util"
 )
 
 const (
@@ -42,13 +43,13 @@ type Driver struct {
 	efsWatchdog Watchdog
 }
 
-func NewDriver(endpoint string) *Driver {
+func NewDriver(endpoint, efsUtilsCfgPath, efsUtilsStaticFilesPath string) *Driver {
 	cloud, err := cloud.NewCloud()
 	if err != nil {
 		klog.Fatalln(err)
 	}
 
-	watchdog := newExecWatchdog("amazon-efs-mount-watchdog")
+	watchdog := newExecWatchdog(efsUtilsCfgPath, efsUtilsStaticFilesPath, "amazon-efs-mount-watchdog")
 	return &Driver{
 		endpoint:    endpoint,
 		nodeID:      cloud.GetMetadata().GetInstanceID(),
@@ -84,7 +85,9 @@ func (d *Driver) Run() error {
 	csi.RegisterNodeServer(d.srv, d)
 
 	klog.Info("Starting watchdog")
-	d.efsWatchdog.start()
+	if err := d.efsWatchdog.start(); err != nil {
+		return err
+	}
 
 	reaper := newReaper()
 	klog.Info("Staring subreaper")

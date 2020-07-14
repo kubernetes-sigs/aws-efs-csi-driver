@@ -31,7 +31,8 @@ import (
 type mockWatchdog struct {
 }
 
-func (w *mockWatchdog) start() {
+func (w *mockWatchdog) start() error {
+	return nil
 }
 
 func (w *mockWatchdog) stop() {

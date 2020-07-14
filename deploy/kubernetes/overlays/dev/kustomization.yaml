@@ -4,3 +4,4 @@ bases:
 - ../../base
 patchesStrategicMerge:
 - latest_image.yaml
+- efs_utils_config_volume.yaml
