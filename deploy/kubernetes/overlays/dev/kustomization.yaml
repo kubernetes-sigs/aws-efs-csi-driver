@@ -3,5 +3,5 @@ kind: Kustomization
 bases:
 - ../../base
 patchesStrategicMerge:
-- latest_image.yaml
+- master_image.yaml
 - efs_utils_config_volume.yaml

@@ -78,7 +78,7 @@ done;
 
 echo "Deploying driver"
 sed -i'' "s,amazon/aws-efs-csi-driver,$IMAGE_NAME," deploy/kubernetes/overlays/dev/kustomization.yaml
-sed -i'' "s,newTag: latest,newTag: \"$IMAGE_TAG\"," deploy/kubernetes/overlays/dev/kustomization.yaml
+sed -i'' "s,master,\"$IMAGE_TAG\"," deploy/kubernetes/overlays/dev/kustomization.yaml
 kubectl apply -k deploy/kubernetes/overlays/dev/
 
 echo "Creating EFS file system"

@@ -58,11 +58,11 @@ test-e2e:
 
 .PHONY: image
 image:
-	docker build -t $(IMAGE):latest .
+	docker build -t $(IMAGE):master .
 
 .PHONY: push
 push: image
-	docker push $(IMAGE):latest
+	docker push $(IMAGE):master
 
 .PHONY: image-release
 image-release:
