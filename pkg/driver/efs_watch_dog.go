@@ -71,7 +71,7 @@ dns_name_suffix = sc2s.sgov.gov
 [mount-watchdog]
 enabled = true
 poll_interval_sec = 1
-unmount_grace_period_sec = 30
+unmount_grace_period_sec = 5
 
 # Set client auth/access point certificate renewal rate. Minimum value is 1 minute.
 tls_cert_renewal_interval_min = 60

@@ -55,6 +55,7 @@ func init() {
 
 	flag.StringVar(&ClusterName, "cluster-name", "", "the cluster name")
 	flag.StringVar(&Region, "region", "us-west-2", "the region")
+	flag.StringVar(&FileSystemId, "file-system-id", "", "the file system id")
 
 	flag.Parse()
 }

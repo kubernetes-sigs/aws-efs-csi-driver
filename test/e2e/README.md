@@ -3,9 +3,15 @@
 - kubernetes 1.14+ cluster whose workers (preferably 2 or more) can mount the Amazon EFS file system
 
 # Run
+
+## Run all CSI tests
 ```sh
-go test -v -timeout 0 ./... -kubeconfig=$HOME/.kube/config -report-dir=$ARTIFACTS -ginkgo.focus="\[efs-csi\]" -ginkgo.skip="\[Disruptive\]" \
-  -file-system-id=fs-c2a43e69
+go test ./test/e2e/ -v -kubeconfig=$HOME/.kube/config --region=us-west-2 --report-dir="./results" -ginkgo.focus="\[efs-csi\]" --cluster-name="cluster-name"
+```
+
+## Run single CSI test
+```sh
+go test ./test/e2e/ -v -kubeconfig=$HOME/.kube/config --region=us-west-2 --report-dir="./results" -ginkgo.focus="should continue reading/writing after the driver pod is upgraded from stable version" --cluster-name="cluster-name"
 ```
 
 # Update dependencies

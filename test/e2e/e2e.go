@@ -5,7 +5,9 @@ import (
 	"time"
 
 	"github.com/onsi/ginkgo"
+	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
+
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -13,6 +15,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/sets"
 	clientset "k8s.io/client-go/kubernetes"
+	clientgoappsv1 "k8s.io/client-go/kubernetes/typed/apps/v1"
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2enode "k8s.io/kubernetes/test/e2e/framework/node"
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
@@ -182,7 +185,7 @@ var _ = ginkgo.Describe("[efs-csi] EFS CSI", func() {
 	f := framework.NewDefaultFramework("efs")
 
 	ginkgo.Context(testsuites.GetDriverNameWithFeatureTags(driver), func() {
-		ginkgo.It("should mount different paths on same volume on same node", func() {
+		ginkgo.It("[efs] [nonTls] should mount different paths on same volume on same node", func() {
 			ginkgo.By(fmt.Sprintf("Creating efs pvc & pv with no subpath"))
 			pvcRoot, pvRoot, err := createEFSPVCPV(f.ClientSet, f.Namespace.Name, f.Namespace.Name+"-root", "/")
 			framework.ExpectNoError(err, "creating efs pvc & pv with no subpath")
@@ -211,58 +214,176 @@ var _ = ginkgo.Describe("[efs-csi] EFS CSI", func() {
 			framework.ExpectNoError(e2epod.WaitForPodNameRunningInNamespace(f.ClientSet, pod.Name, f.Namespace.Name), "waiting for pod running")
 		})
 
-		ginkgo.It("should continue reading/writing without hanging after the driver pod is restarted", func() {
+		ginkgo.It("[efs] [nonTls] [restart] should continue reading/writing without hanging after the driver pod is restarted", func() {
 			ginkgo.By(fmt.Sprintf("Creating efs pvc & pv"))
+			// non-tls
 			pvc, pv, err := createEFSPVCPV(f.ClientSet, f.Namespace.Name, f.Namespace.Name, "")
 			framework.ExpectNoError(err, "creating efs pvc & pv")
 			defer func() { _ = f.ClientSet.CoreV1().PersistentVolumes().Delete(pv.Name, &metav1.DeleteOptions{}) }()
 
-			node, err := e2enode.GetRandomReadySchedulableNode(f.ClientSet)
-			framework.ExpectNoError(err, "getting random ready schedulable node")
-			command := fmt.Sprintf("touch /mnt/volume1/%s-%s && trap exit TERM; while true; do sleep 1; done", f.Namespace.Name, time.Now().Format(time.RFC3339))
+			node, pod := launchPod(f, pv, pvc)
 
-			ginkgo.By(fmt.Sprintf("Creating pod on node %q to mount pvc %q and run %q", node.Name, pvc.Name, command))
-			pod := e2epod.MakePod(f.Namespace.Name, nil, []*v1.PersistentVolumeClaim{pvc}, false, command)
-			pod, err = f.ClientSet.CoreV1().Pods(f.Namespace.Name).Create(pod)
-			framework.ExpectNoError(err, "creating pod")
-			framework.ExpectNoError(e2epod.WaitForPodNameRunningInNamespace(f.ClientSet, pod.Name, f.Namespace.Name), "waiting for pod running")
+			deleteDriverPodOnNode(f, node)
 
-			ginkgo.By(fmt.Sprintf("Getting driver pod on node %q", node.Name))
-			labelSelector := labels.SelectorFromSet(labels.Set{"app": "efs-csi-node"}).String()
-			fieldSelector := fields.SelectorFromSet(fields.Set{"spec.nodeName": node.Name}).String()
-			podList, err := f.ClientSet.CoreV1().Pods("kube-system").List(
-				metav1.ListOptions{
-					LabelSelector: labelSelector,
-					FieldSelector: fieldSelector,
-				})
-			framework.ExpectNoError(err, "getting driver pod")
-			framework.ExpectEqual(len(podList.Items), 1, "expected 1 efs csi node pod but got %d", len(podList.Items))
-			driverPod := podList.Items[0]
-
-			ginkgo.By(fmt.Sprintf("Deleting driver pod %q on node %q", driverPod.Name, node.Name))
-			err = e2epod.DeletePodWithWaitByName(f.ClientSet, driverPod.Name, "kube-system")
-			framework.ExpectNoError(err, "deleting driver pod")
-
-			ginkgo.By(fmt.Sprintf("Execing a write via the pod on node %q", node.Name))
-			command = fmt.Sprintf("touch /mnt/volume1/%s-%s", f.Namespace.Name, time.Now().Format(time.RFC3339))
-			done := make(chan bool)
-			go func() {
-				defer ginkgo.GinkgoRecover()
-				utils.VerifyExecInPodSucceed(f, pod, command)
-				done <- true
-			}()
-			select {
-			case <-done:
-				framework.Logf("verified exec in pod succeeded")
-			case <-time.After(30 * time.Second):
-				framework.Failf("timed out verifying exec in pod succeeded")
-			}
+			validatePodVolumeAccessible(f, pod)
 		})
+
+		ginkgo.It("[efs] [tls] [restart] should continue reading/writing without hanging after the driver pod is restarted", func() {
+			ginkgo.By(fmt.Sprintf("Creating efs pvc & pv"))
+			path := ""
+			pvName := f.Namespace.Name
+			// tls
+			pv := makeEFSPVWithTLS(pvName, path)
+			pv, pvc := createPvPvcWithPv(f, pv)
+			defer func() { f.ClientSet.CoreV1().PersistentVolumes().Delete(pv.Name, &metav1.DeleteOptions{}) }()
+
+			node, pod := launchPod(f, pv, pvc)
+
+			deleteDriverPodOnNode(f, node)
+
+			validatePodVolumeAccessible(f, pod)
+		})
+
+		ginkgo.It("[efs] [github] [tls] [upgrade] should continue reading/writing after the driver pod is upgraded from stable version", func() {
+			ginkgo.By(fmt.Sprintf("Sleep to ensure the existing state files are removed by watch-dog so that older driver don't have to handle new state file format"))
+			time.Sleep(time.Second * 10)
+
+			daemonSetsClient := f.ClientSet.AppsV1().DaemonSets("kube-system")
+			efsDriverUnderTest, err := daemonSetsClient.Get("efs-csi-node", metav1.GetOptions{})
+			framework.ExpectNoError(err, "Getting the efs driver under test")
+
+			defer func() {
+				ginkgo.By("Restoring last applied EFS CSI driver")
+				updateDriverTo(daemonSetsClient, efsDriverUnderTest)
+			}()
+
+			ginkgo.By("Deploying latest stable EFS CSI driver")
+			framework.RunKubectlOrDie("apply", "-k", "github.com/kubernetes-sigs/aws-efs-csi-driver/deploy/kubernetes/overlays/stable")
+
+			ginkgo.By(fmt.Sprintf("Creating efs pvc & pv"))
+			path := ""
+			pvName := f.Namespace.Name
+			// tls
+			pv := makeEFSPVWithTLS(pvName, path)
+			pv, pvc := createPvPvcWithPv(f, pv)
+			defer func() { f.ClientSet.CoreV1().PersistentVolumes().Delete(pv.Name, &metav1.DeleteOptions{}) }()
+
+			_, pod := launchPod(f, pv, pvc)
+
+			ginkgo.By("Upgrading to the EFS CSI driver under test")
+			updateDriverTo(daemonSetsClient, efsDriverUnderTest)
+
+			validatePodVolumeAccessible(f, pod)
+		})
+
+		ginkgo.It("[efs] [github] [nonTls] [upgrade] should continue reading/writing after the driver pod is upgraded from stable version", func() {
+			ginkgo.By(fmt.Sprintf("Sleep to ensure the existing state files are removed by watch-dog so that older driver don't have to handle new state file format"))
+			time.Sleep(time.Second * 10)
+
+			daemonSetsClient := f.ClientSet.AppsV1().DaemonSets("kube-system")
+			efsDriverUnderTest, err := daemonSetsClient.Get("efs-csi-node", metav1.GetOptions{})
+			framework.ExpectNoError(err, "Getting the efs driver under test")
+
+			defer func() {
+				ginkgo.By("Restoring last applied EFS CSI driver")
+				updateDriverTo(daemonSetsClient, efsDriverUnderTest)
+			}()
+
+			ginkgo.By("Deploying latest stable EFS CSI driver")
+			framework.RunKubectlOrDie("apply", "-k", "github.com/kubernetes-sigs/aws-efs-csi-driver/deploy/kubernetes/overlays/stable")
+
+			ginkgo.By(fmt.Sprintf("Creating efs pvc & pv"))
+			path := ""
+			pvName := f.Namespace.Name
+			// non-tls
+			pv := makeEFSPvWithoutTLS(pvName, path)
+			pv, pvc := createPvPvcWithPv(f, pv)
+			defer func() { f.ClientSet.CoreV1().PersistentVolumes().Delete(pv.Name, &metav1.DeleteOptions{}) }()
+
+			_, pod := launchPod(f, pv, pvc)
+
+			ginkgo.By("Upgrading to the EFS CSI driver under test")
+			updateDriverTo(daemonSetsClient, efsDriverUnderTest)
+
+			validatePodVolumeAccessible(f, pod)
+		})
+
 	})
 })
 
+func deleteDriverPodOnNode(f *framework.Framework, node *v1.Node) {
+	ginkgo.By(fmt.Sprintf("Getting driver pod on node %q", node.Name))
+	labelSelector := labels.SelectorFromSet(labels.Set{"app": "efs-csi-node"}).String()
+	fieldSelector := fields.SelectorFromSet(fields.Set{"spec.nodeName": node.Name}).String()
+	podList, err := f.ClientSet.CoreV1().Pods("kube-system").List(
+		metav1.ListOptions{
+			LabelSelector: labelSelector,
+			FieldSelector: fieldSelector,
+		})
+	framework.ExpectNoError(err, "getting driver pod")
+	framework.ExpectEqual(len(podList.Items), 1, "expected 1 efs csi node pod but got %d", len(podList.Items))
+	driverPod := podList.Items[0]
+
+	ginkgo.By(fmt.Sprintf("Deleting driver pod %q on node %q", driverPod.Name, node.Name))
+	err = e2epod.DeletePodWithWaitByName(f.ClientSet, driverPod.Name, "kube-system")
+	framework.ExpectNoError(err, "deleting driver pod")
+}
+
+func createPvPvcWithPv(f *framework.Framework, pv *v1.PersistentVolume) (*v1.PersistentVolume, *v1.PersistentVolumeClaim) {
+	pvc, pv := makePVCWithPV(pv, f.Namespace.Name, f.Namespace.Name)
+	pvc, pv, err := createEFSPVPVC(f.ClientSet, f.Namespace.Name, pvc, pv)
+	framework.ExpectNoError(err, "creating efs pvc & pv")
+
+	return pv, pvc
+}
+
+func validatePodVolumeAccessible(f *framework.Framework, pod *v1.Pod) {
+	ginkgo.By(fmt.Sprintf("Execing a write to the pod %q in namespace %q", pod.Name, pod.Namespace))
+	command := fmt.Sprintf("touch /mnt/volume1/%s-%s", f.Namespace.Name, time.Now().Format(time.RFC3339))
+	done := make(chan bool)
+	go func() {
+		defer ginkgo.GinkgoRecover()
+		utils.VerifyExecInPodSucceed(f, pod, command)
+		done <- true
+	}()
+	select {
+	case <-done:
+		framework.Logf("verified exec in pod succeeded")
+	case <-time.After(30 * time.Second):
+		framework.Failf("timed out verifying exec in pod succeeded")
+	}
+}
+
+func launchPod(f *framework.Framework, pv *v1.PersistentVolume, pvc *v1.PersistentVolumeClaim) (*v1.Node, *v1.Pod) {
+	node, err := e2enode.GetRandomReadySchedulableNode(f.ClientSet)
+	framework.ExpectNoError(err, "getting random ready schedulable node")
+	command := fmt.Sprintf("touch /mnt/volume1/%s-%s && trap exit TERM; while true; do sleep 1; done", f.Namespace.Name, time.Now().Format(time.RFC3339))
+
+	isPrivileged := false
+	var nodeSelector map[string]string
+	pod := e2epod.MakePod(f.Namespace.Name, nodeSelector, []*v1.PersistentVolumeClaim{pvc}, isPrivileged, command)
+	ginkgo.By(fmt.Sprintf("Creating pod on node %q to mount pvc %q at namespace %q, pv %q and run %q", node.Name, pvc.Name, f.Namespace.Name, pv.Name, command))
+	pod, err = f.ClientSet.CoreV1().Pods(f.Namespace.Name).Create(pod)
+	framework.ExpectNoError(err, "creating pod")
+	framework.ExpectNoError(e2epod.WaitForPodNameRunningInNamespace(f.ClientSet, pod.Name, f.Namespace.Name), "waiting for pod running")
+
+	return node, pod
+}
+
+func updateDriverTo(daemonSetClient clientgoappsv1.DaemonSetInterface, driverUpgradeTo *appsv1.DaemonSet) {
+	ginkgo.By("Updating to the EFS CSI driver")
+	currentEfsDriver, err := daemonSetClient.Get("efs-csi-node", metav1.GetOptions{})
+	driverUpgradeTo.ResourceVersion = currentEfsDriver.ResourceVersion
+	_, err = daemonSetClient.Update(driverUpgradeTo)
+	framework.ExpectNoError(err, "Updating to the EFS CSI driver")
+}
+
 func createEFSPVCPV(c clientset.Interface, namespace, name, path string) (*v1.PersistentVolumeClaim, *v1.PersistentVolume, error) {
 	pvc, pv := makeEFSPVCPV(namespace, name, path)
+	return createEFSPVPVC(c, namespace, pvc, pv)
+}
+
+func createEFSPVPVC(c clientset.Interface, namespace string, pvc *v1.PersistentVolumeClaim, pv *v1.PersistentVolume) (*v1.PersistentVolumeClaim, *v1.PersistentVolume, error) {
 	pvc, err := c.CoreV1().PersistentVolumeClaims(namespace).Create(pvc)
 	if err != nil {
 		return nil, nil, err
@@ -275,14 +396,32 @@ func createEFSPVCPV(c clientset.Interface, namespace, name, path string) (*v1.Pe
 }
 
 func makeEFSPVCPV(namespace, name, path string) (*v1.PersistentVolumeClaim, *v1.PersistentVolume) {
+	pv := makeEFSPvWithoutTLS(name, path)
+	return makePVCWithPV(pv, namespace, name)
+}
+
+func makePVCWithPV(pv *v1.PersistentVolume, namespace, name string) (*v1.PersistentVolumeClaim, *v1.PersistentVolume) {
 	pvc := makeEFSPVC(namespace, name)
-	pv := makeEFSPV(name, path)
 	pvc.Spec.VolumeName = pv.Name
 	pv.Spec.ClaimRef = &v1.ObjectReference{
 		Namespace: pvc.Namespace,
 		Name:      pvc.Name,
 	}
 	return pvc, pv
+}
+
+func makeEFSPvWithoutTLS(name, path string) *v1.PersistentVolume {
+	var mountOptions []string
+	var volumeAttributes map[string]string
+	// TODO add "encryptInTransit" : "false" once https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/205 is merged.
+	// volumeAttributes := map[string]string{"encryptInTransit" : "false"}
+	return makeEFSPV(name, path, mountOptions, volumeAttributes)
+}
+
+func makeEFSPVWithTLS(name, path string) *v1.PersistentVolume {
+	mountOptions := []string{"tls"}
+	var volumeAttributes map[string]string
+	return makeEFSPV(name, path, mountOptions, volumeAttributes)
 }
 
 func makeEFSPVC(namespace, name string) *v1.PersistentVolumeClaim {
@@ -304,7 +443,7 @@ func makeEFSPVC(namespace, name string) *v1.PersistentVolumeClaim {
 	}
 }
 
-func makeEFSPV(name, path string) *v1.PersistentVolume {
+func makeEFSPV(name, path string, mountOptions []string, volumeAttributes map[string]string) *v1.PersistentVolume {
 	volumeHandle := FileSystemId
 	if path != "" {
 		volumeHandle += ":" + path
@@ -318,10 +457,12 @@ func makeEFSPV(name, path string) *v1.PersistentVolume {
 			Capacity: v1.ResourceList{
 				v1.ResourceStorage: resource.MustParse("1Gi"),
 			},
+			MountOptions: mountOptions,
 			PersistentVolumeSource: v1.PersistentVolumeSource{
 				CSI: &v1.CSIPersistentVolumeSource{
-					Driver:       "efs.csi.aws.com",
-					VolumeHandle: volumeHandle,
+					Driver:           "efs.csi.aws.com",
+					VolumeHandle:     volumeHandle,
+					VolumeAttributes: volumeAttributes,
 				},
 			},
 			AccessModes: []v1.PersistentVolumeAccessMode{v1.ReadWriteMany},

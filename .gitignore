@@ -1,3 +1,5 @@
 *.swp
 bin/
 vendor/
+/test/e2e/results/
+/test/.DS_Store
