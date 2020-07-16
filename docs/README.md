@@ -42,7 +42,7 @@ The following sections are Kubernetes specific. If you are a Kubernetes user, us
 ### Container Images
 |EFS CSI Driver Version     | Image                               |
 |---------------------------|-------------------------------------|
-|master branch              |amazon/aws-efs-csi-driver:latest     |
+|master branch              |amazon/aws-efs-csi-driver:master     |
 |v0.3.0                     |amazon/aws-efs-csi-driver:v0.3.0     |
 |v0.2.0                     |amazon/aws-efs-csi-driver:v0.2.0     |
 |v0.1.0                     |amazon/aws-efs-csi-driver:v0.1.0     |

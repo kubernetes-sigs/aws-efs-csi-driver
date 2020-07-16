@@ -25,6 +25,10 @@ jobs:
         docker login docker.pkg.github.com -u $USER -p ${{ secrets.REGISTRY_TOKEN }}
         docker tag aws-efs-csi-driver docker.pkg.github.com/$GITHUB_REPOSITORY/$IMAGE:$TAG
         docker push docker.pkg.github.com/$GITHUB_REPOSITORY/$IMAGE:$TAG
+        if [ "$BRANCH" = "master" ]; then
+          docker tag aws-efs-csi-driver docker.pkg.github.com/$GITHUB_REPOSITORY/$IMAGE:master
+          docker push docker.pkg.github.com/$GITHUB_REPOSITORY/$IMAGE:master
+        fi
     - name: Push to Dockerhub registry
       run: |
         BRANCH=$(echo $GITHUB_REF | cut -d'/' -f3)
@@ -38,3 +42,7 @@ jobs:
         docker login -u ${{ secrets.DOCKERHUB_USER }} -p ${{ secrets.DOCKERHUB_TOKEN }}
         docker tag aws-efs-csi-driver $REPO:$TAG
         docker push $REPO:$TAG
+        if [ "$BRANCH" = "master" ]; then
+          docker tag aws-efs-csi-driver $REPO:master
+          docker push $REPO:master
+        fi
