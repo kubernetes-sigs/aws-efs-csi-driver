@@ -24,7 +24,7 @@ RUN go mod download
 ADD . .
 RUN make aws-efs-csi-driver
 
-FROM amazonlinux:2.0.20200406.0
+FROM amazonlinux:2.0.20200602.0
 RUN yum install util-linux-2.30.2-2.amzn2.0.4.x86_64 amazon-efs-utils-1.26-3.amzn2.noarch -y
 
 # At image build time, static files installed by efs-utils in the config directory, i.e. CAs file, need
