@@ -184,7 +184,7 @@ var _ = ginkgo.Describe("[efs-csi] EFS CSI", func() {
 	ginkgo.Context(testsuites.GetDriverNameWithFeatureTags(driver), func() {
 		ginkgo.It("should mount different paths on same volume on same node", func() {
 			ginkgo.By(fmt.Sprintf("Creating efs pvc & pv with no subpath"))
-			pvcRoot, pvRoot, err := createEFSPVCPV(f.ClientSet, f.Namespace.Name, f.Namespace.Name+"-root", "/")
+			pvcRoot, pvRoot, err := createEFSPVCPV(f.ClientSet, f.Namespace.Name, f.Namespace.Name+"-root", "/", map[string]string{})
 			framework.ExpectNoError(err, "creating efs pvc & pv with no subpath")
 			defer func() { _ = f.ClientSet.CoreV1().PersistentVolumes().Delete(pvRoot.Name, &metav1.DeleteOptions{}) }()
 
@@ -195,12 +195,12 @@ var _ = ginkgo.Describe("[efs-csi] EFS CSI", func() {
 			framework.ExpectNoError(e2epod.WaitForPodSuccessInNamespace(f.ClientSet, pod.Name, f.Namespace.Name), "waiting for pod success")
 
 			ginkgo.By(fmt.Sprintf("Creating efs pvc & pv with subpath /a"))
-			pvcA, pvA, err := createEFSPVCPV(f.ClientSet, f.Namespace.Name, f.Namespace.Name+"-a", "/a")
+			pvcA, pvA, err := createEFSPVCPV(f.ClientSet, f.Namespace.Name, f.Namespace.Name+"-a", "/a", map[string]string{})
 			framework.ExpectNoError(err, "creating efs pvc & pv with subpath /a")
 			defer func() { _ = f.ClientSet.CoreV1().PersistentVolumes().Delete(pvA.Name, &metav1.DeleteOptions{}) }()
 
 			ginkgo.By(fmt.Sprintf("Creating efs pvc & pv with subpath /b"))
-			pvcB, pvB, err := createEFSPVCPV(f.ClientSet, f.Namespace.Name, f.Namespace.Name+"-b", "/b")
+			pvcB, pvB, err := createEFSPVCPV(f.ClientSet, f.Namespace.Name, f.Namespace.Name+"-b", "/b", map[string]string{})
 			framework.ExpectNoError(err, "creating efs pvc & pv with subpath /b")
 			defer func() { _ = f.ClientSet.CoreV1().PersistentVolumes().Delete(pvB.Name, &metav1.DeleteOptions{}) }()
 
@@ -213,7 +213,7 @@ var _ = ginkgo.Describe("[efs-csi] EFS CSI", func() {
 
 		ginkgo.It("should continue reading/writing without hanging after the driver pod is restarted", func() {
 			ginkgo.By(fmt.Sprintf("Creating efs pvc & pv"))
-			pvc, pv, err := createEFSPVCPV(f.ClientSet, f.Namespace.Name, f.Namespace.Name, "")
+			pvc, pv, err := createEFSPVCPV(f.ClientSet, f.Namespace.Name, f.Namespace.Name, "", map[string]string{})
 			framework.ExpectNoError(err, "creating efs pvc & pv")
 			defer func() { _ = f.ClientSet.CoreV1().PersistentVolumes().Delete(pv.Name, &metav1.DeleteOptions{}) }()
 
@@ -258,11 +258,65 @@ var _ = ginkgo.Describe("[efs-csi] EFS CSI", func() {
 				framework.Failf("timed out verifying exec in pod succeeded")
 			}
 		})
+
+		testEncryptInTransit := func(f *framework.Framework, encryptInTransit *bool) {
+			ginkgo.By("Creating efs pvc & pv")
+			volumeAttributes := map[string]string{}
+			if encryptInTransit != nil {
+				if *encryptInTransit {
+					volumeAttributes["encryptInTransit"] = "true"
+				} else {
+					volumeAttributes["encryptInTransit"] = "false"
+				}
+			}
+			pvc, pv, err := createEFSPVCPV(f.ClientSet, f.Namespace.Name, f.Namespace.Name, "/", volumeAttributes)
+			framework.ExpectNoError(err, "creating efs pvc & pv with no subpath")
+			defer func() { _ = f.ClientSet.CoreV1().PersistentVolumes().Delete(pv.Name, &metav1.DeleteOptions{}) }()
+
+			// If mount.efs is passed option tls, the mount table entry should be...
+			// 127.0.0.1:/ on /mnt/volume1 type nfs4 (rw,relatime,vers=4.1,rsize=1048576,wsize=1048576,namlen=255,hard,noresvport,proto=tcp,port=20052,timeo=600,retrans=2,sec=sys,clientaddr=127.0.0.1,local_lock=none,addr=127.0.0.1)
+			// Note the tls option is not actually there. The proof that tls is passed
+			// to mount.efs is the server is 127.0.0.1
+			// (stunnel proxy running on localhost)
+			// instead of the EFS DNS name
+			// (file-system-id.efs.aws-region.amazonaws.com).
+			// Call `mount` alone first to print it for debugging.
+			command := "mount && mount | grep /mnt/volume1 | grep 127.0.0.1"
+			if encryptInTransit != nil {
+				if !*encryptInTransit {
+					command = fmt.Sprintf("mount && mount | grep /mnt/volume1 | grep %v", FileSystemId)
+				}
+			}
+			ginkgo.By(fmt.Sprintf("Creating pod to mount pvc %q and run %q", pvc.Name, command))
+			pod := e2epod.MakePod(f.Namespace.Name, nil, []*v1.PersistentVolumeClaim{pvc}, false, command)
+			pod.Spec.RestartPolicy = v1.RestartPolicyNever
+			pod, err = f.ClientSet.CoreV1().Pods(f.Namespace.Name).Create(pod)
+			framework.ExpectNoError(err, "creating pod")
+
+			err = e2epod.WaitForPodSuccessInNamespace(f.ClientSet, pod.Name, f.Namespace.Name)
+			logs, _ := e2epod.GetPodLogs(f.ClientSet, f.Namespace.Name, pod.Name, "write-pod")
+			framework.Logf("pod %q logs:\n %v", pod.Name, logs)
+			framework.ExpectNoError(err, "waiting for pod success")
+		}
+
+		ginkgo.It("should mount with option tls when encryptInTransit unset", func() {
+			testEncryptInTransit(f, nil)
+		})
+
+		ginkgo.It("should mount with option tls when encryptInTransit set true", func() {
+			encryptInTransit := true
+			testEncryptInTransit(f, &encryptInTransit)
+		})
+
+		ginkgo.It("should mount without option tls when encryptInTransit set false", func() {
+			encryptInTransit := false
+			testEncryptInTransit(f, &encryptInTransit)
+		})
 	})
 })
 
-func createEFSPVCPV(c clientset.Interface, namespace, name, path string) (*v1.PersistentVolumeClaim, *v1.PersistentVolume, error) {
-	pvc, pv := makeEFSPVCPV(namespace, name, path)
+func createEFSPVCPV(c clientset.Interface, namespace, name, path string, volumeAttributes map[string]string) (*v1.PersistentVolumeClaim, *v1.PersistentVolume, error) {
+	pvc, pv := makeEFSPVCPV(namespace, name, path, volumeAttributes)
 	pvc, err := c.CoreV1().PersistentVolumeClaims(namespace).Create(pvc)
 	if err != nil {
 		return nil, nil, err
@@ -274,9 +328,9 @@ func createEFSPVCPV(c clientset.Interface, namespace, name, path string) (*v1.Pe
 	return pvc, pv, nil
 }
 
-func makeEFSPVCPV(namespace, name, path string) (*v1.PersistentVolumeClaim, *v1.PersistentVolume) {
+func makeEFSPVCPV(namespace, name, path string, volumeAttributes map[string]string) (*v1.PersistentVolumeClaim, *v1.PersistentVolume) {
 	pvc := makeEFSPVC(namespace, name)
-	pv := makeEFSPV(name, path)
+	pv := makeEFSPV(name, path, volumeAttributes)
 	pvc.Spec.VolumeName = pv.Name
 	pv.Spec.ClaimRef = &v1.ObjectReference{
 		Namespace: pvc.Namespace,
@@ -304,7 +358,7 @@ func makeEFSPVC(namespace, name string) *v1.PersistentVolumeClaim {
 	}
 }
 
-func makeEFSPV(name, path string) *v1.PersistentVolume {
+func makeEFSPV(name, path string, volumeAttributes map[string]string) *v1.PersistentVolume {
 	volumeHandle := FileSystemId
 	if path != "" {
 		volumeHandle += ":" + path
@@ -320,8 +374,9 @@ func makeEFSPV(name, path string) *v1.PersistentVolume {
 			},
 			PersistentVolumeSource: v1.PersistentVolumeSource{
 				CSI: &v1.CSIPersistentVolumeSource{
-					Driver:       "efs.csi.aws.com",
-					VolumeHandle: volumeHandle,
+					Driver:           "efs.csi.aws.com",
+					VolumeHandle:     volumeHandle,
+					VolumeAttributes: volumeAttributes,
 				},
 			},
 			AccessModes: []v1.PersistentVolumeAccessMode{v1.ReadWriteMany},

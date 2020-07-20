@@ -4,7 +4,7 @@
 
 ## Amazon EFS CSI Driver
 
-The [Amazon Elastic File System](https://aws.amazon.com/efs/) Container Storage Interface (CSI) Driver implements the [CSI](https://github.com/container-storage-interface/spec/blob/master/spec.md) specification for container orchestrators to manage the lifecycle of Amazon EFS filesystems.
+The [Amazon Elastic File System](https://aws.amazon.com/efs/) Container Storage Interface (CSI) Driver implements the [CSI](https://github.com/container-storage-interface/spec/blob/master/spec.md) specification for container orchestrators to manage the lifecycle of Amazon EFS file systems.
 
 ### CSI Specification Compatibility Matrix
 | AWS EFS CSI Driver \ CSI Spec Version  | v0.3.0| v1.1.0 | v1.2.0 |
@@ -15,7 +15,7 @@ The [Amazon Elastic File System](https://aws.amazon.com/efs/) Container Storage 
 | v0.1.0                                 | yes   | no     | no     |
 
 ## Features
-Currently only static provisioning is supported. This means an AWS EFS filesystem needs to be created manually on AWS first. After that it can be mounted inside a container as a volume using the driver.
+Currently only static provisioning is supported. This means an AWS EFS file system needs to be created manually on AWS first. After that it can be mounted inside a container as a volume using the driver.
 
 The following CSI interfaces are implemented:
 * Node Service: NodePublishVolume, NodeUnpublishVolume, NodeGetCapabilities, NodeGetInfo, NodeGetId
@@ -24,7 +24,7 @@ The following CSI interfaces are implemented:
 ### Encryption In Transit
 One of the advantages of using EFS is that it provides [encryption in transit](https://aws.amazon.com/blogs/aws/new-encryption-of-data-in-transit-for-amazon-efs/) support using TLS. Using encryption in transit, data will be encrypted during its transition over the network to the EFS service. This provides an extra layer of defence-in-depth for applications that requires strict security compliance.
 
-To enable encryption in transit, `tls` needs to be set in the `NodePublishVolumeRequest.VolumeCapability.MountVolume` object's `MountFlags` fields. For an example of using it in kubernetes, see the persistence volume manifest in [Encryption in Transit Example](../examples/kubernetes/encryption_in_transit/specs/pv.yaml)
+Encryption in transit is enabled by default in the master branch version of the driver. To disable it and mount volumes using plain NFSv4, set `volumeAttributes` field `encryptInTransit` to `"false"` in your persistent volume manifest. For an example manifest, see [Encryption in Transit Example](../examples/kubernetes/encryption_in_transit/specs/pv.yaml).
 
 **Note** Kubernetes version 1.13+ is required if you are using this feature in Kubernetes.
 
@@ -48,11 +48,12 @@ The following sections are Kubernetes specific. If you are a Kubernetes user, us
 |v0.1.0                     |amazon/aws-efs-csi-driver:v0.1.0     |
 
 ### Features
-* Static provisioning - EFS filesystem needs to be created manually first, then it could be mounted inside container as a persistent volume (PV) using the driver.
-* Mount Options - Mount options can be specified in the persistence volume (PV) to define how the volume should be mounted. Aside from normal mount options, you can also specify `tls` as a mount option to enable encryption in transit of the EFS filesystem.
+* Static provisioning - EFS file system needs to be created manually first, then it could be mounted inside container as a persistent volume (PV) using the driver.
+* Mount Options - Mount options can be specified in the persistent volume (PV) to define how the volume should be mounted.
+* Encryption of data in transit - EFS file systems are mounted with encryption in transit enabled by default in the master branch version of the driver.
 
 **Notes**:
-* Since EFS is an elastic filesystem it doesn't really enforce any filesystem capacity. The actual storage capacity value in persistence volume and persistence volume claim is not used when creating the filesystem. However, since the storage capacity is a required field by Kubernetes, you must specify the value and you can use any valid value for the capacity.
+* Since EFS is an elastic file system it doesn't really enforce any file system capacity. The actual storage capacity value in persistent volume and persistent volume claim is not used when creating the file system. However, since the storage capacity is a required field by Kubernetes, you must specify the value and you can use any valid value for the capacity.
 
 ### Installation
 Deploy the driver:
@@ -75,14 +76,14 @@ helm install aws-efs-csi-driver aws-efs-csi-driver/aws-efs-csi-driver
 
 ### Examples
 Before the example, you need to:
-* Get yourself familiar with how to setup Kubernetes on AWS and how to [create EFS filesystem](https://docs.aws.amazon.com/efs/latest/ug/getting-started.html).
-* When creating EFS filesystem, make sure it is accessible from Kuberenetes cluster. This can be achieved by creating the filesystem inside the same VPC as Kubernetes cluster or using VPC peering.
+* Get yourself familiar with how to setup Kubernetes on AWS and how to [create EFS file system](https://docs.aws.amazon.com/efs/latest/ug/getting-started.html).
+* When creating EFS file system, make sure it is accessible from Kuberenetes cluster. This can be achieved by creating the file system inside the same VPC as Kubernetes cluster or using VPC peering.
 * Install EFS CSI driver following the [Installation](README.md#Installation) steps.
 
 #### Example links
 * [Static provisioning](../examples/kubernetes/static_provisioning/README.md)
 * [Encryption in transit](../examples/kubernetes/encryption_in_transit/README.md)
-* [Accessing the filesystem from multiple pods](../examples/kubernetes/multiple_pods/README.md)
+* [Accessing the file system from multiple pods](../examples/kubernetes/multiple_pods/README.md)
 * [Consume EFS in StatefulSets](../examples/kubernetes/statefulset/README.md)
 * [Mount subpath](../examples/kubernetes/volume_path/README.md)
 * [Use Access Points](../examples/kubernetes/access_points/README.md)
