@@ -73,6 +73,8 @@ spec:
               mountPath: /csi
             - name: registration-dir
               mountPath: /registration
+            - name: efs-utils-config
+              mountPath: /etc/amazon/efs
         - name: liveness-probe
           image: quay.io/k8scsi/livenessprobe:v2.0.0
           args:
@@ -97,5 +99,9 @@ spec:
         - name: efs-state-dir
           hostPath:
             path: /var/run/efs
+            type: DirectoryOrCreate
+        - name: efs-utils-config
+          hostPath:
+            path: /etc/amazon/efs
             type: DirectoryOrCreate
 
