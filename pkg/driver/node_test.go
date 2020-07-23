@@ -19,8 +19,11 @@ package driver
 import (
 	"context"
 	"fmt"
+	"os"
+	"reflect"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
 	"github.com/golang/mock/gomock"
@@ -37,12 +40,16 @@ type errtyp struct {
 	message string
 }
 
-func setup(mockCtrl *gomock.Controller) (*mocks.MockMounter, *Driver, context.Context) {
+func setup(mockCtrl *gomock.Controller, volStatter VolStatter, volMetricsOptIn bool) (*mocks.MockMounter, *Driver, context.Context) {
 	mockMounter := mocks.NewMockMounter(mockCtrl)
+	nodeCaps := SetNodeCapOptInFeatures(volMetricsOptIn)
 	driver := &Driver{
-		endpoint: "endpoint",
-		nodeID:   "nodeID",
-		mounter:  mockMounter,
+		endpoint:        "endpoint",
+		nodeID:          "nodeID",
+		mounter:         mockMounter,
+		volStatter:      volStatter,
+		volMetricsOptIn: true,
+		nodeCaps:        nodeCaps,
 	}
 	ctx := context.Background()
 	return mockMounter, driver, ctx
@@ -89,12 +96,13 @@ func TestNodePublishVolume(t *testing.T) {
 	)
 
 	testCases := []struct {
-		name          string
-		req           *csi.NodePublishVolumeRequest
-		expectMakeDir bool
-		mountArgs     []interface{}
-		mountSuccess  bool
-		expectError   errtyp
+		name            string
+		req             *csi.NodePublishVolumeRequest
+		expectMakeDir   bool
+		mountArgs       []interface{}
+		mountSuccess    bool
+		volMetricsOptIn bool
+		expectError     errtyp
 	}{
 		{
 			name: "success: normal",
@@ -103,9 +111,10 @@ func TestNodePublishVolume(t *testing.T) {
 				VolumeCapability: stdVolCap,
 				TargetPath:       targetPath,
 			},
-			expectMakeDir: true,
-			mountArgs:     []interface{}{volumeId + ":/", targetPath, "efs", []string{"tls"}},
-			mountSuccess:  true,
+			expectMakeDir:   true,
+			mountArgs:       []interface{}{volumeId + ":/", targetPath, "efs", []string{"tls"}},
+			mountSuccess:    true,
+			volMetricsOptIn: true,
 		},
 		{
 			name: "success: empty path",
@@ -114,9 +123,10 @@ func TestNodePublishVolume(t *testing.T) {
 				VolumeCapability: stdVolCap,
 				TargetPath:       targetPath,
 			},
-			expectMakeDir: true,
-			mountArgs:     []interface{}{volumeId + ":/", targetPath, "efs", []string{"tls"}},
-			mountSuccess:  true,
+			expectMakeDir:   true,
+			mountArgs:       []interface{}{volumeId + ":/", targetPath, "efs", []string{"tls"}},
+			mountSuccess:    true,
+			volMetricsOptIn: true,
 		},
 		{
 			name: "success: empty path and access point",
@@ -125,9 +135,10 @@ func TestNodePublishVolume(t *testing.T) {
 				VolumeCapability: stdVolCap,
 				TargetPath:       targetPath,
 			},
-			expectMakeDir: true,
-			mountArgs:     []interface{}{volumeId + ":/", targetPath, "efs", []string{"tls"}},
-			mountSuccess:  true,
+			expectMakeDir:   true,
+			mountArgs:       []interface{}{volumeId + ":/", targetPath, "efs", []string{"tls"}},
+			mountSuccess:    true,
+			volMetricsOptIn: true,
 		},
 		{
 			name: "success: normal with read only mount",
@@ -503,7 +514,7 @@ func TestNodePublishVolume(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			mockCtrl := gomock.NewController(t)
 			defer mockCtrl.Finish()
-			mockMounter, driver, ctx := setup(mockCtrl)
+			mockMounter, driver, ctx := setup(mockCtrl, NewVolStatter(), tc.volMetricsOptIn)
 
 			if tc.expectMakeDir {
 				var err error
@@ -528,12 +539,26 @@ func TestNodePublishVolume(t *testing.T) {
 }
 
 func TestNodeUnpublishVolume(t *testing.T) {
+	var metrics = &volMetrics{
+		volPath:   targetPath,
+		timeStamp: time.Now().Add(time.Duration(-10) * time.Minute),
+		volUsage: []*csi.VolumeUsage{
+			{
+				Unit:      csi.VolumeUsage_BYTES,
+				Available: 1,
+				Used:      1,
+				Total:     2,
+			},
+		},
+	}
+
 	testCases := []struct {
 		name                string
 		req                 *csi.NodeUnpublishVolumeRequest
 		expectGetDeviceName bool
 		getDeviceNameReturn []interface{}
 		expectUnmount       bool
+		setupVolUsageCache  bool
 		unmountReturn       error
 		expectError         errtyp
 	}{
@@ -546,6 +571,18 @@ func TestNodeUnpublishVolume(t *testing.T) {
 			expectGetDeviceName: true,
 			getDeviceNameReturn: []interface{}{"", 1, nil},
 			expectUnmount:       true,
+			unmountReturn:       nil,
+		},
+		{
+			name: "success: test volume usage cache eviction",
+			req: &csi.NodeUnpublishVolumeRequest{
+				VolumeId:   volumeId,
+				TargetPath: targetPath,
+			},
+			expectGetDeviceName: true,
+			getDeviceNameReturn: []interface{}{"", 1, nil},
+			expectUnmount:       true,
+			setupVolUsageCache:  true,
 			unmountReturn:       nil,
 		},
 		{
@@ -605,7 +642,7 @@ func TestNodeUnpublishVolume(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			mockCtrl := gomock.NewController(t)
 			defer mockCtrl.Finish()
-			mockMounter, driver, ctx := setup(mockCtrl)
+			mockMounter, driver, ctx := setup(mockCtrl, NewVolStatter(), true)
 
 			if tc.expectGetDeviceName {
 				mockMounter.EXPECT().
@@ -616,8 +653,159 @@ func TestNodeUnpublishVolume(t *testing.T) {
 				mockMounter.EXPECT().Unmount(targetPath).Return(tc.unmountReturn)
 			}
 
+			if tc.setupVolUsageCache {
+				volUsageCache = make(map[string]*volMetrics)
+				volUsageCache[targetPath] = metrics
+			}
+
 			ret, err := driver.NodeUnpublishVolume(ctx, tc.req)
 			testResult(t, "NodeUnpublishVolume", ret, err, tc.expectError)
 		})
 	}
+}
+
+func TestNodeGetVolumeStats(t *testing.T) {
+	var (
+		validPath   = "/tmp/target"
+		invalidPath = "/path/does/not/exist"
+		volMetrics  = &volMetrics{
+			volPath:   validPath,
+			timeStamp: time.Now().Add(time.Duration(-10) * time.Minute),
+			volUsage: []*csi.VolumeUsage{
+				{
+					Unit:      csi.VolumeUsage_BYTES,
+					Available: 1,
+					Used:      1,
+					Total:     2,
+				},
+			},
+		}
+	)
+	makeDir(validPath)
+
+	//reset jitter to 0 for testing
+	jitter = time.Duration(0)
+
+	testCases := []struct {
+		name             string
+		req              *csi.NodeGetVolumeStatsRequest
+		updateCache      bool
+		expectError      errtyp
+		expectedResponse *csi.NodeGetVolumeStatsResponse
+	}{
+		{
+			name: "success: volume unknown",
+			req: &csi.NodeGetVolumeStatsRequest{
+				VolumeId:   volumeId,
+				VolumePath: validPath,
+			},
+			expectedResponse: &csi.NodeGetVolumeStatsResponse{
+				Usage: []*csi.VolumeUsage{
+					{
+						Unit: csi.VolumeUsage_UNKNOWN,
+					},
+				},
+			},
+		},
+		{
+			name: "success: volume known",
+			req: &csi.NodeGetVolumeStatsRequest{
+				VolumeId:   volumeId,
+				VolumePath: validPath,
+			},
+			updateCache: true,
+			expectedResponse: &csi.NodeGetVolumeStatsResponse{
+				Usage: []*csi.VolumeUsage{
+					{
+						Unit:      csi.VolumeUsage_BYTES,
+						Available: 1,
+						Total:     2,
+						Used:      1,
+					},
+				},
+			},
+		},
+		{
+			name: "Fail: Path does not exist",
+			req: &csi.NodeGetVolumeStatsRequest{
+				VolumeId:   volumeId,
+				VolumePath: invalidPath,
+			},
+			expectError: errtyp{
+				code:    "NotFound",
+				message: "Volume Path /path/does/not/exist does not exist",
+			},
+		},
+		{
+			name: "Fail: Volume ID does not exist",
+			req: &csi.NodeGetVolumeStatsRequest{
+				VolumeId:   "",
+				VolumePath: invalidPath,
+			},
+			expectError: errtyp{
+				code:    "InvalidArgument",
+				message: "Volume ID not provided",
+			},
+		},
+		{
+			name: "Fail: Volume Path does not exist",
+			req: &csi.NodeGetVolumeStatsRequest{
+				VolumeId:   volumeId,
+				VolumePath: "",
+			},
+			expectError: errtyp{
+				code:    "InvalidArgument",
+				message: "Volume Path not provided",
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			var driver *Driver
+			var ctx context.Context
+			var _ *mocks.MockMounter
+
+			//setup
+			mockCtrl := gomock.NewController(t)
+			defer mockCtrl.Finish()
+			_, driver, ctx = setup(mockCtrl, NewVolStatter(), true)
+
+			if tc.updateCache {
+				mu.Lock()
+				volUsageCache[volumeId] = volMetrics
+				mu.Unlock()
+			}
+
+			//execute
+			ret, err := driver.NodeGetVolumeStats(ctx, tc.req)
+
+			//verify
+			testResult(t, "NodeGetVolumeStats", ret, err, tc.expectError)
+			if tc.expectedResponse != nil {
+				testResponse(t, tc.expectedResponse, ret)
+			}
+			mu.Lock()
+			delete(volUsageCache, volumeId)
+			mu.Unlock()
+		})
+	}
+
+	os.RemoveAll(validPath)
+}
+
+func testResponse(t *testing.T, expected, actual *csi.NodeGetVolumeStatsResponse) {
+	if !reflect.DeepEqual(expected, actual) {
+		t.Errorf("Expected: %v, Actual: %v", expected, actual)
+	}
+}
+
+func makeDir(path string) error {
+	err := os.MkdirAll(path, os.FileMode(0777))
+	if err != nil {
+		if !os.IsExist(err) {
+			return err
+		}
+	}
+	return nil
 }
