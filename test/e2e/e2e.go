@@ -223,6 +223,7 @@ var _ = ginkgo.Describe("[efs-csi] EFS CSI", func() {
 
 			ginkgo.By(fmt.Sprintf("Creating pod on node %q to mount pvc %q and run %q", node.Name, pvc.Name, command))
 			pod := e2epod.MakePod(f.Namespace.Name, nil, []*v1.PersistentVolumeClaim{pvc}, false, command)
+			pod.Spec.NodeName = node.Name
 			pod, err = f.ClientSet.CoreV1().Pods(f.Namespace.Name).Create(pod)
 			framework.ExpectNoError(err, "creating pod")
 			framework.ExpectNoError(e2epod.WaitForPodNameRunningInNamespace(f.ClientSet, pod.Name, f.Namespace.Name), "waiting for pod running")
