@@ -1,4 +1,10 @@
 # v1.0.0
+[Documentation](https://github.com/kubernetes-sigs/aws-efs-csi-driver/blob/v1.0.0/docs/README.md)
+
+filename  | sha512 hash
+--------- | ------------
+[v1.0.0.zip](https://github.com/kubernetes-sigs/aws-efs-csi-driver/archive/v1.0.0.zip) | `ecce6558e9a5ea3a94578eefc6cbe4fedc452fefeb60ff1b7f07257143c7a03b2410ad1ffc2b2bbc2065b255cc4b35ec56a09bb3f1561ebe90f8a763da12b19d`
+[v1.0.0.tar.gz](https://github.com/kubernetes-sigs/aws-efs-csi-driver/archive/v1.0.0.tar.gz) | `e31defba0d0975a8a3ba4661881638b4cfb45e0b76d1c0d714b7a556eecdab77562b7dda461b6b86350a11946548a42057f1453bd5934d0299f54923e335294b` v1.0.0
 
 ## Notable changes
 ### New Features
