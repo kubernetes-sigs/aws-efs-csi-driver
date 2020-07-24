@@ -22,12 +22,15 @@ spec:
     spec:
       nodeSelector:
         beta.kubernetes.io/os: linux
+        {{- with .Values.nodeSelector }}
+        {{- . | toYaml | nindent 8 }}
+        {{- end }}
       hostNetwork: true
       priorityClassName: system-node-critical
       tolerations:
         - operator: Exists
         {{- with .Values.node.tolerations }}
-{{ toYaml . | indent 8 }}
+        {{- . | toYaml | nindent 8 }}
         {{- end }}
       containers:
         - name: efs-plugin
