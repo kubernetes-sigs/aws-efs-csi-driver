@@ -34,6 +34,57 @@ state_file_dir_mode = 750
 dns_name_format = {fs_id}.efs.{region}.{dns_name_suffix}
 dns_name_suffix = amazonaws.com
 #The region of the file system when mounting from on-premises or cross region.
+region = us-west-test
+stunnel_debug_enabled = false
+#Uncomment the below option to save all stunnel logs for a file system to the same file
+#stunnel_logs_file = /var/log/amazon/efs/{fs_id}.stunnel.log
+stunnel_cafile = /etc/amazon/efs/efs-utils.crt
+
+# Validate the certificate hostname on mount. This option is not supported by certain stunnel versions.
+stunnel_check_cert_hostname = true
+
+# Use OCSP to check certificate validity. This option is not supported by certain stunnel versions.
+stunnel_check_cert_validity = false
+
+# Define the port range that the TLS tunnel will choose from
+port_range_lower_bound = 20049
+port_range_upper_bound = 20449
+
+[mount.cn-north-1]
+dns_name_suffix = amazonaws.com.cn
+
+[mount.cn-northwest-1]
+dns_name_suffix = amazonaws.com.cn
+
+[mount.us-iso-east-1]
+dns_name_suffix = c2s.ic.gov
+
+[mount.us-isob-east-1]
+dns_name_suffix = sc2s.sgov.gov
+
+[mount-watchdog]
+enabled = true
+poll_interval_sec = 1
+unmount_grace_period_sec = 30
+
+# Set client auth/access point certificate renewal rate. Minimum value is 1 minute.
+tls_cert_renewal_interval_min = 60
+
+[client-info]
+source=k8s
+`
+	expectedConfigWithoutRegion =  `
+[DEFAULT]
+logging_level = INFO
+logging_max_bytes = 1048576
+logging_file_count = 10
+# mode for /var/run/efs and subdirectories in octal
+state_file_dir_mode = 750
+
+[mount]
+dns_name_format = {fs_id}.efs.{region}.{dns_name_suffix}
+dns_name_suffix = amazonaws.com
+#The region of the file system when mounting from on-premises or cross region.
 #region = us-east-1
 stunnel_debug_enabled = false
 #Uncomment the below option to save all stunnel logs for a file system to the same file
@@ -70,7 +121,7 @@ unmount_grace_period_sec = 30
 # Set client auth/access point certificate renewal rate. Minimum value is 1 minute.
 tls_cert_renewal_interval_min = 60
 
-[client-info] 
+[client-info]
 source=k8s
 `
 	configFileName = "efs-utils.conf"
@@ -112,6 +163,8 @@ func TestSetupWithEmptyConfigDirectory(t *testing.T) {
 	//create file A, B in static file directory and keep config directory empty
 	configDirName := createTempDir(t)
 	staticFileDirName := createTempDir(t)
+	os.Setenv("AWS_DEFAULT_REGION", "us-west-test")
+	defer os.Clearenv()
 	defer os.RemoveAll(configDirName)
 	defer os.RemoveAll(staticFileDirName)
 
@@ -137,10 +190,29 @@ func TestSetupWithEmptyConfigDirectory(t *testing.T) {
 	verifyFileContent(t, filepath.Join(configDirName, "B"), fileBContent)
 }
 
+func TestSetupWithNoRegion(t *testing.T) {
+	//create file A, B in static file directory and keep config directory empty
+	configDirName := createTempDir(t)
+	staticFileDirName := createTempDir(t)
+	defer os.RemoveAll(configDirName)
+	defer os.RemoveAll(staticFileDirName)
+
+	w := newExecWatchdog(configDirName, staticFileDirName, "sleep", "300").(*execWatchdog)
+	efsClient := "k8s"
+	configFilePath := filepath.Join(configDirName, configFileName)
+	if err := w.setup(efsClient); err != nil {
+		t.Fatalf("Failed to update config file %v, %v", configFilePath, err)
+	}
+	verifyNoRegionConfigFile(t, configFilePath)
+}
+
 func TestSetupWithNonEmptyConfigDirectory(t *testing.T) {
 	//create file A, B in static file directory
 	staticFileDirName := createTempDir(t)
+	os.Setenv("AWS_DEFAULT_REGION", "us-west-test")
+	defer os.Clearenv()
 	defer os.RemoveAll(staticFileDirName)
+	defer os.Clearenv()
 
 	fileAName := "A"
 	fileAContent := "dummyA"
@@ -174,6 +246,8 @@ func TestSetupWithNonexistentConfigDirectory(t *testing.T) {
 	configDirName := ""
 	staticFileDirName := createTempDir(t)
 	defer os.RemoveAll(staticFileDirName)
+	os.Setenv("AWS_DEFAULT_REGION", "us-west-test")
+	defer os.Clearenv()
 	w := newExecWatchdog(configDirName, staticFileDirName, "sleep", "300").(*execWatchdog)
 	efsClient := "k8s"
 	if err := w.setup(efsClient); err == nil {
@@ -185,6 +259,8 @@ func TestSetupWithNonexistentStaticFilesDirectory(t *testing.T) {
 	configDirName := createTempDir(t)
 	defer os.RemoveAll(configDirName)
 	staticFileDirName := ""
+	os.Setenv("AWS_DEFAULT_REGION", "us-west-test")
+	defer os.Clearenv()
 	w := newExecWatchdog(configDirName, staticFileDirName, "sleep", "300").(*execWatchdog)
 	efsClient := "k8s"
 	if err := w.setup(efsClient); err == nil {
@@ -198,6 +274,8 @@ func TestSetupWithAdditionalDirectoryInStaticFilesDirectory(t *testing.T) {
 
 	staticFileDirName := createTempDir(t)
 	defer os.RemoveAll(staticFileDirName)
+	os.Setenv("AWS_DEFAULT_REGION", "us-west-test")
+	defer os.Clearenv()
 
 	_, err := ioutil.TempDir(staticFileDirName, "")
 	checkError(t, err)
@@ -226,6 +304,15 @@ func verifyConfigFile(t *testing.T, configFilePath string) {
 	actualConfig := string(configFileContent)
 	if actualConfig != expectedEfsUtilsConfig {
 		t.Fatalf("Unexpected efs-utils config content: want %s\nactual:%s", expectedEfsUtilsConfig, actualConfig)
+	}
+}
+
+func verifyNoRegionConfigFile(t *testing.T, configFilePath string) {
+	configFileContent, err := ioutil.ReadFile(configFilePath)
+	checkError(t, err)
+	actualConfig := string(configFileContent)
+	if actualConfig != expectedConfigWithoutRegion {
+		t.Fatalf("Unexpected efs-utils config content: want %s\nactual:%s", expectedConfigWithoutRegion, actualConfig)
 	}
 }
 
