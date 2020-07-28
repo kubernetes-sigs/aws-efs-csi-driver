@@ -41,6 +41,8 @@ spec:
               mountPath: /csi
             - name: efs-state-dir
               mountPath: /var/run/efs
+            - name: efs-utils-config
+              mountPath: /etc/amazon/efs
           ports:
             - containerPort: 9809
               name: healthz
@@ -73,8 +75,6 @@ spec:
               mountPath: /csi
             - name: registration-dir
               mountPath: /registration
-            - name: efs-utils-config
-              mountPath: /etc/amazon/efs
         - name: liveness-probe
           image: quay.io/k8scsi/livenessprobe:v2.0.0
           args:
