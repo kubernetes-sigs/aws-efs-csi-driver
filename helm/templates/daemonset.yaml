@@ -29,6 +29,9 @@ spec:
         {{- with .Values.node.tolerations }}
 {{ toYaml . | indent 8 }}
         {{- end }}
+      {{- if .Values.node.affinity }}
+      affinity: {{ toYaml .Values.node.affinity | nident 8 }}
+      {{- end}}
       containers:
         - name: efs-plugin
           securityContext:
