@@ -12,8 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM golang:1.13.4-stretch as builder
+# Hard-coded platform to `linux/amd64` because
+# 1) go mod download is super slow with arm64 on x86 host since it requires QEMU simulation at software level.
+# 2) a better approach with `--platform={BUILDPLATFORM}` is only supported by docker buildx not docker build.
+FROM --platform=linux/amd64 golang:1.13.4-stretch as builder
 WORKDIR /go/src/github.com/kubernetes-sigs/aws-efs-csi-driver
+
+ARG TARGETOS
+ARG TARGETARCH
+RUN echo "TARGETOS:$TARGETOS, TARGETARCH:$TARGETARCH"
+RUN echo "I am running on $(uname -s)/$(uname -m)"
 
 # Cache go modules
 ENV GOPROXY=direct
@@ -27,7 +35,7 @@ ADD . .
 ARG client_source=k8s
 ENV EFS_CLIENT_SOURCE=$client_source
 
-RUN make aws-efs-csi-driver
+RUN GOOS=${TARGETOS} GOARCH=${TARGETARCH} make aws-efs-csi-driver
 
 FROM amazonlinux:2.0.20200602.0
 RUN yum install amazon-efs-utils-1.26-3.amzn2.noarch -y
