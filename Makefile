@@ -19,6 +19,7 @@ VERSION=v1.0.0-dirty
 GIT_COMMIT?=$(shell git rev-parse HEAD)
 BUILD_DATE?=$(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
 EFS_CLIENT_SOURCE?=k8s
+IMAGE_PLATFORMS?=linux/arm64,linux/amd64
 LDFLAGS?="-X ${PKG}/pkg/driver.driverVersion=${VERSION} \
 		  -X ${PKG}/pkg/driver.gitCommit=${GIT_COMMIT} \
 		  -X ${PKG}/pkg/driver.buildDate=${BUILD_DATE} \
@@ -32,6 +33,7 @@ GOPATH=$(shell go env GOPATH)
 .PHONY: aws-efs-csi-driver
 aws-efs-csi-driver:
 	mkdir -p bin
+	@echo GOARCH:${GOARCH}
 	CGO_ENABLED=0 GOOS=linux go build -ldflags ${LDFLAGS} -o bin/aws-efs-csi-driver ./cmd/
 
 build-darwin:
@@ -59,6 +61,14 @@ test-e2e:
 .PHONY: image
 image:
 	docker build -t $(IMAGE):master .
+
+.PHONY: image-multi-arch--push
+image-multi-arch-push:
+	docker buildx build \
+			  -t $(IMAGE):master \
+			  --platform=$(IMAGE_PLATFORMS) \
+			  --progress plain \
+			  --push .
 
 .PHONY: push
 push: image
