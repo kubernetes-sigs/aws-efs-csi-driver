@@ -23,9 +23,11 @@ import (
 	"path/filepath"
 	"testing"
 
+	"k8s.io/utils/mount"
+
 	"github.com/golang/mock/gomock"
 	"github.com/kubernetes-csi/csi-test/pkg/sanity"
-	"github.com/kubernetes-sigs/aws-efs-csi-driver/pkg/driver/mocks"
+	"github.com/kubernetes-sigs/aws-efs-csi-driver/pkg/cloud"
 )
 
 type mockWatchdog struct {
@@ -49,19 +51,32 @@ func TestSanityEFSCSI(t *testing.T) {
 	targetPath := filepath.Join(dir, "target")
 	stagingPath := filepath.Join(dir, "staging")
 	endpoint := "unix:" + filepath.Join(dir, "csi.sock")
+	parameters := make(map[string]string)
+	//Access Point Parameters
+	parameters[FsId] = "fs-1234abcd"
+	parameters[ProvisioningMode] = "efs-ap"
+	parameters[DirectoryPerms] = "777"
 
 	config := &sanity.Config{
-		TargetPath:  targetPath,
-		StagingPath: stagingPath,
-		Address:     endpoint,
+		TargetPath:           targetPath,
+		StagingPath:          stagingPath,
+		Address:              endpoint,
+		TestVolumeParameters: parameters,
 	}
+
+	nodeCaps := SetNodeCapOptInFeatures(true)
 
 	mockCtrl := gomock.NewController(t)
 	drv := Driver{
-		endpoint:    endpoint,
-		nodeID:      "sanity",
-		mounter:     mocks.NewMockMounter(mockCtrl),
-		efsWatchdog: &mockWatchdog{},
+		endpoint:        endpoint,
+		nodeID:          "sanity",
+		mounter:         NewFakeMounter(),
+		efsWatchdog:     &mockWatchdog{},
+		cloud:           cloud.NewFakeCloudProvider(),
+		nodeCaps:        nodeCaps,
+		volMetricsOptIn: true,
+		volStatter:      NewVolStatter(),
+		gidAllocator:    NewGidAllocator(),
 	}
 	defer func() {
 		if r := recover(); r != nil {
@@ -78,4 +93,12 @@ func TestSanityEFSCSI(t *testing.T) {
 	sanity.Test(t, config)
 
 	mockCtrl.Finish()
+}
+
+func NewFakeMounter() Mounter {
+	return &NodeMounter{
+		Interface: &mount.FakeMounter{
+			MountPoints: []mount.MountPoint{},
+		},
+	}
 }

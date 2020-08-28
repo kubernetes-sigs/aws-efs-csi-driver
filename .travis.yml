@@ -13,7 +13,5 @@ before_install:
 
 script:
   - make
-  - go test -covermode=count -coverprofile=profile.cov $(go list ./pkg/... | grep -v /driver)
-    # TODO stop skipping controller tests when controller is implemented
-  - go test -covermode=count -coverprofile=profile.cov ./pkg/driver/... -ginkgo.skip='\[Controller.Server\]'
+  - go test -covermode=count -coverprofile=profile.cov ./pkg/...
   - $GOPATH/bin/goveralls -coverprofile=profile.cov -service=travis-ci

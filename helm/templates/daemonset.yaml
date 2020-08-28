@@ -4,6 +4,8 @@ apiVersion: apps/v1
 metadata:
   name: efs-csi-node
   namespace: kube-system
+  labels:
+    app.kubernetes.io/name: {{ include "aws-efs-csi-driver.name" . }}
 spec:
   selector:
     matchLabels:
@@ -87,7 +89,7 @@ spec:
             timeoutSeconds: 3
             periodSeconds: 2
             failureThreshold: 5
-        - name: cs-driver-registrar
+        - name: csi-driver-registrar
           image: {{ printf "%s:%s" .Values.sidecars.nodeDriverRegistrarImage.repository .Values.sidecars.nodeDriverRegistrarImage.tag }}
           args:
             - --csi-address=$(ADDRESS)

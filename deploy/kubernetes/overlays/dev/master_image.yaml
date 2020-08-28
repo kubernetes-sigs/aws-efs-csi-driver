@@ -3,6 +3,23 @@ apiVersion: apps/v1
 metadata:
   name: efs-csi-node
   namespace: kube-system
+  labels:
+    app.kubernetes.io/name: aws-efs-csi-driver
+spec:
+  template:
+    spec:
+      containers:
+        - name: efs-plugin
+          image: amazon/aws-efs-csi-driver:master
+          imagePullPolicy: Always
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: efs-csi-controller
+  namespace: kube-system
+  labels:
+    app.kubernetes.io/name: aws-efs-csi-driver
 spec:
   template:
     spec:
