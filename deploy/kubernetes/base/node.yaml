@@ -101,6 +101,6 @@ spec:
             type: DirectoryOrCreate
         - name: efs-utils-config
           hostPath:
-            path: /etc/amazon/efs
+            path: /var/amazon/efs
             type: DirectoryOrCreate
 
