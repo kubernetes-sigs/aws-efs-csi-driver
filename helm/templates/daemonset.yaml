@@ -3,7 +3,7 @@ kind: DaemonSet
 apiVersion: apps/v1
 metadata:
   name: efs-csi-node
-  namespace: kube-system
+  namespace: {{ .Values.namespace }}
 spec:
   selector:
     matchLabels:
@@ -26,7 +26,7 @@ spec:
         {{- . | toYaml | nindent 8 }}
         {{- end }}
       hostNetwork: true
-      priorityClassName: system-node-critical
+      priorityClassName: {{ .Values.priorityClassName }}
       tolerations:
         - operator: Exists
         {{- with .Values.node.tolerations }}

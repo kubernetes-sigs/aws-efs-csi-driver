@@ -21,6 +21,10 @@ imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
 
+priorityClassName: system-node-critical
+
+namespace: kube-system
+
 podAnnotations: {}
 
 resources: {}
