@@ -1,6 +1,5 @@
 *.swp
 bin/
-vendor/
 *.DS_Store
 *.idea
 test/e2e/results/
