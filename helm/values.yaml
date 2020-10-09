@@ -44,3 +44,4 @@ affinity: {}
 node:
   podAnnotations: {}
   tolerations: []
+logLevel: 5
