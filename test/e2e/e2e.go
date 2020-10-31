@@ -25,9 +25,11 @@ var (
 	// Parameters that are expected to be set by consumers of this package.
 	// If FileSystemId is not set, ClusterName and Region must be set so that a
 	// file system can be created
-	ClusterName  string
-	Region       string
-	FileSystemId string
+	ClusterName             string
+	Region                  string
+	FileSystemId            string
+	EfsDriverNamespace      string
+	EfsDriverLabelSelectors map[string]string
 
 	deleteFileSystem = false
 
@@ -229,9 +231,9 @@ var _ = ginkgo.Describe("[efs-csi] EFS CSI", func() {
 			framework.ExpectNoError(e2epod.WaitForPodNameRunningInNamespace(f.ClientSet, pod.Name, f.Namespace.Name), "waiting for pod running")
 
 			ginkgo.By(fmt.Sprintf("Getting driver pod on node %q", node.Name))
-			labelSelector := labels.SelectorFromSet(labels.Set{"app": "efs-csi-node"}).String()
+			labelSelector := labels.SelectorFromSet(EfsDriverLabelSelectors).String()
 			fieldSelector := fields.SelectorFromSet(fields.Set{"spec.nodeName": node.Name}).String()
-			podList, err := f.ClientSet.CoreV1().Pods("kube-system").List(
+			podList, err := f.ClientSet.CoreV1().Pods(EfsDriverNamespace).List(
 				metav1.ListOptions{
 					LabelSelector: labelSelector,
 					FieldSelector: fieldSelector,
@@ -241,7 +243,7 @@ var _ = ginkgo.Describe("[efs-csi] EFS CSI", func() {
 			driverPod := podList.Items[0]
 
 			ginkgo.By(fmt.Sprintf("Deleting driver pod %q on node %q", driverPod.Name, node.Name))
-			err = e2epod.DeletePodWithWaitByName(f.ClientSet, driverPod.Name, "kube-system")
+			err = e2epod.DeletePodWithWaitByName(f.ClientSet, driverPod.Name, EfsDriverNamespace)
 			framework.ExpectNoError(err, "deleting driver pod")
 
 			ginkgo.By(fmt.Sprintf("Execing a write via the pod on node %q", node.Name))
