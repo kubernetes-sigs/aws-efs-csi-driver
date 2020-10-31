@@ -204,7 +204,7 @@ var _ = ginkgo.Describe("[efs-csi] EFS CSI", func() {
 			}()
 
 			ginkgo.By(fmt.Sprintf("Creating pod to make subpaths /a and /b"))
-			pod := e2epod.MakePod(f.Namespace.Name, nil, []*v1.PersistentVolumeClaim{pvcRoot}, false, "mkdir /mnt/volume1/a && mkdir /mnt/volume1/b")
+			pod := e2epod.MakePod(f.Namespace.Name, nil, []*v1.PersistentVolumeClaim{pvcRoot}, false, "mkdir -p /mnt/volume1/a && mkdir -p /mnt/volume1/b")
 			pod, err = f.ClientSet.CoreV1().Pods(f.Namespace.Name).Create(context.TODO(), pod, metav1.CreateOptions{})
 			framework.ExpectNoError(err, "creating pod")
 			framework.ExpectNoError(e2epod.WaitForPodSuccessInNamespace(f.ClientSet, pod.Name, f.Namespace.Name), "waiting for pod success")
