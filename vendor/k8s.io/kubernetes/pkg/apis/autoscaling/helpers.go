@@ -33,11 +33,13 @@ package autoscaling
 //     }
 func DropRoundTripHorizontalPodAutoscalerAnnotations(in map[string]string) (out map[string]string, copied bool) {
 	_, hasMetricsSpecs := in[MetricSpecsAnnotation]
+	_, hasBehaviorSpecs := in[BehaviorSpecsAnnotation]
 	_, hasMetricsStatuses := in[MetricStatusesAnnotation]
 	_, hasConditions := in[HorizontalPodAutoscalerConditionsAnnotation]
-	if hasMetricsSpecs || hasMetricsStatuses || hasConditions {
+	if hasMetricsSpecs || hasBehaviorSpecs || hasMetricsStatuses || hasConditions {
 		out = DeepCopyStringMap(in)
 		delete(out, MetricSpecsAnnotation)
+		delete(out, BehaviorSpecsAnnotation)
 		delete(out, MetricStatusesAnnotation)
 		delete(out, HorizontalPodAutoscalerConditionsAnnotation)
 		return out, true

@@ -17,6 +17,7 @@ limitations under the License.
 package util
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -38,12 +39,10 @@ import (
 	apiruntime "k8s.io/apimachinery/pkg/runtime"
 	utypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/sets"
-	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	podutil "k8s.io/kubernetes/pkg/api/v1/pod"
 	v1helper "k8s.io/kubernetes/pkg/apis/core/v1/helper"
-	"k8s.io/kubernetes/pkg/features"
 	"k8s.io/kubernetes/pkg/volume"
 	"k8s.io/kubernetes/pkg/volume/util/types"
 	"k8s.io/kubernetes/pkg/volume/util/volumepathhandler"
@@ -116,7 +115,7 @@ func GetSecretForPod(pod *v1.Pod, secretName string, kubeClient clientset.Interf
 	if kubeClient == nil {
 		return secret, fmt.Errorf("Cannot get kube client")
 	}
-	secrets, err := kubeClient.CoreV1().Secrets(pod.Namespace).Get(secretName, metav1.GetOptions{})
+	secrets, err := kubeClient.CoreV1().Secrets(pod.Namespace).Get(context.TODO(), secretName, metav1.GetOptions{})
 	if err != nil {
 		return secret, err
 	}
@@ -132,7 +131,7 @@ func GetSecretForPV(secretNamespace, secretName, volumePluginName string, kubeCl
 	if kubeClient == nil {
 		return secret, fmt.Errorf("Cannot get kube client")
 	}
-	secrets, err := kubeClient.CoreV1().Secrets(secretNamespace).Get(secretName, metav1.GetOptions{})
+	secrets, err := kubeClient.CoreV1().Secrets(secretNamespace).Get(context.TODO(), secretName, metav1.GetOptions{})
 	if err != nil {
 		return secret, err
 	}
@@ -155,7 +154,7 @@ func GetClassForVolume(kubeClient clientset.Interface, pv *v1.PersistentVolume) 
 		return nil, fmt.Errorf("Volume has no storage class")
 	}
 
-	class, err := kubeClient.StorageV1().StorageClasses().Get(className, metav1.GetOptions{})
+	class, err := kubeClient.StorageV1().StorageClasses().Get(context.TODO(), className, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -435,14 +434,12 @@ func GetPersistentVolumeClaimQualifiedName(claim *v1.PersistentVolumeClaim) stri
 // CheckVolumeModeFilesystem checks VolumeMode.
 // If the mode is Filesystem, return true otherwise return false.
 func CheckVolumeModeFilesystem(volumeSpec *volume.Spec) (bool, error) {
-	if utilfeature.DefaultFeatureGate.Enabled(features.BlockVolume) {
-		volumeMode, err := GetVolumeMode(volumeSpec)
-		if err != nil {
-			return true, err
-		}
-		if volumeMode == v1.PersistentVolumeBlock {
-			return false, nil
-		}
+	volumeMode, err := GetVolumeMode(volumeSpec)
+	if err != nil {
+		return true, err
+	}
+	if volumeMode == v1.PersistentVolumeBlock {
+		return false, nil
 	}
 	return true, nil
 }
@@ -450,7 +447,7 @@ func CheckVolumeModeFilesystem(volumeSpec *volume.Spec) (bool, error) {
 // CheckPersistentVolumeClaimModeBlock checks VolumeMode.
 // If the mode is Block, return true otherwise return false.
 func CheckPersistentVolumeClaimModeBlock(pvc *v1.PersistentVolumeClaim) bool {
-	return utilfeature.DefaultFeatureGate.Enabled(features.BlockVolume) && pvc.Spec.VolumeMode != nil && *pvc.Spec.VolumeMode == v1.PersistentVolumeBlock
+	return pvc.Spec.VolumeMode != nil && *pvc.Spec.VolumeMode == v1.PersistentVolumeBlock
 }
 
 // IsWindowsUNCPath checks if path is prefixed with \\
@@ -601,9 +598,7 @@ func GetPodVolumeNames(pod *v1.Pod) (mounts sets.String, devices sets.String) {
 				mounts.Insert(mount.Name)
 			}
 		}
-		// TODO: remove feature gate check after no longer needed
-		if utilfeature.DefaultFeatureGate.Enabled(features.BlockVolume) &&
-			container.VolumeDevices != nil {
+		if container.VolumeDevices != nil {
 			for _, device := range container.VolumeDevices {
 				devices.Insert(device.Name)
 			}

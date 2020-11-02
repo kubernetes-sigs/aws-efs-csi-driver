@@ -122,6 +122,20 @@ func (mr *MockMounterMockRecorder) Mount(arg0, arg1, arg2, arg3 interface{}) *go
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Mount", reflect.TypeOf((*MockMounter)(nil).Mount), arg0, arg1, arg2, arg3)
 }
 
+// MountSensitive mocks base method
+func (m *MockMounter) MountSensitive(arg0, arg1, arg2 string, arg3, arg4 []string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "MountSensitive", arg0, arg1, arg2, arg3, arg4)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// MountSensitive indicates an expected call of MountSensitive
+func (mr *MockMounterMockRecorder) MountSensitive(arg0, arg1, arg2, arg3, arg4 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MountSensitive", reflect.TypeOf((*MockMounter)(nil).MountSensitive), arg0, arg1, arg2, arg3, arg4)
+}
+
 // Unmount mocks base method
 func (m *MockMounter) Unmount(arg0 string) error {
 	m.ctrl.T.Helper()
