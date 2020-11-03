@@ -1,6 +1,7 @@
 package e2e
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -134,7 +135,7 @@ var _ = ginkgo.SynchronizedBeforeSuite(func() []byte {
 		cs, err := framework.LoadClientset()
 		framework.ExpectNoError(err, "loading kubernetes clientset")
 
-		_, err = cs.StorageV1beta1().CSIDrivers().Get("efs.csi.aws.com", metav1.GetOptions{})
+		_, err = cs.StorageV1beta1().CSIDrivers().Get(context.TODO(), "efs.csi.aws.com", metav1.GetOptions{})
 		if err == nil {
 			// CSIDriver exists, assume driver has already been deployed
 			ginkgo.By("Using already-deployed EFS CSI driver")
@@ -188,27 +189,33 @@ var _ = ginkgo.Describe("[efs-csi] EFS CSI", func() {
 			ginkgo.By(fmt.Sprintf("Creating efs pvc & pv with no subpath"))
 			pvcRoot, pvRoot, err := createEFSPVCPV(f.ClientSet, f.Namespace.Name, f.Namespace.Name+"-root", "/", map[string]string{})
 			framework.ExpectNoError(err, "creating efs pvc & pv with no subpath")
-			defer func() { _ = f.ClientSet.CoreV1().PersistentVolumes().Delete(pvRoot.Name, &metav1.DeleteOptions{}) }()
+			defer func() {
+				_ = f.ClientSet.CoreV1().PersistentVolumes().Delete(context.TODO(), pvRoot.Name, metav1.DeleteOptions{})
+			}()
 
 			ginkgo.By(fmt.Sprintf("Creating pod to make subpaths /a and /b"))
 			pod := e2epod.MakePod(f.Namespace.Name, nil, []*v1.PersistentVolumeClaim{pvcRoot}, false, "mkdir /mnt/volume1/a && mkdir /mnt/volume1/b")
-			pod, err = f.ClientSet.CoreV1().Pods(f.Namespace.Name).Create(pod)
+			pod, err = f.ClientSet.CoreV1().Pods(f.Namespace.Name).Create(context.TODO(), pod, metav1.CreateOptions{})
 			framework.ExpectNoError(err, "creating pod")
 			framework.ExpectNoError(e2epod.WaitForPodSuccessInNamespace(f.ClientSet, pod.Name, f.Namespace.Name), "waiting for pod success")
 
 			ginkgo.By(fmt.Sprintf("Creating efs pvc & pv with subpath /a"))
 			pvcA, pvA, err := createEFSPVCPV(f.ClientSet, f.Namespace.Name, f.Namespace.Name+"-a", "/a", map[string]string{})
 			framework.ExpectNoError(err, "creating efs pvc & pv with subpath /a")
-			defer func() { _ = f.ClientSet.CoreV1().PersistentVolumes().Delete(pvA.Name, &metav1.DeleteOptions{}) }()
+			defer func() {
+				_ = f.ClientSet.CoreV1().PersistentVolumes().Delete(context.TODO(), pvA.Name, metav1.DeleteOptions{})
+			}()
 
 			ginkgo.By(fmt.Sprintf("Creating efs pvc & pv with subpath /b"))
 			pvcB, pvB, err := createEFSPVCPV(f.ClientSet, f.Namespace.Name, f.Namespace.Name+"-b", "/b", map[string]string{})
 			framework.ExpectNoError(err, "creating efs pvc & pv with subpath /b")
-			defer func() { _ = f.ClientSet.CoreV1().PersistentVolumes().Delete(pvB.Name, &metav1.DeleteOptions{}) }()
+			defer func() {
+				_ = f.ClientSet.CoreV1().PersistentVolumes().Delete(context.TODO(), pvB.Name, metav1.DeleteOptions{})
+			}()
 
 			ginkgo.By("Creating pod to mount subpaths /a and /b")
 			pod = e2epod.MakePod(f.Namespace.Name, nil, []*v1.PersistentVolumeClaim{pvcA, pvcB}, false, "")
-			pod, err = f.ClientSet.CoreV1().Pods(f.Namespace.Name).Create(pod)
+			pod, err = f.ClientSet.CoreV1().Pods(f.Namespace.Name).Create(context.TODO(), pod, metav1.CreateOptions{})
 			framework.ExpectNoError(err, "creating pod")
 			framework.ExpectNoError(e2epod.WaitForPodNameRunningInNamespace(f.ClientSet, pod.Name, f.Namespace.Name), "waiting for pod running")
 		})
@@ -217,7 +224,9 @@ var _ = ginkgo.Describe("[efs-csi] EFS CSI", func() {
 			ginkgo.By(fmt.Sprintf("Creating efs pvc & pv"))
 			pvc, pv, err := createEFSPVCPV(f.ClientSet, f.Namespace.Name, f.Namespace.Name, "", map[string]string{})
 			framework.ExpectNoError(err, "creating efs pvc & pv")
-			defer func() { _ = f.ClientSet.CoreV1().PersistentVolumes().Delete(pv.Name, &metav1.DeleteOptions{}) }()
+			defer func() {
+				_ = f.ClientSet.CoreV1().PersistentVolumes().Delete(context.TODO(), pv.Name, metav1.DeleteOptions{})
+			}()
 
 			node, err := e2enode.GetRandomReadySchedulableNode(f.ClientSet)
 			framework.ExpectNoError(err, "getting random ready schedulable node")
@@ -226,7 +235,7 @@ var _ = ginkgo.Describe("[efs-csi] EFS CSI", func() {
 			ginkgo.By(fmt.Sprintf("Creating pod on node %q to mount pvc %q and run %q", node.Name, pvc.Name, command))
 			pod := e2epod.MakePod(f.Namespace.Name, nil, []*v1.PersistentVolumeClaim{pvc}, false, command)
 			pod.Spec.NodeName = node.Name
-			pod, err = f.ClientSet.CoreV1().Pods(f.Namespace.Name).Create(pod)
+			pod, err = f.ClientSet.CoreV1().Pods(f.Namespace.Name).Create(context.TODO(), pod, metav1.CreateOptions{})
 			framework.ExpectNoError(err, "creating pod")
 			framework.ExpectNoError(e2epod.WaitForPodNameRunningInNamespace(f.ClientSet, pod.Name, f.Namespace.Name), "waiting for pod running")
 
@@ -234,6 +243,7 @@ var _ = ginkgo.Describe("[efs-csi] EFS CSI", func() {
 			labelSelector := labels.SelectorFromSet(EfsDriverLabelSelectors).String()
 			fieldSelector := fields.SelectorFromSet(fields.Set{"spec.nodeName": node.Name}).String()
 			podList, err := f.ClientSet.CoreV1().Pods(EfsDriverNamespace).List(
+				context.TODO(),
 				metav1.ListOptions{
 					LabelSelector: labelSelector,
 					FieldSelector: fieldSelector,
@@ -274,7 +284,9 @@ var _ = ginkgo.Describe("[efs-csi] EFS CSI", func() {
 			}
 			pvc, pv, err := createEFSPVCPV(f.ClientSet, f.Namespace.Name, f.Namespace.Name, "/", volumeAttributes)
 			framework.ExpectNoError(err, "creating efs pvc & pv with no subpath")
-			defer func() { _ = f.ClientSet.CoreV1().PersistentVolumes().Delete(pv.Name, &metav1.DeleteOptions{}) }()
+			defer func() {
+				_ = f.ClientSet.CoreV1().PersistentVolumes().Delete(context.TODO(), pv.Name, metav1.DeleteOptions{})
+			}()
 
 			// If mount.efs is passed option tls, the mount table entry should be...
 			// 127.0.0.1:/ on /mnt/volume1 type nfs4 (rw,relatime,vers=4.1,rsize=1048576,wsize=1048576,namlen=255,hard,noresvport,proto=tcp,port=20052,timeo=600,retrans=2,sec=sys,clientaddr=127.0.0.1,local_lock=none,addr=127.0.0.1)
@@ -293,7 +305,7 @@ var _ = ginkgo.Describe("[efs-csi] EFS CSI", func() {
 			ginkgo.By(fmt.Sprintf("Creating pod to mount pvc %q and run %q", pvc.Name, command))
 			pod := e2epod.MakePod(f.Namespace.Name, nil, []*v1.PersistentVolumeClaim{pvc}, false, command)
 			pod.Spec.RestartPolicy = v1.RestartPolicyNever
-			pod, err = f.ClientSet.CoreV1().Pods(f.Namespace.Name).Create(pod)
+			pod, err = f.ClientSet.CoreV1().Pods(f.Namespace.Name).Create(context.TODO(), pod, metav1.CreateOptions{})
 			framework.ExpectNoError(err, "creating pod")
 
 			err = e2epod.WaitForPodSuccessInNamespace(f.ClientSet, pod.Name, f.Namespace.Name)
@@ -320,11 +332,11 @@ var _ = ginkgo.Describe("[efs-csi] EFS CSI", func() {
 
 func createEFSPVCPV(c clientset.Interface, namespace, name, path string, volumeAttributes map[string]string) (*v1.PersistentVolumeClaim, *v1.PersistentVolume, error) {
 	pvc, pv := makeEFSPVCPV(namespace, name, path, volumeAttributes)
-	pvc, err := c.CoreV1().PersistentVolumeClaims(namespace).Create(pvc)
+	pvc, err := c.CoreV1().PersistentVolumeClaims(namespace).Create(context.TODO(), pvc, metav1.CreateOptions{})
 	if err != nil {
 		return nil, nil, err
 	}
-	_, err = c.CoreV1().PersistentVolumes().Create(pv)
+	_, err = c.CoreV1().PersistentVolumes().Create(context.TODO(), pv, metav1.CreateOptions{})
 	if err != nil {
 		return nil, nil, err
 	}
