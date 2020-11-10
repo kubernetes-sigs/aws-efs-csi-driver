@@ -119,7 +119,11 @@ var _ = ginkgo.SynchronizedBeforeSuite(func() []byte {
 		ginkgo.By(fmt.Sprintf("Creating EFS filesystem in region %q for cluster %q", Region, ClusterName))
 
 		c := NewCloud(Region)
-		id, err := c.CreateFileSystem(ClusterName)
+
+		opts := CreateOptions{
+			ClusterName: ClusterName,
+		}
+		id, err := c.CreateFileSystem(opts)
 		if err != nil {
 			framework.ExpectNoError(err, "creating file system")
 		}

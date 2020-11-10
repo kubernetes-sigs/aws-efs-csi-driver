@@ -45,17 +45,21 @@ func NewCloud(region string) *cloud {
 	}
 }
 
-func (c *cloud) CreateFileSystem(clusterName string) (string, error) {
+type CreateOptions struct {
+	ClusterName string
+}
+
+func (c *cloud) CreateFileSystem(opts CreateOptions) (string, error) {
 	tags := []*efs.Tag{
 		{
 			Key:   aws.String("KubernetesCluster"),
-			Value: aws.String(clusterName),
+			Value: aws.String(opts.ClusterName),
 		},
 	}
 
 	// Use cluster name as the token
 	request := &efs.CreateFileSystemInput{
-		CreationToken: aws.String(clusterName),
+		CreationToken: aws.String(opts.ClusterName),
 		Tags:          tags,
 	}
 
@@ -77,12 +81,12 @@ func (c *cloud) CreateFileSystem(clusterName string) (string, error) {
 		return "", err
 	}
 
-	securityGroupId, err := c.getSecurityGroup(clusterName)
+	securityGroupId, err := c.getSecurityGroup(opts.ClusterName)
 	if err != nil {
 		return "", err
 	}
 
-	subnetIds, err := c.getSubnetIds(clusterName)
+	subnetIds, err := c.getSubnetIds(opts.ClusterName)
 	if err != nil {
 		return "", err
 	}
