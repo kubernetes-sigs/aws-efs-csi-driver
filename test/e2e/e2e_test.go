@@ -17,14 +17,12 @@ limitations under the License.
 package e2e
 
 import (
-	"errors"
 	"flag"
 	"fmt"
 	"log"
 	"os"
 	"path"
 	"path/filepath"
-	"strings"
 	"testing"
 
 	"github.com/onsi/ginkgo"
@@ -36,13 +34,7 @@ import (
 	"k8s.io/kubernetes/test/e2e/framework/testfiles"
 )
 
-const (
-	kubeconfigEnvVar = "KUBECONFIG"
-
-	commaDelim             = ","
-	equalDelim             = "="
-	expectedSelectorTokens = 2
-)
+const kubeconfigEnvVar = "KUBECONFIG"
 
 // Combined label selectors in the form of key1=value1,key2=value2.
 // Supplied by users.
@@ -74,22 +66,10 @@ func init() {
 	flag.Parse()
 
 	var err error
-	EfsDriverLabelSelectors, err = parseCombinedEfsDriverLabelSelectors()
+	EfsDriverLabelSelectors, err = parseCommaSeparatedKVPairs(combinedEfsDriverLabelSelectors)
 	if err != nil {
 		log.Fatalln(err)
 	}
-}
-
-func parseCombinedEfsDriverLabelSelectors() (map[string]string, error) {
-	selectors := map[string]string{}
-	for _, combinedTokens := range strings.Split(combinedEfsDriverLabelSelectors, commaDelim) {
-		selectorTokens := strings.Split(combinedTokens, equalDelim)
-		if len(selectorTokens) != expectedSelectorTokens {
-			return nil, errors.New("failed to parse combined EFS driver label selectors")
-		}
-		selectors[selectorTokens[0]] = selectorTokens[1]
-	}
-	return selectors, nil
 }
 
 func TestEFSCSI(t *testing.T) {
