@@ -29,6 +29,7 @@ var (
 	ClusterName                 string
 	Region                      string
 	FileSystemId                string
+	FileSystemName              string
 	MountTargetSecurityGroupIds []string
 	MountTargetSubnetIds        []string
 	EfsDriverNamespace          string
@@ -123,6 +124,7 @@ var _ = ginkgo.SynchronizedBeforeSuite(func() []byte {
 		c := NewCloud(Region)
 
 		opts := CreateOptions{
+			Name:             FileSystemName,
 			ClusterName:      ClusterName,
 			SecurityGroupIds: MountTargetSecurityGroupIds,
 			SubnetIds:        MountTargetSubnetIds,

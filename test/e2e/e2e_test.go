@@ -66,6 +66,7 @@ func init() {
 	flag.StringVar(&ClusterName, "cluster-name", "", "the cluster name")
 	flag.StringVar(&Region, "region", "us-west-2", "the region")
 	flag.StringVar(&FileSystemId, "file-system-id", "", "the ID of an existing file system")
+	flag.StringVar(&FileSystemName, "file-system-name", "", "name to use for provisioned EFS file system, only used if -file-system-id is not set")
 	flag.StringVar(&combinedMountTargetSecurityGroupIds, "mount-target-security-group-ids", "", "comma-separated list of security group IDs to use for mount targets of provisioned EFS file system, only used if -file-system-id is not set")
 	flag.StringVar(&combinedMountTargetSubnetIds, "mount-target-subnet-ids", "", "comma-separated list of subnet IDs to use for mount targets of provisioned EFS file system, only used if -file-system-id is not set")
 	flag.StringVar(&EfsDriverNamespace, "efs-driver-namespace", "kube-system", "namespace of EFS driver pods")

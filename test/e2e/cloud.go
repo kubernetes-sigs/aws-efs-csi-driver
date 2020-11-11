@@ -46,6 +46,7 @@ func NewCloud(region string) *cloud {
 }
 
 type CreateOptions struct {
+	Name             string
 	ClusterName      string
 	SecurityGroupIds []string
 	SubnetIds        []string
@@ -53,6 +54,10 @@ type CreateOptions struct {
 
 func (c *cloud) CreateFileSystem(opts CreateOptions) (string, error) {
 	tags := []*efs.Tag{
+		{
+			Key:   aws.String("Name"),
+			Value: aws.String(opts.Name),
+		},
 		{
 			Key:   aws.String("KubernetesCluster"),
 			Value: aws.String(opts.ClusterName),
