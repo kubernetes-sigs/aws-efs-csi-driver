@@ -40,6 +40,8 @@ const kubeconfigEnvVar = "KUBECONFIG"
 var (
 	// Combined security group IDs in the form sg-0,sg-1,sg-2.
 	combinedMountTargetSecurityGroupIds string
+	// Combined subnet IDs in the form subnet-0,subnet-1,subnet-2.
+	combinedMountTargetSubnetIds string
 	// Combined label selectors in the form of key1=value1,key2=value2.
 	combinedEfsDriverLabelSelectors string
 )
@@ -65,6 +67,7 @@ func init() {
 	flag.StringVar(&Region, "region", "us-west-2", "the region")
 	flag.StringVar(&FileSystemId, "file-system-id", "", "the ID of an existing file system")
 	flag.StringVar(&combinedMountTargetSecurityGroupIds, "mount-target-security-group-ids", "", "comma-separated list of security group IDs to use for mount targets of provisioned EFS file system, only used if -file-system-id is not set")
+	flag.StringVar(&combinedMountTargetSubnetIds, "mount-target-subnet-ids", "", "comma-separated list of subnet IDs to use for mount targets of provisioned EFS file system, only used if -file-system-id is not set")
 	flag.StringVar(&EfsDriverNamespace, "efs-driver-namespace", "kube-system", "namespace of EFS driver pods")
 	flag.StringVar(&combinedEfsDriverLabelSelectors, "efs-driver-label-selectors", "app=efs-csi-node", "comma-separated label selectors for EFS driver pods, follows the form key1=value1,key2=value2")
 
@@ -76,6 +79,7 @@ func init() {
 		log.Fatalln(err)
 	}
 	MountTargetSecurityGroupIds = parseCommaSeparatedStrings(combinedMountTargetSecurityGroupIds)
+	MountTargetSubnetIds = parseCommaSeparatedStrings(combinedMountTargetSubnetIds)
 }
 
 func TestEFSCSI(t *testing.T) {

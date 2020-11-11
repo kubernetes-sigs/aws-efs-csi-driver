@@ -48,6 +48,7 @@ func NewCloud(region string) *cloud {
 type CreateOptions struct {
 	ClusterName      string
 	SecurityGroupIds []string
+	SubnetIds        []string
 }
 
 func (c *cloud) CreateFileSystem(opts CreateOptions) (string, error) {
@@ -93,15 +94,19 @@ func (c *cloud) CreateFileSystem(opts CreateOptions) (string, error) {
 		}
 	}
 
-	subnetIds, err := c.getSubnetIds(opts.ClusterName)
-	if err != nil {
-		return "", err
+	subnetIds := aws.StringSlice(opts.SubnetIds)
+	if len(subnetIds) == 0 {
+		matchingSubnetIds, err := c.getSubnetIds(opts.ClusterName)
+		if err != nil {
+			return "", err
+		}
+		subnetIds = aws.StringSlice(matchingSubnetIds)
 	}
 
 	for _, subnetId := range subnetIds {
 		request := &efs.CreateMountTargetInput{
 			FileSystemId:   fileSystemId,
-			SubnetId:       aws.String(subnetId),
+			SubnetId:       subnetId,
 			SecurityGroups: securityGroupIds,
 		}
 

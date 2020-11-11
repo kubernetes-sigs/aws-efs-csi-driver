@@ -30,6 +30,7 @@ var (
 	Region                      string
 	FileSystemId                string
 	MountTargetSecurityGroupIds []string
+	MountTargetSubnetIds        []string
 	EfsDriverNamespace          string
 	EfsDriverLabelSelectors     map[string]string
 
@@ -124,6 +125,7 @@ var _ = ginkgo.SynchronizedBeforeSuite(func() []byte {
 		opts := CreateOptions{
 			ClusterName:      ClusterName,
 			SecurityGroupIds: MountTargetSecurityGroupIds,
+			SubnetIds:        MountTargetSubnetIds,
 		}
 		id, err := c.CreateFileSystem(opts)
 		if err != nil {
