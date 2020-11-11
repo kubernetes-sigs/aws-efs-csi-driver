@@ -20,6 +20,14 @@ spec:
       annotations: {{ toYaml .Values.node.podAnnotations | nindent 8 }}
       {{- end }}
     spec:
+    {{- if .Values.hostAliases }}
+      hostAliases:
+      {{- range $k, $v := .Values.hostAliases }}
+        - ip: {{ $v.ip }}
+          hostnames:
+            - {{ $k }}.efs.{{ $v.region }}.amazonaws.com
+      {{- end }}
+    {{- end }}
     {{- if .Values.imagePullSecrets }}
       imagePullSecrets:
       {{- range .Values.imagePullSecrets }}
