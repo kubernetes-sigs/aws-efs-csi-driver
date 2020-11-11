@@ -38,3 +38,10 @@ func parseCommaSeparatedKVPairs(combined string) (map[string]string, error) {
 	}
 	return pairs, nil
 }
+
+func parseCommaSeparatedStrings(combined string) []string {
+	if combined == "" {
+		return []string{}
+	}
+	return strings.Split(combined, commaDelim)
+}

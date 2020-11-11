@@ -26,11 +26,12 @@ var (
 	// Parameters that are expected to be set by consumers of this package.
 	// If FileSystemId is not set, ClusterName and Region must be set so that a
 	// file system can be created
-	ClusterName             string
-	Region                  string
-	FileSystemId            string
-	EfsDriverNamespace      string
-	EfsDriverLabelSelectors map[string]string
+	ClusterName                 string
+	Region                      string
+	FileSystemId                string
+	MountTargetSecurityGroupIds []string
+	EfsDriverNamespace          string
+	EfsDriverLabelSelectors     map[string]string
 
 	deleteFileSystem = false
 
@@ -121,7 +122,8 @@ var _ = ginkgo.SynchronizedBeforeSuite(func() []byte {
 		c := NewCloud(Region)
 
 		opts := CreateOptions{
-			ClusterName: ClusterName,
+			ClusterName:      ClusterName,
+			SecurityGroupIds: MountTargetSecurityGroupIds,
 		}
 		id, err := c.CreateFileSystem(opts)
 		if err != nil {
