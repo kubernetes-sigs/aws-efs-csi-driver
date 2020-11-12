@@ -2,8 +2,6 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
-replicaCount: 2
-
 image:
   repository: amazon/aws-efs-csi-driver
   tag: "v1.0.0"
@@ -13,15 +11,88 @@ sidecars:
   livenessProbeImage:
     repository: quay.io/k8scsi/livenessprobe
     tag: "v2.0.0"
+    pullPolicy: IfNotPresent
   nodeDriverRegistrarImage:
     repository: quay.io/k8scsi/csi-node-driver-registrar
     tag: "v1.3.0"
+    pullPolicy: IfNotPresent
 
 imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
 
-podAnnotations: {}
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: false
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+rbac:
+  create: false
+
+## Provide Daemonset PodSecurityPolicy configuration
+podSecurity:
+  podSecurityPolicy:
+    # podSecurity.podSecurityPolicy.create -- If true, create a PodSecurityPolicy resource
+    create: false
+
+  readOnlyRootFilesystem: false
+
+  hostIPC: false
+  hostNetwork: true
+  hostPorts:
+    - min: 9809
+      max: 9809
+  hostPID: false
+
+  # podSecurity.privileged -- If true, allow to run privileged containers
+  privileged: true
+
+  # podSecurity.allowedCapabilities -- Allowed capabilites
+  allowedCapabilities: []
+
+  # podSecurity.requiredDropCapabilities -- Required drop capabilites
+  requiredDropCapabilities:
+    - ALL
+
+  # podSecurity.volumes -- Allowed volumes types
+  volumes:
+    - hostPath
+    - secret
+
+  fsGroup:
+    rule: RunAsAny
+  runAsGroup:
+    rule: RunAsAny
+  runAsUser:
+    rule: RunAsAny
+  seLinux:
+    rule: RunAsAny
+  supplementalGroups:
+    rule: RunAsAny
+
+  allowedHostPaths: []
+
+  # podSecurity.seccompProfiles -- Allowed seccomp profiles
+  seccompProfiles:
+    - "runtime/default"
+
+  # podSecurity.apparmorProfiles -- Allowed apparmor profiles
+  apparmorProfiles:
+    - "runtime/default"
+
+  apparmor:
+    # podSecurity.apparmor.enabled -- If true, enable apparmor enforcement
+    ## see: https://kubernetes.io/docs/tutorials/clusters/apparmor/
+    enabled: false
+
+
+podSecurityContext: {}
+  # fsGroup: 2000
+
+securityContext:
+  privileged: true
 
 resources: {}
   # We usually recommend not to specify default resources and to leave this as a conscious
@@ -35,15 +106,13 @@ resources: {}
   #   cpu: 100m
   #   memory: 128Mi
 
+podAnnotations: {}
+
 nodeSelector: {}
 
 tolerations: []
 
 affinity: {}
-
-node:
-  podAnnotations: {}
-  tolerations: []
 
 hostAliases: {}
   # for cross VPC EFS, you need to poison or overwrite the DNS for the efs volume as per

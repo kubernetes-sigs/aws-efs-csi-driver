@@ -1,0 +1,20 @@
+{{- if .Values.rbac.create -}}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ include "aws-efs-csi-driver.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "aws-efs-csi-driver.labels" . | nindent 4 }}
+rules:
+{{- if .Values.podSecurity.podSecurityPolicy.create }}
+  - apiGroups:
+     - policy
+    resources:
+     - podsecuritypolicies
+    verbs:
+     - use
+    resourceNames:
+     - {{ include "aws-efs-csi-driver.fullname" . }}
+{{- end }}
+{{- end -}}

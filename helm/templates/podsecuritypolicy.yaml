@@ -1,0 +1,43 @@
+{{- if and .Values.podSecurity.podSecurityPolicy.create .Values.rbac.create .Values.serviceAccount.create -}}
+apiVersion: policy/v1beta1
+kind: PodSecurityPolicy
+metadata:
+  name: {{ template "aws-efs-csi-driver.fullname" . }}
+  labels:
+    {{- include "aws-efs-csi-driver.labels" . | nindent 4 }}
+  annotations:
+    {{- if .Values.podSecurity.apparmor.enabled }}
+    apparmor.security.beta.kubernetes.io/allowedProfileNames: {{ join "," .Values.podSecurity.apparmorProfiles | quote }}
+    apparmor.security.beta.kubernetes.io/defaultProfileName: "runtime/default"
+    {{- end }}
+    seccomp.security.alpha.kubernetes.io/allowedProfileNames: {{ join "," .Values.podSecurity.seccompProfiles | quote }}
+    seccomp.security.alpha.kubernetes.io/defaultProfileName: "runtime/default"
+spec:
+  privileged: {{ .Values.podSecurity.privileged }}
+  readOnlyRootFilesystem: {{ .Values.podSecurity.readOnlyRootFilesystem }}
+  hostIPC: {{ .Values.podSecurity.hostIPC }}
+  hostNetwork: {{ .Values.podSecurity.hostNetwork }}
+  {{- if .Values.podSecurity.hostNetwork }}
+  hostPorts:
+{{ toYaml .Values.podSecurity.hostPorts | indent 4 }}
+  {{- end }}
+  hostPID: {{ .Values.podSecurity.hostPID }}
+  requiredDropCapabilities:
+{{ toYaml .Values.podSecurity.requiredDropCapabilities | indent 4 }}
+  allowedCapabilities:
+{{ toYaml .Values.podSecurity.allowedCapabilities | indent 4 }}
+  volumes:
+{{ toYaml .Values.podSecurity.volumes | indent 4 }}
+  fsGroup:
+{{ toYaml .Values.podSecurity.fsGroup | indent 4 }}
+  runAsGroup:
+{{ toYaml .Values.podSecurity.runAsGroup | indent 4 }}
+  runAsUser:
+{{ toYaml .Values.podSecurity.runAsUser | indent 4 }}
+  seLinux:
+{{ toYaml .Values.podSecurity.seLinux | indent 4 }}
+  supplementalGroups:
+{{ toYaml .Values.podSecurity.supplementalGroups | indent 4 }}
+  allowedHostPaths:
+{{ toYaml .Values.podSecurity.allowedHostPaths | indent 4 }}
+{{- end }}
