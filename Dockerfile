@@ -39,7 +39,7 @@ RUN yum install amazon-efs-utils-1.26-3.amzn2.noarch -y
 # client certificate, in the same config directory can be persisted to host with a host path volume.
 # Otherwise creating a host path volume for that directory will clean up everything inside at the first time.
 # Those static files need to be copied back to the config directory when the driver starts up.
-RUN cp -r /etc/amazon/efs /etc/amazon/efs-static-files
+RUN mv /etc/amazon/efs /etc/amazon/efs-static-files
 
 COPY --from=builder /go/src/github.com/kubernetes-sigs/aws-efs-csi-driver/bin/aws-efs-csi-driver /bin/aws-efs-csi-driver
 COPY THIRD-PARTY /
