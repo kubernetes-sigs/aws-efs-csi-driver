@@ -20,6 +20,8 @@ sidecars:
 imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
+priorityClassName: system-node-critical
+namespace: kube-system
 
 serviceAccount:
   # Specifies whether a service account should be created

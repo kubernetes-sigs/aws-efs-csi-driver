@@ -11,7 +11,7 @@ spec:
     matchLabels:
       app: efs-csi-node
       app.kubernetes.io/name: {{ include "aws-efs-csi-driver.name" . }}
-      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/instance: {{ .Values.namespace }}
   template:
     metadata:
       labels:
@@ -42,7 +42,7 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       hostNetwork: true
-      priorityClassName: system-node-critical
+      priorityClassName: {{ .Values.priorityClassName }}
     {{- with .Values.affinity }}
       affinity:
         {{- toYaml . | nindent 8 }}
