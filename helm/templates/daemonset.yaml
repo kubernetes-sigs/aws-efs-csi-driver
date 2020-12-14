@@ -3,7 +3,7 @@ kind: DaemonSet
 apiVersion: apps/v1
 metadata:
   name: efs-csi-node
-  namespace: {{ .Release.Namespace }}
+  namespace: {{ .Values.namespace }}
   labels:
 {{ include "aws-efs-csi-driver.labels" . | indent 4 }}
 spec:
@@ -11,7 +11,7 @@ spec:
     matchLabels:
       app: efs-csi-node
       app.kubernetes.io/name: {{ include "aws-efs-csi-driver.name" . }}
-      app.kubernetes.io/instance: {{ .Values.namespace }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
   template:
     metadata:
       labels:
