@@ -58,6 +58,11 @@ test-e2e:
 	go get github.com/aws/aws-k8s-tester/e2e/tester/cmd/k8s-e2e-tester@master
 	TESTCONFIG=./tester/e2e-test-config.yaml ${GOPATH}/bin/k8s-e2e-tester
 
+.PHONY: test-e2e-bin
+test-e2e-bin:
+	mkdir -p bin
+	CGO_ENABLED=0 GOOS=linux go test -mod=vendor -ldflags ${LDFLAGS} -c -o bin/test-e2e ./test/e2e/
+
 .PHONY: image
 image:
 	docker build -t $(IMAGE):master .
