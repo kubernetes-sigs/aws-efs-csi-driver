@@ -42,12 +42,12 @@ install: |
   IMAGE_TAG={{TEST_ID}}
   IMAGE_NAME=$AWS_ACCOUNT_ID.dkr.ecr.us-west-2.amazonaws.com/aws-efs-csi-driver
 
-  helm install aws-efs-csi-driver \
+  helm upgrade --install aws-efs-csi-driver \
       --set image.repository=$IMAGE_NAME \
       --set image.tag=$IMAGE_TAG \
       --set controller.create=true \
       --set serviceAccount.controller.create=true \
-      ./helm
+      ./charts/aws-efs-csi-driver
 
 uninstall: |
   echo "Removing driver"

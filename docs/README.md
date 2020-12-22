@@ -74,7 +74,8 @@ kubectl apply -k "github.com/kubernetes-sigs/aws-efs-csi-driver/deploy/kubernete
 Alternatively, you could also install the driver using helm:
 ```sh
 helm repo add aws-efs-csi-driver https://kubernetes-sigs.github.io/aws-efs-csi-driver/
-helm install aws-efs-csi-driver aws-efs-csi-driver/aws-efs-csi-driver
+helm repo update
+helm upgrade --install aws-efs-csi-driver aws-efs-csi-driver/aws-efs-csi-driver
 ```
 
 ### Examples
