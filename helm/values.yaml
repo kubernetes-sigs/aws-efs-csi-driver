@@ -45,6 +45,8 @@ node:
   podAnnotations: {}
   tolerations: []
 
+logLevel: 5
+
 hostAliases: {}
   # for cross VPC EFS, you need to poison or overwrite the DNS for the efs volume as per
   # https://docs.aws.amazon.com/efs/latest/ug/efs-different-vpc.html#wt6-efs-utils-step3

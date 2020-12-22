@@ -61,7 +61,7 @@ spec:
           args:
             - --endpoint=$(CSI_ENDPOINT)
             - --logtostderr
-            - --v=5
+            - --v={{ .Values.logLevel }}
           env:
             - name: CSI_ENDPOINT
               value: unix:/csi/csi.sock
@@ -92,7 +92,7 @@ spec:
           args:
             - --csi-address=$(ADDRESS)
             - --kubelet-registration-path=$(DRIVER_REG_SOCK_PATH)
-            - --v=5
+            - --v={{ .Values.logLevel }}
           env:
             - name: ADDRESS
               value: /csi/csi.sock
@@ -112,6 +112,7 @@ spec:
           args:
             - --csi-address=/csi/csi.sock
             - --health-port=9809
+            - --v={{ .Values.logLevel }}
           volumeMounts:
             - name: plugin-dir
               mountPath: /csi
