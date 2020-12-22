@@ -8,6 +8,11 @@ go test -v -timeout 0 ./... -kubeconfig=$HOME/.kube/config -report-dir=$ARTIFACT
   -file-system-id=fs-c2a43e69
 ```
 
+# Make binary
+```sh
+make test-e2e-bin
+```
+
 # Update dependencies
 ```sh
 go mod edit -require=k8s.io/kubernetes@v1.15.3

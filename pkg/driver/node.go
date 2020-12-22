@@ -32,11 +32,11 @@ import (
 )
 
 var (
-	nodeCaps             = []csi.NodeServiceCapability_RPC_Type{}
 	volumeCapAccessModes = []csi.VolumeCapability_AccessMode_Mode{
 		csi.VolumeCapability_AccessMode_SINGLE_NODE_WRITER,
 		csi.VolumeCapability_AccessMode_MULTI_NODE_MULTI_WRITER,
 	}
+	volumeIdCounter = make(map[string]int)
 )
 
 func (d *Driver) NodeStageVolume(ctx context.Context, req *csi.NodeStageVolumeRequest) (*csi.NodeStageVolumeResponse, error) {
@@ -176,6 +176,15 @@ func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 	}
 	klog.V(5).Infof("NodePublishVolume: %s was mounted", target)
 
+	//Increment volume Id counter
+	if d.volMetricsOptIn {
+		if value, ok := volumeIdCounter[req.GetVolumeId()]; ok {
+			volumeIdCounter[req.GetVolumeId()] = value + 1
+		} else {
+			volumeIdCounter[req.GetVolumeId()] = 1
+		}
+	}
+
 	return &csi.NodePublishVolumeResponse{}, nil
 }
 
@@ -211,11 +220,55 @@ func (d *Driver) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpublish
 	}
 	klog.V(5).Infof("NodeUnpublishVolume: %s unmounted", target)
 
+	//TODO: If `du` is running on a volume, unmount waits for it to complete. We should stop `du` on unmount in the future for NodeUnpublish
+	//Decrement Volume ID counter and evict cache if counter is 0.
+	if d.volMetricsOptIn {
+		if value, ok := volumeIdCounter[req.GetVolumeId()]; ok {
+			value -= 1
+			if value < 1 {
+				klog.V(4).Infof("Evicting vol ID: %v, vol path : %v from cache", req.VolumeId, target)
+				d.volStatter.removeFromCache(req.VolumeId)
+				delete(volumeIdCounter, req.GetVolumeId())
+			} else {
+				volumeIdCounter[req.GetVolumeId()] = value
+			}
+		}
+	}
+
 	return &csi.NodeUnpublishVolumeResponse{}, nil
 }
 
 func (d *Driver) NodeGetVolumeStats(ctx context.Context, req *csi.NodeGetVolumeStatsRequest) (*csi.NodeGetVolumeStatsResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "")
+	klog.V(4).Infof("NodeGetVolumeStats: called with args %+v", req)
+
+	volId := req.GetVolumeId()
+	if volId == "" {
+		return nil, status.Error(codes.InvalidArgument, "Volume ID not provided")
+	}
+
+	target := req.GetVolumePath()
+	if target == "" {
+		return nil, status.Error(codes.InvalidArgument, "Volume Path not provided")
+	}
+
+	_, err := os.Stat(target)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, status.Errorf(codes.NotFound, "Volume Path %s does not exist", target)
+		}
+
+		return nil, status.Errorf(codes.Internal, "Failed to invoke stat on volume path %s: %v", target, err)
+	}
+
+	volMetrics, err := d.volStatter.computeVolumeMetrics(volId, target, d.volMetricsRefreshPeriod, d.volMetricsFsRateLimit)
+
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "Could not get metrics: %v ", err)
+	}
+
+	return &csi.NodeGetVolumeStatsResponse{
+		Usage: volMetrics.volUsage,
+	}, nil
 }
 
 func (d *Driver) NodeExpandVolume(ctx context.Context, req *csi.NodeExpandVolumeRequest) (*csi.NodeExpandVolumeResponse, error) {
@@ -225,7 +278,7 @@ func (d *Driver) NodeExpandVolume(ctx context.Context, req *csi.NodeExpandVolume
 func (d *Driver) NodeGetCapabilities(ctx context.Context, req *csi.NodeGetCapabilitiesRequest) (*csi.NodeGetCapabilitiesResponse, error) {
 	klog.V(4).Infof("NodeGetCapabilities: called with args %+v", req)
 	var caps []*csi.NodeServiceCapability
-	for _, cap := range nodeCaps {
+	for _, cap := range d.nodeCaps {
 		c := &csi.NodeServiceCapability{
 			Type: &csi.NodeServiceCapability_Rpc{
 				Rpc: &csi.NodeServiceCapability_RPC{

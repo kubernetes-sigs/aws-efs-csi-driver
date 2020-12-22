@@ -34,11 +34,11 @@ GOPATH=$(shell go env GOPATH)
 aws-efs-csi-driver:
 	mkdir -p bin
 	@echo GOARCH:${GOARCH}
-	CGO_ENABLED=0 GOOS=linux go build -ldflags ${LDFLAGS} -o bin/aws-efs-csi-driver ./cmd/
+	CGO_ENABLED=0 GOOS=linux go build -mod=vendor -ldflags ${LDFLAGS} -o bin/aws-efs-csi-driver ./cmd/
 
 build-darwin:
 	mkdir -p bin/darwin/
-	CGO_ENABLED=0 GOOS=darwin go build -ldflags ${LDFLAGS} -o bin/darwin/aws-efs-csi-driver ./cmd/
+	CGO_ENABLED=0 GOOS=darwin go build -mod=vendor -ldflags ${LDFLAGS} -o bin/darwin/aws-efs-csi-driver ./cmd/
 
 run-darwin: build-darwin
 	bin/darwin/aws-efs-csi-driver --version
@@ -57,6 +57,11 @@ test:
 test-e2e:
 	go get github.com/aws/aws-k8s-tester/e2e/tester/cmd/k8s-e2e-tester@master
 	TESTCONFIG=./tester/e2e-test-config.yaml ${GOPATH}/bin/k8s-e2e-tester
+
+.PHONY: test-e2e-bin
+test-e2e-bin:
+	mkdir -p bin
+	CGO_ENABLED=0 GOOS=linux go test -mod=vendor -ldflags ${LDFLAGS} -c -o bin/test-e2e ./test/e2e/
 
 .PHONY: image
 image:

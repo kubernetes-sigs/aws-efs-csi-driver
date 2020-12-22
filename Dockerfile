@@ -23,12 +23,6 @@ ARG TARGETARCH
 RUN echo "TARGETOS:$TARGETOS, TARGETARCH:$TARGETARCH"
 RUN echo "I am running on $(uname -s)/$(uname -m)"
 
-# Cache go modules
-ENV GOPROXY=direct
-COPY go.mod .
-COPY go.sum .
-RUN go mod download
-
 ADD . .
 
 # Default client source is `k8s` which can be overriden with –build-arg when building the Docker image
