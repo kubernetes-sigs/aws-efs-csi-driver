@@ -45,17 +45,28 @@ func NewCloud(region string) *cloud {
 	}
 }
 
-func (c *cloud) CreateFileSystem(clusterName string) (string, error) {
+type CreateOptions struct {
+	Name             string
+	ClusterName      string
+	SecurityGroupIds []string
+	SubnetIds        []string
+}
+
+func (c *cloud) CreateFileSystem(opts CreateOptions) (string, error) {
 	tags := []*efs.Tag{
 		{
+			Key:   aws.String("Name"),
+			Value: aws.String(opts.Name),
+		},
+		{
 			Key:   aws.String("KubernetesCluster"),
-			Value: aws.String(clusterName),
+			Value: aws.String(opts.ClusterName),
 		},
 	}
 
 	// Use cluster name as the token
 	request := &efs.CreateFileSystemInput{
-		CreationToken: aws.String(clusterName),
+		CreationToken: aws.String(opts.ClusterName),
 		Tags:          tags,
 	}
 
@@ -77,23 +88,31 @@ func (c *cloud) CreateFileSystem(clusterName string) (string, error) {
 		return "", err
 	}
 
-	securityGroupId, err := c.getSecurityGroup(clusterName)
-	if err != nil {
-		return "", err
+	securityGroupIds := aws.StringSlice(opts.SecurityGroupIds)
+	if len(securityGroupIds) == 0 {
+		securityGroupId, err := c.getSecurityGroup(opts.ClusterName)
+		if err != nil {
+			return "", err
+		}
+		securityGroupIds = []*string{
+			aws.String(securityGroupId),
+		}
 	}
 
-	subnetIds, err := c.getSubnetIds(clusterName)
-	if err != nil {
-		return "", err
+	subnetIds := aws.StringSlice(opts.SubnetIds)
+	if len(subnetIds) == 0 {
+		matchingSubnetIds, err := c.getSubnetIds(opts.ClusterName)
+		if err != nil {
+			return "", err
+		}
+		subnetIds = aws.StringSlice(matchingSubnetIds)
 	}
 
 	for _, subnetId := range subnetIds {
 		request := &efs.CreateMountTargetInput{
-			FileSystemId: fileSystemId,
-			SubnetId:     aws.String(subnetId),
-			SecurityGroups: []*string{
-				aws.String(securityGroupId),
-			},
+			FileSystemId:   fileSystemId,
+			SubnetId:       subnetId,
+			SecurityGroups: securityGroupIds,
 		}
 
 		_, err := c.efsclient.CreateMountTarget(request)

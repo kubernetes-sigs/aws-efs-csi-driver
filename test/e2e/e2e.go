@@ -26,11 +26,14 @@ var (
 	// Parameters that are expected to be set by consumers of this package.
 	// If FileSystemId is not set, ClusterName and Region must be set so that a
 	// file system can be created
-	ClusterName             string
-	Region                  string
-	FileSystemId            string
-	EfsDriverNamespace      string
-	EfsDriverLabelSelectors map[string]string
+	ClusterName                 string
+	Region                      string
+	FileSystemId                string
+	FileSystemName              string
+	MountTargetSecurityGroupIds []string
+	MountTargetSubnetIds        []string
+	EfsDriverNamespace          string
+	EfsDriverLabelSelectors     map[string]string
 
 	deleteFileSystem = false
 
@@ -119,7 +122,14 @@ var _ = ginkgo.SynchronizedBeforeSuite(func() []byte {
 		ginkgo.By(fmt.Sprintf("Creating EFS filesystem in region %q for cluster %q", Region, ClusterName))
 
 		c := NewCloud(Region)
-		id, err := c.CreateFileSystem(ClusterName)
+
+		opts := CreateOptions{
+			Name:             FileSystemName,
+			ClusterName:      ClusterName,
+			SecurityGroupIds: MountTargetSecurityGroupIds,
+			SubnetIds:        MountTargetSubnetIds,
+		}
+		id, err := c.CreateFileSystem(opts)
 		if err != nil {
 			framework.ExpectNoError(err, "creating file system")
 		}
@@ -194,7 +204,7 @@ var _ = ginkgo.Describe("[efs-csi] EFS CSI", func() {
 			}()
 
 			ginkgo.By(fmt.Sprintf("Creating pod to make subpaths /a and /b"))
-			pod := e2epod.MakePod(f.Namespace.Name, nil, []*v1.PersistentVolumeClaim{pvcRoot}, false, "mkdir /mnt/volume1/a && mkdir /mnt/volume1/b")
+			pod := e2epod.MakePod(f.Namespace.Name, nil, []*v1.PersistentVolumeClaim{pvcRoot}, false, "mkdir -p /mnt/volume1/a && mkdir -p /mnt/volume1/b")
 			pod, err = f.ClientSet.CoreV1().Pods(f.Namespace.Name).Create(context.TODO(), pod, metav1.CreateOptions{})
 			framework.ExpectNoError(err, "creating pod")
 			framework.ExpectNoError(e2epod.WaitForPodSuccessInNamespace(f.ClientSet, pod.Name, f.Namespace.Name), "waiting for pod success")
