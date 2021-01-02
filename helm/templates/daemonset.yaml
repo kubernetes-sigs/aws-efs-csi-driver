@@ -3,7 +3,7 @@ kind: DaemonSet
 apiVersion: apps/v1
 metadata:
   name: efs-csi-node
-  namespace: {{ .Values.namespace }}
+  namespace: {{ .Release.Namespace }}
   labels:
 {{ include "aws-efs-csi-driver.labels" . | indent 4 }}
 spec:

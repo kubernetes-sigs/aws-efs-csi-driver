@@ -30,6 +30,7 @@ install: |
   helm install aws-efs-csi-driver \
       --set image.repository=$IMAGE_NAME \
       --set image.tag=$IMAGE_TAG \
+      --namespace kube-system \
       ./helm
 
 uninstall: |
