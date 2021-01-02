@@ -110,15 +110,12 @@ resources: {}
 
 podAnnotations: {}
 
-nodeSelector: {}
+nodeSelector:
+  beta.kubernetes.io/os: linux
 
 tolerations: []
 
 affinity: {}
-
-node:
-  podAnnotations: {}
-  tolerations: []
 
 logLevel: 5
 
