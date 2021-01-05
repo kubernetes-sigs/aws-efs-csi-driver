@@ -28,13 +28,15 @@ import (
 
 func main() {
 	var (
-		endpoint                = flag.String("endpoint", "unix://tmp/csi.sock", "CSI Endpoint")
-		version                 = flag.Bool("version", false, "Print the version and exit")
-		efsUtilsCfgDirPath      = flag.String("efs-utils-config-dir-path", "/etc/amazon/efs/", "The path to efs-utils config directory")
-		efsUtilsStaticFilesPath = flag.String("efs-utils-static-files-path", "/etc/amazon/efs-static-files/", "The path to efs-utils static files directory")
-		volMetricsOptIn         = flag.Bool("vol-metrics-opt-in", false, "Opt in to emit volume metrics")
-		volMetricsRefreshPeriod = flag.Float64("vol-metrics-refresh-period", 240, "Refresh period for volume metrics in minutes")
-		volMetricsFsRateLimit   = flag.Int("vol-metrics-fs-rate-limit", 5, "Volume metrics routines rate limiter per file system")
+		endpoint                 = flag.String("endpoint", "unix://tmp/csi.sock", "CSI Endpoint")
+		version                  = flag.Bool("version", false, "Print the version and exit")
+		efsUtilsCfgDirPath       = flag.String("efs-utils-config-dir-path", "/etc/amazon/efs/", "The path to efs-utils config directory")
+		efsUtilsStaticFilesPath  = flag.String("efs-utils-static-files-path", "/etc/amazon/efs-static-files/", "The path to efs-utils static files directory")
+		volMetricsOptIn          = flag.Bool("vol-metrics-opt-in", false, "Opt in to emit volume metrics")
+		volMetricsRefreshPeriod  = flag.Float64("vol-metrics-refresh-period", 240, "Refresh period for volume metrics in minutes")
+		volMetricsFsRateLimit    = flag.Int("vol-metrics-fs-rate-limit", 5, "Volume metrics routines rate limiter per file system")
+		deleteAccessPointRootDir = flag.Bool("delete-access-point-root-dir", false,
+			"Opt in to delete access point root directory by DeleteVolume. By default, DeleteVolume will delete the access point behind Persistent Volume and deleting access point will not delete the access point root directory or its contents.")
 	)
 	klog.InitFlags(nil)
 	flag.Parse()
@@ -48,7 +50,7 @@ func main() {
 		os.Exit(0)
 	}
 
-	drv := driver.NewDriver(*endpoint, *efsUtilsCfgDirPath, *efsUtilsStaticFilesPath, *volMetricsOptIn, *volMetricsRefreshPeriod, *volMetricsFsRateLimit)
+	drv := driver.NewDriver(*endpoint, *efsUtilsCfgDirPath, *efsUtilsStaticFilesPath, *volMetricsOptIn, *volMetricsRefreshPeriod, *volMetricsFsRateLimit, *deleteAccessPointRootDir)
 	if err := drv.Run(); err != nil {
 		klog.Fatalln(err)
 	}

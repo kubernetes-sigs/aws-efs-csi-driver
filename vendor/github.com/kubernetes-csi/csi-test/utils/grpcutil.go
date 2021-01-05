@@ -25,7 +25,6 @@ import (
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/connectivity"
-	"google.golang.org/grpc/keepalive"
 )
 
 // Connect address by grpc
@@ -41,11 +40,6 @@ func Connect(address string) (*grpc.ClientConn, error) {
 					return net.DialTimeout("unix", u.Path, timeout)
 				}))
 	}
-	// This is necessary when connecting via TCP and does not hurt
-	// when using Unix domain sockets. It ensures that gRPC detects a dead connection
-	// in a timely manner.
-	dialOptions = append(dialOptions,
-		grpc.WithKeepaliveParams(keepalive.ClientParameters{PermitWithoutStream: true}))
 
 	conn, err := grpc.Dial(address, dialOptions...)
 	if err != nil {

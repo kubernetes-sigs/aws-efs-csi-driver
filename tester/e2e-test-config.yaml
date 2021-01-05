@@ -5,6 +5,21 @@ cluster:
     nodeCount: 3
     nodeSize: c5.large
     kubernetesVersion: 1.17.0
+    iamPolicies: |2
+        additionalPolicies:
+          node: |
+            [
+              {
+                "Effect": "Allow",
+                "Action": [
+                  "elasticfilesystem:CreateAccessPoint",
+                  "elasticfilesystem:DeleteAccessPoint",
+                  "elasticfilesystem:DescribeFileSystems",
+                  "elasticfilesystem:DescribeAccessPoints"
+                ],
+                "Resource": "*"
+              }
+            ]
 
 build: |
   eval $(aws ecr get-login --region us-west-2 --no-include-email)
