@@ -1,3 +1,4 @@
+{{- if .Values.controller.create }}
 # Controller Service
 kind: Deployment
 apiVersion: apps/v1
@@ -34,7 +35,9 @@ spec:
         {{- with .Values.nodeSelector }}
         {{- . | toYaml | nindent 8 }}
         {{- end }}
+      {{- if .Values.serviceAccount.controller.create }}
       serviceAccountName: {{ include "aws-efs-csi-driver.serviceAccountName" . }}
+      {{- end }}
       priorityClassName: system-cluster-critical
       tolerations:
         - operator: Exists
@@ -95,3 +98,4 @@ spec:
       volumes:
         - name: socket-dir
           emptyDir: {}
+{{- end }}

@@ -26,7 +26,8 @@ fullnameOverride: ""
 
 podAnnotations: {}
 
-resources: {}
+resources:
+  {}
   # We usually recommend not to specify default resources and to leave this as a conscious
   # choice for the user. This also increases chances charts run on environments with little
   # resources, such as Minikube. If you do want to specify resources, uncomment the following
@@ -50,7 +51,8 @@ node:
 
 logLevel: 5
 
-hostAliases: {}
+hostAliases:
+  {}
   # for cross VPC EFS, you need to poison or overwrite the DNS for the efs volume as per
   # https://docs.aws.amazon.com/efs/latest/ug/efs-different-vpc.html#wt6-efs-utils-step3
   # implementing the suggested solution found here:
@@ -61,7 +63,8 @@ hostAliases: {}
   #   region: us-east-2
 
 dnsPolicy: ""
-dnsConfig: {}
+dnsConfig:
+  {}
   # Example config which uses the AWS nameservers
   # dnsPolicy: "None"
   # dnsConfig:
@@ -69,9 +72,13 @@ dnsConfig: {}
   #     - 169.254.169.253
 
 serviceAccount:
-  # Specifies whether a service account should be created
-  create: true
-  annotations: {}
-  ## Enable if EKS IAM for SA is used
-  #  eks.amazonaws.com/role-arn: arn:aws:iam::111122223333:role/efs-csi-role
-  name: efs-csi-controller-sa
+  controller:
+    # Specifies whether a service account should be created
+    create: false
+    annotations: {}
+    ## Enable if EKS IAM for SA is used
+    #  eks.amazonaws.com/role-arn: arn:aws:iam::111122223333:role/efs-csi-role
+    name: efs-csi-controller-sa
+
+controller:
+  create: false
