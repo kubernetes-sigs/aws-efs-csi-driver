@@ -26,11 +26,15 @@ import (
 	"github.com/kubernetes-sigs/aws-efs-csi-driver/pkg/driver"
 )
 
+// etcAmazonEfs is the non-negotiable directory that the mount.efs will use for config files. We will create a symlink here.
+const etcAmazonEfs = "/etc/amazon/efs"
+
 func main() {
 	var (
 		endpoint                 = flag.String("endpoint", "unix://tmp/csi.sock", "CSI Endpoint")
 		version                  = flag.Bool("version", false, "Print the version and exit")
-		efsUtilsCfgDirPath       = flag.String("efs-utils-config-dir-path", "/etc/amazon/efs/", "The path to efs-utils config directory")
+		efsUtilsCfgDirPath       = flag.String("efs-utils-config-dir-path", "/var/amazon/efs", "The preferred path for the efs-utils config directory. efs-utils-config-legacy-dir-path will be used if it is not empty, otherwise efs-utils-config-dir-path will be used.")
+		efsUtilsCfgLegacyDirPath = flag.String("efs-utils-config-legacy-dir-path", "/etc/amazon/efs-legacy", "The path to the legacy efs-utils config directory mounted from the host path /etc/amazon/efs")
 		efsUtilsStaticFilesPath  = flag.String("efs-utils-static-files-path", "/etc/amazon/efs-static-files/", "The path to efs-utils static files directory")
 		volMetricsOptIn          = flag.Bool("vol-metrics-opt-in", false, "Opt in to emit volume metrics")
 		volMetricsRefreshPeriod  = flag.Float64("vol-metrics-refresh-period", 240, "Refresh period for volume metrics in minutes")
@@ -50,7 +54,12 @@ func main() {
 		os.Exit(0)
 	}
 
-	drv := driver.NewDriver(*endpoint, *efsUtilsCfgDirPath, *efsUtilsStaticFilesPath, *volMetricsOptIn, *volMetricsRefreshPeriod, *volMetricsFsRateLimit, *deleteAccessPointRootDir)
+	// chose which configuration directory we will use and create a symlink to it
+	err := driver.InitConfigDir(*efsUtilsCfgLegacyDirPath, *efsUtilsCfgDirPath, etcAmazonEfs)
+	if err != nil {
+		klog.Fatalln(err)
+	}
+	drv := driver.NewDriver(*endpoint, etcAmazonEfs, *efsUtilsStaticFilesPath, *volMetricsOptIn, *volMetricsRefreshPeriod, *volMetricsFsRateLimit, *deleteAccessPointRootDir)
 	if err := drv.Run(); err != nil {
 		klog.Fatalln(err)
 	}
