@@ -80,7 +80,7 @@ helm install aws-efs-csi-driver aws-efs-csi-driver/aws-efs-csi-driver
 ### Examples
 Before the example, you need to:
 * Get yourself familiar with how to setup Kubernetes on AWS and how to [create EFS file system](https://docs.aws.amazon.com/efs/latest/ug/getting-started.html).
-* When creating EFS file system, make sure it is accessible from Kuberenetes cluster. This can be achieved by creating the file system inside the same VPC as Kubernetes cluster or using VPC peering.
+* When creating EFS file system, make sure it is accessible from Kubernetes cluster. This can be achieved by creating the file system inside the same VPC as Kubernetes cluster or using VPC peering.
 * Install EFS CSI driver following the [Installation](README.md#Installation) steps.
 
 #### Example links
