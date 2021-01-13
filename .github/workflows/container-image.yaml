@@ -14,25 +14,6 @@ jobs:
       with:
         buildx-version: latest
         qemu-version: latest
-    - name: Push to Github registry
-      run: |
-        USER=$(echo $GITHUB_REPOSITORY | cut -d'/' -f1)
-        BRANCH=$(echo $GITHUB_REF | cut -d'/' -f3)
-        SHORT_SHA=$(echo $GITHUB_SHA | cut -c -7)
-        IMAGE=aws-efs-csi-driver
-        if [ "$BRANCH" = "master" ]; then
-          TAG=$SHORT_SHA
-        else
-          TAG=$BRANCH
-        fi
-        docker login docker.pkg.github.com -u $USER -p ${{ secrets.REGISTRY_TOKEN }}
-        docker build -t aws-efs-csi-driver .
-        docker tag aws-efs-csi-driver docker.pkg.github.com/$GITHUB_REPOSITORY/$IMAGE:$TAG
-        docker push docker.pkg.github.com/$GITHUB_REPOSITORY/$IMAGE:$TAG
-        if [ "$BRANCH" = "master" ]; then
-          docker tag aws-efs-csi-driver docker.pkg.github.com/$GITHUB_REPOSITORY/$IMAGE:master
-          docker push docker.pkg.github.com/$GITHUB_REPOSITORY/$IMAGE:master
-        fi
     - name: Push to Dockerhub registry
       run: |
         BRANCH=$(echo $GITHUB_REF | cut -d'/' -f3)
