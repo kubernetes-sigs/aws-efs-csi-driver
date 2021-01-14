@@ -33,22 +33,27 @@ const (
 )
 
 type Driver struct {
-	endpoint                 string
-	nodeID                   string
-	srv                      *grpc.Server
-	mounter                  Mounter
-	efsWatchdog              Watchdog
-	cloud                    cloud.Cloud
-	nodeCaps                 []csi.NodeServiceCapability_RPC_Type
-	volMetricsOptIn          bool
-	volMetricsRefreshPeriod  float64
-	volMetricsFsRateLimit    int
-	volStatter               VolStatter
-	gidAllocator             GidAllocator
-	deleteAccessPointRootDir bool
+	endpoint string
+	nodeID   string
+
+	srv *grpc.Server
+
+	mounter Mounter
+
+	efsWatchdog Watchdog
+
+	nodeCaps []csi.NodeServiceCapability_RPC_Type
+
+	volMetricsOptIn bool
+
+	volMetricsRefreshPeriod float64
+
+	volMetricsFsRateLimit int
+
+	volStatter VolStatter
 }
 
-func NewDriver(endpoint, efsUtilsCfgPath, efsUtilsStaticFilesPath string, volMetricsOptIn bool, volMetricsRefreshPeriod float64, volMetricsFsRateLimit int, deleteAccessPointRootDir bool) *Driver {
+func NewDriver(endpoint, efsUtilsCfgPath, efsUtilsStaticFilesPath string, volMetricsOptIn bool, volMetricsRefreshPeriod float64, volMetricsFsRateLimit int) *Driver {
 	cloud, err := cloud.NewCloud()
 	if err != nil {
 		klog.Fatalln(err)
@@ -57,18 +62,15 @@ func NewDriver(endpoint, efsUtilsCfgPath, efsUtilsStaticFilesPath string, volMet
 	nodeCaps := SetNodeCapOptInFeatures(volMetricsOptIn)
 	watchdog := newExecWatchdog(efsUtilsCfgPath, efsUtilsStaticFilesPath, "amazon-efs-mount-watchdog")
 	return &Driver{
-		endpoint:                 endpoint,
-		nodeID:                   cloud.GetMetadata().GetInstanceID(),
-		mounter:                  newNodeMounter(),
-		efsWatchdog:              watchdog,
-		cloud:                    cloud,
-		nodeCaps:                 nodeCaps,
-		volStatter:               NewVolStatter(),
-		volMetricsOptIn:          volMetricsOptIn,
-		volMetricsRefreshPeriod:  volMetricsRefreshPeriod,
-		volMetricsFsRateLimit:    volMetricsFsRateLimit,
-		gidAllocator:             NewGidAllocator(),
-		deleteAccessPointRootDir: deleteAccessPointRootDir,
+		endpoint:                endpoint,
+		nodeID:                  cloud.GetMetadata().GetInstanceID(),
+		mounter:                 newNodeMounter(),
+		efsWatchdog:             watchdog,
+		nodeCaps:                nodeCaps,
+		volStatter:              NewVolStatter(),
+		volMetricsOptIn:         volMetricsOptIn,
+		volMetricsRefreshPeriod: volMetricsRefreshPeriod,
+		volMetricsFsRateLimit:   volMetricsFsRateLimit,
 	}
 }
 
@@ -107,10 +109,7 @@ func (d *Driver) Run() error {
 	d.srv = grpc.NewServer(opts...)
 
 	csi.RegisterIdentityServer(d.srv, d)
-	klog.Info("Registering Node Server")
 	csi.RegisterNodeServer(d.srv, d)
-	klog.Info("Registering Controller Server")
-	csi.RegisterControllerServer(d.srv, d)
 
 	klog.Info("Starting watchdog")
 	if err := d.efsWatchdog.start(); err != nil {

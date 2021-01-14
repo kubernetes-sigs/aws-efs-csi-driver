@@ -49,7 +49,9 @@ verify:
 
 .PHONY: test
 test:
-	go test -v -race ./pkg/...
+	go test -v -race $$(go list ./pkg/... | grep -v /driver)
+	# TODO stop skipping controller tests when controller is implemented
+	go test -v -race ./pkg/driver/... -ginkgo.skip='\[Controller.Server\]'
 
 .PHONY: test-e2e
 test-e2e:

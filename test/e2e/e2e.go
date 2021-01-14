@@ -7,7 +7,6 @@ import (
 
 	"github.com/onsi/ginkgo"
 	v1 "k8s.io/api/core/v1"
-	storagev1 "k8s.io/api/storage/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -51,16 +50,16 @@ type efsDriver struct {
 
 var _ testsuites.TestDriver = &efsDriver{}
 
-// TODO implement Inline (unless it's redundant)
+// TODO implement Inline (unless it's redundant) and DynamicPV
 // var _ testsuites.InlineVolumeTestDriver = &efsDriver{}
 var _ testsuites.PreprovisionedPVTestDriver = &efsDriver{}
-var _ testsuites.DynamicPVTestDriver = &efsDriver{}
 
 func InitEFSCSIDriver() testsuites.TestDriver {
 	return &efsDriver{
 		driverInfo: testsuites.DriverInfo{
-			Name:            "efs.csi.aws.com",
-			SupportedFsType: sets.NewString(""),
+			Name:                 "efs.csi.aws.com",
+			SupportedFsType:      sets.NewString(""),
+			SupportedMountOption: sets.NewString("tls", "ro"),
 			Capabilities: map[testsuites.Capability]bool{
 				testsuites.CapPersistence: true,
 				testsuites.CapExec:        true,
@@ -101,26 +100,6 @@ func (e *efsDriver) GetPersistentVolumeSource(readOnly bool, fsType string, volu
 		},
 	}
 	return &pvSource, nil
-}
-
-func (e *efsDriver) GetDynamicProvisionStorageClass(config *testsuites.PerTestConfig, fsType string) *storagev1.StorageClass {
-	parameters := map[string]string{
-		"provisioningMode": "efs-ap",
-		"fileSystemId":     FileSystemId,
-		"directoryPerms":   "777",
-	}
-
-	generateName := fmt.Sprintf("efs-csi-dynamic-sc-test1234-")
-
-	defaultBindingMode := storagev1.VolumeBindingImmediate
-	return &storagev1.StorageClass{
-		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: generateName,
-		},
-		Provisioner:       "efs.csi.aws.com",
-		Parameters:        parameters,
-		VolumeBindingMode: &defaultBindingMode,
-	}
 }
 
 // List of testSuites to be executed in below loop
