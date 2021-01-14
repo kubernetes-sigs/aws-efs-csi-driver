@@ -63,6 +63,7 @@ type AccessPointOptions struct {
 	Gid            int64
 	DirectoryPerms string
 	DirectoryPath  string
+	Tags           map[string]string
 }
 
 // Efs abstracts efs client(https://docs.aws.amazon.com/sdk-for-go/api/service/efs/)
@@ -109,6 +110,7 @@ func (c *cloud) GetMetadata() MetadataService {
 }
 
 func (c *cloud) CreateAccessPoint(ctx context.Context, volumeName string, accessPointOpts *AccessPointOptions) (accessPoint *AccessPoint, err error) {
+	efsTags := parseEfsTags(accessPointOpts.Tags)
 	createAPInput := &efs.CreateAccessPointInput{
 		ClientToken:  &volumeName,
 		FileSystemId: &accessPointOpts.FileSystemId,
@@ -124,6 +126,7 @@ func (c *cloud) CreateAccessPoint(ctx context.Context, volumeName string, access
 			},
 			Path: &accessPointOpts.DirectoryPath,
 		},
+		Tags: efsTags,
 	}
 
 	klog.V(5).Infof("Calling Create AP with input: %+v", *createAPInput)
@@ -233,4 +236,17 @@ func isAccessDenied(err error) bool {
 		}
 	}
 	return false
+}
+
+func parseEfsTags(tagMap map[string]string) []*efs.Tag {
+	efsTags := []*efs.Tag{}
+	for k, v := range tagMap {
+		key := k
+		value := v
+		efsTags = append(efsTags, &efs.Tag{
+			Key:   &key,
+			Value: &value,
+		})
+	}
+	return efsTags
 }

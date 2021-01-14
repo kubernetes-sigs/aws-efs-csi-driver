@@ -42,6 +42,8 @@ const (
 	DefaultGidMax       = 7000000
 	RootDirPrefix       = "efs-csi-ap"
 	TempMountPathPrefix = "/var/lib/csi/pv"
+	DefaultTagKey       = "efs.csi.aws.com/cluster"
+	DefaultTagValue     = "true"
 )
 
 var (
@@ -92,8 +94,21 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 		return nil, status.Errorf(codes.InvalidArgument, "Missing %v parameter", ProvisioningMode)
 	}
 
+	// Create tags
+	tags := map[string]string{
+		DefaultTagKey: DefaultTagValue,
+	}
+
+	// Append input tags to default tag
+	if len(d.tags) != 0 {
+		for k, v := range d.tags {
+			tags[k] = v
+		}
+	}
+
 	accessPointsOptions := &cloud.AccessPointOptions{
 		CapacityGiB: volSize,
+		Tags:        tags,
 	}
 
 	if value, ok := volumeParams[FsId]; ok {

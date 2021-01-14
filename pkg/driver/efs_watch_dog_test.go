@@ -72,6 +72,14 @@ tls_cert_renewal_interval_min = 60
 
 [client-info] 
 source=k8s
+
+[cloudwatch-log]
+# enabled = true
+log_group_name = /aws/efs/utils
+
+# Possible values are : 1, 3, 5, 7, 14, 30, 60, 90, 120, 150, 180, 365, 400, 545, 731, 1827, and 3653
+# Comment this config to prevent log deletion
+retention_in_days = 14
 `
 	configFileName = "efs-utils.conf"
 )

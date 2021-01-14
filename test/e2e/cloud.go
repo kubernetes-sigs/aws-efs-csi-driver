@@ -159,6 +159,59 @@ func (c *cloud) DeleteFileSystem(fileSystemId string) error {
 	return nil
 }
 
+func (c *cloud) CreateAccessPoint(fileSystemId, clusterName string) (string, error) {
+	tags := []*efs.Tag{
+		{
+			Key:   aws.String("efs.csi.aws.com/cluster"),
+			Value: aws.String("true"),
+		},
+	}
+
+	request := &efs.CreateAccessPointInput{
+		ClientToken:  &clusterName,
+		FileSystemId: &fileSystemId,
+		PosixUser: &efs.PosixUser{
+			Gid: aws.Int64(1000),
+			Uid: aws.Int64(1000),
+		},
+		RootDirectory: &efs.RootDirectory{
+			CreationInfo: &efs.CreationInfo{
+				OwnerGid:    aws.Int64(1000),
+				OwnerUid:    aws.Int64(1000),
+				Permissions: aws.String("0777"),
+			},
+			Path: aws.String("/integ-test"),
+		},
+		Tags: tags,
+	}
+
+	var accessPointId *string
+	response, err := c.efsclient.CreateAccessPoint(request)
+	if err != nil {
+		return "", err
+	}
+
+	accessPointId = response.AccessPointId
+	err = c.ensureAccessPointStatus(*accessPointId, "available")
+	if err != nil {
+		return "", err
+	}
+
+	return aws.StringValue(accessPointId), nil
+}
+
+func (c *cloud) DeleteAccessPoint(accessPointId string) error {
+	request := &efs.DeleteAccessPointInput{
+		AccessPointId: &accessPointId,
+	}
+
+	_, err := c.efsclient.DeleteAccessPoint(request)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 // getSecurityGroup returns the node security group ID given cluster name
 func (c *cloud) getSecurityGroup(clusterName string) (string, error) {
 	// First assume the cluster was installed by kops then fallback to EKS
@@ -293,6 +346,28 @@ func (c *cloud) ensureFileSystemStatus(fileSystemId, status string) error {
 		}
 
 		if *response.FileSystems[0].LifeCycleState == status {
+			return nil
+		}
+		time.Sleep(time.Second)
+	}
+}
+
+func (c *cloud) ensureAccessPointStatus(accessPointId, status string) error {
+	request := &efs.DescribeAccessPointsInput{
+		AccessPointId: aws.String(accessPointId),
+	}
+
+	for {
+		response, err := c.efsclient.DescribeAccessPoints(request)
+		if err != nil {
+			return err
+		}
+
+		if len(response.AccessPoints) == 0 {
+			return errors.New("no access point found")
+		}
+
+		if *response.AccessPoints[0].LifeCycleState == status {
 			return nil
 		}
 		time.Sleep(time.Second)

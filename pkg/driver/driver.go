@@ -19,6 +19,7 @@ package driver
 import (
 	"context"
 	"net"
+	"strings"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
 	"google.golang.org/grpc"
@@ -46,9 +47,10 @@ type Driver struct {
 	volStatter               VolStatter
 	gidAllocator             GidAllocator
 	deleteAccessPointRootDir bool
+	tags                     map[string]string
 }
 
-func NewDriver(endpoint, efsUtilsCfgPath, efsUtilsStaticFilesPath string, volMetricsOptIn bool, volMetricsRefreshPeriod float64, volMetricsFsRateLimit int, deleteAccessPointRootDir bool) *Driver {
+func NewDriver(endpoint, efsUtilsCfgPath, efsUtilsStaticFilesPath, tags string, volMetricsOptIn bool, volMetricsRefreshPeriod float64, volMetricsFsRateLimit int, deleteAccessPointRootDir bool) *Driver {
 	cloud, err := cloud.NewCloud()
 	if err != nil {
 		klog.Fatalln(err)
@@ -69,6 +71,7 @@ func NewDriver(endpoint, efsUtilsCfgPath, efsUtilsStaticFilesPath string, volMet
 		volMetricsFsRateLimit:    volMetricsFsRateLimit,
 		gidAllocator:             NewGidAllocator(),
 		deleteAccessPointRootDir: deleteAccessPointRootDir,
+		tags:                     parseTagsFromStr(strings.TrimSpace(tags)),
 	}
 }
 
@@ -123,4 +126,24 @@ func (d *Driver) Run() error {
 
 	klog.Infof("Listening for connections on address: %#v", listener.Addr())
 	return d.srv.Serve(listener)
+}
+
+func parseTagsFromStr(tagStr string) map[string]string {
+	defer func() {
+		if r := recover(); r != nil {
+			klog.Errorf("Failed to parse input tag string: %v", tagStr)
+		}
+	}()
+
+	m := make(map[string]string)
+	if tagStr == "" {
+		klog.Infof("Did not find any input tags.")
+		return m
+	}
+	tagsSplit := strings.Split(tagStr, " ")
+	for _, pair := range tagsSplit {
+		p := strings.Split(pair, ":")
+		m[p[0]] = p[1]
+	}
+	return m
 }
