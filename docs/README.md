@@ -10,7 +10,7 @@ The [Amazon Elastic File System](https://aws.amazon.com/efs/) Container Storage 
 | AWS EFS CSI Driver \ CSI Spec Version  | v0.3.0| v1.1.0 | v1.2.0 |
 |----------------------------------------|-------|--------|--------|
 | master branch                          | no    | no     | yes    |
-| v1.0.0                                 | no    | no     | yes    |
+| v1.x.x                                 | no    | no     | yes    |
 | v0.3.0                                 | no    | yes    | no     |
 | v0.2.0                                 | no    | yes    | no     |
 | v0.1.0                                 | yes   | no     | no     |
@@ -33,10 +33,10 @@ Encryption in transit is enabled by default in the master branch version of the 
 The following sections are Kubernetes specific. If you are a Kubernetes user, use this for driver features, installation steps and examples.
 
 ### Kubernetes Version Compability Matrix
-| AWS EFS CSI Driver \ Kubernetes Version| maturity | v1.11 | v1.12 | v1.13 | v1.14 | v1.15 | v1.16 | v1.17 |
+| AWS EFS CSI Driver \ Kubernetes Version| maturity | v1.11 | v1.12 | v1.13 | v1.14 | v1.15 | v1.16 | v1.17+ |
 |----------------------------------------|----------|-------|-------|-------|-------|-------|-------|-------|
 | master branch                          | GA       | no    | no    | no    | yes   | yes   | yes   | yes   |
-| v1.0.0                                 | GA       | no    | no    | no    | yes   | yes   | yes   | yes   |
+| v1.x.x                                 | GA       | no    | no    | no    | yes   | yes   | yes   | yes   |
 | v0.3.0                                 | beta     | no    | no    | no    | yes   | yes   | yes   | yes   |
 | v0.2.0                                 | beta     | no    | no    | no    | yes   | yes   | yes   | yes   |
 | v0.1.0                                 | alpha    | yes   | yes   | yes   | no    | no    | no    | no    |
@@ -45,6 +45,7 @@ The following sections are Kubernetes specific. If you are a Kubernetes user, us
 |EFS CSI Driver Version     | Image                               |
 |---------------------------|-------------------------------------|
 |master branch              |amazon/aws-efs-csi-driver:master     |
+|v1.1.0                     |amazon/aws-efs-csi-driver:v1.1.0     |
 |v1.0.0                     |amazon/aws-efs-csi-driver:v1.0.0     |
 |v0.3.0                     |amazon/aws-efs-csi-driver:v0.3.0     |
 |v0.2.0                     |amazon/aws-efs-csi-driver:v0.2.0     |
@@ -63,7 +64,7 @@ Deploy the driver:
 
 If you want to deploy the stable driver:
 ```sh
-kubectl apply -k "github.com/kubernetes-sigs/aws-efs-csi-driver/deploy/kubernetes/overlays/stable/?ref=release-1.0"
+kubectl apply -k "github.com/kubernetes-sigs/aws-efs-csi-driver/deploy/kubernetes/overlays/stable/?ref=release-1.1"
 ```
 
 If you want to deploy the development driver:

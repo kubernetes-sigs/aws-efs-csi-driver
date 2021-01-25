@@ -1,3 +1,12 @@
+# v1.1.0
+
+## Notable changes
+### New Features
+* Implement NodeGetVolumeStats ([#238](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/238), [@kbasv](https://github.com/kbasv))
+
+### Bug fixes
+* change config dir location ([#286](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/286), [@webern](https://github.com/webern))
+
 # v1.0.0
 [Documentation](https://github.com/kubernetes-sigs/aws-efs-csi-driver/blob/v1.0.0/docs/README.md)
 
