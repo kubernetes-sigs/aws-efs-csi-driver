@@ -82,8 +82,6 @@ func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 				return nil, status.Errorf(codes.InvalidArgument, "Volume context property %q must be an absolute path", k)
 			}
 			subpath = filepath.Join(subpath, v)
-		case "storage.kubernetes.io/csiprovisioneridentity":
-			continue
 		case "encryptintransit":
 			var err error
 			encryptInTransit, err = strconv.ParseBool(v)

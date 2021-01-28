@@ -5,18 +5,14 @@ apiVersion: apps/v1
 metadata:
   name: efs-csi-node
   namespace: kube-system
-  labels:
-    app.kubernetes.io/name: aws-efs-csi-driver
 spec:
   selector:
     matchLabels:
       app: efs-csi-node
-      app.kubernetes.io/name: aws-efs-csi-driver
   template:
     metadata:
       labels:
         app: efs-csi-node
-        app.kubernetes.io/name: aws-efs-csi-driver
     spec:
       nodeSelector:
         kubernetes.io/os: linux

@@ -15,7 +15,7 @@
 
 PKG=github.com/kubernetes-sigs/aws-efs-csi-driver
 IMAGE?=amazon/aws-efs-csi-driver
-VERSION=v1.0.0-dirty
+VERSION=v1.1.0-dirty
 GIT_COMMIT?=$(shell git rev-parse HEAD)
 BUILD_DATE?=$(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
 EFS_CLIENT_SOURCE?=k8s
@@ -49,7 +49,9 @@ verify:
 
 .PHONY: test
 test:
-	go test -v -race ./pkg/...
+	go test -v -race $$(go list ./pkg/... | grep -v /driver)
+	# TODO stop skipping controller tests when controller is implemented
+	go test -v -race ./pkg/driver/... -ginkgo.skip='\[Controller.Server\]'
 
 .PHONY: test-e2e
 test-e2e:

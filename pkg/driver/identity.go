@@ -19,8 +19,6 @@ package driver
 import (
 	"context"
 
-	"k8s.io/klog"
-
 	"github.com/container-storage-interface/spec/lib/go/csi"
 )
 
@@ -34,18 +32,7 @@ func (d *Driver) GetPluginInfo(ctx context.Context, req *csi.GetPluginInfoReques
 }
 
 func (d *Driver) GetPluginCapabilities(ctx context.Context, req *csi.GetPluginCapabilitiesRequest) (*csi.GetPluginCapabilitiesResponse, error) {
-	klog.V(5).Infof("GetPluginCapabilities: called with args %+v", *req)
-	resp := &csi.GetPluginCapabilitiesResponse{
-		Capabilities: []*csi.PluginCapability{
-			{
-				Type: &csi.PluginCapability_Service_{
-					Service: &csi.PluginCapability_Service{
-						Type: csi.PluginCapability_Service_CONTROLLER_SERVICE,
-					},
-				},
-			},
-		},
-	}
+	resp := &csi.GetPluginCapabilitiesResponse{}
 
 	return resp, nil
 }

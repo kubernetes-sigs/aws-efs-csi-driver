@@ -43,14 +43,3 @@ app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 {{- end }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- end -}}
-
-{{/*
-Create the name of the service account to use
-*/}}
-{{- define "aws-efs-csi-driver.serviceAccountName" -}}
-{{- if .Values.serviceAccount.controller.create -}}
-    {{ default (include "aws-efs-csi-driver.fullname" .) .Values.serviceAccount.controller.name }}
-{{- else -}}
-    {{ default "default" .Values.serviceAccount.controller.name }}
-{{- end -}}
-{{- end -}}

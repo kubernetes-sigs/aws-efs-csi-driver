@@ -6,7 +6,7 @@ replicaCount: 2
 
 image:
   repository: amazon/aws-efs-csi-driver
-  tag: "v1.0.0"
+  tag: "v1.1.0"
   pullPolicy: IfNotPresent
 
 sidecars:
@@ -16,9 +16,6 @@ sidecars:
   nodeDriverRegistrarImage:
     repository: quay.io/k8scsi/csi-node-driver-registrar
     tag: "v1.3.0"
-  csiProvisionerImage:
-    repository: k8s.gcr.io/sig-storage/csi-provisioner
-    tag: "v2.0.2"
 
 imagePullSecrets: []
 nameOverride: ""
@@ -70,15 +67,3 @@ dnsConfig:
   # dnsConfig:
   #   nameservers:
   #     - 169.254.169.253
-
-serviceAccount:
-  controller:
-    # Specifies whether a service account should be created
-    create: false
-    annotations: {}
-    ## Enable if EKS IAM for SA is used
-    #  eks.amazonaws.com/role-arn: arn:aws:iam::111122223333:role/efs-csi-role
-    name: efs-csi-controller-sa
-
-controller:
-  create: false
