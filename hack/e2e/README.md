@@ -24,3 +24,25 @@ GINKGO_FOCUS=Dynamic.\*xfs.\*should.store.data \
 GINKGO_NODES=1 \
 ./hack/e2e/run.sh
 ```
+
+# git subtree
+
+Reference: https://github.com/kubernetes-csi/csi-release-tools/#sharing-and-updating
+
+How to consume this directory by subtreeing the ebs repo:
+
+```
+git remote add ebs git@github.com:kubernetes-sigs/aws-ebs-csi-driver.git
+git fetch ebs
+git checkout -b ebsmaster ebs/master
+git subtree split --squash --prefix=hack/e2e -b ebsmasterhacke2e
+git checkout master
+git subtree add --squash --prefix=hack/e2e ebsmasterhacke2e
+```
+
+To commit changes and submit them as a PR back to the ebs repo:
+
+```
+git commit
+git subtree push --prefix=hack/e2e git@github.com:<user>/aws-ebs-csi-driver.git <my-new-or-existing-branch>
+```
