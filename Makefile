@@ -53,8 +53,13 @@ test:
 
 .PHONY: test-e2e
 test-e2e:
-	go get github.com/aws/aws-k8s-tester/e2e/tester/cmd/k8s-e2e-tester@master
-	TESTCONFIG=./tester/e2e-test-config.yaml ${GOPATH}/bin/k8s-e2e-tester
+	DRIVER_NAME=aws-efs-csi-driver \
+	TEST_EXTRA_FLAGS='--cluster-name=$$CLUSTER_NAME' \
+	AWS_REGION=us-west-2 \
+	AWS_AVAILABILITY_ZONES=us-west-2a,us-west-2b,us-west-2c \
+	TEST_PATH=./test/e2e/... \
+	GINKGO_FOCUS="\[efs-csi\]" \
+	./hack/e2e/run.sh
 
 .PHONY: test-e2e-bin
 test-e2e-bin:
