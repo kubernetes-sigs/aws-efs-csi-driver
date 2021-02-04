@@ -1,3 +1,14 @@
+# v1.1.0
+
+## Notable changes
+- The hostPath directory where the driver DaemonSet Pods write state files to their respective Node hosts has changed to fix the driver not working on Bottlerocket OS Nodes. No matter what OS your Nodes are running, you must use a supported method like helm or kustomize to update the driver. If not, i.e. if you only change the image tag of your DaemonSet, the migration from old to new directory won't succeed. See "change config dir location" below for details.
+
+### New Features
+* Implement NodeGetVolumeStats ([#238](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/238), [@kbasv](https://github.com/kbasv))
+
+### Bug fixes
+* change config dir location ([#286](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/286), [@webern](https://github.com/webern))
+
 # v1.0.0
 [Documentation](https://github.com/kubernetes-sigs/aws-efs-csi-driver/blob/v1.0.0/docs/README.md)
 
