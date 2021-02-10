@@ -1,3 +1,8 @@
+# v1.1.1
+
+### Bug fixes
+* Bump AL2 to 20210126.0 ([#326](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/326), [@wongma7](https://github.com/wongma7))
+
 # v1.1.0
 
 ## Notable changes
