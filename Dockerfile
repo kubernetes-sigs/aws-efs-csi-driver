@@ -31,7 +31,7 @@ ENV EFS_CLIENT_SOURCE=$client_source
 
 RUN GOOS=${TARGETOS} GOARCH=${TARGETARCH} make aws-efs-csi-driver
 
-FROM amazonlinux:2.0.20200602.0
+FROM amazonlinux:2.0.20210126.0
 RUN yum install amazon-efs-utils-1.26-3.amzn2.noarch -y
 
 # At image build time, static files installed by efs-utils in the config directory, i.e. CAs file, need
