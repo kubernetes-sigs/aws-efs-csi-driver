@@ -4,7 +4,7 @@ bases:
   - ../../base
 images:
   - name: amazon/aws-efs-csi-driver
-    newTag: v1.1.0
+    newTag: v1.1.1
   - name: quay.io/k8scsi/livenessprobe
     newTag: v2.0.0
   - name: quay.io/k8scsi/csi-node-driver-registrar
