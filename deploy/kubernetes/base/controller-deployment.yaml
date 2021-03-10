@@ -64,6 +64,7 @@ spec:
             - --v=5
             - --feature-gates=Topology=true
             - --leader-election
+            - --extra-create-metadata
           env:
             - name: ADDRESS
               value: /var/lib/csi/sockets/pluginproxy/csi.sock

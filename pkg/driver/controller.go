@@ -31,19 +31,22 @@ import (
 )
 
 const (
-	AccessPointMode     = "efs-ap"
-	FsId                = "fileSystemId"
-	GidMin              = "gidRangeStart"
-	GidMax              = "gidRangeEnd"
-	DirectoryPerms      = "directoryPerms"
-	BasePath            = "basePath"
-	ProvisioningMode    = "provisioningMode"
-	DefaultGidMin       = 50000
-	DefaultGidMax       = 7000000
-	RootDirPrefix       = "efs-csi-ap"
-	TempMountPathPrefix = "/var/lib/csi/pv"
-	DefaultTagKey       = "efs.csi.aws.com/cluster"
-	DefaultTagValue     = "true"
+	AccessPointMode       = "efs-ap"
+	FsId                  = "fileSystemId"
+	GidMin                = "gidRangeStart"
+	GidMax                = "gidRangeEnd"
+	DirectoryPerms        = "directoryPerms"
+	BasePath              = "basePath"
+	ProvisioningMode      = "provisioningMode"
+	DefaultGidMin         = 50000
+	DefaultGidMax         = 7000000
+	RootDirPrefix         = "efs-csi-ap"
+	TempMountPathPrefix   = "/var/lib/csi/pv"
+	DefaultTagKey         = "efs.csi.aws.com/cluster"
+	DefaultTagValue       = "true"
+	PVCNameParameter      = "csi.storage.k8s.io/pvc/name"
+	PVCNameSpaceParameter = "csi.storage.k8s.io/pvc/namespace"
+	PVNameParameter       = "csi.storage.k8s.io/pv/name"
 )
 
 var (
@@ -104,6 +107,16 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 		for k, v := range d.tags {
 			tags[k] = v
 		}
+	}
+
+	if value, ok := volumeParams[PVCNameParameter]; ok {
+		tags[PVCNameParameter] = value
+	}
+	if value, ok := volumeParams[PVCNameSpaceParameter]; ok {
+		tags[PVCNameSpaceParameter] = value
+	}
+	if value, ok := volumeParams[PVNameParameter]; ok {
+		tags[PVNameParameter] = value
 	}
 
 	accessPointsOptions := &cloud.AccessPointOptions{
