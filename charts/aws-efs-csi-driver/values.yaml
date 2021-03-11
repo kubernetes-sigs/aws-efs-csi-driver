@@ -82,3 +82,16 @@ serviceAccount:
 
 controller:
   create: false
+
+storageClasses: []
+# Add StorageClass resources like:
+# - name: efs-sc
+#   mountOptions:
+#   - tls
+#   parameters:
+#     provisioningMode: efs-ap
+#     fileSystemId: fs-92107410
+#     directoryPerms: "700"
+#     gidRangeStart: "1000"
+#     gidRangeEnd: "2000"
+#     basePath: "/dynamic_provisioning"
