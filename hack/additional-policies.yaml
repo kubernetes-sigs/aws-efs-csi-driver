@@ -1,0 +1,14 @@
+  additionalPolicies:
+    node: |
+      [
+        {
+          "Effect": "Allow",
+          "Action": [
+            "elasticfilesystem:CreateAccessPoint",
+            "elasticfilesystem:DeleteAccessPoint",
+            "elasticfilesystem:DescribeFileSystems",
+            "elasticfilesystem:DescribeAccessPoints"
+          ],
+          "Resource": "*"
+        }
+      ]
