@@ -18,7 +18,7 @@ sidecars:
     tag: "v1.3.0"
   csiProvisionerImage:
     repository: k8s.gcr.io/sig-storage/csi-provisioner
-    tag: "v2.0.2"
+    tag: "v2.0.4"
 
 imagePullSecrets: []
 nameOverride: ""

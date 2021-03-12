@@ -36,12 +36,16 @@ func TestCreateAccessPoint(t *testing.T) {
 					efs: mockEfs,
 				}
 
+				tags := make(map[string]string)
+				tags["cluster"] = "efs"
+
 				req := &AccessPointOptions{
 					FileSystemId:   fsId,
 					Uid:            uid,
 					Gid:            gid,
 					DirectoryPerms: directoryPerms,
 					DirectoryPath:  directoryPath,
+					Tags:           tags,
 				}
 
 				output := &efs.CreateAccessPointOutput{
