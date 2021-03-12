@@ -159,47 +159,6 @@ var _ = ginkgo.SynchronizedBeforeSuite(func() []byte {
 
 		FileSystemId = id
 		ginkgo.By(fmt.Sprintf("Created EFS filesystem %q in region %q for cluster %q", FileSystemId, Region, ClusterName))
-		//Sleep 3 minutes to allow file system bootstrapping
-		ginkgo.By("Sleeping 3 minutes to allow file system bootstrapping")
-		time.Sleep(3 * time.Minute)
-		ginkgo.By("Done sleeping. Now proceeding to test access point creation")
-
-		accessPointId, err := c.CreateAccessPoint(FileSystemId, ClusterName)
-		if err != nil {
-			framework.ExpectNoError(err, "creating access point")
-		}
-		ginkgo.By(fmt.Sprintf("Created access point %q", accessPointId))
-		ginkgo.By("Now proceeding to mount using access point")
-
-		target := "accessPointTest"
-		if err = makeDir(target); err != nil {
-			framework.ExpectNoError(err, fmt.Sprintf("Failed to create temp directory %q", target))
-		}
-		defer os.RemoveAll(target)
-
-		// mount access point
-		command := exec.Command("/bin/sh", "-c", "mount", "-t", "efs", "-o", "tls,accesspoint="+accessPointId, FileSystemId, target)
-		if err = command.Run(); err != nil {
-			framework.ExpectNoError(err, "Failed to mount using access point")
-		}
-
-		//Allow access point bootstrapping
-		ginkgo.By("Sleeping 3 minutes to allow mount bootstrapping")
-		time.Sleep(3 * time.Minute)
-		ginkgo.By("Done sleeping. Now proceeding interact with access point")
-
-		// interact with access point by creating a directory
-		command = exec.Command("/bin/sh", "-c", "mkdir -p accessPointTest/a1")
-		if err = command.Run(); err != nil {
-			framework.ExpectNoError(err, "Failed to create directory in file system")
-		}
-
-		ginkgo.By("Access Point interaction succeeded, now proceeding to delete access point...")
-		err = c.DeleteAccessPoint(accessPointId)
-		if err != nil {
-			framework.ExpectNoError(err, "deleting access point")
-		}
-		ginkgo.By(fmt.Sprintf("Deleted access point %q", accessPointId))
 		deleteFileSystem = true
 	} else {
 		ginkgo.By(fmt.Sprintf("Using already-created EFS file system %q", FileSystemId))
