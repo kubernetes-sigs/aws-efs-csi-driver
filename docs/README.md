@@ -19,8 +19,23 @@ The [Amazon Elastic File System](https://aws.amazon.com/efs/) Container Storage 
 Currently only static provisioning is supported. This means an AWS EFS file system needs to be created manually on AWS first. After that it can be mounted inside a container as a volume using the driver.
 
 The following CSI interfaces are implemented:
-* Node Service: NodePublishVolume, NodeUnpublishVolume, NodeGetCapabilities, NodeGetInfo, NodeGetId
+* Controller Service: CreateVolume, DeleteVolume, ControllerGetCapabilities, ValidateVolumeCapabilities
+* Node Service: NodePublishVolume, NodeUnpublishVolume, NodeGetCapabilities, NodeGetInfo, NodeGetId, NodeGetVolumeStats
 * Identity Service: GetPluginInfo, GetPluginCapabilities, Probe
+
+### CreateVolume Parameters
+| Parameters          | Values | Default | Optional  | Description |
+|---------------------|--------|---------|-----------|-------------|
+| provisioningMode    | efs-ap |         | false     | Type of volume provisioned by efs. Currently, Access Points are supported. |
+| fileSystemId        |        |         | false     | File System under which access points are created. | 
+| directoryPerms      |        |         | false     | Directory permissions for [Access Point root directory](https://docs.aws.amazon.com/efs/latest/ug/efs-access-points.html#enforce-root-directory-access-point) creation. |
+| gidRangeStart       |        | 50000   | true      | Start range of the POSIX group Id to be applied for [Access Point root directory](https://docs.aws.amazon.com/efs/latest/ug/efs-access-points.html#enforce-root-directory-access-point) creation. |
+| gidRangeEnd         |        | 7000000 | true      | End range of the POSIX group Id. |
+| basePath            |        |         | true      | Path under which access points for dynamic provisioning is created. If this parameter is not specified, access points are created under the root directory of the file system |
+
+**Notes**:
+* Custom Posix group Id range for Access Point root directory must include both `gidRangeStart` and `gidRangeEnd` parameters.
+* When using a custom Posix group ID range, there is a possibility for the driver to run out of available POSIX group Ids. We suggest ensuring custom group ID range is large enough or create a new storage class with a new file system to provision additional volumes. 
 
 ### Encryption In Transit
 One of the advantages of using EFS is that it provides [encryption in transit](https://aws.amazon.com/blogs/aws/new-encryption-of-data-in-transit-for-amazon-efs/) support using TLS. Using encryption in transit, data will be encrypted during its transition over the network to the EFS service. This provides an extra layer of defence-in-depth for applications that requires strict security compliance.
@@ -54,6 +69,7 @@ The following sections are Kubernetes specific. If you are a Kubernetes user, us
 
 ### Features
 * Static provisioning - EFS file system needs to be created manually first, then it could be mounted inside container as a persistent volume (PV) using the driver.
+* Dynamic provisioning - Uses a persistent volume claim (PVC) to dynamically provision a persistent volume (PV). On Creating a PVC, kuberenetes requests EFS to create an Access Point in a file system which will be used to mount the PV.
 * Mount Options - Mount options can be specified in the persistent volume (PV) to define how the volume should be mounted.
 * Encryption of data in transit - EFS file systems are mounted with encryption in transit enabled by default in the master branch version of the driver.
 
@@ -61,7 +77,12 @@ The following sections are Kubernetes specific. If you are a Kubernetes user, us
 * Since EFS is an elastic file system it doesn't really enforce any file system capacity. The actual storage capacity value in persistent volume and persistent volume claim is not used when creating the file system. However, since the storage capacity is a required field by Kubernetes, you must specify the value and you can use any valid value for the capacity.
 
 ### Installation
-Deploy the driver:
+#### Set up driver permission:
+The driver requires IAM permission to talk to Amazon EFS to manage the volume on user's behalf. There are several methods to grant driver IAM permission:
+* Using IAM Role for Service Account (Recommended if you're using EKS): create an [IAM Role for service accounts](https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts.html) with the [required permissions](./iam-policy-example.json). Uncomment annotations and put the IAM role ARN in [service-account manifest](../deploy/kubernetes/base/serviceaccount-csi-controller.yaml)
+* Using IAM [instance profile](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_use_switch-role-ec2_instance-profiles.html) - grant all the worker nodes with [required permissions](./iam-policy-example.json) by attaching policy to the instance profile of the worker.
+
+#### Deploy the driver:
 
 If you want to deploy the stable driver:
 ```sh
@@ -88,6 +109,7 @@ Before the example, you need to:
 
 #### Example links
 * [Static provisioning](../examples/kubernetes/static_provisioning/README.md)
+* [Dynamic provisioning](../examples/kubernetes/dynamic_provisioning/README.md)
 * [Encryption in transit](../examples/kubernetes/encryption_in_transit/README.md)
 * [Accessing the file system from multiple pods](../examples/kubernetes/multiple_pods/README.md)
 * [Consume EFS in StatefulSets](../examples/kubernetes/statefulset/README.md)
