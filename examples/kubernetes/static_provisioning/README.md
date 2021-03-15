@@ -1,7 +1,7 @@
 ## Static Provisioning
-This example shows how to make a static provisioned EFS persistence volume (PV) mounted inside container.
+This example shows how to make a static provisioned EFS persistent volume (PV) mounted inside container.
 
-### Edit [Persistence Volume Spec](./specs/pv.yaml) 
+### Edit [Persistent Volume Spec](./specs/pv.yaml)
 
 ```
 apiVersion: v1
@@ -15,7 +15,6 @@ spec:
   accessModes:
     - ReadWriteOnce
   persistentVolumeReclaimPolicy: Retain
-  storageClassName: efs-sc
   csi:
     driver: efs.csi.aws.com
     volumeHandle: [FileSystemId] 
@@ -28,9 +27,8 @@ You can find it using AWS CLI:
 ```
 
 ### Deploy the Example Application
-Create PV, persistence volume claim (PVC) and storage class:
+Create PV and persistent volume claim (PVC):
 ```sh
->> kubectl apply -f examples/kubernetes/static_provisioning/specs/storageclass.yaml
 >> kubectl apply -f examples/kubernetes/static_provisioning/specs/pv.yaml
 >> kubectl apply -f examples/kubernetes/static_provisioning/specs/claim.yaml
 >> kubectl apply -f examples/kubernetes/static_provisioning/specs/pod.yaml
