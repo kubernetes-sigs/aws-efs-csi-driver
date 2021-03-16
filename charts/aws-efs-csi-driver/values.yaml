@@ -11,11 +11,11 @@ image:
 
 sidecars:
   livenessProbeImage:
-    repository: quay.io/k8scsi/livenessprobe
-    tag: "v2.0.0"
+    repository: k8s.gcr.io/sig-storage/livenessprobe
+    tag: "v2.2.0"
   nodeDriverRegistrarImage:
-    repository: quay.io/k8scsi/csi-node-driver-registrar
-    tag: "v1.3.0"
+    repository: k8s.gcr.io/sig-storage/csi-node-driver-registrar
+    tag: "v2.1.0"
   csiProvisionerImage:
     repository: k8s.gcr.io/sig-storage/csi-provisioner
     tag: "v2.0.4"

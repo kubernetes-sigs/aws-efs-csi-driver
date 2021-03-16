@@ -71,7 +71,7 @@ spec:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
         - name: liveness-probe
-          image: quay.io/k8scsi/livenessprobe:v2.0.0
+          image: k8s.gcr.io/sig-storage/livenessprobe:v2.2.0
           args:
             - --csi-address=/csi/csi.sock
             - --health-port=9808
