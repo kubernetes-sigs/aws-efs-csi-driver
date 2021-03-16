@@ -27,6 +27,7 @@ LDFLAGS?="-X ${PKG}/pkg/driver.driverVersion=${VERSION} \
 GO111MODULE=on
 GOPROXY=direct
 GOPATH=$(shell go env GOPATH)
+GOOS=$(shell go env GOOS)
 
 .EXPORT_ALL_VARIABLES:
 
@@ -35,6 +36,14 @@ aws-efs-csi-driver:
 	mkdir -p bin
 	@echo GOARCH:${GOARCH}
 	CGO_ENABLED=0 GOOS=linux go build -mod=vendor -ldflags ${LDFLAGS} -o bin/aws-efs-csi-driver ./cmd/
+
+bin /tmp/helm:
+	@mkdir -p $@
+
+bin/helm: | /tmp/helm bin
+	@curl -o /tmp/helm/helm.tar.gz -sSL https://get.helm.sh/helm-v3.1.2-${GOOS}-amd64.tar.gz
+	@tar -zxf /tmp/helm/helm.tar.gz -C bin --strip-components=1
+	@rm -rf /tmp/helm/*
 
 build-darwin:
 	mkdir -p bin/darwin/
@@ -90,3 +99,8 @@ image-release:
 .PHONY: push-release
 push-release:
 	docker push $(IMAGE):$(VERSION)
+
+.PHONY: generate-kustomize
+generate-kustomize: bin/helm
+	cd helm && ../bin/helm template kustomize . -s templates/csidriver.yaml > ../deploy/kubernetes/base/csidriver.yaml
+	cd helm && ../bin/helm template kustomize . -s templates/daemonset.yaml -f values.yaml  > ../deploy/kubernetes/base/node.yaml
