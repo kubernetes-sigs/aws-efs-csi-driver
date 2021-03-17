@@ -3,7 +3,6 @@ kind: DaemonSet
 apiVersion: apps/v1
 metadata:
   name: efs-csi-node
-  namespace: kube-system
   labels:
     app.kubernetes.io/name: {{ include "aws-efs-csi-driver.name" . }}
 spec:
@@ -41,6 +40,15 @@ spec:
         {{- with .Values.nodeSelector }}
         {{- . | toYaml | nindent 8 }}
         {{- end }}
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: eks.amazonaws.com/compute-type
+                operator: NotIn
+                values:
+                - fargate
       hostNetwork: true
       {{- if .Values.dnsPolicy }}
       dnsPolicy: "{{ .Values.dnsPolicy }}"

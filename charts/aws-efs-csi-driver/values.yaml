@@ -11,14 +11,14 @@ image:
 
 sidecars:
   livenessProbeImage:
-    repository: quay.io/k8scsi/livenessprobe
-    tag: "v2.0.0"
+    repository: k8s.gcr.io/sig-storage/livenessprobe
+    tag: "v2.2.0"
   nodeDriverRegistrarImage:
-    repository: quay.io/k8scsi/csi-node-driver-registrar
-    tag: "v1.3.0"
+    repository: k8s.gcr.io/sig-storage/csi-node-driver-registrar
+    tag: "v2.1.0"
   csiProvisionerImage:
     repository: k8s.gcr.io/sig-storage/csi-provisioner
-    tag: "v2.0.4"
+    tag: "v2.1.1"
 
 imagePullSecrets: []
 nameOverride: ""
@@ -74,14 +74,14 @@ dnsConfig:
 serviceAccount:
   controller:
     # Specifies whether a service account should be created
-    create: false
+    create: true
     annotations: {}
     ## Enable if EKS IAM for SA is used
     #  eks.amazonaws.com/role-arn: arn:aws:iam::111122223333:role/efs-csi-role
     name: efs-csi-controller-sa
 
 controller:
-  create: false
+  create: true
 
 storageClasses: []
 # Add StorageClass resources like:
