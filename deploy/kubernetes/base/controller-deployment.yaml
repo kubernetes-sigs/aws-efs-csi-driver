@@ -58,7 +58,7 @@ spec:
             periodSeconds: 10
             failureThreshold: 5
         - name: csi-provisioner
-          image: k8s.gcr.io/sig-storage/csi-provisioner:v2.0.3
+          image: public.ecr.aws/eks-distro/kubernetes-csi/external-provisioner:v2.0.3-eks-1-18-1
           args:
             - --csi-address=$(ADDRESS)
             - --v=5
@@ -71,7 +71,7 @@ spec:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
         - name: liveness-probe
-          image: k8s.gcr.io/sig-storage/livenessprobe:v2.2.0
+          image: public.ecr.aws/eks-distro/kubernetes-csi/livenessprobe:v2.1.0-eks-1-18-1
           args:
             - --csi-address=/csi/csi.sock
             - --health-port=9808
