@@ -6,7 +6,7 @@ replicaCount: 2
 
 image:
   repository: amazon/aws-efs-csi-driver
-  tag: "v1.1.1"
+  tag: "v1.2.0"
   pullPolicy: IfNotPresent
 
 sidecars:
@@ -18,7 +18,7 @@ sidecars:
     tag: "v2.1.0"
   csiProvisionerImage:
     repository: k8s.gcr.io/sig-storage/csi-provisioner
-    tag: "v2.1.1"
+    tag: "v2.0.3"
 
 imagePullSecrets: []
 nameOverride: ""

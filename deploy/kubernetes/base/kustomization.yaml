@@ -2,9 +2,7 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: kube-system
 resources:
-- clusterrole-provisioner.yaml
-- clusterrolebinding-provisioner.yaml
-- node.yaml
+- node-daemonset.yaml
 - csidriver.yaml
-- controller.yaml
-- serviceaccount-csi-controller.yaml
+- controller-deployment.yaml
+- controller-serviceaccount.yaml
