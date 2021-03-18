@@ -1,3 +1,17 @@
+# v1.2
+
+## Notable changes
+- efs-csi-driver now supports dynamic provisioning 
+
+### New features
+* Implement dynamic provisioning ([#274](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/274), [#297](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/297), [@kbasv](https://github.com/kbasv))
+* Add tags to efs resources provisioned by driver ([#309](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/309), [@kbasv](https://github.com/kbasv))
+  
+### Improvements
+* Bump efs-utils version to 1.29.1-1 ([#366](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/366), [@kbasv](https://github.com/kbasv))
+* Daemonset Affinity for fargate nodes ([#329](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/329), [@benmccown-amz](https://github.com/benmccown-amz))
+
+
 # v1.1.1
 
 ### Bug fixes
