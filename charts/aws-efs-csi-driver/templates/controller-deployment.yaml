@@ -34,6 +34,15 @@ spec:
         {{- with .Values.nodeSelector }}
         {{- . | toYaml | nindent 8 }}
         {{- end }}
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: eks.amazonaws.com/compute-type
+                operator: NotIn
+                values:
+                - fargate
       {{- if .Values.serviceAccount.controller.create }}
       serviceAccountName: {{ include "aws-efs-csi-driver.serviceAccountName" . }}
       {{- end }}

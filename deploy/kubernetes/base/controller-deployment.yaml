@@ -23,6 +23,15 @@ spec:
     spec:
       nodeSelector:
         kubernetes.io/os: linux
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: eks.amazonaws.com/compute-type
+                operator: NotIn
+                values:
+                - fargate
       serviceAccountName: efs-csi-controller-sa
       priorityClassName: system-cluster-critical
       tolerations:
