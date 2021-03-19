@@ -16,14 +16,16 @@ The [Amazon Elastic File System](https://aws.amazon.com/efs/) Container Storage 
 | v0.1.0                                 | yes   | no     | no     |
 
 ## Features
-Currently only static provisioning is supported. This means an AWS EFS file system needs to be created manually on AWS first. After that it can be mounted inside a container as a volume using the driver.
+EFS CSI driver supports dynamic provisioning and static provisioning.
+Currently Dynamic Provisioning creates an access point for each PV. This mean an AWS EFS file system has to be created manually on AWS first and should be provided as an input to the storage class parameter.
+For static provisioning, AWS EFS file system needs to be created manually on AWS first. After that it can be mounted inside a container as a volume using the driver.
 
 The following CSI interfaces are implemented:
 * Controller Service: CreateVolume, DeleteVolume, ControllerGetCapabilities, ValidateVolumeCapabilities
 * Node Service: NodePublishVolume, NodeUnpublishVolume, NodeGetCapabilities, NodeGetInfo, NodeGetId, NodeGetVolumeStats
 * Identity Service: GetPluginInfo, GetPluginCapabilities, Probe
 
-### CreateVolume Parameters
+### Storage Class Parameters for Dynamic Provisioning
 | Parameters          | Values | Default | Optional  | Description |
 |---------------------|--------|---------|-----------|-------------|
 | provisioningMode    | efs-ap |         | false     | Type of volume provisioned by efs. Currently, Access Points are supported. |
