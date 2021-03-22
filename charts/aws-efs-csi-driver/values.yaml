@@ -12,13 +12,13 @@ image:
 sidecars:
   livenessProbeImage:
     repository: public.ecr.aws/eks-distro/kubernetes-csi/livenessprobe
-    tag: v2.1.0-eks-1-18-1
+    tag: v2.2.0-eks-1-18-2
   nodeDriverRegistrarImage:
     repository: public.ecr.aws/eks-distro/kubernetes-csi/node-driver-registrar
-    tag: v2.0.1-eks-1-18-1
+    tag: v2.1.0-eks-1-18-2
   csiProvisionerImage:
     repository: public.ecr.aws/eks-distro/kubernetes-csi/external-provisioner
-    tag: v2.0.3-eks-1-18-1
+    tag: v2.1.1-eks-1-18-2
 
 imagePullSecrets: []
 nameOverride: ""
