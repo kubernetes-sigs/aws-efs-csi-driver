@@ -26,18 +26,21 @@ fullnameOverride: ""
 
 podAnnotations: {}
 
-resources:
-  {}
-  # We usually recommend not to specify default resources and to leave this as a conscious
-  # choice for the user. This also increases chances charts run on environments with little
-  # resources, such as Minikube. If you do want to specify resources, uncomment the following
-  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
-  # limits:
-  #   cpu: 100m
-  #   memory: 128Mi
-  # requests:
-  #   cpu: 100m
-  #   memory: 128Mi
+EFSPlugin:
+  # -- Resource requests and limits for the efs-plugin container in both the Deployment and DaemonSet
+  resources: {}
+
+CSIProvisioner:
+  # -- Resource requests and limits for the csi-provisioner container the Deployment
+  resources: {}
+
+livenessProbe:
+  # -- Resource requests and limits for the liveness-probe container in both the Deployment and DaemonSet
+  resources: {}
+
+nodeRegistrar:
+  # -- Resource requests and limits for the csi-driver-registrar container the DaemonSet
+  resources: {}
 
 nodeSelector: {}
 

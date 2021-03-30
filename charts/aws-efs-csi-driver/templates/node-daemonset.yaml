@@ -99,6 +99,8 @@ spec:
             timeoutSeconds: 3
             periodSeconds: 2
             failureThreshold: 5
+          resources:
+            {{- toYaml .Values.EFSPlugin.resources | nindent 12 }}
         - name: csi-driver-registrar
           image: {{ printf "%s:%s" .Values.sidecars.nodeDriverRegistrarImage.repository .Values.sidecars.nodeDriverRegistrarImage.tag }}
           args:
@@ -119,6 +121,8 @@ spec:
               mountPath: /csi
             - name: registration-dir
               mountPath: /registration
+          resources:
+            {{- toYaml .Values.nodeRegistrar.resources | nindent 12 }}
         - name: liveness-probe
           image: {{ printf "%s:%s" .Values.sidecars.livenessProbeImage.repository .Values.sidecars.livenessProbeImage.tag }}
           args:
@@ -128,6 +132,8 @@ spec:
           volumeMounts:
             - name: plugin-dir
               mountPath: /csi
+          resources:
+            {{- toYaml .Values.livenessProbe.resources | nindent 12 }}
       volumes:
         - name: kubelet-dir
           hostPath:
