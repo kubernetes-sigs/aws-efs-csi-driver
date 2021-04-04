@@ -32,7 +32,17 @@ ENV EFS_CLIENT_SOURCE=$client_source
 RUN GOOS=${TARGETOS} GOARCH=${TARGETARCH} make aws-efs-csi-driver
 
 FROM amazonlinux:2.0.20210219.0
-RUN yum install amazon-efs-utils-1.28.2-1.amzn2.noarch -y
+
+# TODO: Remove this once PR is merged and a new amazon-efs-utils release is cut.
+RUN yum install git make rpm-build python3-pip -y \
+  && git clone https://github.com/chrishenzie/efs-utils \
+  && cd efs-utils \
+  && git checkout mount-by-ip-with-tls \
+  && make rpm \
+  && yum localinstall build/rpmbuild/RPMS/noarch/amazon-efs-utils-1.30.1-1.amzn2.noarch.rpm -y \
+  && cd / \
+  && rm -rf efs-utils \
+  && pip3 install botocore==1.20.44
 
 # At image build time, static files installed by efs-utils in the config directory, i.e. CAs file, need
 # to be saved in another place so that the other stateful files created at runtime, i.e. private key for
