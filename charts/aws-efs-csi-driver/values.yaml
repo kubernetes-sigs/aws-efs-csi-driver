@@ -95,3 +95,7 @@ storageClasses: []
 #     gidRangeStart: "1000"
 #     gidRangeEnd: "2000"
 #     basePath: "/dynamic_provisioning"
+
+podLabels: {}
+  # key1: value1
+  # key2: value2
