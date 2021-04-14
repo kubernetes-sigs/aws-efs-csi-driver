@@ -54,3 +54,14 @@ Create the name of the service account to use
     {{ default "default" .Values.serviceAccount.controller.name }}
 {{- end -}}
 {{- end -}}
+
+{{/*
+Create a string out of the map for controller tags flag
+*/}}
+{{- define "aws-efs-csi-driver.tags" -}}
+{{- $tags := list -}}
+{{ range $key, $val := . }}
+{{- $tags = print $key ":" $val | append $tags -}}
+{{- end -}}
+{{- join " " $tags -}}
+{{- end -}}

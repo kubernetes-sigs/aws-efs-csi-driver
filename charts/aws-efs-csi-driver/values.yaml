@@ -82,6 +82,10 @@ serviceAccount:
 
 controller:
   create: true
+  # Add additional tags to access points
+  tags: {}
+    # environment: prod
+    # region: us-east-1
 
 storageClasses: []
 # Add StorageClass resources like:

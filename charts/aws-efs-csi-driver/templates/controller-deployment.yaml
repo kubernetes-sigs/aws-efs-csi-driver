@@ -53,6 +53,9 @@ spec:
             - --endpoint=$(CSI_ENDPOINT)
             - --logtostderr
             - --v=5
+            {{- if .Values.controller.tags }}
+            - --tags={{ include "aws-efs-csi-driver.tags" .Values.controller.tags }}
+            {{- end }}
             # Uncomment below line to allow access point root directory to be deleted by controller.
             #- --delete-access-point-root-dir
           env:
