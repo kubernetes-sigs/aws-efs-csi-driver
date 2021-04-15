@@ -86,6 +86,9 @@ controller:
 storageClasses: []
 # Add StorageClass resources like:
 # - name: efs-sc
+##  Use that annotation if you want this to your default storageclass
+#   annotations:
+#     storageclass.kubernetes.io/is-default-class: "true"
 #   mountOptions:
 #   - tls
 #   parameters:
