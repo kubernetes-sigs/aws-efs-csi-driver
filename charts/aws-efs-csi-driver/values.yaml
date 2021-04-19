@@ -95,3 +95,7 @@ storageClasses: []
 #     gidRangeStart: "1000"
 #     gidRangeEnd: "2000"
 #     basePath: "/dynamic_provisioning"
+# Use aws credentials secret instead of relying on eks iam auth or instance profiles
+awsCredentialsSecret: false
+# aws credentials secret name
+awsCredentialsSecretName: aws-efs-csi-driver-credentials

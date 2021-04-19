@@ -87,6 +87,11 @@ spec:
               mountPath: /var/amazon/efs
             - name: efs-utils-config-legacy
               mountPath: /etc/amazon/efs-legacy
+{{- if .Values.awsCredentialsSecret }}
+            - name: aws-credentials
+              mountPath: /root/.aws
+              readOnly: true
+{{- end }}
           ports:
             - name: healthz
               containerPort: 9809
@@ -153,3 +158,8 @@ spec:
           hostPath:
             path: /etc/amazon/efs
             type: DirectoryOrCreate
+{{- if .Values.awsCredentialsSecret }}
+        - name: aws-credentials
+          secret:
+            secretName: {{ .Values.awsCredentialsSecretName }}
+{{- end }}
