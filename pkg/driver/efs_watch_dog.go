@@ -40,7 +40,11 @@ state_file_dir_mode = 750
 dns_name_format = {fs_id}.efs.{region}.{dns_name_suffix}
 dns_name_suffix = amazonaws.com
 #The region of the file system when mounting from on-premises or cross region.
+{{if .Region -}}
+region = {{.Region -}}
+{{else -}}
 #region = us-east-1
+{{- end}}
 stunnel_debug_enabled = false
 #Uncomment the below option to save all stunnel logs for a file system to the same file
 #stunnel_logs_file = /var/log/amazon/efs/{fs_id}.stunnel.log
@@ -121,6 +125,7 @@ type execWatchdog struct {
 
 type efsUtilsConfig struct {
 	EfsClientSource string
+	Region          string
 }
 
 func newExecWatchdog(efsUtilsCfgPath, efsUtilsStaticFilesPath, cmd string, arg ...string) Watchdog {
@@ -214,7 +219,9 @@ func (w *execWatchdog) updateConfig(efsClientSource string) error {
 		return fmt.Errorf("cannot create config file %s for efs-utils. Error: %v", w.efsUtilsCfgPath, err)
 	}
 	defer f.Close()
-	efsCfg := efsUtilsConfig{EfsClientSource: efsClientSource}
+	// used on Fargate, IMDS queries suffice otherwise
+	region := os.Getenv("AWS_REGION")
+	efsCfg := efsUtilsConfig{EfsClientSource: efsClientSource, Region: region}
 	if err = efsCfgTemplate.Execute(f, efsCfg); err != nil {
 		return fmt.Errorf("cannot update config %s for efs-utils. Error: %v", w.efsUtilsCfgPath, err)
 	}
