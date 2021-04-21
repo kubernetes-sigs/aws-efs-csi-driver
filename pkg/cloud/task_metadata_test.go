@@ -88,7 +88,8 @@ func TestGetTaskMetadataService(t *testing.T) {
 }
 
 func TestGetTMDSV4ResponseNonECSEnvironment(t *testing.T) {
-	os.Remove(taskMetadataV4EnvName)
+	// with current test we don't need it, but serve as double down on existent of this env
+	os.Unsetenv(taskMetadataV4EnvName)
 	taskMetadataService := taskMetadata{}
 	_, err := taskMetadataService.GetTMDSV4Response()
 	if err == nil {
