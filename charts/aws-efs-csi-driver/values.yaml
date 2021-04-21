@@ -82,6 +82,9 @@ serviceAccount:
 
 controller:
   create: true
+  # Enable if you want the controller to also delete the
+  # path on efs when deleteing an access point
+  deleteAccessPointRootDir: false
 
 storageClasses: []
 # Add StorageClass resources like:

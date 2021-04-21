@@ -50,9 +50,8 @@ spec:
           args:
             - --endpoint=$(CSI_ENDPOINT)
             - --logtostderr
-            - --v=5
-            # Uncomment below line to allow access point root directory to be deleted by controller.
-            #- --delete-access-point-root-dir
+            - --v={{ .Values.logLevel }}
+            - --delete-access-point-root-dir={{ hasKey .Values.controller "deleteAccessPointRootDir" | ternary .Values.controller.deleteAccessPointRootDir false }}
           env:
             - name: CSI_ENDPOINT
               value: unix:///var/lib/csi/sockets/pluginproxy/csi.sock
@@ -75,7 +74,7 @@ spec:
           image: {{ printf "%s:%s" .Values.sidecars.csiProvisionerImage.repository .Values.sidecars.csiProvisionerImage.tag }}
           args:
             - --csi-address=$(ADDRESS)
-            - --v=5
+            - --v={{ .Values.logLevel }}
             - --feature-gates=Topology=true
             - --leader-election
           env:
