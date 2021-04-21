@@ -12,13 +12,13 @@ image:
 sidecars:
   livenessProbeImage:
     repository: public.ecr.aws/eks-distro/kubernetes-csi/livenessprobe
-    tag: v2.1.0-eks-1-18-1
+    tag: v2.2.0-eks-1-18-2
   nodeDriverRegistrarImage:
     repository: public.ecr.aws/eks-distro/kubernetes-csi/node-driver-registrar
-    tag: v2.0.1-eks-1-18-1
+    tag: v2.1.0-eks-1-18-2
   csiProvisionerImage:
     repository: public.ecr.aws/eks-distro/kubernetes-csi/external-provisioner
-    tag: v2.0.3-eks-1-18-1
+    tag: v2.1.1-eks-1-18-2
 
 imagePullSecrets: []
 nameOverride: ""
@@ -86,15 +86,21 @@ controller:
   tags: {}
     # environment: prod
     # region: us-east-1
+  # Enable if you want the controller to also delete the
+  # path on efs when deleteing an access point
+  deleteAccessPointRootDir: false
 
 storageClasses: []
 # Add StorageClass resources like:
 # - name: efs-sc
+##  Use that annotation if you want this to your default storageclass
+#   annotations:
+#     storageclass.kubernetes.io/is-default-class: "true"
 #   mountOptions:
 #   - tls
 #   parameters:
 #     provisioningMode: efs-ap
-#     fileSystemId: fs-92107410
+#     fileSystemId: fs-1122aabb
 #     directoryPerms: "700"
 #     gidRangeStart: "1000"
 #     gidRangeEnd: "2000"
