@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/golang/mock/gomock"
 	"github.com/kubernetes-sigs/aws-efs-csi-driver/pkg/cloud/mocks"
+	"os"
 	"testing"
 )
 
@@ -18,9 +19,10 @@ var (
 
 func TestGetTaskMetadataService(t *testing.T) {
 	tests := []struct {
-		name                 string
-		returnTMDSV4Response TMDSV4Response
-		err                  error
+		name           string
+		returnResponse interface{}
+		err            error
+		wantErr        bool
 	}{
 		{
 			"success: normal",
@@ -30,6 +32,7 @@ func TestGetTaskMetadataService(t *testing.T) {
 				AvailabilityZone: az,
 			},
 			nil,
+			false,
 		},
 		{
 			"fail: GetTMDSV4Response returned error",
@@ -39,6 +42,13 @@ func TestGetTaskMetadataService(t *testing.T) {
 				AvailabilityZone: az,
 			},
 			fmt.Errorf(""),
+			true,
+		},
+		{
+			"fail: GetTMDSV4Response returned json unmarshal error",
+			"ANY STRING",
+			nil,
+			true,
 		},
 	}
 	for _, tc := range tests {
@@ -47,12 +57,12 @@ func TestGetTaskMetadataService(t *testing.T) {
 			defer mockCtrl.Finish()
 
 			mockTaskMetadata := mocks.NewMockTaskMetadataService(mockCtrl)
-			jsonData, _ := json.Marshal(tc.returnTMDSV4Response)
+			jsonData, _ := json.Marshal(tc.returnResponse)
 			mockTaskMetadata.EXPECT().GetTMDSV4Response().Return(jsonData, tc.err)
 
 			m, err := getTaskMetadata(mockTaskMetadata)
 
-			if tc.err == nil {
+			if !tc.wantErr {
 				if err != nil {
 					t.Fatalf("getTaskMetadata failed: expected no error, got %v", err)
 				}
@@ -74,5 +84,14 @@ func TestGetTaskMetadataService(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestGetTMDSV4ResponseNonECSEnvironment(t *testing.T) {
+	os.Remove(taskMetadataV4EnvName)
+	taskMetadataService := taskMetadata{}
+	_, err := taskMetadataService.GetTMDSV4Response()
+	if err == nil {
+		t.Fatalf("GetTMDSV4Response failed: expected error in non ECS env")
 	}
 }
