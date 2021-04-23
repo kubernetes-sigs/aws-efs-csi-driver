@@ -220,7 +220,7 @@ func (w *execWatchdog) updateConfig(efsClientSource string) error {
 	}
 	defer f.Close()
 	// used on Fargate, IMDS queries suffice otherwise
-	region := os.Getenv("AWS_REGION")
+	region := os.Getenv("AWS_DEFAULT_REGION")
 	efsCfg := efsUtilsConfig{EfsClientSource: efsClientSource, Region: region}
 	if err = efsCfgTemplate.Execute(f, efsCfg); err != nil {
 		return fmt.Errorf("cannot update config %s for efs-utils. Error: %v", w.efsUtilsCfgPath, err)
