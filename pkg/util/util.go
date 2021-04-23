@@ -18,6 +18,8 @@ package util
 
 import (
 	"fmt"
+	"io/ioutil"
+	"net/http"
 	"net/url"
 	"os"
 	"path"
@@ -46,4 +48,22 @@ func ParseEndpoint(endpoint string) (string, string, error) {
 	}
 
 	return scheme, addr, nil
+}
+
+func GetHttpResponse(client *http.Client, endpoint string) ([]byte, error) {
+	resp, err := client.Get(endpoint)
+	if err != nil {
+		return nil, fmt.Errorf("could not get data from %v %v", endpoint, err)
+	}
+	if resp.Body != nil {
+		defer resp.Body.Close()
+	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("incorrect status code %d", resp.StatusCode)
+	}
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("unable to read response body: %v", err)
+	}
+	return body, nil
 }
