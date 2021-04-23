@@ -242,7 +242,7 @@ func (d *Driver) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeRequest)
 			}
 
 			//Mount File System at it root and delete access point root directory
-			mountOptions := []string{"tls"}
+			mountOptions := []string{"tls", "iam"}
 			target := TempMountPathPrefix + "/" + accessPointId
 			if err := d.mounter.MakeDir(target); err != nil {
 				return nil, status.Errorf(codes.Internal, "Could not create dir %q: %v", target, err)
