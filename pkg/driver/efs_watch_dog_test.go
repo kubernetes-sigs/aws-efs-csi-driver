@@ -23,6 +23,14 @@ import (
 
 const (
 	expectedEfsUtilsConfig = `
+#
+# Copyright 2017-2018 Amazon.com, Inc. and its affiliates. All Rights Reserved.
+#
+# Licensed under the MIT License. See the LICENSE accompanying this file
+# for the specific language governing permissions and limitations under
+# the License.
+#
+
 [DEFAULT]
 logging_level = INFO
 logging_max_bytes = 1048576
@@ -31,7 +39,7 @@ logging_file_count = 10
 state_file_dir_mode = 750
 
 [mount]
-dns_name_format = {fs_id}.efs.{region}.{dns_name_suffix}
+dns_name_format = {az}.{fs_id}.efs.{region}.{dns_name_suffix}
 dns_name_suffix = amazonaws.com
 #The region of the file system when mounting from on-premises or cross region.
 #region = us-east-1
@@ -50,17 +58,25 @@ stunnel_check_cert_validity = false
 port_range_lower_bound = 20049
 port_range_upper_bound = 20449
 
+# Optimize read_ahead_kb for Linux 5.4+
+optimize_readahead = true
+
+
 [mount.cn-north-1]
 dns_name_suffix = amazonaws.com.cn
+
 
 [mount.cn-northwest-1]
 dns_name_suffix = amazonaws.com.cn
 
+
 [mount.us-iso-east-1]
 dns_name_suffix = c2s.ic.gov
+stunnel_cafile = /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
 
 [mount.us-isob-east-1]
 dns_name_suffix = sc2s.sgov.gov
+stunnel_cafile = /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
 
 [mount-watchdog]
 enabled = true
