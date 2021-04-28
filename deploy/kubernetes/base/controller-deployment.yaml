@@ -21,6 +21,7 @@ spec:
         app.kubernetes.io/name: aws-efs-csi-driver
         app.kubernetes.io/instance: kustomize
     spec:
+      hostNetwork: true
       nodeSelector:
         kubernetes.io/os: linux
       serviceAccountName: efs-csi-controller-sa
@@ -36,9 +37,8 @@ spec:
           args:
             - --endpoint=$(CSI_ENDPOINT)
             - --logtostderr
-            - --v=5
-            # Uncomment below line to allow access point root directory to be deleted by controller.
-            #- --delete-access-point-root-dir
+            - --v=2
+            - --delete-access-point-root-dir=false
           env:
             - name: CSI_ENDPOINT
               value: unix:///var/lib/csi/sockets/pluginproxy/csi.sock
@@ -61,7 +61,7 @@ spec:
           image: public.ecr.aws/eks-distro/kubernetes-csi/external-provisioner:v2.1.1-eks-1-18-2
           args:
             - --csi-address=$(ADDRESS)
-            - --v=5
+            - --v=2
             - --feature-gates=Topology=true
             - --leader-election
           env:
