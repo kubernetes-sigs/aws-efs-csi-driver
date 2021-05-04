@@ -46,7 +46,9 @@ tolerations: []
 affinity: {}
 
 node:
+  hostNetwork: true
   podAnnotations: {}
+  port: 9809
   tolerations: []
 
 logLevel: 2
@@ -90,6 +92,8 @@ controller:
   # Enable if you want the controller to also delete the
   # path on efs when deleteing an access point
   deleteAccessPointRootDir: false
+  hostNetwork: true
+  port: 9909
 
 storageClasses: []
 # Add StorageClass resources like:

@@ -23,7 +23,7 @@ spec:
       annotations: {{ toYaml .Values.node.podAnnotations | nindent 8 }}
       {{- end }}
     spec:
-      hostNetwork: true 
+      hostNetwork: {{ .Values.controller.hostNetwork }}
       {{- if .Values.imagePullSecrets }}
       imagePullSecrets:
         {{- range .Values.imagePullSecrets }}
@@ -64,7 +64,7 @@ spec:
               mountPath: /var/lib/csi/sockets/pluginproxy/
           ports:
             - name: healthz
-              containerPort: 9808
+              containerPort: {{ .Values.controller.port }}
               protocol: TCP
           livenessProbe:
             httpGet:
@@ -91,7 +91,7 @@ spec:
           image: {{ printf "%s:%s" .Values.sidecars.livenessProbeImage.repository .Values.sidecars.livenessProbeImage.tag }}
           args:
             - --csi-address=/csi/csi.sock
-            - --health-port=9808
+            - --health-port={{ .Values.controller.port }}
           volumeMounts:
             - name: socket-dir
               mountPath: /csi
