@@ -264,7 +264,7 @@ func (w *execWatchdog) runLoop(stopCh <-chan struct{}) {
 	for {
 		select {
 		case <-stopCh:
-			//klog.Info("stopping...")
+			klog.Info("stopping...")
 			break
 		default:
 			err := w.exec()

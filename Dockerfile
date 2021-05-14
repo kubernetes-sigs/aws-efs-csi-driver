@@ -25,14 +25,24 @@ RUN echo "I am running on $(uname -s)/$(uname -m)"
 
 ADD . .
 
-# Default client source is `k8s` which can be overriden with –build-arg when building the Docker image
+# Default client source is `k8s` which can be overriden with –-build-arg when building the Docker image
 ARG client_source=k8s
 ENV EFS_CLIENT_SOURCE=$client_source
 
 RUN GOOS=${TARGETOS} GOARCH=${TARGETARCH} make aws-efs-csi-driver
 
 FROM amazonlinux:2.0.20210219.0
-RUN yum install amazon-efs-utils-1.30.1-1.amzn2.noarch -y
+# Install efs-utils from github by default. It can be overriden to `yum` with --build-arg when building the Docker image.
+# If value of `EFSUTILSSOURCE` build arg is overriden with `yum`, docker will install efs-utils from Amazon Linux 2's yum repo.
+ARG EFSUTILSSOURCE=github
+RUN if [ "$EFSUTILSSOURCE" = "yum" ]; \
+    then echo "Installing efs-utils from Amazon Linux 2 yum repo" && \
+         yum -y install amazon-efs-utils-1.30.1-1.amzn2.noarch; \
+    else echo "Installing efs-utils from github" && \
+         yum -y install git rpm-build make && \
+         git clone https://github.com/aws/efs-utils && \
+         cd efs-utils && make rpm && yum -y install build/amazon-efs-utils*rpm; \
+    fi
 
 # At image build time, static files installed by efs-utils in the config directory, i.e. CAs file, need
 # to be saved in another place so that the other stateful files created at runtime, i.e. private key for
