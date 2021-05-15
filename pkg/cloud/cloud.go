@@ -95,7 +95,7 @@ func NewCloud() (Cloud, error) {
 		return nil, fmt.Errorf("could not get metadata from AWS: %v", err)
 	}
 
-	efsClient := efs.New(sess, aws.NewConfig().WithRegion(metadata.GetRegion()))
+	efsClient := efs.New(session.Must(session.NewSession(aws.NewConfig().WithRegion(metadata.GetRegion()))))
 	return &cloud{
 		metadata: metadata,
 		efs:      efsClient,
