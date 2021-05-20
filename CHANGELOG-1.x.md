@@ -1,3 +1,8 @@
+# v1.2.1
+
+### Bug fixes
+* Revert efs-utils to 1.28.2 ([#385](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/385), [@wongma7](https://github.com/wongma7))
+
 # v1.2
 
 ## Notable changes
