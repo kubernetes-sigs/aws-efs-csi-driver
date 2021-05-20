@@ -42,6 +42,12 @@ spec:
           env:
             - name: CSI_ENDPOINT
               value: unix:///var/lib/csi/sockets/pluginproxy/csi.sock
+            - name: instanceID
+              value: <change to your mock instanceID>
+            - name: region
+              value: <change to your mock region>
+            - name: availabilityZone
+              value: <change to your mock availabilityZone>
           volumeMounts:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
