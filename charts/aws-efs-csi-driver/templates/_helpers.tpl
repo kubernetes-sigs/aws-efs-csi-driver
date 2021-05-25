@@ -49,9 +49,9 @@ Create the name of the service account to use
 */}}
 {{- define "aws-efs-csi-driver.serviceAccountName" -}}
 {{- if .Values.controller.create -}}
-    {{ default (include "aws-efs-csi-driver.fullname" .) .Values.serviceAccount.controller.name }}
+    {{ default (include "aws-efs-csi-driver.fullname" .) .Values.controller.serviceAccount.name }}
 {{- else -}}
-    {{ default "default" .Values.serviceAccount.controller.name }}
+    {{ default "default" .Values.controller.serviceAccount.name }}
 {{- end -}}
 {{- end -}}
 
