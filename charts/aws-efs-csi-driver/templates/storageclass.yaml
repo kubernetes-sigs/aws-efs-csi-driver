@@ -17,10 +17,10 @@ parameters:
 {{ toYaml . | indent 2 }}
 {{- end }}
 {{- with .reclaimPolicy }}
-reclaimPolicy: {{ .reclaimPolicy  }}
+reclaimPolicy: {{ . }}
 {{- end }}
 {{- with .volumeBindingMode }}
-volumeBindingMode: {{ .volumeBindingMode }}
+volumeBindingMode: {{ . }}
 {{- end }}
 ---
 {{- end }}
