@@ -17,12 +17,15 @@ limitations under the License.
 package cloud
 
 import (
+	"fmt"
+	"github.com/aws/aws-sdk-go/aws/ec2metadata"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"os"
 )
 
 type EC2Metadata interface {
 	Available() bool
+	GetInstanceIdentityDocument() (ec2metadata.EC2InstanceIdentityDocument, error)
 }
 
 // MetadataService represents AWS metadata service.
@@ -55,12 +58,50 @@ func (m *metadata) GetAvailabilityZone() string {
 	return m.availabilityZone
 }
 
-// getEC2Metadata returns a new MetadataServiceImplementation.
+// NewMetadataService return either EC2 or ECS Task MetadataServiceImplementation.
 func NewMetadataService(sess *session.Session) (MetadataService, error) {
-
-	return &metadata{
+	// check if it is running in on-premise environment otherwise turn to to ECS
+	if onPremiseEnv := os.Getenv("onPremise"); onPremiseEnv == "true" {
+		return &metadata{
 		instanceID:       os.Getenv("instanceID"),
 		region:           os.Getenv("region"),
 		availabilityZone: os.Getenv("availabilityZone"),
+		}, nil
+	}
+	// check if it is running in ECS otherwise default fall back to ec2
+	else if ecsContainerMetadataUri := os.Getenv(taskMetadataV4EnvName); ecsContainerMetadataUri != "" {
+		return getTaskMetadata(&taskMetadata{})
+	} else {
+		return getEC2Metadata(ec2metadata.New(sess))
+	}
+}
+
+// getEC2Metadata returns a new MetadataServiceImplementation.
+func getEC2Metadata(svc EC2Metadata) (MetadataService, error) {
+	if !svc.Available() {
+		return nil, fmt.Errorf("EC2 instance metadata is not available")
+	}
+
+	doc, err := svc.GetInstanceIdentityDocument()
+	if err != nil {
+		return nil, fmt.Errorf("could not get EC2 instance identity metadata")
+	}
+
+	if len(doc.InstanceID) == 0 {
+		return nil, fmt.Errorf("could not get valid EC2 instance ID")
+	}
+
+	if len(doc.Region) == 0 {
+		return nil, fmt.Errorf("could not get valid EC2 region")
+	}
+
+	if len(doc.AvailabilityZone) == 0 {
+		return nil, fmt.Errorf("could not get valid EC2 availavility zone")
+	}
+
+	return &metadata{
+		instanceID:       doc.InstanceID,
+		region:           doc.Region,
+		availabilityZone: doc.AvailabilityZone,
 	}, nil
 }
