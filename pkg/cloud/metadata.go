@@ -67,9 +67,8 @@ func NewMetadataService(sess *session.Session) (MetadataService, error) {
 		region:           os.Getenv("region"),
 		availabilityZone: os.Getenv("availabilityZone"),
 		}, nil
-	}
+	} else if ecsContainerMetadataUri := os.Getenv(taskMetadataV4EnvName); ecsContainerMetadataUri != "" {
 	// check if it is running in ECS otherwise default fall back to ec2
-	else if ecsContainerMetadataUri := os.Getenv(taskMetadataV4EnvName); ecsContainerMetadataUri != "" {
 		return getTaskMetadata(&taskMetadata{})
 	} else {
 		return getEC2Metadata(ec2metadata.New(sess))
