@@ -60,7 +60,7 @@ func (m *metadata) GetAvailabilityZone() string {
 
 // NewMetadataService return either EC2, ECS Task MetadataServiceImplementation or on-premise using environment variables.
 func NewMetadataService(sess *session.Session) (MetadataService, error) {
-	// check if it is running in on-premise environment otherwise turn to to ECS
+	// check if it is running in on-premise environment otherwise turn to ECS
 	if onPremiseEnv := os.Getenv("onPremise"); onPremiseEnv == "true" {
 		return &metadata{
 		instanceID:       os.Getenv("instanceID"),
