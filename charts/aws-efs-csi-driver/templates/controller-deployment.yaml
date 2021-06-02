@@ -19,8 +19,8 @@ spec:
         app: efs-csi-controller
         app.kubernetes.io/name: {{ include "aws-efs-csi-driver.name" . }}
         app.kubernetes.io/instance: {{ .Release.Name }}
-      {{- if .Values.node.podAnnotations }}
-      annotations: {{ toYaml .Values.node.podAnnotations | nindent 8 }}
+      {{- with .Values.controller.podAnnotations }}
+      annotations: {{- toYaml . | nindent 8 }}
       {{- end }}
     spec:
       hostNetwork: true 
@@ -32,29 +32,27 @@ spec:
       {{- end }}
       nodeSelector:
         kubernetes.io/os: linux
-        {{- with .Values.nodeSelector }}
-        {{- . | toYaml | nindent 8 }}
+        {{- with .Values.controller.nodeSelector }}
+        {{- toYaml . | nindent 8 }}
         {{- end }}
       serviceAccountName: {{ include "aws-efs-csi-driver.serviceAccountName" . }}
       priorityClassName: system-cluster-critical
-      tolerations:
-        - operator: Exists
-        {{- with .Values.node.tolerations }}
-        {{- . | toYaml | nindent 8 }}
-        {{- end }}
+      {{- with .Values.controller.tolerations }}
+      tolerations: {{- toYaml . | nindent 8 }}
+      {{- end }}
       containers:
         - name: efs-plugin
           securityContext:
             privileged: true
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
           args:
             - --endpoint=$(CSI_ENDPOINT)
             - --logtostderr
             {{- if .Values.controller.tags }}
             - --tags={{ include "aws-efs-csi-driver.tags" .Values.controller.tags }}
             {{- end }}
-            - --v={{ .Values.logLevel }}
+            - --v={{ .Values.controller.logLevel }}
             - --delete-access-point-root-dir={{ hasKey .Values.controller "deleteAccessPointRootDir" | ternary .Values.controller.deleteAccessPointRootDir false }}
           env:
             - name: CSI_ENDPOINT
@@ -64,7 +62,7 @@ spec:
               mountPath: /var/lib/csi/sockets/pluginproxy/
           ports:
             - name: healthz
-              containerPort: 9808
+              containerPort: 9909
               protocol: TCP
           livenessProbe:
             httpGet:
@@ -74,11 +72,15 @@ spec:
             timeoutSeconds: 3
             periodSeconds: 10
             failureThreshold: 5
+          {{- with .Values.controller.resources }}
+          resources: {{ toYaml . | nindent 12 }}
+          {{- end }}
         - name: csi-provisioner
-          image: {{ printf "%s:%s" .Values.sidecars.csiProvisionerImage.repository .Values.sidecars.csiProvisionerImage.tag }}
+          image: {{ printf "%s:%s" .Values.sidecars.csiProvisioner.image.repository .Values.sidecars.csiProvisioner.image.tag }}
+          imagePullPolicy: {{ .Values.sidecars.csiProvisioner.image.pullPolicy }}
           args:
             - --csi-address=$(ADDRESS)
-            - --v={{ .Values.logLevel }}
+            - --v={{ .Values.controller.logLevel }}
             - --feature-gates=Topology=true
             - --leader-election
           env:
@@ -87,15 +89,25 @@ spec:
           volumeMounts:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
+          {{- with .Values.sidecars.csiProvisioner.resources }}
+          resources: {{ toYaml . | nindent 12 }}
+          {{- end }}
         - name: liveness-probe
-          image: {{ printf "%s:%s" .Values.sidecars.livenessProbeImage.repository .Values.sidecars.livenessProbeImage.tag }}
+          image: {{ printf "%s:%s" .Values.sidecars.livenessProbe.image.repository .Values.sidecars.livenessProbe.image.tag }}
+          imagePullPolicy: {{ .Values.sidecars.livenessProbe.image.pullPolicy }}
           args:
             - --csi-address=/csi/csi.sock
-            - --health-port=9808
+            - --health-port=9909
           volumeMounts:
             - name: socket-dir
               mountPath: /csi
+          {{- with .Values.sidecars.livenessProbe.resources }}
+          resources: {{ toYaml . | nindent 12 }}
+          {{- end }}
       volumes:
         - name: socket-dir
           emptyDir: {}
+      {{- with .Values.controller.affinity }}
+      affinity: {{- toYaml . | nindent 8 }}
+      {{- end }}
 {{- end }}
