@@ -31,18 +31,26 @@ ENV EFS_CLIENT_SOURCE=$client_source
 
 RUN GOOS=${TARGETOS} GOARCH=${TARGETARCH} make aws-efs-csi-driver
 
-FROM amazonlinux:2.0.20210219.0
+FROM amazonlinux:2
 # Install efs-utils from github by default. It can be overriden to `yum` with --build-arg when building the Docker image.
 # If value of `EFSUTILSSOURCE` build arg is overriden with `yum`, docker will install efs-utils from Amazon Linux 2's yum repo.
 ARG EFSUTILSSOURCE=github
 RUN if [ "$EFSUTILSSOURCE" = "yum" ]; \
     then echo "Installing efs-utils from Amazon Linux 2 yum repo" && \
-         yum -y install amazon-efs-utils-1.30.1-1.amzn2.noarch; \
-    else echo "Installing efs-utils from github" && \
+         yum -y install amazon-efs-utils-1.31.1-1.amzn2.noarch; \
+    else echo "Installing efs-utils from github using the latest git tag" && \
          yum -y install git rpm-build make && \
          git clone https://github.com/aws/efs-utils && \
-         cd efs-utils && make rpm && yum -y install build/amazon-efs-utils*rpm; \
+         cd efs-utils && \
+         git checkout $(git describe --tags $(git rev-list --tags --max-count=1)) && \
+         make rpm && yum -y install build/amazon-efs-utils*rpm; \
     fi
+
+# Install botocore required by efs-utils for cross account mount
+RUN yum -y install wget
+RUN wget https://bootstrap.pypa.io/get-pip.py -O /tmp/get-pip.py
+RUN python3 /tmp/get-pip.py
+RUN pip3 install botocore || /usr/local/bin/pip3 install botocore
 
 # At image build time, static files installed by efs-utils in the config directory, i.e. CAs file, need
 # to be saved in another place so that the other stateful files created at runtime, i.e. private key for

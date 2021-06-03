@@ -61,6 +61,12 @@ port_range_upper_bound = 20449
 # Optimize read_ahead_kb for Linux 5.4+
 optimize_readahead = true
 
+# By default, we enable the feature to fallback to mount with mount target ip address when dns name cannot be resolved
+fall_back_to_mount_target_ip_address_enabled = true
+
+# By default, we use IMDSv2 to get the instance metadata, set this to true if you want to disable IMDSv2 usage
+disable_fetch_ec2_metadata_token = false
+
 
 [mount.cn-north-1]
 dns_name_suffix = amazonaws.com.cn

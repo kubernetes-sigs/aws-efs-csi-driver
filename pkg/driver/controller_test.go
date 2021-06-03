@@ -59,6 +59,7 @@ func TestCreateVolume(t *testing.T) {
 						GidMin:           "1000",
 						GidMax:           "2000",
 						DirectoryPerms:   "777",
+						AzName:           "us-east-1a",
 					},
 				}
 
@@ -995,6 +996,52 @@ func TestCreateVolume(t *testing.T) {
 				mockCtl.Finish()
 			},
 		},
+		{
+			name: "Fail: Cannot assume role for x-account",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockCloud := mocks.NewMockCloud(mockCtl)
+
+				driver := &Driver{
+					endpoint:     endpoint,
+					cloud:        mockCloud,
+					gidAllocator: NewGidAllocator(),
+					tags:         parseTagsFromStr(""),
+				}
+
+				secrets := map[string]string{}
+				secrets["awsRoleArn"] = "arn:aws:iam::1234567890:role/EFSCrossAccountRole"
+
+				req := &csi.CreateVolumeRequest{
+					Name: volumeName,
+					VolumeCapabilities: []*csi.VolumeCapability{
+						stdVolCap,
+					},
+					CapacityRange: &csi.CapacityRange{
+						RequiredBytes: capacityRange,
+					},
+					Parameters: map[string]string{
+						ProvisioningMode: "efs-ap",
+						FsId:             fsId,
+						GidMin:           "1000",
+						GidMax:           "2000",
+						DirectoryPerms:   "777",
+						AzName:           "us-east-1a",
+					},
+					Secrets: secrets,
+				}
+
+				ctx := context.Background()
+
+				_, err := driver.CreateVolume(ctx, req)
+
+				if err == nil {
+					t.Fatalf("CreateVolume did not fail")
+				}
+
+				mockCtl.Finish()
+			},
+		},
 	}
 
 	for _, tc := range testCases {
@@ -1369,6 +1416,38 @@ func TestDeleteVolume(t *testing.T) {
 				if err == nil {
 					t.Fatal("DeleteVolume did not fail")
 				}
+				mockCtl.Finish()
+			},
+		},
+		{
+			name: "Fail: Cannot assume role for x-account",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockCloud := mocks.NewMockCloud(mockCtl)
+
+				driver := &Driver{
+					endpoint:     endpoint,
+					cloud:        mockCloud,
+					gidAllocator: NewGidAllocator(),
+					tags:         parseTagsFromStr(""),
+				}
+
+				secrets := map[string]string{}
+				secrets["awsRoleArn"] = "arn:aws:iam::1234567890:role/EFSCrossAccountRole"
+
+				req := &csi.DeleteVolumeRequest{
+					VolumeId: volumeId,
+					Secrets:  secrets,
+				}
+
+				ctx := context.Background()
+
+				_, err := driver.DeleteVolume(ctx, req)
+
+				if err == nil {
+					t.Fatalf("DeleteVolume did not fail")
+				}
+
 				mockCtl.Finish()
 			},
 		},

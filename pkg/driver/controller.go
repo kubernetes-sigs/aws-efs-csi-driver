@@ -31,17 +31,20 @@ import (
 
 const (
 	AccessPointMode     = "efs-ap"
+	AzName              = "az"
+	BasePath            = "basePath"
+	DefaultGidMin       = 50000
+	DefaultGidMax       = 7000000
+	DefaultTagKey       = "efs.csi.aws.com/cluster"
+	DefaultTagValue     = "true"
+	DirectoryPerms      = "directoryPerms"
 	FsId                = "fileSystemId"
 	GidMin              = "gidRangeStart"
 	GidMax              = "gidRangeEnd"
-	DirectoryPerms      = "directoryPerms"
-	BasePath            = "basePath"
+	MountTargetIp       = "mounttargetip"
 	ProvisioningMode    = "provisioningMode"
-	DefaultGidMin       = 50000
-	DefaultGidMax       = 7000000
+	RoleArn             = "awsRoleArn"
 	TempMountPathPrefix = "/var/lib/csi/pv"
-	DefaultTagKey       = "efs.csi.aws.com/cluster"
-	DefaultTagValue     = "true"
 )
 
 var (
@@ -72,11 +75,14 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 	}
 
 	var (
+		azName           string
+		basePath         string
+		err              error
 		gidMin           int
 		gidMax           int
-		basePath         string
+		localCloud       cloud.Cloud
 		provisioningMode string
-		err              error
+		roleArn          string
 	)
 
 	//Parse parameters
@@ -110,7 +116,6 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 	}
 
 	if value, ok := volumeParams[FsId]; ok {
-		klog.V(5).Infof("FS ID: %v", value)
 		if strings.TrimSpace(value) == "" {
 			return nil, status.Errorf(codes.InvalidArgument, "Parameter %v cannot be empty", FsId)
 		}
@@ -162,8 +167,22 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 		basePath = value
 	}
 
+	// Storage class parameter `az` will be used to fetch preferred mount target for cross account mount.
+	// If the `az` storage class parameter is not provided, a random mount target will be picked for mounting.
+	// This storage class parameter different from `az` mount option provided by efs-utils https://github.com/aws/efs-utils/blob/v1.31.1/src/mount_efs/__init__.py#L195
+	// The `az` mount option provided by efs-utils is used for cross az mount or to provide az of efs one zone file system mount within the same aws-account.
+	// To make use of the `az` mount option, add it under storage class's `mountOptions` section. https://kubernetes.io/docs/concepts/storage/storage-classes/#mount-options
+	if value, ok := volumeParams[AzName]; ok {
+		azName = value
+	}
+
+	localCloud, roleArn, err = getCloud(req.GetSecrets(), d)
+	if err != nil {
+		return nil, err
+	}
+
 	// Check if file system exists. Describe FS handles appropriate error codes
-	if _, err = d.cloud.DescribeFileSystem(ctx, accessPointsOptions.FileSystemId); err != nil {
+	if _, err = localCloud.DescribeFileSystem(ctx, accessPointsOptions.FileSystemId); err != nil {
 		if err == cloud.ErrAccessDenied {
 			return nil, status.Errorf(codes.Unauthenticated, "Access Denied. Please ensure you have the right AWS permissions: %v", err)
 		}
@@ -184,7 +203,7 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 	accessPointsOptions.Uid = int64(gid)
 	accessPointsOptions.DirectoryPath = rootDir
 
-	accessPointId, err := d.cloud.CreateAccessPoint(ctx, volName, accessPointsOptions)
+	accessPointId, err := localCloud.CreateAccessPoint(ctx, volName, accessPointsOptions)
 	if err != nil {
 		d.gidAllocator.releaseGid(accessPointsOptions.FileSystemId, gid)
 		if err == cloud.ErrAccessDenied {
@@ -196,16 +215,39 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 		return nil, status.Errorf(codes.Internal, "Failed to create Access point in File System %v : %v", accessPointsOptions.FileSystemId, err)
 	}
 
+	volContext := map[string]string{}
+
+	// Fetch mount target Ip for cross-account mount
+	if roleArn != "" {
+		mountTarget, err := localCloud.DescribeMountTargets(ctx, accessPointsOptions.FileSystemId, azName)
+		if err != nil {
+			klog.Warningf("Failed to describe mount targets for file system %v. Skip using `mounttargetip` mount option: %v", accessPointsOptions.FileSystemId, err)
+		} else {
+			volContext[MountTargetIp] = mountTarget.IPAddress
+		}
+	}
+
 	return &csi.CreateVolumeResponse{
 		Volume: &csi.Volume{
 			CapacityBytes: volSize,
 			VolumeId:      accessPointsOptions.FileSystemId + "::" + accessPointId.AccessPointId,
-			VolumeContext: map[string]string{},
+			VolumeContext: volContext,
 		},
 	}, nil
 }
 
 func (d *Driver) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeRequest) (*csi.DeleteVolumeResponse, error) {
+	var (
+		localCloud cloud.Cloud
+		roleArn    string
+		err        error
+	)
+
+	localCloud, roleArn, err = getCloud(req.GetSecrets(), d)
+	if err != nil {
+		return nil, err
+	}
+
 	klog.V(4).Infof("DeleteVolume: called with args %+v", *req)
 	volId := req.GetVolumeId()
 	if volId == "" {
@@ -226,7 +268,7 @@ func (d *Driver) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeRequest)
 		if d.deleteAccessPointRootDir {
 			// Check if Access point exists.
 			// If access point exists, retrieve its root directory and delete it/
-			accessPoint, err := d.cloud.DescribeAccessPoint(ctx, accessPointId)
+			accessPoint, err := localCloud.DescribeAccessPoint(ctx, accessPointId)
 			if err != nil {
 				if err == cloud.ErrAccessDenied {
 					return nil, status.Errorf(codes.Unauthenticated, "Access Denied. Please ensure you have the right AWS permissions: %v", err)
@@ -240,6 +282,16 @@ func (d *Driver) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeRequest)
 
 			//Mount File System at it root and delete access point root directory
 			mountOptions := []string{"tls", "iam"}
+			if roleArn != "" {
+				mountTarget, err := localCloud.DescribeMountTargets(ctx, fileSystemId, "")
+
+				if err == nil {
+					mountOptions = append(mountOptions, MountTargetIp+"="+mountTarget.IPAddress)
+				} else {
+					klog.Warningf("Failed to describe mount targets for file system %v. Skip using `mounttargetip` mount option: %v", fileSystemId, err)
+				}
+			}
+
 			target := TempMountPathPrefix + "/" + accessPointId
 			if err := d.mounter.MakeDir(target); err != nil {
 				return nil, status.Errorf(codes.Internal, "Could not create dir %q: %v", target, err)
@@ -263,7 +315,7 @@ func (d *Driver) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeRequest)
 		}
 
 		// Delete access point
-		if err = d.cloud.DeleteAccessPoint(ctx, accessPointId); err != nil {
+		if err = localCloud.DeleteAccessPoint(ctx, accessPointId); err != nil {
 			if err == cloud.ErrAccessDenied {
 				return nil, status.Errorf(codes.Unauthenticated, "Access Denied. Please ensure you have the right AWS permissions: %v", err)
 			}
@@ -352,4 +404,28 @@ func (d *Driver) ListSnapshots(ctx context.Context, req *csi.ListSnapshotsReques
 
 func (d *Driver) ControllerExpandVolume(ctx context.Context, req *csi.ControllerExpandVolumeRequest) (*csi.ControllerExpandVolumeResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "")
+}
+
+func getCloud(secrets map[string]string, driver *Driver) (cloud.Cloud, string, error) {
+
+	var localCloud cloud.Cloud
+	var roleArn string
+	var err error
+
+	// Fetch aws role ARN for cross account mount from CSI secrets. Link to CSI secrets below
+	// https://kubernetes-csi.github.io/docs/secrets-and-credentials.html#csi-operation-secrets
+	if value, ok := secrets[RoleArn]; ok {
+		roleArn = value
+	}
+
+	if roleArn != "" {
+		localCloud, err = cloud.NewCloudWithRole(roleArn)
+		if err != nil {
+			return nil, "", status.Errorf(codes.Unauthenticated, "Unable to initialize aws cloud: %v. Please verify role has the correct AWS permissions for cross account mount", err)
+		}
+	} else {
+		localCloud = driver.cloud
+	}
+
+	return localCloud, roleArn, nil
 }
