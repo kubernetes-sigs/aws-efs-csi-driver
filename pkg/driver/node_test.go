@@ -304,6 +304,19 @@ func TestNodePublishVolume(t *testing.T) {
 			mountSuccess:  true,
 		},
 		{
+			name: "success: normal with volume context populated from dynamic provisioning",
+			req: &csi.NodePublishVolumeRequest{
+				VolumeId:         volumeId,
+				VolumeCapability: stdVolCap,
+				TargetPath:       targetPath,
+				VolumeContext: map[string]string{"storage.kubernetes.io/csiprovisioneridentity": "efs.csi.aws.com",
+					"mounttargetip": "127.0.0.1"},
+			},
+			expectMakeDir: true,
+			mountArgs:     []interface{}{volumeId + ":/", targetPath, "efs", []string{"mounttargetip=127.0.0.1", "tls"}},
+			mountSuccess:  true,
+		},
+		{
 			name: "fail: conflicting access point in volume handle and mount options",
 			req: &csi.NodePublishVolumeRequest{
 				VolumeId: volumeId + "::" + accessPointID,
