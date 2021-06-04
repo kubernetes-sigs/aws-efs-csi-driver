@@ -3,7 +3,7 @@
 ### Decouple EC2 metadata service (IMDS)
 Since on-premise Kubernetes environment cannot access Amazon EC2 metadata service and cannot get information about instanceID, region and availabilityZone, additional environment variables need to be set, otherwise it will throw "could not get metadata from AWS: EC2 instance metadata is not available" described in [issue 468](https://github.com/kubernetes-sigs/aws-efs-csi-driver/issues/468).
 
-Environment variables need to be added for efs-plugin container in [controller-deployment.yaml](../deploy/kubernetes/base/controller-deployment.yaml), specify onPremise to let driver know it's a on-premise Kubernetes environment, and then follow the deployment guide above. Examples are shown below (instanceID can be mocked):
+Environment variables need to be added for efs-plugin container in [controller-deployment.yaml](../deploy/kubernetes/base/controller-deployment.yaml), specify onPremise to let driver know it's a on-premise Kubernetes environment, and then follow the deployment guide in [README.md](./README.md). Examples are shown below (instanceID can be mocked):
 
 ```
 ...
@@ -21,16 +21,19 @@ For IAM permission, you could set it using environment variables with [AWS_ACCES
 
 ### Configure region for efs-utils
 Besides, you might encounter errors when mounting file system "Output: Error retrieving region. Please set the "region" parameter in the efs-utils configuration file", the binary entrypoint aws-efs-csi-driver would dynamically generate configuration file, but the region information need to specify in the conf file which will be override by aws-efs-csi-driver. Follow below procedure to fix this issue:
-* Get the original efs-utils configuration file 
+* Get the original efs-utils configuration file:
 ```
 kubectl -n kube-system exec -it efs-csi-node-<id> -c efs-plugin cat /etc/amazon/efs/efs-utils.conf
 ```
-* Configure region information `region = us-east-1` and add disable fetch ec2 metadata setting `disable_fetch_ec2_metadata_token = true`
-* Create new configmap 
+* Configure region information `region = us-east-1` and add disable fetch ec2 metadata setting:
+```
+disable_fetch_ec2_metadata_token = true
+```
+* Create new configmap:
 ```
 kubectl -n kube-system create configmap efs-utils-conf --from-file=./efs-utils.conf
 ```
-* Edit efs-plugin in daemon set efs-csi-node 
+* Edit efs-plugin in daemon set efs-csi-node:
 ```
 kubectl -n kube-system edit daemonsets.apps efs-csi-node
 ```
