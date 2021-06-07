@@ -45,5 +45,5 @@ After the objects are created, verify that pod is running:
 Also you can verify that data is written onto EFS filesystem:
 
 ```sh
->> kubectl exec -ti efs-app -- tail -f /data/out.txt
+>> kubectl exec -ti efs-app -- tail -f /data/out
 ```

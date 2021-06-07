@@ -23,7 +23,6 @@ import (
 	"strings"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
-	"github.com/google/uuid"
 	"github.com/kubernetes-sigs/aws-efs-csi-driver/pkg/cloud"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -40,7 +39,6 @@ const (
 	ProvisioningMode    = "provisioningMode"
 	DefaultGidMin       = 50000
 	DefaultGidMax       = 7000000
-	RootDirPrefix       = "efs-csi-ap"
 	TempMountPathPrefix = "/var/lib/csi/pv"
 	DefaultTagKey       = "efs.csi.aws.com/cluster"
 	DefaultTagValue     = "true"
@@ -179,8 +177,7 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 		return nil, err
 	}
 
-	gidStr := strconv.Itoa(gid)
-	rootDirName := RootDirPrefix + "-" + gidStr + "-" + uuid.New().String()
+	rootDirName := volName
 	rootDir := basePath + "/" + rootDirName
 
 	accessPointsOptions.Gid = int64(gid)
@@ -242,7 +239,7 @@ func (d *Driver) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeRequest)
 			}
 
 			//Mount File System at it root and delete access point root directory
-			mountOptions := []string{"tls"}
+			mountOptions := []string{"tls", "iam"}
 			target := TempMountPathPrefix + "/" + accessPointId
 			if err := d.mounter.MakeDir(target); err != nil {
 				return nil, status.Errorf(codes.Internal, "Could not create dir %q: %v", target, err)

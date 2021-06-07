@@ -31,7 +31,7 @@ var (
 	stdAvailabilityZone = "az-1"
 )
 
-func TestNewMetadataService(t *testing.T) {
+func TestGetEC2MetadataService(t *testing.T) {
 	testCases := []struct {
 		name             string
 		isAvailable      bool
@@ -114,10 +114,10 @@ func TestNewMetadataService(t *testing.T) {
 				mockEC2Metadata.EXPECT().GetInstanceIdentityDocument().Return(tc.identityDocument, tc.err)
 			}
 
-			m, err := NewMetadataService(mockEC2Metadata)
+			m, err := getEC2Metadata(mockEC2Metadata)
 			if tc.isAvailable && tc.err == nil && !tc.isPartial {
 				if err != nil {
-					t.Fatalf("NewMetadataService() failed: expected no error, got %v", err)
+					t.Fatalf("getEC2Metadata() failed: expected no error, got %v", err)
 				}
 
 				if m.GetInstanceID() != tc.identityDocument.InstanceID {
@@ -133,7 +133,7 @@ func TestNewMetadataService(t *testing.T) {
 				}
 			} else {
 				if err == nil {
-					t.Fatal("NewMetadataService() failed: expected error when GetInstanceIdentityDocument returns partial data, got nothing")
+					t.Fatal("getEC2Metadata() failed: expected error when GetInstanceIdentityDocument returns partial data, got nothing")
 				}
 			}
 
