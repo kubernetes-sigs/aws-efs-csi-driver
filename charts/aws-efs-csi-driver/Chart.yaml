@@ -1,7 +1,7 @@
 apiVersion: v2
 name: aws-efs-csi-driver
-version: 2.0.0
-appVersion: 1.2.1
+version: 2.1.0
+appVersion: 1.3.0
 kubeVersion: ">=1.17.0-0"
 description: "A Helm chart for AWS EFS CSI Driver"
 home: https://github.com/kubernetes-sigs/aws-efs-csi-driver
