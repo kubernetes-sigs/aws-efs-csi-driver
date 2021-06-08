@@ -11,6 +11,7 @@ type FakeCloudProvider struct {
 	m            *metadata
 	fileSystems  map[string]*FileSystem
 	accessPoints map[string]*AccessPoint
+	mountTargets map[string]*MountTarget
 }
 
 func NewFakeCloudProvider() *FakeCloudProvider {
@@ -18,6 +19,7 @@ func NewFakeCloudProvider() *FakeCloudProvider {
 		m:            &metadata{"instanceID", "region", "az"},
 		fileSystems:  make(map[string]*FileSystem),
 		accessPoints: make(map[string]*AccessPoint),
+		mountTargets: make(map[string]*MountTarget),
 	}
 }
 
@@ -76,5 +78,22 @@ func (c *FakeCloudProvider) DescribeFileSystem(ctx context.Context, fileSystemId
 		FileSystemId: fileSystemId,
 	}
 	c.fileSystems[fileSystemId] = fs
+
+	mt := &MountTarget{
+		AZName:        "us-east-1a",
+		AZId:          "mock-AZ-id",
+		MountTargetId: "fsmt-abcd1234",
+		IPAddress:     "127.0.0.1",
+	}
+
+	c.mountTargets[fileSystemId] = mt
 	return fs, nil
+}
+
+func (c *FakeCloudProvider) DescribeMountTargets(ctx context.Context, fileSystemId, az string) (mountTarget *MountTarget, err error) {
+	if mt, ok := c.mountTargets[fileSystemId]; ok {
+		return mt, nil
+	}
+
+	return nil, ErrNotFound
 }

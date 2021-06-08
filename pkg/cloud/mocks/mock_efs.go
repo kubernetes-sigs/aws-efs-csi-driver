@@ -115,3 +115,23 @@ func (mr *MockEfsMockRecorder) DescribeFileSystemsWithContext(arg0, arg1 interfa
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeFileSystemsWithContext", reflect.TypeOf((*MockEfs)(nil).DescribeFileSystemsWithContext), varargs...)
 }
+
+// DescribeMountTargetsWithContext mocks base method.
+func (m *MockEfs) DescribeMountTargetsWithContext(arg0 context.Context, arg1 *efs.DescribeMountTargetsInput, arg2 ...request.Option) (*efs.DescribeMountTargetsOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DescribeMountTargetsWithContext", varargs...)
+	ret0, _ := ret[0].(*efs.DescribeMountTargetsOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DescribeMountTargetsWithContext indicates an expected call of DescribeMountTargetsWithContext.
+func (mr *MockEfsMockRecorder) DescribeMountTargetsWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeMountTargetsWithContext", reflect.TypeOf((*MockEfs)(nil).DescribeMountTargetsWithContext), varargs...)
+}
