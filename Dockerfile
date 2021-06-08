@@ -43,14 +43,18 @@ RUN if [ "$EFSUTILSSOURCE" = "yum" ]; \
          git clone https://github.com/aws/efs-utils && \
          cd efs-utils && \
          git checkout $(git describe --tags $(git rev-list --tags --max-count=1)) && \
-         make rpm && yum -y install build/amazon-efs-utils*rpm; \
+         make rpm && yum -y install build/amazon-efs-utils*rpm && \
+         # clean up efs-utils folder after install
+         cd .. && rm -rf efs-utils && \
+         yum clean all; \
     fi
 
 # Install botocore required by efs-utils for cross account mount
-RUN yum -y install wget
-RUN wget https://bootstrap.pypa.io/get-pip.py -O /tmp/get-pip.py
-RUN python3 /tmp/get-pip.py
-RUN pip3 install botocore || /usr/local/bin/pip3 install botocore
+RUN yum -y install wget && \
+    wget https://bootstrap.pypa.io/get-pip.py -O /tmp/get-pip.py && \
+    python3 /tmp/get-pip.py && \
+    pip3 install botocore || /usr/local/bin/pip3 install botocore && \
+    rm -rf /tmp/get-pip.py
 
 # At image build time, static files installed by efs-utils in the config directory, i.e. CAs file, need
 # to be saved in another place so that the other stateful files created at runtime, i.e. private key for
