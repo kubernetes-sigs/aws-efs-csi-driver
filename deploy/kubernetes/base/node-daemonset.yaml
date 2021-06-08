@@ -39,7 +39,7 @@ spec:
         - name: efs-plugin
           securityContext:
             privileged: true
-          image: "amazon/aws-efs-csi-driver:v1.2.1"
+          image: "amazon/aws-efs-csi-driver:v1.3.0"
           args:
             - --endpoint=$(CSI_ENDPOINT)
             - --logtostderr

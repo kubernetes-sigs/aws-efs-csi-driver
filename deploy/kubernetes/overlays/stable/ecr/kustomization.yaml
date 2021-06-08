@@ -5,4 +5,4 @@ bases:
 images:
   - name: amazon/aws-efs-csi-driver
     newName: 602401143452.dkr.ecr.us-west-2.amazonaws.com/eks/aws-efs-csi-driver
-    newTag: v1.2.1
+    newTag: v1.3.0

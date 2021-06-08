@@ -1,5 +1,19 @@
 # Helm chart
 
+# v2.1.0
+
+## New features
+* Update app/driver version to `v1.3.0`
+
+## Bug fixes
+* Put comments back in place inside the values file ([#475](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/475), [@pierluigilenoci](https://github.com/pierluigilenoci))
+
+# v2.0.1
+
+## Bug fixes
+* Helm chart: fix reclaimPolicy and volumeBindingMode ([#464](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/464), [@devinsmith911](https://github.com/devinsmith911))
+
+
 # v2.0.0
 
 ## Breaking changes
