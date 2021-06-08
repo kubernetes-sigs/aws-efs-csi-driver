@@ -70,6 +70,11 @@ controller:
     annotations: {}
     ## Enable if EKS IAM for SA is used
     #  eks.amazonaws.com/role-arn: arn:aws:iam::111122223333:role/efs-csi-role
+  # Example config which uses the AWS nameservers
+  # dnsPolicy: "None"
+  # dnsConfig:
+  #   nameservers:
+  #     - 169.254.169.253
 
 ## Node daemonset variables
 
