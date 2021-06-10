@@ -12,10 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Hard-coded platform to `linux/amd64` because
-# 1) go mod download is super slow with arm64 on x86 host since it requires QEMU simulation at software level.
-# 2) a better approach with `--platform={BUILDPLATFORM}` is only supported by docker buildx not docker build.
-FROM --platform=linux/amd64 golang:1.13.4-stretch as builder
+FROM golang:1.13.4-stretch as builder
 WORKDIR /go/src/github.com/kubernetes-sigs/aws-efs-csi-driver
 
 ARG TARGETOS
