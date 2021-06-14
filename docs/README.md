@@ -67,6 +67,7 @@ The following sections are Kubernetes specific. If you are a Kubernetes user, us
 |EFS CSI Driver Version     | Image                               |
 |---------------------------|-------------------------------------|
 |master branch              |amazon/aws-efs-csi-driver:master     |
+|v1.3.1                     |amazon/aws-efs-csi-driver:v1.3.1     |
 |v1.3.0                     |amazon/aws-efs-csi-driver:v1.3.0     |
 |v1.2.1                     |amazon/aws-efs-csi-driver:v1.2.1     |
 |v1.2.0                     |amazon/aws-efs-csi-driver:v1.2.0     |
@@ -83,6 +84,7 @@ The following sections are Kubernetes specific. If you are a Kubernetes user, us
 * Mount Options - Mount options can be specified in the persistent volume (PV) or storage class for dynamic provisioning to define how the volume should be mounted.
 * Encryption of data in transit - EFS file systems are mounted with encryption in transit enabled by default in the master branch version of the driver.
 * Cross account mount - EFS file systems from different aws accounts can be mounted from an EKS cluster.
+* Multiarch - EFS CSI driver image is now multiarch on ECR
 
 **Notes**:
 * Since EFS is an elastic file system it doesn't really enforce any file system capacity. The actual storage capacity value in persistent volume and persistent volume claim is not used when creating the file system. However, since the storage capacity is a required field by Kubernetes, you must specify the value and you can use any valid value for the capacity.
