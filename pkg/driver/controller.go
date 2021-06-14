@@ -149,7 +149,7 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 	} else {
 		// Ensure GID max is provided with GID min
 		if gidMin != 0 {
-			return nil, status.Errorf(codes.InvalidArgument, "Missing %v parameter", GidMin)
+			return nil, status.Errorf(codes.InvalidArgument, "Missing %v parameter", GidMax)
 		}
 	}
 

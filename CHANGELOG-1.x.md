@@ -1,3 +1,16 @@
+# v1.3.1
+
+## Notable changes
+- efs-csi-driver now supports arm and image is multi-arch
+
+### Bug Fixes
+* Fixed the error message ([#487](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/487), [@pierluigilenoci](https://github.com/pierluigilenoci))
+
+### Misc.
+* Clean up unnecessary resources after installation in docker file ([#483](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/483), [@kbasv](https://github.com/kbasv))
+* Remove platform hardcode for golang in Dockerfile ([#485](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/485), [@kbasv](https://github.com/kbasv))
+* Update cross account mount example with specs and add missing setup step ([#488](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/488), [@kbasv](https://github.com/kbasv))
+
 # v1.3
 
 ## Notable changes
