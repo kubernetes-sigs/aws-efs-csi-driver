@@ -1,5 +1,8 @@
 # Helm chart
 
+# v2.1.1
+* Update app/driver version to `v1.3.0`
+
 # v2.1.0
 
 ## New features
