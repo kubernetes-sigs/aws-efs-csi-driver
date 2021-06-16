@@ -45,6 +45,10 @@ controller:
   tags: {}
     # environment: prod
     # region: us-east-1
+  # Add additional env to containers
+  env:
+    efsPlugin: []
+    csiProvisioner: []
   # Enable if you want the controller to also delete the
   # path on efs when deleteing an access point
   deleteAccessPointRootDir: false
