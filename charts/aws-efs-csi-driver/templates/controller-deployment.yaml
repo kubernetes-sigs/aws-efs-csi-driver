@@ -82,6 +82,9 @@ spec:
             - --csi-address=$(ADDRESS)
             - --v={{ .Values.controller.logLevel }}
             - --feature-gates=Topology=true
+            {{- if .Values.controller.extraCreateMetadata }}
+            - --extra-create-metadata
+            {{- end }}
             - --leader-election
           env:
             - name: ADDRESS
