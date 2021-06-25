@@ -57,3 +57,4 @@ Also you can verify that data is written onto EFS filesystem:
 ```sh
 >> kubectl exec -ti efs-app -- tail -f /data/out
 ```
+
