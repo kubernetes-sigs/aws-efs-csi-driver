@@ -1,7 +1,13 @@
 # Helm chart
 
+# v2.1.3
+* Bump app/driver version to `v1.3.2` 
+
+# v2.1.2
+* Add extra-create-metadata
+
 # v2.1.1
-* Update app/driver version to `v1.3.0`
+* Update app/driver version to `v1.3.1`
 
 # v2.1.0
 

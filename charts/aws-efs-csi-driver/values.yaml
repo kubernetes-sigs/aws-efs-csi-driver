@@ -9,7 +9,7 @@ replicaCount: 2
 
 image:
   repository: amazon/aws-efs-csi-driver
-  tag: "v1.3.1"
+  tag: "v1.3.2"
   pullPolicy: IfNotPresent
 
 sidecars:
@@ -41,6 +41,8 @@ controller:
   create: true
   # Number for the log level verbosity
   logLevel: 2
+  # If set, add pv/pvc metadata to plugin create requests as parameters.
+  extraCreateMetadata: true
   # Add additional tags to access points
   tags: {}
     # environment: prod

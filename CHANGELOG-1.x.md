@@ -1,3 +1,9 @@
+# v1.3.2
+
+### Misc.
+* Bump release version for multi-arch support. 
+
+
 # v1.3.1
 
 ## Notable changes
