@@ -39,12 +39,14 @@ const (
 	DefaultTagValue     = "true"
 	DirectoryPerms      = "directoryPerms"
 	FsId                = "fileSystemId"
+	Gid                 = "gid"
 	GidMin              = "gidRangeStart"
 	GidMax              = "gidRangeEnd"
 	MountTargetIp       = "mounttargetip"
 	ProvisioningMode    = "provisioningMode"
 	RoleArn             = "awsRoleArn"
 	TempMountPathPrefix = "/var/lib/csi/pv"
+	Uid                 = "uid"
 )
 
 var (
@@ -78,11 +80,13 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 		azName           string
 		basePath         string
 		err              error
+		gid              int
 		gidMin           int
 		gidMax           int
 		localCloud       cloud.Cloud
 		provisioningMode string
 		roleArn          string
+		uid              int
 	)
 
 	//Parse parameters
@@ -122,6 +126,28 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 		accessPointsOptions.FileSystemId = value
 	} else {
 		return nil, status.Errorf(codes.InvalidArgument, "Missing %v parameter", FsId)
+	}
+
+	uid = -1
+	if value, ok := volumeParams[Uid]; ok {
+		uid, err = strconv.Atoi(value)
+		if err != nil {
+			return nil, status.Errorf(codes.InvalidArgument, "Failed to parse invalid %v: %v", Uid, err)
+		}
+		if uid < 0 {
+			return nil, status.Errorf(codes.InvalidArgument, "%v must be greater or equal than 0", Uid)
+		}
+	}
+
+	gid = -1
+	if value, ok := volumeParams[Gid]; ok {
+		gid, err = strconv.Atoi(value)
+		if err != nil {
+			return nil, status.Errorf(codes.InvalidArgument, "Failed to parse invalid %v: %v", Gid, err)
+		}
+		if uid < 0 {
+			return nil, status.Errorf(codes.InvalidArgument, "%v must be greater or equal than 0", Gid)
+		}
 	}
 
 	if value, ok := volumeParams[GidMin]; ok {
@@ -191,16 +217,26 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 		}
 		return nil, status.Errorf(codes.Internal, "Failed to fetch File System info: %v", err)
 	}
-	gid, err := d.gidAllocator.getNextGid(accessPointsOptions.FileSystemId, gidMin, gidMax)
-	if err != nil {
-		return nil, err
+
+	var allocatedGid int
+	if uid == -1 || gid == -1 {
+		allocatedGid, err = d.gidAllocator.getNextGid(accessPointsOptions.FileSystemId, gidMin, gidMax)
+		if err != nil {
+			return nil, err
+		}
+	}
+	if uid == -1 {
+		uid = allocatedGid
+	}
+	if gid == -1 {
+		gid = allocatedGid
 	}
 
 	rootDirName := volName
 	rootDir := basePath + "/" + rootDirName
 
+	accessPointsOptions.Uid = int64(uid)
 	accessPointsOptions.Gid = int64(gid)
-	accessPointsOptions.Uid = int64(gid)
 	accessPointsOptions.DirectoryPath = rootDir
 
 	accessPointId, err := localCloud.CreateAccessPoint(ctx, volName, accessPointsOptions)
