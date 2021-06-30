@@ -23,7 +23,11 @@ spec:
       annotations: {{- toYaml . | nindent 8 }}
       {{- end }}
     spec:
-      hostNetwork: true 
+      hostNetwork: true
+      dnsPolicy: {{ .Values.controller.dnsPolicy }}
+      {{- with .Values.controller.dnsConfig }}
+      dnsConfig: {{- toYaml . | nindent 8 }}
+      {{- end }}
       {{- if .Values.imagePullSecrets }}
       imagePullSecrets:
         {{- range .Values.imagePullSecrets }}
