@@ -4,12 +4,13 @@ import os
 import shutil
 import tarfile
 import argparse
+import sys
 
 parser = argparse.ArgumentParser(description="Troubleshooting EFS CSI Driver")
 
 parser.add_argument("--driver-pod-name", required=True, help="The EFS CSI driver pod name")
 
-args = parser.parse_args(['--driver-pod-name', 'efs-csi-node-5dpc4'])
+args = parser.parse_args(sys.argv[1:])
 
 driver_pod_name = args.driver_pod_name
 
