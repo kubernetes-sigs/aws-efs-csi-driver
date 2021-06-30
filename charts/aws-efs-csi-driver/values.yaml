@@ -114,6 +114,7 @@ storageClasses: []
 #     storageclass.kubernetes.io/is-default-class: "true"
 #   mountOptions:
 #   - tls
+#   reclaimPolicy: Delete
 #   parameters:
 #     provisioningMode: efs-ap
 #     fileSystemId: fs-1122aabb

@@ -12,6 +12,9 @@ provisioner: efs.csi.aws.com
 mountOptions:
 {{ toYaml . }}
 {{- end }}
+{{- if .reclaimPolicy }}
+reclaimPolicy: {{ .reclaimPolicy }}
+{{- end }}
 {{- with .parameters }}
 parameters:
 {{ toYaml . | indent 2 }}
