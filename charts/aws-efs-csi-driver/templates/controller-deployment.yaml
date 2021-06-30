@@ -57,6 +57,9 @@ spec:
           env:
             - name: CSI_ENDPOINT
               value: unix:///var/lib/csi/sockets/pluginproxy/csi.sock
+            {{- with .Values.controller.env.efsPlugin }}
+            {{- . | toYaml | nindent 12 }}
+            {{- end }}
           volumeMounts:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
@@ -89,6 +92,9 @@ spec:
           env:
             - name: ADDRESS
               value: /var/lib/csi/sockets/pluginproxy/csi.sock
+            {{- with .Values.controller.env.csiProvisioner }}
+            {{- . | toYaml | nindent 12 }}
+            {{- end }}
           volumeMounts:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
