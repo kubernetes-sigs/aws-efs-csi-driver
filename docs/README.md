@@ -90,6 +90,8 @@ The following sections are Kubernetes specific. If you are a Kubernetes user, us
 **Notes**:
 * Since EFS is an elastic file system it doesn't really enforce any file system capacity. The actual storage capacity value in persistent volume and persistent volume claim is not used when creating the file system. However, since the storage capacity is a required field by Kubernetes, you must specify the value and you can use any valid value for the capacity.
 
+* If you are deploying Amazon EFS CSI Driver in on-premise environment, please refer to the doc [ON-PREMISE.md](./ON-PREMISE.md). 
+
 ### Installation
 #### Set up driver permission:
 The driver requires IAM permission to talk to Amazon EFS to manage the volume on user's behalf. There are several methods to grant driver IAM permission:
