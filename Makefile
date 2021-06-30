@@ -69,6 +69,7 @@ test-e2e:
 	AWS_AVAILABILITY_ZONES=us-west-2a,us-west-2b,us-west-2c \
 	TEST_PATH=./test/e2e/... \
 	GINKGO_FOCUS="\[efs-csi\]" \
+	GINKGO_NODES=1 \
 	./hack/e2e/run.sh
 
 .PHONY: test-e2e-bin
