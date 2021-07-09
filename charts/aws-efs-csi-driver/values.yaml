@@ -106,6 +106,10 @@ node:
   tolerations:
     - operator: Exists
 
+proxy:
+  http_proxy: ""
+  no_proxy: ""
+
 storageClasses: []
 # Add StorageClass resources like:
 # - name: efs-sc
