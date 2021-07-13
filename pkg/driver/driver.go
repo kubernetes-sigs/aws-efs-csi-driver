@@ -120,10 +120,6 @@ func (d *Driver) Run() error {
 		return err
 	}
 
-	reaper := newReaper()
-	klog.Info("Staring subreaper")
-	reaper.start()
-
 	klog.Infof("Listening for connections on address: %#v", listener.Addr())
 	return d.srv.Serve(listener)
 }
