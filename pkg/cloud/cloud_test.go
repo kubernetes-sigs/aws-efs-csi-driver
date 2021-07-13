@@ -12,6 +12,11 @@ import (
 	"github.com/kubernetes-sigs/aws-efs-csi-driver/pkg/cloud/mocks"
 )
 
+type errtyp struct {
+	code    string
+	message string
+}
+
 func TestCreateAccessPoint(t *testing.T) {
 	var (
 		arn                  = "arn:aws:elasticfilesystem:us-east-1:1234567890:access-point/fsap-abcd1234xyz987"
@@ -36,12 +41,16 @@ func TestCreateAccessPoint(t *testing.T) {
 					efs: mockEfs,
 				}
 
+				tags := make(map[string]string)
+				tags["cluster"] = "efs"
+
 				req := &AccessPointOptions{
 					FileSystemId:   fsId,
 					Uid:            uid,
 					Gid:            gid,
 					DirectoryPerms: directoryPerms,
 					DirectoryPath:  directoryPath,
+					Tags:           tags,
 				}
 
 				output := &efs.CreateAccessPointOutput{
@@ -465,7 +474,7 @@ func TestDescribeFileSystem(t *testing.T) {
 				mockEfs.EXPECT().DescribeFileSystemsWithContext(gomock.Eq(ctx), gomock.Any()).Return(output, nil)
 				res, err := c.DescribeFileSystem(ctx, fsId)
 				if err != nil {
-					t.Fatalf("Describe Access Point failed: %v", err)
+					t.Fatalf("Describe File System failed: %v", err)
 				}
 
 				if res == nil {
@@ -590,5 +599,147 @@ func TestDescribeFileSystem(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, tc.testFunc)
+	}
+}
+
+func TestDescribeMountTargets(t *testing.T) {
+	var (
+		fsId = "fs-abcd1234"
+		az   = "us-east-1a"
+		mtId = "fsmt-abcd1234"
+	)
+
+	testCases := []struct {
+		name        string
+		mockOutput  *efs.DescribeMountTargetsOutput
+		mockError   error
+		expectError errtyp
+	}{
+		{
+			name: "Success: normal flow",
+			mockOutput: &efs.DescribeMountTargetsOutput{
+				MountTargets: []*efs.MountTargetDescription{
+					{
+						AvailabilityZoneId:   aws.String("az-id"),
+						AvailabilityZoneName: aws.String(az),
+						FileSystemId:         aws.String(fsId),
+						IpAddress:            aws.String("127.0.0.1"),
+						LifeCycleState:       aws.String("available"),
+						MountTargetId:        aws.String(mtId),
+						NetworkInterfaceId:   aws.String("eni-abcd1234"),
+						OwnerId:              aws.String("1234567890"),
+						SubnetId:             aws.String("subnet-abcd1234"),
+					},
+				},
+			},
+			expectError: errtyp{},
+		},
+		{
+			name: "Success: Mount target with preferred AZ does not exist. Pick random Az.",
+			mockOutput: &efs.DescribeMountTargetsOutput{
+				MountTargets: []*efs.MountTargetDescription{
+					{
+						AvailabilityZoneId:   aws.String("az-id"),
+						AvailabilityZoneName: aws.String("us-east-1f"),
+						FileSystemId:         aws.String(fsId),
+						IpAddress:            aws.String("127.0.0.1"),
+						LifeCycleState:       aws.String("available"),
+						MountTargetId:        aws.String(mtId),
+						NetworkInterfaceId:   aws.String("eni-abcd1234"),
+						OwnerId:              aws.String("1234567890"),
+						SubnetId:             aws.String("subnet-abcd1234"),
+					},
+				},
+			},
+			expectError: errtyp{},
+		},
+		{
+			name: "Fail: File system does not have any mount targets",
+			mockOutput: &efs.DescribeMountTargetsOutput{
+				MountTargets: []*efs.MountTargetDescription{},
+			},
+			expectError: errtyp{
+				code:    "",
+				message: "Cannot find mount targets for file system fs-abcd1234. Please create mount targets for file system.",
+			},
+		},
+		{
+			name: "Fail: File system does not have any mount targets in available life cycle state",
+			mockOutput: &efs.DescribeMountTargetsOutput{
+				MountTargets: []*efs.MountTargetDescription{
+					{
+						AvailabilityZoneId:   aws.String("az-id"),
+						AvailabilityZoneName: aws.String(az),
+						FileSystemId:         aws.String(fsId),
+						IpAddress:            aws.String("127.0.0.1"),
+						LifeCycleState:       aws.String("creating"),
+						MountTargetId:        aws.String(mtId),
+						NetworkInterfaceId:   aws.String("eni-abcd1234"),
+						OwnerId:              aws.String("1234567890"),
+						SubnetId:             aws.String("subnet-abcd1234"),
+					},
+				},
+			},
+			expectError: errtyp{
+				code:    "",
+				message: "No mount target for file system fs-abcd1234 is in available state. Please retry in 5 minutes.",
+			},
+		},
+		{
+			name:        "Fail: File System Not Found",
+			mockError:   awserr.New(efs.ErrCodeFileSystemNotFound, "File system not found", errors.New("File system not found")),
+			expectError: errtyp{message: "Resource was not found"},
+		},
+		{
+			name:        "Fail: Access Denied",
+			mockError:   awserr.New(AccessDeniedException, "Access Denied", errors.New("Access Denied")),
+			expectError: errtyp{message: "Access denied"},
+		},
+		{
+			name:        "Fail: Other",
+			mockError:   errors.New("DescribeMountTargetsWithContext failed"),
+			expectError: errtyp{message: "Describe Mount Targets failed: DescribeMountTargetsWithContext failed"},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			mockctl := gomock.NewController(t)
+			defer mockctl.Finish()
+			mockEfs := mocks.NewMockEfs(mockctl)
+			c := &cloud{efs: mockEfs}
+			ctx := context.Background()
+
+			if tc.mockOutput != nil {
+				mockEfs.EXPECT().DescribeMountTargetsWithContext(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(tc.mockOutput, nil)
+			}
+
+			if tc.mockError != nil {
+				mockEfs.EXPECT().DescribeMountTargetsWithContext(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(nil, tc.mockError)
+			}
+
+			res, err := c.DescribeMountTargets(ctx, fsId, az)
+			testResult(t, "DescribeMountTargets", res, err, tc.expectError)
+
+		})
+	}
+}
+
+func testResult(t *testing.T, funcName string, ret interface{}, err error, expectError errtyp) {
+	if expectError.message == "" {
+		if err != nil {
+			t.Fatalf("%s is failed: %v", funcName, err)
+		}
+		if ret == nil {
+			t.Fatal("Expected non-nil return value")
+		}
+	} else {
+		if err == nil {
+			t.Fatalf("%s is not failed", funcName)
+		}
+
+		if err.Error() != expectError.message {
+			t.Fatalf("\nExpected error message: %s\nActual error message:   %s", expectError.message, err.Error())
+		}
 	}
 }

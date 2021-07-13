@@ -5,7 +5,7 @@ metadata:
 spec:
   accessModes:
     - ReadWriteOnce
-  storageClassName: efs-sc
+  storageClassName: ""
   resources:
     requests:
       storage: 5Gi

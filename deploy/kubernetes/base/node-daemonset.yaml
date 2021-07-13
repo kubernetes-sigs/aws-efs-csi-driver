@@ -1,10 +1,10 @@
 ---
+# Source: aws-efs-csi-driver/templates/node-daemonset.yaml
 # Node Service
 kind: DaemonSet
 apiVersion: apps/v1
 metadata:
   name: efs-csi-node
-  namespace: kube-system
   labels:
     app.kubernetes.io/name: aws-efs-csi-driver
 spec:
@@ -12,14 +12,16 @@ spec:
     matchLabels:
       app: efs-csi-node
       app.kubernetes.io/name: aws-efs-csi-driver
+      app.kubernetes.io/instance: kustomize
   template:
     metadata:
       labels:
         app: efs-csi-node
         app.kubernetes.io/name: aws-efs-csi-driver
+        app.kubernetes.io/instance: kustomize
     spec:
       nodeSelector:
-        kubernetes.io/os: linux
+        beta.kubernetes.io/os: linux
       affinity:
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
@@ -37,11 +39,11 @@ spec:
         - name: efs-plugin
           securityContext:
             privileged: true
-          image: amazon/aws-efs-csi-driver:latest
+          image: "amazon/aws-efs-csi-driver:v1.3.2"
           args:
             - --endpoint=$(CSI_ENDPOINT)
             - --logtostderr
-            - --v=5
+            - --v=2
           env:
             - name: CSI_ENDPOINT
               value: unix:/csi/csi.sock
@@ -58,8 +60,8 @@ spec:
             - name: efs-utils-config-legacy
               mountPath: /etc/amazon/efs-legacy
           ports:
-            - containerPort: 9809
-              name: healthz
+            - name: healthz
+              containerPort: 9809
               protocol: TCP
           livenessProbe:
             httpGet:
@@ -70,11 +72,11 @@ spec:
             periodSeconds: 2
             failureThreshold: 5
         - name: csi-driver-registrar
-          image: quay.io/k8scsi/csi-node-driver-registrar:v1.3.0
+          image: public.ecr.aws/eks-distro/kubernetes-csi/node-driver-registrar:v2.1.0-eks-1-18-2
           args:
             - --csi-address=$(ADDRESS)
             - --kubelet-registration-path=$(DRIVER_REG_SOCK_PATH)
-            - --v=5
+            - --v=2
           env:
             - name: ADDRESS
               value: /csi/csi.sock
@@ -90,26 +92,27 @@ spec:
             - name: registration-dir
               mountPath: /registration
         - name: liveness-probe
-          image: quay.io/k8scsi/livenessprobe:v2.0.0
+          image: public.ecr.aws/eks-distro/kubernetes-csi/livenessprobe:v2.2.0-eks-1-18-2
           args:
             - --csi-address=/csi/csi.sock
             - --health-port=9809
+            - --v=2
           volumeMounts:
-            - mountPath: /csi
-              name: plugin-dir
+            - name: plugin-dir
+              mountPath: /csi
       volumes:
         - name: kubelet-dir
           hostPath:
             path: /var/lib/kubelet
             type: Directory
-        - name: registration-dir
-          hostPath:
-            path: /var/lib/kubelet/plugins_registry/
-            type: Directory
         - name: plugin-dir
           hostPath:
             path: /var/lib/kubelet/plugins/efs.csi.aws.com/
             type: DirectoryOrCreate
+        - name: registration-dir
+          hostPath:
+            path: /var/lib/kubelet/plugins_registry/
+            type: Directory
         - name: efs-state-dir
           hostPath:
             path: /var/run/efs
@@ -122,4 +125,3 @@ spec:
           hostPath:
             path: /etc/amazon/efs
             type: DirectoryOrCreate
-

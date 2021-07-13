@@ -11,9 +11,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v1
-      - name: Create Helm chart
-        run: |
-          tar cvzf helm-chart.tgz helm
       - name: Create Release
         id: create-release
         uses: actions/create-release@v1

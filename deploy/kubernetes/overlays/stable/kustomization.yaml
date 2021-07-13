@@ -4,8 +4,10 @@ bases:
   - ../../base
 images:
   - name: amazon/aws-efs-csi-driver
-    newTag: v1.1.1
-  - name: quay.io/k8scsi/livenessprobe
-    newTag: v2.0.0
-  - name: quay.io/k8scsi/csi-node-driver-registrar
-    newTag: v1.3.0
+    newTag: v1.3.2
+  - name: public.ecr.aws/eks-distro/kubernetes-csi/livenessprobe
+    newTag: v2.2.0-eks-1-18-2
+  - name: public.ecr.aws/eks-distro/kubernetes-csi/node-driver-registrar
+    newTag: v2.1.0-eks-1-18-2
+  - name: public.ecr.aws/eks-distro/kubernetes-csi/external-provisioner
+    newTag: v2.1.1-eks-1-18-2

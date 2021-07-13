@@ -15,7 +15,7 @@
 
 PKG=github.com/kubernetes-sigs/aws-efs-csi-driver
 IMAGE?=amazon/aws-efs-csi-driver
-VERSION=v1.1.1-dirty
+VERSION=v1.3.2-dirty
 GIT_COMMIT?=$(shell git rev-parse HEAD)
 BUILD_DATE?=$(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
 EFS_CLIENT_SOURCE?=k8s
@@ -27,6 +27,7 @@ LDFLAGS?="-X ${PKG}/pkg/driver.driverVersion=${VERSION} \
 GO111MODULE=on
 GOPROXY=direct
 GOPATH=$(shell go env GOPATH)
+GOOS=$(shell go env GOOS)
 
 .EXPORT_ALL_VARIABLES:
 
@@ -35,6 +36,14 @@ aws-efs-csi-driver:
 	mkdir -p bin
 	@echo GOARCH:${GOARCH}
 	CGO_ENABLED=0 GOOS=linux go build -mod=vendor -ldflags ${LDFLAGS} -o bin/aws-efs-csi-driver ./cmd/
+
+bin /tmp/helm:
+	@mkdir -p $@
+
+bin/helm: | /tmp/helm bin
+	@curl -o /tmp/helm/helm.tar.gz -sSL https://get.helm.sh/helm-v3.5.3-${GOOS}-amd64.tar.gz
+	@tar -zxf /tmp/helm/helm.tar.gz -C bin --strip-components=1
+	@rm -rf /tmp/helm/*
 
 build-darwin:
 	mkdir -p bin/darwin/
@@ -53,8 +62,14 @@ test:
 
 .PHONY: test-e2e
 test-e2e:
-	go get github.com/aws/aws-k8s-tester/e2e/tester/cmd/k8s-e2e-tester@master
-	TESTCONFIG=./tester/e2e-test-config.yaml ${GOPATH}/bin/k8s-e2e-tester
+	DRIVER_NAME=aws-efs-csi-driver \
+	CONTAINER_NAME=efs-plugin \
+	TEST_EXTRA_FLAGS='--cluster-name=$$CLUSTER_NAME' \
+	AWS_REGION=us-west-2 \
+	AWS_AVAILABILITY_ZONES=us-west-2a,us-west-2b,us-west-2c \
+	TEST_PATH=./test/e2e/... \
+	GINKGO_FOCUS="\[efs-csi\]" \
+	./hack/e2e/run.sh
 
 .PHONY: test-e2e-bin
 test-e2e-bin:
@@ -84,3 +99,10 @@ image-release:
 .PHONY: push-release
 push-release:
 	docker push $(IMAGE):$(VERSION)
+
+.PHONY: generate-kustomize
+generate-kustomize: bin/helm
+	cd charts/aws-efs-csi-driver && ../../bin/helm template kustomize . -s templates/csidriver.yaml > ../../deploy/kubernetes/base/csidriver.yaml
+	cd charts/aws-efs-csi-driver && ../../bin/helm template kustomize . -s templates/node-daemonset.yaml -f values.yaml > ../../deploy/kubernetes/base/node-daemonset.yaml
+	cd charts/aws-efs-csi-driver && ../../bin/helm template kustomize . -s templates/controller-deployment.yaml -f values.yaml > ../../deploy/kubernetes/base/controller-deployment.yaml
+	cd charts/aws-efs-csi-driver && ../../bin/helm template kustomize . -s templates/controller-serviceaccount.yaml -f values.yaml > ../../deploy/kubernetes/base/controller-serviceaccount.yaml

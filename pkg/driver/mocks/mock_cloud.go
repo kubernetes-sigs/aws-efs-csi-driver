@@ -94,6 +94,21 @@ func (mr *MockCloudMockRecorder) DescribeFileSystem(arg0, arg1 interface{}) *gom
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeFileSystem", reflect.TypeOf((*MockCloud)(nil).DescribeFileSystem), arg0, arg1)
 }
 
+// DescribeMountTargets mocks base method.
+func (m *MockCloud) DescribeMountTargets(ctx context.Context, fileSystemId, az string) (*cloud.MountTarget, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DescribeMountTargets", ctx, fileSystemId, az)
+	ret0, _ := ret[0].(*cloud.MountTarget)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DescribeMountTargets indicates an expected call of DescribeMountTargets.
+func (mr *MockCloudMockRecorder) DescribeMountTargets(ctx, fileSystemId, az interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeMountTargets", reflect.TypeOf((*MockCloud)(nil).DescribeMountTargets), ctx, fileSystemId, az)
+}
+
 // GetMetadata mocks base method
 func (m *MockCloud) GetMetadata() cloud.MetadataService {
 	m.ctrl.T.Helper()

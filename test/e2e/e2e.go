@@ -3,6 +3,7 @@ package e2e
 import (
 	"context"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/onsi/ginkgo"
@@ -428,4 +429,14 @@ func makeEFSPV(name, path string, volumeAttributes map[string]string) *v1.Persis
 			AccessModes: []v1.PersistentVolumeAccessMode{v1.ReadWriteMany},
 		},
 	}
+}
+
+func makeDir(path string) error {
+	err := os.MkdirAll(path, os.FileMode(0777))
+	if err != nil {
+		if !os.IsExist(err) {
+			return err
+		}
+	}
+	return nil
 }

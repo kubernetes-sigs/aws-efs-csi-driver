@@ -26,9 +26,17 @@ import (
 	"k8s.io/klog"
 )
 
-// https://github.com/aws/efs-utils/blob/v1.26.3/dist/efs-utils.conf
+// https://github.com/aws/efs-utils/blob/v1.30.2/dist/efs-utils.conf
 const (
 	efsUtilsConfigTemplate = `
+#
+# Copyright 2017-2018 Amazon.com, Inc. and its affiliates. All Rights Reserved.
+#
+# Licensed under the MIT License. See the LICENSE accompanying this file
+# for the specific language governing permissions and limitations under
+# the License.
+#
+
 [DEFAULT]
 logging_level = INFO
 logging_max_bytes = 1048576
@@ -37,10 +45,14 @@ logging_file_count = 10
 state_file_dir_mode = 750
 
 [mount]
-dns_name_format = {fs_id}.efs.{region}.{dns_name_suffix}
+dns_name_format = {az}.{fs_id}.efs.{region}.{dns_name_suffix}
 dns_name_suffix = amazonaws.com
 #The region of the file system when mounting from on-premises or cross region.
+{{if .Region -}}
+region = {{.Region -}}
+{{else -}}
 #region = us-east-1
+{{- end}}
 stunnel_debug_enabled = false
 #Uncomment the below option to save all stunnel logs for a file system to the same file
 #stunnel_logs_file = /var/log/amazon/efs/{fs_id}.stunnel.log
@@ -56,17 +68,31 @@ stunnel_check_cert_validity = false
 port_range_lower_bound = 20049
 port_range_upper_bound = 20449
 
+# Optimize read_ahead_kb for Linux 5.4+
+optimize_readahead = true
+
+# By default, we enable the feature to fallback to mount with mount target ip address when dns name cannot be resolved
+fall_back_to_mount_target_ip_address_enabled = true
+
+# By default, we use IMDSv2 to get the instance metadata, set this to true if you want to disable IMDSv2 usage
+disable_fetch_ec2_metadata_token = false
+
+
 [mount.cn-north-1]
 dns_name_suffix = amazonaws.com.cn
+
 
 [mount.cn-northwest-1]
 dns_name_suffix = amazonaws.com.cn
 
+
 [mount.us-iso-east-1]
 dns_name_suffix = c2s.ic.gov
+stunnel_cafile = /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
 
 [mount.us-isob-east-1]
 dns_name_suffix = sc2s.sgov.gov
+stunnel_cafile = /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
 
 [mount-watchdog]
 enabled = true
@@ -78,6 +104,14 @@ tls_cert_renewal_interval_min = 60
 
 [client-info] 
 source={{.EfsClientSource}}
+
+[cloudwatch-log]
+# enabled = true
+log_group_name = /aws/efs/utils
+
+# Possible values are : 1, 3, 5, 7, 14, 30, 60, 90, 120, 150, 180, 365, 400, 545, 731, 1827, and 3653
+# Comment this config to prevent log deletion
+retention_in_days = 14
 `
 
 	efsUtilsConfigFileName = "efs-utils.conf"
@@ -113,6 +147,7 @@ type execWatchdog struct {
 
 type efsUtilsConfig struct {
 	EfsClientSource string
+	Region          string
 }
 
 func newExecWatchdog(efsUtilsCfgPath, efsUtilsStaticFilesPath, cmd string, arg ...string) Watchdog {
@@ -206,7 +241,9 @@ func (w *execWatchdog) updateConfig(efsClientSource string) error {
 		return fmt.Errorf("cannot create config file %s for efs-utils. Error: %v", w.efsUtilsCfgPath, err)
 	}
 	defer f.Close()
-	efsCfg := efsUtilsConfig{EfsClientSource: efsClientSource}
+	// used on Fargate, IMDS queries suffice otherwise
+	region := os.Getenv("AWS_DEFAULT_REGION")
+	efsCfg := efsUtilsConfig{EfsClientSource: efsClientSource, Region: region}
 	if err = efsCfgTemplate.Execute(f, efsCfg); err != nil {
 		return fmt.Errorf("cannot update config %s for efs-utils. Error: %v", w.efsUtilsCfgPath, err)
 	}

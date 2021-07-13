@@ -90,6 +90,9 @@ func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 			if err != nil {
 				return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("Volume context property %q must be a boolean value: %v", k, err))
 			}
+		case MountTargetIp:
+			ipAddr := volContext[MountTargetIp]
+			mountOptions = append(mountOptions, MountTargetIp+"="+ipAddr)
 		default:
 			return nil, status.Errorf(codes.InvalidArgument, "Volume context property %s not supported", k)
 		}
