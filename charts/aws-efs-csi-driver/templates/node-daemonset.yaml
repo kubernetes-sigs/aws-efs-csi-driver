@@ -54,6 +54,7 @@ spec:
       {{- with .Values.node.dnsConfig }}
       dnsConfig: {{- toYaml . | nindent 8 }}
       {{- end }}
+      serviceAccountName: {{ .Values.node.serviceAccount.name }}
       priorityClassName: system-node-critical
       {{- with .Values.node.tolerations }}
       tolerations: {{- toYaml . | nindent 8 }}

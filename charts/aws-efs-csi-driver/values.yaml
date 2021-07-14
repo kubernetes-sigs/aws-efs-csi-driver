@@ -44,7 +44,8 @@ controller:
   # If set, add pv/pvc metadata to plugin create requests as parameters.
   extraCreateMetadata: true
   # Add additional tags to access points
-  tags: {}
+  tags:
+    {}
     # environment: prod
     # region: us-east-1
   # Enable if you want the controller to also delete the
@@ -53,7 +54,8 @@ controller:
   hostNetwork: true
   port: 9909
   podAnnotations: {}
-  resources: {}
+  resources:
+    {}
     # We usually recommend not to specify default resources and to leave this as a conscious
     # choice for the user. This also increases chances charts run on environments with little
     # resources, such as Minikube. If you do want to specify resources, uncomment the following
@@ -80,7 +82,8 @@ controller:
 node:
   # Number for the log level verbosity
   logLevel: 2
-  hostAliases: {}
+  hostAliases:
+    {}
     # For cross VPC EFS, you need to poison or overwrite the DNS for the efs volume as per
     # https://docs.aws.amazon.com/efs/latest/ug/efs-different-vpc.html#wt6-efs-utils-step3
     # implementing the suggested solution found here:
@@ -90,14 +93,16 @@ node:
     #   ip: 10.10.2.2
     #   region: us-east-2
   dnsPolicy: ClusterFirst
-  dnsConfig: {}
+  dnsConfig:
+    {}
     # Example config which uses the AWS nameservers
     # dnsPolicy: "None"
     # dnsConfig:
     #   nameservers:
     #     - 169.254.169.253
   podAnnotations: {}
-  resources: {}
+  resources:
+    {}
     # limits:
     #   cpu: 100m
     #   memory: 128Mi
@@ -107,6 +112,13 @@ node:
   nodeSelector: {}
   tolerations:
     - operator: Exists
+  # Specifies whether a service account should be created
+  serviceAccount:
+    create: true
+    name: efs-csi-node-sa
+    annotations: {}
+    ## Enable if EKS IAM for SA is used
+    #  eks.amazonaws.com/role-arn: arn:aws:iam::111122223333:role/efs-csi-role
 
 storageClasses: []
 # Add StorageClass resources like:

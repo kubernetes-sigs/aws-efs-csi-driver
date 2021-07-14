@@ -35,7 +35,7 @@ spec:
         {{- with .Values.controller.nodeSelector }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
-      serviceAccountName: {{ include "aws-efs-csi-driver.serviceAccountName" . }}
+      serviceAccountName: {{ .Values.controller.serviceAccount.name }}
       priorityClassName: system-cluster-critical
       {{- with .Values.controller.tolerations }}
       tolerations: {{- toYaml . | nindent 8 }}
