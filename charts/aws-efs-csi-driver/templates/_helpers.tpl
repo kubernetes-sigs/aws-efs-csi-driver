@@ -45,17 +45,6 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- end -}}
 
 {{/*
-Create the name of the service account to use
-*/}}
-{{- define "aws-efs-csi-driver.serviceAccountName" -}}
-{{- if .Values.controller.create -}}
-    {{ default (include "aws-efs-csi-driver.fullname" .) .Values.controller.serviceAccount.name }}
-{{- else -}}
-    {{ default "default" .Values.controller.serviceAccount.name }}
-{{- end -}}
-{{- end -}}
-
-{{/*
 Create a string out of the map for controller tags flag
 */}}
 {{- define "aws-efs-csi-driver.tags" -}}
