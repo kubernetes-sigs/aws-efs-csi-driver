@@ -115,13 +115,13 @@ func (d *Driver) Run() error {
 	klog.Info("Registering Controller Server")
 	csi.RegisterControllerServer(d.srv, d)
 
-	klog.Info("Starting watchdog")
+	klog.Info("Starting efs-utils watchdog")
 	if err := d.efsWatchdog.start(); err != nil {
 		return err
 	}
 
 	reaper := newReaper()
-	klog.Info("Staring subreaper")
+	klog.Info("Starting reaper")
 	reaper.start()
 
 	klog.Infof("Listening for connections on address: %#v", listener.Addr())

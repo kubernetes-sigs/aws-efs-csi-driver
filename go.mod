@@ -4,9 +4,8 @@ require (
 	github.com/aws/aws-sdk-go v1.31.2
 	github.com/container-storage-interface/spec v1.2.0
 	github.com/golang/mock v1.4.4
-	github.com/google/uuid v1.1.1
 	github.com/kubernetes-csi/csi-test v1.1.1
-	github.com/kubernetes-csi/csi-test/v3 v3.1.1 // indirect
+	github.com/mitchellh/go-ps v0.0.0-20170309133038-4fdf99ab2936
 	github.com/onsi/ginkgo v1.12.2
 	github.com/onsi/gomega v1.10.1
 	google.golang.org/grpc v1.26.0
