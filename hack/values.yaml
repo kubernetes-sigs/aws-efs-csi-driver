@@ -1,5 +1,8 @@
 controller:
   create: true
+  logLevel: 5
+node:
+  logLevel: 5
 serviceAccount:
   controller:
     create: true
