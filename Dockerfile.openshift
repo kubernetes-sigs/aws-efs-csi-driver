@@ -3,14 +3,8 @@ WORKDIR /go/src/github.com/kubernetes-sigs/aws-efs-csi-driver
 COPY . .
 RUN make
 
-# TODO: use efs-utils base image when we have it in CI.
-# See https://github.com/openshift/enhancements/pull/687/files#diff-fffcbfb6a2861d40ec2fcb7eeb3ad97adca21044a9756c400e1764c1f06c30b7R202
-# Using jsafrane's private efs-utils.rpm, built manually from source.
-FROM quay.io/centos/centos:8
-RUN yum update -y && \
-    yum install --setopt=tsflags=nodocs -y https://people.redhat.com/jsafrane/amazon-efs-utils-1.31.2-1.el8.noarch.rpm && \
-    yum clean all && rm -rf /var/cache/yum/*
-# end of TODO
+# Use a base image with aws-efs-utils installed
+FROM  registry.ci.openshift.org/ocp/4.9:aws-efs-utils-base
 
 # From the upstream Dockerfile:
 # At image build time, static files installed by efs-utils in the config directory, i.e. CAs file, need
