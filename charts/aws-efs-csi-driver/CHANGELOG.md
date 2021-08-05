@@ -1,5 +1,8 @@
 # Helm chart
 
+# v2.1.5
+* Bump app/driver version to `v1.3.3`
+
 # v2.1.4
 * Add node.serviceAccount values for creating and/or specifying daemonset service account
 
