@@ -57,6 +57,14 @@ spec:
           env:
             - name: CSI_ENDPOINT
               value: unix:///var/lib/csi/sockets/pluginproxy/csi.sock
+            {{- if .Values.controller.proxy.http_proxy }}
+            - name: HTTP_PROXY
+              value: {{ .Values.controller.proxy.http_proxy | quote }}
+            - name: HTTPS_PROXY
+              value: {{ .Values.controller.proxy.http_proxy | quote }}
+            - name: NO_PROXY
+              value: {{ .Values.controller.proxy.no_proxy | quote }}
+            {{- end }}
           volumeMounts:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/

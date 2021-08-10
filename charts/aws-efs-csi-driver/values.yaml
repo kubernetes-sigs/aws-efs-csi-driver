@@ -52,6 +52,7 @@ controller:
   # path on efs when deleteing an access point
   deleteAccessPointRootDir: false
   podAnnotations: {}
+  proxy: {}
   resources:
     {}
     # We usually recommend not to specify default resources and to leave this as a conscious
