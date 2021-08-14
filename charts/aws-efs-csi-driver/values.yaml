@@ -34,6 +34,24 @@ sidecars:
 
 imagePullSecrets: []
 
+env: []
+# Additional environment variables like:
+# - name: HTTPS_PROXY
+#   valueFrom:
+#     configMapKeyRef:
+#       name: proxy-config
+#       key: HTTPS_PROXY
+# - name: NO_PROXY
+#   valueFrom:
+#     configMapKeyRef:
+#       name: proxy-config
+#       key: NO_PROXY
+
+envFrom: []
+# Additional environment variables like:
+# - configMapRef:
+#     name: proxy-config
+
 ## Controller deployment variables
 
 controller:
