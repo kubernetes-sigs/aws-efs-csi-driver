@@ -129,7 +129,11 @@ spec:
           args:
             - --csi-address=/csi/csi.sock
             - --health-port={{ .Values.node.port }}
+<<<<<<< HEAD
             - --v={{ .Values.node.logLevel }}
+=======
+            - --v={{ .Values.logLevel }}
+>>>>>>> 365b658 (complete rebase)
           volumeMounts:
             - name: plugin-dir
               mountPath: /csi
