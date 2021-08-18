@@ -16,5 +16,11 @@ mountOptions:
 parameters:
 {{ toYaml . | indent 2 }}
 {{- end }}
+{{- with .reclaimPolicy }}
+reclaimPolicy: {{ .reclaimPolicy  }}
+{{- end }}
+{{- with .volumeBindingMode }}
+volumeBindingMode: {{ .volumeBindingMode }}
+{{- end }}
 ---
 {{- end }}
