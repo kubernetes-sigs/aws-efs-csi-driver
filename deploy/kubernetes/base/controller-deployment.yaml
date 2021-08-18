@@ -47,7 +47,7 @@ spec:
               mountPath: /var/lib/csi/sockets/pluginproxy/
           ports:
             - name: healthz
-              containerPort: 9809
+              containerPort: 9909
               protocol: TCP
           livenessProbe:
             httpGet:
@@ -74,7 +74,7 @@ spec:
           image: public.ecr.aws/eks-distro/kubernetes-csi/livenessprobe:v2.2.0-eks-1-18-2
           args:
             - --csi-address=/csi/csi.sock
-            - --health-port=9809
+            - --health-port=9909
           volumeMounts:
             - name: socket-dir
               mountPath: /csi
