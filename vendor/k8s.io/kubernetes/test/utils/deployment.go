@@ -199,7 +199,18 @@ func WaitForDeploymentRevisionAndImage(c clientset.Interface, ns, deploymentName
 		return fmt.Errorf("deployment %q failed to create new replica set", deploymentName)
 	}
 	if err != nil {
-		return fmt.Errorf("error waiting for deployment %q (got %s / %s) and new replica set %q (got %s / %s) revision and image to match expectation (expected %s / %s): %v", deploymentName, deployment.Annotations[deploymentutil.RevisionAnnotation], deployment.Spec.Template.Spec.Containers[0].Image, newRS.Name, newRS.Annotations[deploymentutil.RevisionAnnotation], newRS.Spec.Template.Spec.Containers[0].Image, revision, image, err)
+		if deployment == nil {
+			return fmt.Errorf("error creating new replica set for deployment %q: %w", deploymentName, err)
+		}
+		deploymentImage := ""
+		if len(deployment.Spec.Template.Spec.Containers) > 0 {
+			deploymentImage = deployment.Spec.Template.Spec.Containers[0].Image
+		}
+		newRSImage := ""
+		if len(newRS.Spec.Template.Spec.Containers) > 0 {
+			newRSImage = newRS.Spec.Template.Spec.Containers[0].Image
+		}
+		return fmt.Errorf("error waiting for deployment %q (got %s / %s) and new replica set %q (got %s / %s) revision and image to match expectation (expected %s / %s): %v", deploymentName, deployment.Annotations[deploymentutil.RevisionAnnotation], deploymentImage, newRS.Name, newRS.Annotations[deploymentutil.RevisionAnnotation], newRSImage, revision, image, err)
 	}
 	return nil
 }

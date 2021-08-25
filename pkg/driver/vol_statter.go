@@ -124,13 +124,9 @@ func (v VolStatterImpl) computeDiskUsage(fsId, volId, volPath string) {
 		return
 	}
 
-	volUsed, ok := used.AsInt64()
-	if !ok {
-		klog.Errorf("Could not get volume used size: %v", err)
-		return
-	}
+	volUsed := used.Bytes
 
-	available, capacity, _, _, _, _, err := fs.FsInfo(volPath)
+	available, capacity, _, _, _, _, err := fs.Info(volPath)
 	if err != nil {
 		klog.Errorf("Failed to fetch FsInfo on volume path %s: %v", volPath, err)
 		return

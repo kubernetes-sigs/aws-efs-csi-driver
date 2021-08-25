@@ -19,7 +19,8 @@ import (
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2enode "k8s.io/kubernetes/test/e2e/framework/node"
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
-	"k8s.io/kubernetes/test/e2e/storage/testpatterns"
+	e2evolume "k8s.io/kubernetes/test/e2e/framework/volume"
+	storageframework "k8s.io/kubernetes/test/e2e/storage/framework"
 	"k8s.io/kubernetes/test/e2e/storage/testsuites"
 	"k8s.io/kubernetes/test/e2e/storage/utils"
 )
@@ -47,41 +48,41 @@ var (
 )
 
 type efsDriver struct {
-	driverInfo testsuites.DriverInfo
+	driverInfo storageframework.DriverInfo
 }
 
-var _ testsuites.TestDriver = &efsDriver{}
+var _ storageframework.TestDriver = &efsDriver{}
 
 // TODO implement Inline (unless it's redundant)
 // var _ testsuites.InlineVolumeTestDriver = &efsDriver{}
-var _ testsuites.PreprovisionedPVTestDriver = &efsDriver{}
-var _ testsuites.DynamicPVTestDriver = &efsDriver{}
+var _ storageframework.PreprovisionedPVTestDriver = &efsDriver{}
+var _ storageframework.DynamicPVTestDriver = &efsDriver{}
 
-func InitEFSCSIDriver() testsuites.TestDriver {
+func InitEFSCSIDriver() storageframework.TestDriver {
 	return &efsDriver{
-		driverInfo: testsuites.DriverInfo{
+		driverInfo: storageframework.DriverInfo{
 			Name:            "efs.csi.aws.com",
 			SupportedFsType: sets.NewString(""),
-			Capabilities: map[testsuites.Capability]bool{
-				testsuites.CapPersistence: true,
-				testsuites.CapExec:        true,
-				testsuites.CapMultiPODs:   true,
-				testsuites.CapRWX:         true,
+			Capabilities: map[storageframework.Capability]bool{
+				storageframework.CapPersistence: true,
+				storageframework.CapExec:        true,
+				storageframework.CapMultiPODs:   true,
+				storageframework.CapRWX:         true,
 			},
 		},
 	}
 }
 
-func (e *efsDriver) GetDriverInfo() *testsuites.DriverInfo {
+func (e *efsDriver) GetDriverInfo() *storageframework.DriverInfo {
 	return &e.driverInfo
 }
 
-func (e *efsDriver) SkipUnsupportedTest(testpatterns.TestPattern) {}
+func (e *efsDriver) SkipUnsupportedTest(storageframework.TestPattern) {}
 
-func (e *efsDriver) PrepareTest(f *framework.Framework) (*testsuites.PerTestConfig, func()) {
-	cancelPodLogs := testsuites.StartPodLogs(f)
+func (e *efsDriver) PrepareTest(f *framework.Framework) (*storageframework.PerTestConfig, func()) {
+	cancelPodLogs := utils.StartPodLogs(f, f.Namespace)
 
-	return &testsuites.PerTestConfig{
+	return &storageframework.PerTestConfig{
 			Driver:    e,
 			Prefix:    "efs",
 			Framework: f,
@@ -90,11 +91,11 @@ func (e *efsDriver) PrepareTest(f *framework.Framework) (*testsuites.PerTestConf
 		}
 }
 
-func (e *efsDriver) CreateVolume(config *testsuites.PerTestConfig, volType testpatterns.TestVolType) testsuites.TestVolume {
+func (e *efsDriver) CreateVolume(config *storageframework.PerTestConfig, volType storageframework.TestVolType) storageframework.TestVolume {
 	return nil
 }
 
-func (e *efsDriver) GetPersistentVolumeSource(readOnly bool, fsType string, volume testsuites.TestVolume) (*v1.PersistentVolumeSource, *v1.VolumeNodeAffinity) {
+func (e *efsDriver) GetPersistentVolumeSource(readOnly bool, fsType string, volume storageframework.TestVolume) (*v1.PersistentVolumeSource, *v1.VolumeNodeAffinity) {
 	pvSource := v1.PersistentVolumeSource{
 		CSI: &v1.CSIPersistentVolumeSource{
 			Driver:       e.driverInfo.Name,
@@ -104,7 +105,7 @@ func (e *efsDriver) GetPersistentVolumeSource(readOnly bool, fsType string, volu
 	return &pvSource, nil
 }
 
-func (e *efsDriver) GetDynamicProvisionStorageClass(config *testsuites.PerTestConfig, fsType string) *storagev1.StorageClass {
+func (e *efsDriver) GetDynamicProvisionStorageClass(config *storageframework.PerTestConfig, fsType string) *storagev1.StorageClass {
 	parameters := map[string]string{
 		"provisioningMode": "efs-ap",
 		"fileSystemId":     FileSystemId,
@@ -125,7 +126,7 @@ func (e *efsDriver) GetDynamicProvisionStorageClass(config *testsuites.PerTestCo
 }
 
 // List of testSuites to be executed in below loop
-var csiTestSuites = []func() testsuites.TestSuite{
+var csiTestSuites = []func() storageframework.TestSuite{
 	testsuites.InitVolumesTestSuite,
 	testsuites.InitVolumeIOTestSuite,
 	testsuites.InitVolumeModeTestSuite,
@@ -210,13 +211,13 @@ var _ = ginkgo.SynchronizedAfterSuite(func() {
 
 var _ = ginkgo.Describe("[efs-csi] EFS CSI", func() {
 	driver := InitEFSCSIDriver()
-	ginkgo.Context(testsuites.GetDriverNameWithFeatureTags(driver), func() {
-		testsuites.DefineTestSuite(driver, csiTestSuites)
+	ginkgo.Context(storageframework.GetDriverNameWithFeatureTags(driver), func() {
+		storageframework.DefineTestSuites(driver, csiTestSuites)
 	})
 
 	f := framework.NewDefaultFramework("efs")
 
-	ginkgo.Context(testsuites.GetDriverNameWithFeatureTags(driver), func() {
+	ginkgo.Context(storageframework.GetDriverNameWithFeatureTags(driver), func() {
 		ginkgo.It("should mount different paths on same volume on same node", func() {
 			ginkgo.By(fmt.Sprintf("Creating efs pvc & pv with no subpath"))
 			pvcRoot, pvRoot, err := createEFSPVCPV(f.ClientSet, f.Namespace.Name, f.Namespace.Name+"-root", "/", map[string]string{})
@@ -293,7 +294,7 @@ var _ = ginkgo.Describe("[efs-csi] EFS CSI", func() {
 			done := make(chan bool)
 			go func() {
 				defer ginkgo.GinkgoRecover()
-				utils.VerifyExecInPodSucceed(f, pod, command)
+				e2evolume.VerifyExecInPodSucceed(f, pod, command)
 				done <- true
 			}()
 			select {
