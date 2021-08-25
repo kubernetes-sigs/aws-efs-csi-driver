@@ -86,6 +86,9 @@ func (tk *TestKubeconfig) KubectlCmd(args ...string) *exec.Cmd {
 				fmt.Sprintf("--client-key=%s", filepath.Join(tk.CertDir, "kubecfg.key")))
 		}
 	}
+	if tk.Namespace != "" {
+		defaultArgs = append(defaultArgs, fmt.Sprintf("--namespace=%s", tk.Namespace))
+	}
 	kubectlArgs := append(defaultArgs, args...)
 
 	//We allow users to specify path to kubectl, so you can test either "kubectl" or "cluster/kubectl.sh"
@@ -139,6 +142,10 @@ func (tk *TestKubeconfig) WriteFileViaContainer(podName, containerName string, p
 		}
 	}
 	command := fmt.Sprintf("echo '%s' > '%s'; sync", contents, path)
+	// TODO(mauriciopoppe): remove this statement once we add `sync` to the test image, ref #101172
+	if e2epod.NodeOSDistroIs("windows") {
+		command = fmt.Sprintf("echo '%s' > '%s';", contents, path)
+	}
 	stdout, stderr, err := tk.kubectlExecWithRetry(tk.Namespace, podName, containerName, "--", "/bin/sh", "-c", command)
 	if err != nil {
 		e2elog.Logf("error running kubectl exec to write file: %v\nstdout=%v\nstderr=%v)", err, string(stdout), string(stderr))

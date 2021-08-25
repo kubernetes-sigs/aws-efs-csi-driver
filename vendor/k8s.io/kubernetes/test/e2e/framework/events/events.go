@@ -27,7 +27,11 @@ import (
 	clientset "k8s.io/client-go/kubernetes"
 )
 
+// Action is a function to be performed by the system.
+type Action func() error
+
 // WaitTimeoutForEvent waits the given timeout duration for an event to occur.
+// Please note delivery of events is not guaranteed. Asserting on events can lead to flaky tests.
 func WaitTimeoutForEvent(c clientset.Interface, namespace, eventSelector, msg string, timeout time.Duration) error {
 	interval := 2 * time.Second
 	return wait.PollImmediate(interval, timeout, eventOccurred(c, namespace, eventSelector, msg))

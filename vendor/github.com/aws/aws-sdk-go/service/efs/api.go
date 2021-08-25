@@ -63,8 +63,8 @@ func (c *EFS) CreateAccessPointRequest(input *CreateAccessPointInput) (req *requ
 // point. The operating system user and group override any identity information
 // provided by the NFS client. The file system path is exposed as the access
 // point's root directory. Applications using the access point can only access
-// data in its own directory and below. To learn more, see Mounting a File System
-// Using EFS Access Points (https://docs.aws.amazon.com/efs/latest/ug/efs-access-points.html).
+// data in its own directory and below. To learn more, see Mounting a file system
+// using EFS access points (https://docs.aws.amazon.com/efs/latest/ug/efs-access-points.html).
 //
 // This operation requires permissions for the elasticfilesystem:CreateAccessPoint
 // action.
@@ -84,6 +84,9 @@ func (c *EFS) CreateAccessPointRequest(input *CreateAccessPointInput) (req *requ
 //   * AccessPointAlreadyExists
 //   Returned if the access point you are trying to create already exists, with
 //   the creation token you provided in the request.
+//
+//   * IncorrectFileSystemLifeCycleState
+//   Returned if the file system's lifecycle state is not "available".
 //
 //   * InternalServerError
 //   Returned if an error occurred on the server side.
@@ -187,18 +190,24 @@ func (c *EFS) CreateFileSystemRequest(input *CreateFileSystemInput) (req *reques
 // if the initial call had succeeded in creating a file system, the client can
 // learn of its existence from the FileSystemAlreadyExists error.
 //
+// For more information, see Creating a file system (https://docs.aws.amazon.com/efs/latest/ug/creating-using-create-fs.html#creating-using-create-fs-part1)
+// in the Amazon EFS User Guide.
+//
 // The CreateFileSystem call returns while the file system's lifecycle state
 // is still creating. You can check the file system creation status by calling
 // the DescribeFileSystems operation, which among other things returns the file
 // system state.
 //
-// This operation also takes an optional PerformanceMode parameter that you
-// choose for your file system. We recommend generalPurpose performance mode
-// for most file systems. File systems using the maxIO performance mode can
-// scale to higher levels of aggregate throughput and operations per second
-// with a tradeoff of slightly higher latencies for most file operations. The
-// performance mode can't be changed after the file system has been created.
-// For more information, see Amazon EFS: Performance Modes (https://docs.aws.amazon.com/efs/latest/ug/performance.html#performancemodes.html).
+// This operation accepts an optional PerformanceMode parameter that you choose
+// for your file system. We recommend generalPurpose performance mode for most
+// file systems. File systems using the maxIO performance mode can scale to
+// higher levels of aggregate throughput and operations per second with a tradeoff
+// of slightly higher latencies for most file operations. The performance mode
+// can't be changed after the file system has been created. For more information,
+// see Amazon EFS performance modes (https://docs.aws.amazon.com/efs/latest/ug/performance.html#performancemodes.html).
+//
+// You can set the throughput mode for the file system using the ThroughputMode
+// parameter.
 //
 // After the file system is fully created, Amazon EFS sets its lifecycle state
 // to available, at which point you can create one or more mount targets for
@@ -238,11 +247,15 @@ func (c *EFS) CreateFileSystemRequest(input *CreateFileSystemInput) (req *reques
 //   This value might be returned when you try to create a file system in provisioned
 //   throughput mode, when you attempt to increase the provisioned throughput
 //   of an existing file system, or when you attempt to change an existing file
-//   system from bursting to provisioned throughput mode.
+//   system from bursting to provisioned throughput mode. Try again later.
 //
 //   * ThroughputLimitExceeded
 //   Returned if the throughput mode or amount of provisioned throughput can't
 //   be changed because the throughput limit of 1024 MiB/s has been reached.
+//
+//   * UnsupportedAvailabilityZone
+//   Returned if the requested Amazon EFS functionality is not available in the
+//   specified Availability Zone.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/elasticfilesystem-2015-02-01/CreateFileSystem
 func (c *EFS) CreateFileSystem(input *CreateFileSystemInput) (*FileSystemDescription, error) {
@@ -318,20 +331,29 @@ func (c *EFS) CreateMountTargetRequest(input *CreateMountTargetInput) (req *requ
 // target for a given file system. If you have multiple subnets in an Availability
 // Zone, you create a mount target in one of the subnets. EC2 instances do not
 // need to be in the same subnet as the mount target in order to access their
-// file system. For more information, see Amazon EFS: How it Works (https://docs.aws.amazon.com/efs/latest/ug/how-it-works.html).
+// file system.
 //
-// In the request, you also specify a file system ID for which you are creating
-// the mount target and the file system's lifecycle state must be available.
-// For more information, see DescribeFileSystems.
+// You can create only one mount target for an EFS file system using One Zone
+// storage classes. You must create that mount target in the same Availability
+// Zone in which the file system is located. Use the AvailabilityZoneName and
+// AvailabiltyZoneId properties in the DescribeFileSystems response object to
+// get this information. Use the subnetId associated with the file system's
+// Availability Zone when creating the mount target.
 //
-// In the request, you also provide a subnet ID, which determines the following:
+// For more information, see Amazon EFS: How it Works (https://docs.aws.amazon.com/efs/latest/ug/how-it-works.html).
 //
-//    * VPC in which Amazon EFS creates the mount target
+// To create a mount target for a file system, the file system's lifecycle state
+// must be available. For more information, see DescribeFileSystems.
 //
-//    * Availability Zone in which Amazon EFS creates the mount target
+// In the request, provide the following:
 //
-//    * IP address range from which Amazon EFS selects the IP address of the
-//    mount target (if you don't specify an IP address in the request)
+//    * The file system ID for which you are creating the mount target.
+//
+//    * A subnet ID, which determines the following: The VPC in which Amazon
+//    EFS creates the mount target The Availability Zone in which Amazon EFS
+//    creates the mount target The IP address range from which Amazon EFS selects
+//    the IP address of the mount target (if you don't specify an IP address
+//    in the request)
 //
 // After creating the mount target, Amazon EFS returns a response that includes,
 // a MountTargetId and an IpAddress. You use this IP address when mounting the
@@ -454,6 +476,14 @@ func (c *EFS) CreateMountTargetRequest(input *CreateMountTargetInput) (req *requ
 //   VPC.
 //
 //   * UnsupportedAvailabilityZone
+//   Returned if the requested Amazon EFS functionality is not available in the
+//   specified Availability Zone.
+//
+//   * AvailabilityZonesMismatch
+//   Returned if the Availability Zone that was specified for a mount target is
+//   different from the Availability Zone that was specified for One Zone storage
+//   classes. For more information, see Regional and One Zone storage redundancy
+//   (https://docs.aws.amazon.com/efs/latest/ug/availability-durability.html).
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/elasticfilesystem-2015-02-01/CreateMountTarget
 func (c *EFS) CreateMountTarget(input *CreateMountTargetInput) (*MountTargetDescription, error) {
@@ -526,6 +556,10 @@ func (c *EFS) CreateTagsRequest(input *CreateTagsInput) (req *request.Request, o
 }
 
 // CreateTags API operation for Amazon Elastic File System.
+//
+//
+// DEPRECATED - CreateTags is deprecated and not maintained. Please use the
+// API action to create tags for EFS resources.
 //
 // Creates or overwrites tags associated with a file system. Each tag is a key-value
 // pair. If a tag key specified in the request already exists on the file system,
@@ -1039,6 +1073,10 @@ func (c *EFS) DeleteTagsRequest(input *DeleteTagsInput) (req *request.Request, o
 
 // DeleteTags API operation for Amazon Elastic File System.
 //
+//
+// DEPRECATED - DeleteTags is deprecated and not maintained. Please use the
+// API action to remove tags from EFS resources.
+//
 // Deletes the specified tags from a file system. If the DeleteTags request
 // includes a tag key that doesn't exist, Amazon EFS ignores it and doesn't
 // cause an error. For more information about tags and related restrictions,
@@ -1246,6 +1284,178 @@ func (c *EFS) DescribeAccessPointsPagesWithContext(ctx aws.Context, input *Descr
 	}
 
 	return p.Err()
+}
+
+const opDescribeAccountPreferences = "DescribeAccountPreferences"
+
+// DescribeAccountPreferencesRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeAccountPreferences operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DescribeAccountPreferences for more information on using the DescribeAccountPreferences
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the DescribeAccountPreferencesRequest method.
+//    req, resp := client.DescribeAccountPreferencesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/elasticfilesystem-2015-02-01/DescribeAccountPreferences
+func (c *EFS) DescribeAccountPreferencesRequest(input *DescribeAccountPreferencesInput) (req *request.Request, output *DescribeAccountPreferencesOutput) {
+	op := &request.Operation{
+		Name:       opDescribeAccountPreferences,
+		HTTPMethod: "GET",
+		HTTPPath:   "/2015-02-01/account-preferences",
+	}
+
+	if input == nil {
+		input = &DescribeAccountPreferencesInput{}
+	}
+
+	output = &DescribeAccountPreferencesOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DescribeAccountPreferences API operation for Amazon Elastic File System.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic File System's
+// API operation DescribeAccountPreferences for usage and error information.
+//
+// Returned Error Types:
+//   * InternalServerError
+//   Returned if an error occurred on the server side.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/elasticfilesystem-2015-02-01/DescribeAccountPreferences
+func (c *EFS) DescribeAccountPreferences(input *DescribeAccountPreferencesInput) (*DescribeAccountPreferencesOutput, error) {
+	req, out := c.DescribeAccountPreferencesRequest(input)
+	return out, req.Send()
+}
+
+// DescribeAccountPreferencesWithContext is the same as DescribeAccountPreferences with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DescribeAccountPreferences for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *EFS) DescribeAccountPreferencesWithContext(ctx aws.Context, input *DescribeAccountPreferencesInput, opts ...request.Option) (*DescribeAccountPreferencesOutput, error) {
+	req, out := c.DescribeAccountPreferencesRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opDescribeBackupPolicy = "DescribeBackupPolicy"
+
+// DescribeBackupPolicyRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeBackupPolicy operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DescribeBackupPolicy for more information on using the DescribeBackupPolicy
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the DescribeBackupPolicyRequest method.
+//    req, resp := client.DescribeBackupPolicyRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/elasticfilesystem-2015-02-01/DescribeBackupPolicy
+func (c *EFS) DescribeBackupPolicyRequest(input *DescribeBackupPolicyInput) (req *request.Request, output *DescribeBackupPolicyOutput) {
+	op := &request.Operation{
+		Name:       opDescribeBackupPolicy,
+		HTTPMethod: "GET",
+		HTTPPath:   "/2015-02-01/file-systems/{FileSystemId}/backup-policy",
+	}
+
+	if input == nil {
+		input = &DescribeBackupPolicyInput{}
+	}
+
+	output = &DescribeBackupPolicyOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DescribeBackupPolicy API operation for Amazon Elastic File System.
+//
+// Returns the backup policy for the specified EFS file system.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic File System's
+// API operation DescribeBackupPolicy for usage and error information.
+//
+// Returned Error Types:
+//   * BadRequest
+//   Returned if the request is malformed or contains an error such as an invalid
+//   parameter value or a missing required parameter.
+//
+//   * FileSystemNotFound
+//   Returned if the specified FileSystemId value doesn't exist in the requester's
+//   AWS account.
+//
+//   * InternalServerError
+//   Returned if an error occurred on the server side.
+//
+//   * PolicyNotFound
+//   Returned if the default file system policy is in effect for the EFS file
+//   system specified.
+//
+//   * ValidationException
+//   Returned if the AWS Backup service is not available in the Region in which
+//   the request was made.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/elasticfilesystem-2015-02-01/DescribeBackupPolicy
+func (c *EFS) DescribeBackupPolicy(input *DescribeBackupPolicyInput) (*DescribeBackupPolicyOutput, error) {
+	req, out := c.DescribeBackupPolicyRequest(input)
+	return out, req.Send()
+}
+
+// DescribeBackupPolicyWithContext is the same as DescribeBackupPolicy with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DescribeBackupPolicy for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *EFS) DescribeBackupPolicyWithContext(ctx aws.Context, input *DescribeBackupPolicyInput, opts ...request.Option) (*DescribeBackupPolicyOutput, error) {
+	req, out := c.DescribeBackupPolicyRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
 }
 
 const opDescribeFileSystemPolicy = "DescribeFileSystemPolicy"
@@ -1856,6 +2066,10 @@ func (c *EFS) DescribeTagsRequest(input *DescribeTagsInput) (req *request.Reques
 
 // DescribeTags API operation for Amazon Elastic File System.
 //
+//
+// DEPRECATED - The DeleteTags action is deprecated and not maintained. Please
+// use the API action to remove tags from EFS resources.
+//
 // Returns the tags associated with a file system. The order of tags returned
 // in the response of one DescribeTags call and the order of tags returned across
 // the responses of a multiple-call iteration (when using pagination) is unspecified.
@@ -2231,6 +2445,178 @@ func (c *EFS) ModifyMountTargetSecurityGroupsWithContext(ctx aws.Context, input 
 	return out, req.Send()
 }
 
+const opPutAccountPreferences = "PutAccountPreferences"
+
+// PutAccountPreferencesRequest generates a "aws/request.Request" representing the
+// client's request for the PutAccountPreferences operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See PutAccountPreferences for more information on using the PutAccountPreferences
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the PutAccountPreferencesRequest method.
+//    req, resp := client.PutAccountPreferencesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/elasticfilesystem-2015-02-01/PutAccountPreferences
+func (c *EFS) PutAccountPreferencesRequest(input *PutAccountPreferencesInput) (req *request.Request, output *PutAccountPreferencesOutput) {
+	op := &request.Operation{
+		Name:       opPutAccountPreferences,
+		HTTPMethod: "PUT",
+		HTTPPath:   "/2015-02-01/account-preferences",
+	}
+
+	if input == nil {
+		input = &PutAccountPreferencesInput{}
+	}
+
+	output = &PutAccountPreferencesOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// PutAccountPreferences API operation for Amazon Elastic File System.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic File System's
+// API operation PutAccountPreferences for usage and error information.
+//
+// Returned Error Types:
+//   * InternalServerError
+//   Returned if an error occurred on the server side.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/elasticfilesystem-2015-02-01/PutAccountPreferences
+func (c *EFS) PutAccountPreferences(input *PutAccountPreferencesInput) (*PutAccountPreferencesOutput, error) {
+	req, out := c.PutAccountPreferencesRequest(input)
+	return out, req.Send()
+}
+
+// PutAccountPreferencesWithContext is the same as PutAccountPreferences with the addition of
+// the ability to pass a context and additional request options.
+//
+// See PutAccountPreferences for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *EFS) PutAccountPreferencesWithContext(ctx aws.Context, input *PutAccountPreferencesInput, opts ...request.Option) (*PutAccountPreferencesOutput, error) {
+	req, out := c.PutAccountPreferencesRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opPutBackupPolicy = "PutBackupPolicy"
+
+// PutBackupPolicyRequest generates a "aws/request.Request" representing the
+// client's request for the PutBackupPolicy operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See PutBackupPolicy for more information on using the PutBackupPolicy
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the PutBackupPolicyRequest method.
+//    req, resp := client.PutBackupPolicyRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/elasticfilesystem-2015-02-01/PutBackupPolicy
+func (c *EFS) PutBackupPolicyRequest(input *PutBackupPolicyInput) (req *request.Request, output *PutBackupPolicyOutput) {
+	op := &request.Operation{
+		Name:       opPutBackupPolicy,
+		HTTPMethod: "PUT",
+		HTTPPath:   "/2015-02-01/file-systems/{FileSystemId}/backup-policy",
+	}
+
+	if input == nil {
+		input = &PutBackupPolicyInput{}
+	}
+
+	output = &PutBackupPolicyOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// PutBackupPolicy API operation for Amazon Elastic File System.
+//
+// Updates the file system's backup policy. Use this action to start or stop
+// automatic backups of the file system.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic File System's
+// API operation PutBackupPolicy for usage and error information.
+//
+// Returned Error Types:
+//   * BadRequest
+//   Returned if the request is malformed or contains an error such as an invalid
+//   parameter value or a missing required parameter.
+//
+//   * FileSystemNotFound
+//   Returned if the specified FileSystemId value doesn't exist in the requester's
+//   AWS account.
+//
+//   * IncorrectFileSystemLifeCycleState
+//   Returned if the file system's lifecycle state is not "available".
+//
+//   * InternalServerError
+//   Returned if an error occurred on the server side.
+//
+//   * ValidationException
+//   Returned if the AWS Backup service is not available in the Region in which
+//   the request was made.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/elasticfilesystem-2015-02-01/PutBackupPolicy
+func (c *EFS) PutBackupPolicy(input *PutBackupPolicyInput) (*PutBackupPolicyOutput, error) {
+	req, out := c.PutBackupPolicyRequest(input)
+	return out, req.Send()
+}
+
+// PutBackupPolicyWithContext is the same as PutBackupPolicy with the addition of
+// the ability to pass a context and additional request options.
+//
+// See PutBackupPolicy for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *EFS) PutBackupPolicyWithContext(ctx aws.Context, input *PutBackupPolicyInput, opts ...request.Option) (*PutBackupPolicyOutput, error) {
+	req, out := c.PutBackupPolicyRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opPutFileSystemPolicy = "PutFileSystemPolicy"
 
 // PutFileSystemPolicyRequest generates a "aws/request.Request" representing the
@@ -2279,9 +2665,12 @@ func (c *EFS) PutFileSystemPolicyRequest(input *PutFileSystemPolicyInput) (req *
 // system policy is an IAM resource-based policy and can contain multiple policy
 // statements. A file system always has exactly one file system policy, which
 // can be the default policy or an explicit policy set or updated using this
-// API operation. When an explicit policy is set, it overrides the default policy.
-// For more information about the default file system policy, see Default EFS
-// File System Policy (https://docs.aws.amazon.com/efs/latest/ug/iam-access-control-nfs-efs.html#default-filesystempolicy).
+// API operation. EFS file system policies have a 20,000 character limit. When
+// an explicit policy is set, it overrides the default policy. For more information
+// about the default file system policy, see Default EFS File System Policy
+// (https://docs.aws.amazon.com/efs/latest/ug/iam-access-control-nfs-efs.html#default-filesystempolicy).
+//
+// EFS file system policies have a 20,000 character limit.
 //
 // This operation requires permissions for the elasticfilesystem:PutFileSystemPolicy
 // action.
@@ -2711,7 +3100,7 @@ func (c *EFS) UpdateFileSystemRequest(input *UpdateFileSystemInput) (req *reques
 //   This value might be returned when you try to create a file system in provisioned
 //   throughput mode, when you attempt to increase the provisioned throughput
 //   of an existing file system, or when you attempt to change an existing file
-//   system from bursting to provisioned throughput mode.
+//   system from bursting to provisioned throughput mode. Try again later.
 //
 //   * InternalServerError
 //   Returned if an error occurred on the server side.
@@ -3037,6 +3426,116 @@ func (s *AccessPointNotFound) RequestID() string {
 	return s.RespMetadata.RequestID
 }
 
+// Returned if the Availability Zone that was specified for a mount target is
+// different from the Availability Zone that was specified for One Zone storage
+// classes. For more information, see Regional and One Zone storage redundancy
+// (https://docs.aws.amazon.com/efs/latest/ug/availability-durability.html).
+type AvailabilityZonesMismatch struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	ErrorCode *string `min:"1" type:"string"`
+
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s AvailabilityZonesMismatch) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s AvailabilityZonesMismatch) GoString() string {
+	return s.String()
+}
+
+func newErrorAvailabilityZonesMismatch(v protocol.ResponseMetadata) error {
+	return &AvailabilityZonesMismatch{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *AvailabilityZonesMismatch) Code() string {
+	return "AvailabilityZonesMismatch"
+}
+
+// Message returns the exception's message.
+func (s *AvailabilityZonesMismatch) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *AvailabilityZonesMismatch) OrigErr() error {
+	return nil
+}
+
+func (s *AvailabilityZonesMismatch) Error() string {
+	return fmt.Sprintf("%s: %s\n%s", s.Code(), s.Message(), s.String())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *AvailabilityZonesMismatch) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *AvailabilityZonesMismatch) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
+// The backup policy for the file system used to create automatic daily backups.
+// If status has a value of ENABLED, the file system is being automatically
+// backed up. For more information, see Automatic backups (https://docs.aws.amazon.com/efs/latest/ug/awsbackup.html#automatic-backups).
+type BackupPolicy struct {
+	_ struct{} `type:"structure"`
+
+	// Describes the status of the file system's backup policy.
+	//
+	//    * ENABLED - EFS is automatically backing up the file system.
+	//
+	//    * ENABLING - EFS is turning on automatic backups for the file system.
+	//
+	//    * DISABLED - automatic back ups are turned off for the file system.
+	//
+	//    * DISABLING - EFS is turning off automatic backups for the file system.
+	//
+	// Status is a required field
+	Status *string `type:"string" required:"true" enum:"Status"`
+}
+
+// String returns the string representation
+func (s BackupPolicy) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s BackupPolicy) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *BackupPolicy) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "BackupPolicy"}
+	if s.Status == nil {
+		invalidParams.Add(request.NewErrParamRequired("Status"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetStatus sets the Status field's value.
+func (s *BackupPolicy) SetStatus(v string) *BackupPolicy {
+	s.Status = &v
+	return s
+}
+
 // Returned if the request is malformed or contains an error such as an invalid
 // parameter value or a missing required parameter.
 type BadRequest struct {
@@ -3119,7 +3618,12 @@ type CreateAccessPointInput struct {
 	// directory and below. If the RootDirectory > Path specified does not exist,
 	// EFS creates it and applies the CreationInfo settings when a client connects
 	// to an access point. When specifying a RootDirectory, you need to provide
-	// the Path, and the CreationInfo is optional.
+	// the Path, and the CreationInfo.
+	//
+	// Amazon EFS creates a root directory only if you have provided the CreationInfo:
+	// OwnUid, OwnGID, and permissions for the directory. If you do not provide
+	// this information, Amazon EFS does not create the root directory. If the root
+	// directory does not exist, attempts to mount using the access point will fail.
 	RootDirectory *RootDirectory `type:"structure"`
 
 	// Creates tags associated with the access point. Each tag is a key-value pair.
@@ -3313,6 +3817,28 @@ func (s *CreateAccessPointOutput) SetTags(v []*Tag) *CreateAccessPointOutput {
 type CreateFileSystemInput struct {
 	_ struct{} `type:"structure"`
 
+	// Used to create a file system that uses One Zone storage classes. It specifies
+	// the AWS Availability Zone in which to create the file system. Use the format
+	// us-east-1a to specify the Availability Zone. For more information about One
+	// Zone storage classes, see Using EFS storage classes (https://docs.aws.amazon.com/efs/latest/ug/storage-classes.html)
+	// in the Amazon EFS User Guide.
+	//
+	// One Zone storage classes are not available in all Availability Zones in AWS
+	// Regions where Amazon EFS is available.
+	AvailabilityZoneName *string `min:"1" type:"string"`
+
+	// Specifies whether automatic backups are enabled on the file system that you
+	// are creating. Set the value to true to enable automatic backups. If you are
+	// creating a file system that uses One Zone storage classes, automatic backups
+	// are enabled by default. For more information, see Automatic backups (https://docs.aws.amazon.com/efs/latest/ug/awsbackup.html#automatic-backups)
+	// in the Amazon EFS User Guide.
+	//
+	// Default is false. However, if you specify an AvailabilityZoneName, the default
+	// is true.
+	//
+	// AWS Backup is not available in all AWS Regions where Amazon EFS is available.
+	Backup *bool `type:"boolean"`
+
 	// A string of up to 64 ASCII characters. Amazon EFS uses this to ensure idempotent
 	// creation.
 	CreationToken *string `min:"1" type:"string" idempotencyToken:"true"`
@@ -3324,10 +3850,10 @@ type CreateFileSystemInput struct {
 	// is used to protect the encrypted file system.
 	Encrypted *bool `type:"boolean"`
 
-	// The ID of the AWS KMS CMK to be used to protect the encrypted file system.
-	// This parameter is only required if you want to use a nondefault CMK. If this
-	// parameter is not specified, the default CMK for Amazon EFS is used. This
-	// ID can be in one of the following formats:
+	// The ID of the AWS KMS CMK that you want to use to protect the encrypted file
+	// system. This parameter is only required if you want to use a non-default
+	// KMS key. If this parameter is not specified, the default CMK for Amazon EFS
+	// is used. This ID can be in one of the following formats:
 	//
 	//    * Key ID - A unique identifier of the key, for example 1234abcd-12ab-34cd-56ef-1234567890ab.
 	//
@@ -3341,22 +3867,24 @@ type CreateFileSystemInput struct {
 	// If KmsKeyId is specified, the CreateFileSystemRequest$Encrypted parameter
 	// must be set to true.
 	//
-	// EFS accepts only symmetric CMKs. You cannot use asymmetric CMKs with EFS
-	// file systems.
-	KmsKeyId *string `min:"1" type:"string"`
+	// EFS accepts only symmetric KMS keys. You cannot use asymmetric KMS keys with
+	// EFS file systems.
+	KmsKeyId *string `type:"string"`
 
 	// The performance mode of the file system. We recommend generalPurpose performance
 	// mode for most file systems. File systems using the maxIO performance mode
 	// can scale to higher levels of aggregate throughput and operations per second
 	// with a tradeoff of slightly higher latencies for most file operations. The
 	// performance mode can't be changed after the file system has been created.
+	//
+	// The maxIO mode is not supported on file systems using One Zone storage classes.
 	PerformanceMode *string `type:"string" enum:"PerformanceMode"`
 
 	// The throughput, measured in MiB/s, that you want to provision for a file
 	// system that you're creating. Valid values are 1-1024. Required if ThroughputMode
-	// is set to provisioned. The upper limit for throughput is 1024 MiB/s. You
-	// can get this limit increased by contacting AWS Support. For more information,
-	// see Amazon EFS Limits That You Can Increase (https://docs.aws.amazon.com/efs/latest/ug/limits.html#soft-limits)
+	// is set to provisioned. The upper limit for throughput is 1024 MiB/s. To increase
+	// this limit, contact AWS Support. For more information, see Amazon EFS quotas
+	// that you can increase (https://docs.aws.amazon.com/efs/latest/ug/limits.html#soft-limits)
 	// in the Amazon EFS User Guide.
 	ProvisionedThroughputInMibps *float64 `min:"1" type:"double"`
 
@@ -3365,14 +3893,16 @@ type CreateFileSystemInput struct {
 	// on creation by including a "Key":"Name","Value":"{value}" key-value pair.
 	Tags []*Tag `type:"list"`
 
-	// The throughput mode for the file system to be created. There are two throughput
-	// modes to choose from for your file system: bursting and provisioned. If you
-	// set ThroughputMode to provisioned, you must also set a value for ProvisionedThroughPutInMibps.
-	// You can decrease your file system's throughput in Provisioned Throughput
-	// mode or change between the throughput modes as long as it’s been more than
-	// 24 hours since the last decrease or throughput mode change. For more, see
-	// Specifying Throughput with Provisioned Mode (https://docs.aws.amazon.com/efs/latest/ug/performance.html#provisioned-throughput)
+	// Specifies the throughput mode for the file system, either bursting or provisioned.
+	// If you set ThroughputMode to provisioned, you must also set a value for ProvisionedThroughputInMibps.
+	// After you create the file system, you can decrease your file system's throughput
+	// in Provisioned Throughput mode or change between the throughput modes, as
+	// long as it’s been more than 24 hours since the last decrease or throughput
+	// mode change. For more information, see Specifying throughput with provisioned
+	// mode (https://docs.aws.amazon.com/efs/latest/ug/performance.html#provisioned-throughput)
 	// in the Amazon EFS User Guide.
+	//
+	// Default is bursting.
 	ThroughputMode *string `type:"string" enum:"ThroughputMode"`
 }
 
@@ -3389,11 +3919,11 @@ func (s CreateFileSystemInput) GoString() string {
 // Validate inspects the fields of the type to determine if they are valid.
 func (s *CreateFileSystemInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "CreateFileSystemInput"}
+	if s.AvailabilityZoneName != nil && len(*s.AvailabilityZoneName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AvailabilityZoneName", 1))
+	}
 	if s.CreationToken != nil && len(*s.CreationToken) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("CreationToken", 1))
-	}
-	if s.KmsKeyId != nil && len(*s.KmsKeyId) < 1 {
-		invalidParams.Add(request.NewErrParamMinLen("KmsKeyId", 1))
 	}
 	if s.ProvisionedThroughputInMibps != nil && *s.ProvisionedThroughputInMibps < 1 {
 		invalidParams.Add(request.NewErrParamMinValue("ProvisionedThroughputInMibps", 1))
@@ -3413,6 +3943,18 @@ func (s *CreateFileSystemInput) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetAvailabilityZoneName sets the AvailabilityZoneName field's value.
+func (s *CreateFileSystemInput) SetAvailabilityZoneName(v string) *CreateFileSystemInput {
+	s.AvailabilityZoneName = &v
+	return s
+}
+
+// SetBackup sets the Backup field's value.
+func (s *CreateFileSystemInput) SetBackup(v bool) *CreateFileSystemInput {
+	s.Backup = &v
+	return s
 }
 
 // SetCreationToken sets the CreationToken field's value.
@@ -3466,16 +4008,18 @@ type CreateMountTargetInput struct {
 	FileSystemId *string `type:"string" required:"true"`
 
 	// Valid IPv4 address within the address range of the specified subnet.
-	IpAddress *string `type:"string"`
+	IpAddress *string `min:"7" type:"string"`
 
 	// Up to five VPC security group IDs, of the form sg-xxxxxxxx. These must be
 	// for the same VPC as subnet specified.
 	SecurityGroups []*string `type:"list"`
 
-	// The ID of the subnet to add the mount target in.
+	// The ID of the subnet to add the mount target in. For file systems that use
+	// One Zone storage classes, use the subnet that is associated with the file
+	// system's Availability Zone.
 	//
 	// SubnetId is a required field
-	SubnetId *string `type:"string" required:"true"`
+	SubnetId *string `min:"15" type:"string" required:"true"`
 }
 
 // String returns the string representation
@@ -3494,8 +4038,14 @@ func (s *CreateMountTargetInput) Validate() error {
 	if s.FileSystemId == nil {
 		invalidParams.Add(request.NewErrParamRequired("FileSystemId"))
 	}
+	if s.IpAddress != nil && len(*s.IpAddress) < 7 {
+		invalidParams.Add(request.NewErrParamMinLen("IpAddress", 7))
+	}
 	if s.SubnetId == nil {
 		invalidParams.Add(request.NewErrParamRequired("SubnetId"))
+	}
+	if s.SubnetId != nil && len(*s.SubnetId) < 15 {
+		invalidParams.Add(request.NewErrParamMinLen("SubnetId", 15))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -3614,6 +4164,11 @@ func (s CreateTagsOutput) GoString() string {
 // with these settings when a client connects to the access point. When specifying
 // CreationInfo, you must include values for all properties.
 //
+// Amazon EFS creates a root directory only if you have provided the CreationInfo:
+// OwnUid, OwnGID, and permissions for the directory. If you do not provide
+// this information, Amazon EFS does not create the root directory. If the root
+// directory does not exist, attempts to mount using the access point will fail.
+//
 // If you do not provide CreationInfo and the specified RootDirectory does not
 // exist, attempts to mount the file system using the access point will fail.
 type CreationInfo struct {
@@ -3635,7 +4190,7 @@ type CreationInfo struct {
 	// of an octal number representing the file's mode bits.
 	//
 	// Permissions is a required field
-	Permissions *string `type:"string" required:"true"`
+	Permissions *string `min:"3" type:"string" required:"true"`
 }
 
 // String returns the string representation
@@ -3659,6 +4214,9 @@ func (s *CreationInfo) Validate() error {
 	}
 	if s.Permissions == nil {
 		invalidParams.Add(request.NewErrParamRequired("Permissions"))
+	}
+	if s.Permissions != nil && len(*s.Permissions) < 3 {
+		invalidParams.Add(request.NewErrParamMinLen("Permissions", 3))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -3856,7 +4414,7 @@ type DeleteMountTargetInput struct {
 	// The ID of the mount target to delete (String).
 	//
 	// MountTargetId is a required field
-	MountTargetId *string `location:"uri" locationName:"MountTargetId" type:"string" required:"true"`
+	MountTargetId *string `location:"uri" locationName:"MountTargetId" min:"13" type:"string" required:"true"`
 }
 
 // String returns the string representation
@@ -3875,8 +4433,8 @@ func (s *DeleteMountTargetInput) Validate() error {
 	if s.MountTargetId == nil {
 		invalidParams.Add(request.NewErrParamRequired("MountTargetId"))
 	}
-	if s.MountTargetId != nil && len(*s.MountTargetId) < 1 {
-		invalidParams.Add(request.NewErrParamMinLen("MountTargetId", 1))
+	if s.MountTargetId != nil && len(*s.MountTargetId) < 13 {
+		invalidParams.Add(request.NewErrParamMinLen("MountTargetId", 13))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -4055,7 +4613,7 @@ type DescribeAccessPointsInput struct {
 
 	// NextToken is present if the response is paginated. You can use NextMarker
 	// in the subsequent request to fetch the next page of access point descriptions.
-	NextToken *string `location:"querystring" locationName:"NextToken" type:"string"`
+	NextToken *string `location:"querystring" locationName:"NextToken" min:"1" type:"string"`
 }
 
 // String returns the string representation
@@ -4073,6 +4631,9 @@ func (s *DescribeAccessPointsInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "DescribeAccessPointsInput"}
 	if s.MaxResults != nil && *s.MaxResults < 1 {
 		invalidParams.Add(request.NewErrParamMinValue("MaxResults", 1))
+	}
+	if s.NextToken != nil && len(*s.NextToken) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("NextToken", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -4114,7 +4675,7 @@ type DescribeAccessPointsOutput struct {
 	// Present if there are more access points than returned in the response. You
 	// can use the NextMarker in the subsequent request to fetch the additional
 	// descriptions.
-	NextToken *string `type:"string"`
+	NextToken *string `min:"1" type:"string"`
 }
 
 // String returns the string representation
@@ -4136,6 +4697,150 @@ func (s *DescribeAccessPointsOutput) SetAccessPoints(v []*AccessPointDescription
 // SetNextToken sets the NextToken field's value.
 func (s *DescribeAccessPointsOutput) SetNextToken(v string) *DescribeAccessPointsOutput {
 	s.NextToken = &v
+	return s
+}
+
+type DescribeAccountPreferencesInput struct {
+	_ struct{} `type:"structure"`
+
+	// Max results used for pagination.
+	MaxResults *int64 `min:"1" type:"integer"`
+
+	// Token used for pagination.
+	NextToken *string `min:"1" type:"string"`
+}
+
+// String returns the string representation
+func (s DescribeAccountPreferencesInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeAccountPreferencesInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeAccountPreferencesInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeAccountPreferencesInput"}
+	if s.MaxResults != nil && *s.MaxResults < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("MaxResults", 1))
+	}
+	if s.NextToken != nil && len(*s.NextToken) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("NextToken", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetMaxResults sets the MaxResults field's value.
+func (s *DescribeAccountPreferencesInput) SetMaxResults(v int64) *DescribeAccountPreferencesInput {
+	s.MaxResults = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribeAccountPreferencesInput) SetNextToken(v string) *DescribeAccountPreferencesInput {
+	s.NextToken = &v
+	return s
+}
+
+type DescribeAccountPreferencesOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Token used for pagination.
+	NextToken *string `min:"1" type:"string"`
+
+	ResourceIdPreference *ResourceIdPreference `type:"structure"`
+}
+
+// String returns the string representation
+func (s DescribeAccountPreferencesOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeAccountPreferencesOutput) GoString() string {
+	return s.String()
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribeAccountPreferencesOutput) SetNextToken(v string) *DescribeAccountPreferencesOutput {
+	s.NextToken = &v
+	return s
+}
+
+// SetResourceIdPreference sets the ResourceIdPreference field's value.
+func (s *DescribeAccountPreferencesOutput) SetResourceIdPreference(v *ResourceIdPreference) *DescribeAccountPreferencesOutput {
+	s.ResourceIdPreference = v
+	return s
+}
+
+type DescribeBackupPolicyInput struct {
+	_ struct{} `type:"structure"`
+
+	// Specifies which EFS file system to retrieve the BackupPolicy for.
+	//
+	// FileSystemId is a required field
+	FileSystemId *string `location:"uri" locationName:"FileSystemId" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s DescribeBackupPolicyInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeBackupPolicyInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeBackupPolicyInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeBackupPolicyInput"}
+	if s.FileSystemId == nil {
+		invalidParams.Add(request.NewErrParamRequired("FileSystemId"))
+	}
+	if s.FileSystemId != nil && len(*s.FileSystemId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("FileSystemId", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetFileSystemId sets the FileSystemId field's value.
+func (s *DescribeBackupPolicyInput) SetFileSystemId(v string) *DescribeBackupPolicyInput {
+	s.FileSystemId = &v
+	return s
+}
+
+type DescribeBackupPolicyOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Describes the file system's backup policy, indicating whether automatic backups
+	// are turned on or off..
+	BackupPolicy *BackupPolicy `type:"structure"`
+}
+
+// String returns the string representation
+func (s DescribeBackupPolicyOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeBackupPolicyOutput) GoString() string {
+	return s.String()
+}
+
+// SetBackupPolicy sets the BackupPolicy field's value.
+func (s *DescribeBackupPolicyOutput) SetBackupPolicy(v *BackupPolicy) *DescribeBackupPolicyOutput {
+	s.BackupPolicy = v
 	return s
 }
 
@@ -4187,7 +4892,7 @@ type DescribeFileSystemPolicyOutput struct {
 	FileSystemId *string `type:"string"`
 
 	// The JSON formatted FileSystemPolicy for the EFS file system.
-	Policy *string `type:"string"`
+	Policy *string `min:"1" type:"string"`
 }
 
 // String returns the string representation
@@ -4226,7 +4931,7 @@ type DescribeFileSystemsInput struct {
 	// (Optional) Opaque pagination token returned from a previous DescribeFileSystems
 	// operation (String). If present, specifies to continue the list from where
 	// the returning call had left off.
-	Marker *string `location:"querystring" locationName:"Marker" type:"string"`
+	Marker *string `location:"querystring" locationName:"Marker" min:"1" type:"string"`
 
 	// (Optional) Specifies the maximum number of file systems to return in the
 	// response (integer). This number is automatically set to 100. The response
@@ -4249,6 +4954,9 @@ func (s *DescribeFileSystemsInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "DescribeFileSystemsInput"}
 	if s.CreationToken != nil && len(*s.CreationToken) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("CreationToken", 1))
+	}
+	if s.Marker != nil && len(*s.Marker) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Marker", 1))
 	}
 	if s.MaxItems != nil && *s.MaxItems < 1 {
 		invalidParams.Add(request.NewErrParamMinValue("MaxItems", 1))
@@ -4291,11 +4999,11 @@ type DescribeFileSystemsOutput struct {
 	FileSystems []*FileSystemDescription `type:"list"`
 
 	// Present if provided by caller in the request (String).
-	Marker *string `type:"string"`
+	Marker *string `min:"1" type:"string"`
 
 	// Present if there are more file systems than returned in the response (String).
 	// You can use the NextMarker in the subsequent request to fetch the descriptions.
-	NextMarker *string `type:"string"`
+	NextMarker *string `min:"1" type:"string"`
 }
 
 // String returns the string representation
@@ -4398,7 +5106,7 @@ type DescribeMountTargetSecurityGroupsInput struct {
 	// The ID of the mount target whose security groups you want to retrieve.
 	//
 	// MountTargetId is a required field
-	MountTargetId *string `location:"uri" locationName:"MountTargetId" type:"string" required:"true"`
+	MountTargetId *string `location:"uri" locationName:"MountTargetId" min:"13" type:"string" required:"true"`
 }
 
 // String returns the string representation
@@ -4417,8 +5125,8 @@ func (s *DescribeMountTargetSecurityGroupsInput) Validate() error {
 	if s.MountTargetId == nil {
 		invalidParams.Add(request.NewErrParamRequired("MountTargetId"))
 	}
-	if s.MountTargetId != nil && len(*s.MountTargetId) < 1 {
-		invalidParams.Add(request.NewErrParamMinLen("MountTargetId", 1))
+	if s.MountTargetId != nil && len(*s.MountTargetId) < 13 {
+		invalidParams.Add(request.NewErrParamMinLen("MountTargetId", 13))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -4475,7 +5183,7 @@ type DescribeMountTargetsInput struct {
 	// (Optional) Opaque pagination token returned from a previous DescribeMountTargets
 	// operation (String). If present, it specifies to continue the list from where
 	// the previous returning call left off.
-	Marker *string `location:"querystring" locationName:"Marker" type:"string"`
+	Marker *string `location:"querystring" locationName:"Marker" min:"1" type:"string"`
 
 	// (Optional) Maximum number of mount targets to return in the response. Currently,
 	// this number is automatically set to 10, and other values are ignored. The
@@ -4485,7 +5193,7 @@ type DescribeMountTargetsInput struct {
 	// (Optional) ID of the mount target that you want to have described (String).
 	// It must be included in your request if FileSystemId is not included. Accepts
 	// either a mount target ID or ARN as input.
-	MountTargetId *string `location:"querystring" locationName:"MountTargetId" type:"string"`
+	MountTargetId *string `location:"querystring" locationName:"MountTargetId" min:"13" type:"string"`
 }
 
 // String returns the string representation
@@ -4501,8 +5209,14 @@ func (s DescribeMountTargetsInput) GoString() string {
 // Validate inspects the fields of the type to determine if they are valid.
 func (s *DescribeMountTargetsInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "DescribeMountTargetsInput"}
+	if s.Marker != nil && len(*s.Marker) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Marker", 1))
+	}
 	if s.MaxItems != nil && *s.MaxItems < 1 {
 		invalidParams.Add(request.NewErrParamMinValue("MaxItems", 1))
+	}
+	if s.MountTargetId != nil && len(*s.MountTargetId) < 13 {
+		invalidParams.Add(request.NewErrParamMinLen("MountTargetId", 13))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -4546,7 +5260,7 @@ type DescribeMountTargetsOutput struct {
 
 	// If the request included the Marker, the response returns that value in this
 	// field.
-	Marker *string `type:"string"`
+	Marker *string `min:"1" type:"string"`
 
 	// Returns the file system's mount targets as an array of MountTargetDescription
 	// objects.
@@ -4555,7 +5269,7 @@ type DescribeMountTargetsOutput struct {
 	// If a value is present, there are more mount targets to return. In a subsequent
 	// request, you can provide Marker in your request with this value to retrieve
 	// the next set of mount targets.
-	NextMarker *string `type:"string"`
+	NextMarker *string `min:"1" type:"string"`
 }
 
 // String returns the string representation
@@ -4597,7 +5311,7 @@ type DescribeTagsInput struct {
 	// (Optional) An opaque pagination token returned from a previous DescribeTags
 	// operation (String). If present, it specifies to continue the list from where
 	// the previous call left off.
-	Marker *string `location:"querystring" locationName:"Marker" type:"string"`
+	Marker *string `location:"querystring" locationName:"Marker" min:"1" type:"string"`
 
 	// (Optional) The maximum number of file system tags to return in the response.
 	// Currently, this number is automatically set to 100, and other values are
@@ -4624,6 +5338,9 @@ func (s *DescribeTagsInput) Validate() error {
 	}
 	if s.FileSystemId != nil && len(*s.FileSystemId) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("FileSystemId", 1))
+	}
+	if s.Marker != nil && len(*s.Marker) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Marker", 1))
 	}
 	if s.MaxItems != nil && *s.MaxItems < 1 {
 		invalidParams.Add(request.NewErrParamMinValue("MaxItems", 1))
@@ -4658,12 +5375,12 @@ type DescribeTagsOutput struct {
 
 	// If the request included a Marker, the response returns that value in this
 	// field.
-	Marker *string `type:"string"`
+	Marker *string `min:"1" type:"string"`
 
 	// If a value is present, there are more tags to return. In a subsequent request,
 	// you can provide the value of NextMarker as the value of the Marker parameter
 	// in your next request to retrieve the next set of tags.
-	NextMarker *string `type:"string"`
+	NextMarker *string `min:"1" type:"string"`
 
 	// Returns tags associated with the file system as an array of Tag objects.
 	//
@@ -4766,6 +5483,18 @@ func (s *FileSystemAlreadyExists) RequestID() string {
 type FileSystemDescription struct {
 	_ struct{} `type:"structure"`
 
+	// The unique and consistent identifier of the Availability Zone in which the
+	// file system's One Zone storage classes exist. For example, use1-az1 is an
+	// Availability Zone ID for the us-east-1 AWS Region, and it has the same location
+	// in every AWS account.
+	AvailabilityZoneId *string `type:"string"`
+
+	// Describes the AWS Availability Zone in which the file system is located,
+	// and is valid only for file systems using One Zone storage classes. For more
+	// information, see Using EFS storage classes (https://docs.aws.amazon.com/efs/latest/ug/storage-classes.html)
+	// in the Amazon EFS User Guide.
+	AvailabilityZoneName *string `min:"1" type:"string"`
+
 	// The time that the file system was created, in seconds (since 1970-01-01T00:00:00Z).
 	//
 	// CreationTime is a required field
@@ -4779,6 +5508,10 @@ type FileSystemDescription struct {
 	// A Boolean value that, if true, indicates that the file system is encrypted.
 	Encrypted *bool `type:"boolean"`
 
+	// The Amazon Resource Name (ARN) for the EFS file system, in the format arn:aws:elasticfilesystem:region:account-id:file-system/file-system-id
+	// . Example with sample data: arn:aws:elasticfilesystem:us-west-2:1111333322228888:file-system/fs-01234567
+	FileSystemArn *string `type:"string"`
+
 	// The ID of the file system, assigned by Amazon EFS.
 	//
 	// FileSystemId is a required field
@@ -4786,7 +5519,7 @@ type FileSystemDescription struct {
 
 	// The ID of an AWS Key Management Service (AWS KMS) customer master key (CMK)
 	// that was used to protect the encrypted file system.
-	KmsKeyId *string `min:"1" type:"string"`
+	KmsKeyId *string `type:"string"`
 
 	// The lifecycle phase of the file system.
 	//
@@ -4815,12 +5548,8 @@ type FileSystemDescription struct {
 	// PerformanceMode is a required field
 	PerformanceMode *string `type:"string" required:"true" enum:"PerformanceMode"`
 
-	// The throughput, measured in MiB/s, that you want to provision for a file
-	// system. Valid values are 1-1024. Required if ThroughputMode is set to provisioned.
-	// The limit on throughput is 1024 MiB/s. You can get these limits increased
-	// by contacting AWS Support. For more information, see Amazon EFS Limits That
-	// You Can Increase (https://docs.aws.amazon.com/efs/latest/ug/limits.html#soft-limits)
-	// in the Amazon EFS User Guide.
+	// The amount of provisioned throughput, measured in MiB/s, for the file system.
+	// Valid for file systems using ThroughputMode set to provisioned.
 	ProvisionedThroughputInMibps *float64 `min:"1" type:"double"`
 
 	// The latest known metered size (in bytes) of data stored in the file system,
@@ -4841,12 +5570,9 @@ type FileSystemDescription struct {
 	// Tags is a required field
 	Tags []*Tag `type:"list" required:"true"`
 
-	// The throughput mode for a file system. There are two throughput modes to
-	// choose from for your file system: bursting and provisioned. If you set ThroughputMode
-	// to provisioned, you must also set a value for ProvisionedThroughPutInMibps.
-	// You can decrease your file system's throughput in Provisioned Throughput
-	// mode or change between the throughput modes as long as it’s been more than
-	// 24 hours since the last decrease or throughput mode change.
+	// Displays the file system's throughput mode. For more information, see Throughput
+	// modes (https://docs.aws.amazon.com/efs/latest/ug/performance.html#throughput-modes)
+	// in the Amazon EFS User Guide.
 	ThroughputMode *string `type:"string" enum:"ThroughputMode"`
 }
 
@@ -4858,6 +5584,18 @@ func (s FileSystemDescription) String() string {
 // GoString returns the string representation
 func (s FileSystemDescription) GoString() string {
 	return s.String()
+}
+
+// SetAvailabilityZoneId sets the AvailabilityZoneId field's value.
+func (s *FileSystemDescription) SetAvailabilityZoneId(v string) *FileSystemDescription {
+	s.AvailabilityZoneId = &v
+	return s
+}
+
+// SetAvailabilityZoneName sets the AvailabilityZoneName field's value.
+func (s *FileSystemDescription) SetAvailabilityZoneName(v string) *FileSystemDescription {
+	s.AvailabilityZoneName = &v
+	return s
 }
 
 // SetCreationTime sets the CreationTime field's value.
@@ -4875,6 +5613,12 @@ func (s *FileSystemDescription) SetCreationToken(v string) *FileSystemDescriptio
 // SetEncrypted sets the Encrypted field's value.
 func (s *FileSystemDescription) SetEncrypted(v bool) *FileSystemDescription {
 	s.Encrypted = &v
+	return s
+}
+
+// SetFileSystemArn sets the FileSystemArn field's value.
+func (s *FileSystemDescription) SetFileSystemArn(v string) *FileSystemDescription {
+	s.FileSystemArn = &v
 	return s
 }
 
@@ -5308,7 +6052,7 @@ func (s *IncorrectMountTargetState) RequestID() string {
 // This value might be returned when you try to create a file system in provisioned
 // throughput mode, when you attempt to increase the provisioned throughput
 // of an existing file system, or when you attempt to change an existing file
-// system from bursting to provisioned throughput mode.
+// system from bursting to provisioned throughput mode. Try again later.
 type InsufficientThroughputCapacity struct {
 	_            struct{}                  `type:"structure"`
 	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
@@ -5580,9 +6324,9 @@ type ListTagsForResourceInput struct {
 	// The default value is 100.
 	MaxResults *int64 `location:"querystring" locationName:"MaxResults" min:"1" type:"integer"`
 
-	// You can use NextToken in a subsequent request to fetch the next page of access
-	// point descriptions if the response payload was paginated.
-	NextToken *string `location:"querystring" locationName:"NextToken" type:"string"`
+	// (Optional) You can use NextToken in a subsequent request to fetch the next
+	// page of access point descriptions if the response payload was paginated.
+	NextToken *string `location:"querystring" locationName:"NextToken" min:"1" type:"string"`
 
 	// Specifies the EFS resource you want to retrieve tags for. You can retrieve
 	// tags for EFS file systems and access points using this API endpoint.
@@ -5606,6 +6350,9 @@ func (s *ListTagsForResourceInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "ListTagsForResourceInput"}
 	if s.MaxResults != nil && *s.MaxResults < 1 {
 		invalidParams.Add(request.NewErrParamMinValue("MaxResults", 1))
+	}
+	if s.NextToken != nil && len(*s.NextToken) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("NextToken", 1))
 	}
 	if s.ResourceId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ResourceId"))
@@ -5643,7 +6390,7 @@ type ListTagsForResourceOutput struct {
 
 	// NextToken is present if the response payload is paginated. You can use NextToken
 	// in a subsequent request to fetch the next page of access point descriptions.
-	NextToken *string `type:"string"`
+	NextToken *string `min:"1" type:"string"`
 
 	// An array of the tags for the specified EFS resource.
 	Tags []*Tag `type:"list"`
@@ -5677,7 +6424,7 @@ type ModifyMountTargetSecurityGroupsInput struct {
 	// The ID of the mount target whose security groups you want to modify.
 	//
 	// MountTargetId is a required field
-	MountTargetId *string `location:"uri" locationName:"MountTargetId" type:"string" required:"true"`
+	MountTargetId *string `location:"uri" locationName:"MountTargetId" min:"13" type:"string" required:"true"`
 
 	// An array of up to five VPC security group IDs.
 	SecurityGroups []*string `type:"list"`
@@ -5699,8 +6446,8 @@ func (s *ModifyMountTargetSecurityGroupsInput) Validate() error {
 	if s.MountTargetId == nil {
 		invalidParams.Add(request.NewErrParamRequired("MountTargetId"))
 	}
-	if s.MountTargetId != nil && len(*s.MountTargetId) < 1 {
-		invalidParams.Add(request.NewErrParamMinLen("MountTargetId", 1))
+	if s.MountTargetId != nil && len(*s.MountTargetId) < 13 {
+		invalidParams.Add(request.NewErrParamMinLen("MountTargetId", 13))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -5799,16 +6546,16 @@ func (s *MountTargetConflict) RequestID() string {
 type MountTargetDescription struct {
 	_ struct{} `type:"structure"`
 
-	// The unique and consistent identifier of the Availability Zone (AZ) that the
-	// mount target resides in. For example, use1-az1 is an AZ ID for the us-east-1
-	// Region and it has the same location in every AWS account.
+	// The unique and consistent identifier of the Availability Zone that the mount
+	// target resides in. For example, use1-az1 is an AZ ID for the us-east-1 Region
+	// and it has the same location in every AWS account.
 	AvailabilityZoneId *string `type:"string"`
 
-	// The name of the Availability Zone (AZ) that the mount target resides in.
-	// AZs are independently mapped to names for each AWS account. For example,
+	// The name of the Availability Zone in which the mount target is located. Availability
+	// Zones are independently mapped to names for each AWS account. For example,
 	// the Availability Zone us-east-1a for your AWS account might not be the same
 	// location as us-east-1a for another AWS account.
-	AvailabilityZoneName *string `type:"string"`
+	AvailabilityZoneName *string `min:"1" type:"string"`
 
 	// The ID of the file system for which the mount target is intended.
 	//
@@ -5816,7 +6563,7 @@ type MountTargetDescription struct {
 	FileSystemId *string `type:"string" required:"true"`
 
 	// Address at which the file system can be mounted by using the mount target.
-	IpAddress *string `type:"string"`
+	IpAddress *string `min:"7" type:"string"`
 
 	// Lifecycle state of the mount target.
 	//
@@ -5826,7 +6573,7 @@ type MountTargetDescription struct {
 	// System-assigned mount target ID.
 	//
 	// MountTargetId is a required field
-	MountTargetId *string `type:"string" required:"true"`
+	MountTargetId *string `min:"13" type:"string" required:"true"`
 
 	// The ID of the network interface that Amazon EFS created when it created the
 	// mount target.
@@ -5838,7 +6585,10 @@ type MountTargetDescription struct {
 	// The ID of the mount target's subnet.
 	//
 	// SubnetId is a required field
-	SubnetId *string `type:"string" required:"true"`
+	SubnetId *string `min:"15" type:"string" required:"true"`
+
+	// The virtual private cloud (VPC) ID that the mount target is configured in.
+	VpcId *string `type:"string"`
 }
 
 // String returns the string representation
@@ -5902,6 +6652,12 @@ func (s *MountTargetDescription) SetOwnerId(v string) *MountTargetDescription {
 // SetSubnetId sets the SubnetId field's value.
 func (s *MountTargetDescription) SetSubnetId(v string) *MountTargetDescription {
 	s.SubnetId = &v
+	return s
+}
+
+// SetVpcId sets the VpcId field's value.
+func (s *MountTargetDescription) SetVpcId(v string) *MountTargetDescription {
+	s.VpcId = &v
 	return s
 }
 
@@ -6214,6 +6970,151 @@ func (s *PosixUser) SetUid(v int64) *PosixUser {
 	return s
 }
 
+type PutAccountPreferencesInput struct {
+	_ struct{} `type:"structure"`
+
+	// A preference indicating a choice to use 63bit/32bit IDs for all applicable
+	// resources.
+	//
+	// ResourceIdType is a required field
+	ResourceIdType *string `type:"string" required:"true" enum:"ResourceIdType"`
+}
+
+// String returns the string representation
+func (s PutAccountPreferencesInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s PutAccountPreferencesInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *PutAccountPreferencesInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "PutAccountPreferencesInput"}
+	if s.ResourceIdType == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceIdType"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetResourceIdType sets the ResourceIdType field's value.
+func (s *PutAccountPreferencesInput) SetResourceIdType(v string) *PutAccountPreferencesInput {
+	s.ResourceIdType = &v
+	return s
+}
+
+type PutAccountPreferencesOutput struct {
+	_ struct{} `type:"structure"`
+
+	ResourceIdPreference *ResourceIdPreference `type:"structure"`
+}
+
+// String returns the string representation
+func (s PutAccountPreferencesOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s PutAccountPreferencesOutput) GoString() string {
+	return s.String()
+}
+
+// SetResourceIdPreference sets the ResourceIdPreference field's value.
+func (s *PutAccountPreferencesOutput) SetResourceIdPreference(v *ResourceIdPreference) *PutAccountPreferencesOutput {
+	s.ResourceIdPreference = v
+	return s
+}
+
+type PutBackupPolicyInput struct {
+	_ struct{} `type:"structure"`
+
+	// The backup policy included in the PutBackupPolicy request.
+	//
+	// BackupPolicy is a required field
+	BackupPolicy *BackupPolicy `type:"structure" required:"true"`
+
+	// Specifies which EFS file system to update the backup policy for.
+	//
+	// FileSystemId is a required field
+	FileSystemId *string `location:"uri" locationName:"FileSystemId" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s PutBackupPolicyInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s PutBackupPolicyInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *PutBackupPolicyInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "PutBackupPolicyInput"}
+	if s.BackupPolicy == nil {
+		invalidParams.Add(request.NewErrParamRequired("BackupPolicy"))
+	}
+	if s.FileSystemId == nil {
+		invalidParams.Add(request.NewErrParamRequired("FileSystemId"))
+	}
+	if s.FileSystemId != nil && len(*s.FileSystemId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("FileSystemId", 1))
+	}
+	if s.BackupPolicy != nil {
+		if err := s.BackupPolicy.Validate(); err != nil {
+			invalidParams.AddNested("BackupPolicy", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetBackupPolicy sets the BackupPolicy field's value.
+func (s *PutBackupPolicyInput) SetBackupPolicy(v *BackupPolicy) *PutBackupPolicyInput {
+	s.BackupPolicy = v
+	return s
+}
+
+// SetFileSystemId sets the FileSystemId field's value.
+func (s *PutBackupPolicyInput) SetFileSystemId(v string) *PutBackupPolicyInput {
+	s.FileSystemId = &v
+	return s
+}
+
+type PutBackupPolicyOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Describes the file system's backup policy, indicating whether automatic backups
+	// are turned on or off..
+	BackupPolicy *BackupPolicy `type:"structure"`
+}
+
+// String returns the string representation
+func (s PutBackupPolicyOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s PutBackupPolicyOutput) GoString() string {
+	return s.String()
+}
+
+// SetBackupPolicy sets the BackupPolicy field's value.
+func (s *PutBackupPolicyOutput) SetBackupPolicy(v *BackupPolicy) *PutBackupPolicyOutput {
+	s.BackupPolicy = v
+	return s
+}
+
 type PutFileSystemPolicyInput struct {
 	_ struct{} `type:"structure"`
 
@@ -6233,11 +7134,12 @@ type PutFileSystemPolicyInput struct {
 	FileSystemId *string `location:"uri" locationName:"FileSystemId" type:"string" required:"true"`
 
 	// The FileSystemPolicy that you're creating. Accepts a JSON formatted policy
-	// definition. To find out more about the elements that make up a file system
-	// policy, see EFS Resource-based Policies (https://docs.aws.amazon.com/efs/latest/ug/access-control-overview.html#access-control-manage-access-intro-resource-policies).
+	// definition. EFS file system policies have a 20,000 character limit. To find
+	// out more about the elements that make up a file system policy, see EFS Resource-based
+	// Policies (https://docs.aws.amazon.com/efs/latest/ug/access-control-overview.html#access-control-manage-access-intro-resource-policies).
 	//
 	// Policy is a required field
-	Policy *string `type:"string" required:"true"`
+	Policy *string `min:"1" type:"string" required:"true"`
 }
 
 // String returns the string representation
@@ -6261,6 +7163,9 @@ func (s *PutFileSystemPolicyInput) Validate() error {
 	}
 	if s.Policy == nil {
 		invalidParams.Add(request.NewErrParamRequired("Policy"))
+	}
+	if s.Policy != nil && len(*s.Policy) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Policy", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -6294,7 +7199,7 @@ type PutFileSystemPolicyOutput struct {
 	FileSystemId *string `type:"string"`
 
 	// The JSON formatted FileSystemPolicy for the EFS file system.
-	Policy *string `type:"string"`
+	Policy *string `min:"1" type:"string"`
 }
 
 // String returns the string representation
@@ -6399,6 +7304,39 @@ func (s PutLifecycleConfigurationOutput) GoString() string {
 // SetLifecyclePolicies sets the LifecyclePolicies field's value.
 func (s *PutLifecycleConfigurationOutput) SetLifecyclePolicies(v []*LifecyclePolicy) *PutLifecycleConfigurationOutput {
 	s.LifecyclePolicies = v
+	return s
+}
+
+type ResourceIdPreference struct {
+	_ struct{} `type:"structure"`
+
+	// A preference indicating a choice to use 63bit/32bit IDs for all applicable
+	// resources.
+	ResourceIdType *string `type:"string" enum:"ResourceIdType"`
+
+	// EFS resources to which a preference applies to.
+	Resources []*string `type:"list"`
+}
+
+// String returns the string representation
+func (s ResourceIdPreference) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ResourceIdPreference) GoString() string {
+	return s.String()
+}
+
+// SetResourceIdType sets the ResourceIdType field's value.
+func (s *ResourceIdPreference) SetResourceIdType(v string) *ResourceIdPreference {
+	s.ResourceIdType = &v
+	return s
+}
+
+// SetResources sets the Resources field's value.
+func (s *ResourceIdPreference) SetResources(v []*string) *ResourceIdPreference {
+	s.Resources = v
 	return s
 }
 
@@ -6649,7 +7587,7 @@ func (s *SubnetNotFound) RequestID() string {
 
 // A tag is a key-value pair. Allowed characters are letters, white space, and
 // numbers that can be represented in UTF-8, and the following characters:+
-// - = . _ : /
+// - = . _ : /.
 type Tag struct {
 	_ struct{} `type:"structure"`
 
@@ -6713,6 +7651,8 @@ type TagResourceInput struct {
 	// ResourceId is a required field
 	ResourceId *string `location:"uri" locationName:"ResourceId" type:"string" required:"true"`
 
+	// An array of Tag objects to add. Each Tag object is a key-value pair.
+	//
 	// Tags is a required field
 	Tags []*Tag `type:"list" required:"true"`
 }
@@ -6902,6 +7842,8 @@ func (s *TooManyRequests) RequestID() string {
 	return s.RespMetadata.RequestID
 }
 
+// Returned if the requested Amazon EFS functionality is not available in the
+// specified Availability Zone.
 type UnsupportedAvailabilityZone struct {
 	_            struct{}                  `type:"structure"`
 	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
@@ -6968,7 +7910,7 @@ type UntagResourceInput struct {
 	// ResourceId is a required field
 	ResourceId *string `location:"uri" locationName:"ResourceId" type:"string" required:"true"`
 
-	// The keys of the key:value tag pairs that you want to remove from the specified
+	// The keys of the key-value tag pairs that you want to remove from the specified
 	// EFS resource.
 	//
 	// TagKeys is a required field
@@ -7041,17 +7983,16 @@ type UpdateFileSystemInput struct {
 	// FileSystemId is a required field
 	FileSystemId *string `location:"uri" locationName:"FileSystemId" type:"string" required:"true"`
 
-	// (Optional) The amount of throughput, in MiB/s, that you want to provision
-	// for your file system. Valid values are 1-1024. Required if ThroughputMode
-	// is changed to provisioned on update. If you're not updating the amount of
-	// provisioned throughput for your file system, you don't need to provide this
-	// value in your request.
+	// (Optional) Sets the amount of provisioned throughput, in MiB/s, for the file
+	// system. Valid values are 1-1024. If you are changing the throughput mode
+	// to provisioned, you must also provide the amount of provisioned throughput.
+	// Required if ThroughputMode is changed to provisioned on update.
 	ProvisionedThroughputInMibps *float64 `min:"1" type:"double"`
 
-	// (Optional) The throughput mode that you want your file system to use. If
-	// you're not updating your throughput mode, you don't need to provide this
-	// value in your request. If you are changing the ThroughputMode to provisioned,
-	// you must also set a value for ProvisionedThroughputInMibps.
+	// (Optional) Updates the file system's throughput mode. If you're not updating
+	// your throughput mode, you don't need to provide this value in your request.
+	// If you are changing the ThroughputMode to provisioned, you must also set
+	// a value for ProvisionedThroughputInMibps.
 	ThroughputMode *string `type:"string" enum:"ThroughputMode"`
 }
 
@@ -7106,6 +8047,18 @@ func (s *UpdateFileSystemInput) SetThroughputMode(v string) *UpdateFileSystemInp
 type UpdateFileSystemOutput struct {
 	_ struct{} `type:"structure"`
 
+	// The unique and consistent identifier of the Availability Zone in which the
+	// file system's One Zone storage classes exist. For example, use1-az1 is an
+	// Availability Zone ID for the us-east-1 AWS Region, and it has the same location
+	// in every AWS account.
+	AvailabilityZoneId *string `type:"string"`
+
+	// Describes the AWS Availability Zone in which the file system is located,
+	// and is valid only for file systems using One Zone storage classes. For more
+	// information, see Using EFS storage classes (https://docs.aws.amazon.com/efs/latest/ug/storage-classes.html)
+	// in the Amazon EFS User Guide.
+	AvailabilityZoneName *string `min:"1" type:"string"`
+
 	// The time that the file system was created, in seconds (since 1970-01-01T00:00:00Z).
 	//
 	// CreationTime is a required field
@@ -7119,6 +8072,10 @@ type UpdateFileSystemOutput struct {
 	// A Boolean value that, if true, indicates that the file system is encrypted.
 	Encrypted *bool `type:"boolean"`
 
+	// The Amazon Resource Name (ARN) for the EFS file system, in the format arn:aws:elasticfilesystem:region:account-id:file-system/file-system-id
+	// . Example with sample data: arn:aws:elasticfilesystem:us-west-2:1111333322228888:file-system/fs-01234567
+	FileSystemArn *string `type:"string"`
+
 	// The ID of the file system, assigned by Amazon EFS.
 	//
 	// FileSystemId is a required field
@@ -7126,7 +8083,7 @@ type UpdateFileSystemOutput struct {
 
 	// The ID of an AWS Key Management Service (AWS KMS) customer master key (CMK)
 	// that was used to protect the encrypted file system.
-	KmsKeyId *string `min:"1" type:"string"`
+	KmsKeyId *string `type:"string"`
 
 	// The lifecycle phase of the file system.
 	//
@@ -7155,12 +8112,8 @@ type UpdateFileSystemOutput struct {
 	// PerformanceMode is a required field
 	PerformanceMode *string `type:"string" required:"true" enum:"PerformanceMode"`
 
-	// The throughput, measured in MiB/s, that you want to provision for a file
-	// system. Valid values are 1-1024. Required if ThroughputMode is set to provisioned.
-	// The limit on throughput is 1024 MiB/s. You can get these limits increased
-	// by contacting AWS Support. For more information, see Amazon EFS Limits That
-	// You Can Increase (https://docs.aws.amazon.com/efs/latest/ug/limits.html#soft-limits)
-	// in the Amazon EFS User Guide.
+	// The amount of provisioned throughput, measured in MiB/s, for the file system.
+	// Valid for file systems using ThroughputMode set to provisioned.
 	ProvisionedThroughputInMibps *float64 `min:"1" type:"double"`
 
 	// The latest known metered size (in bytes) of data stored in the file system,
@@ -7181,12 +8134,9 @@ type UpdateFileSystemOutput struct {
 	// Tags is a required field
 	Tags []*Tag `type:"list" required:"true"`
 
-	// The throughput mode for a file system. There are two throughput modes to
-	// choose from for your file system: bursting and provisioned. If you set ThroughputMode
-	// to provisioned, you must also set a value for ProvisionedThroughPutInMibps.
-	// You can decrease your file system's throughput in Provisioned Throughput
-	// mode or change between the throughput modes as long as it’s been more than
-	// 24 hours since the last decrease or throughput mode change.
+	// Displays the file system's throughput mode. For more information, see Throughput
+	// modes (https://docs.aws.amazon.com/efs/latest/ug/performance.html#throughput-modes)
+	// in the Amazon EFS User Guide.
 	ThroughputMode *string `type:"string" enum:"ThroughputMode"`
 }
 
@@ -7198,6 +8148,18 @@ func (s UpdateFileSystemOutput) String() string {
 // GoString returns the string representation
 func (s UpdateFileSystemOutput) GoString() string {
 	return s.String()
+}
+
+// SetAvailabilityZoneId sets the AvailabilityZoneId field's value.
+func (s *UpdateFileSystemOutput) SetAvailabilityZoneId(v string) *UpdateFileSystemOutput {
+	s.AvailabilityZoneId = &v
+	return s
+}
+
+// SetAvailabilityZoneName sets the AvailabilityZoneName field's value.
+func (s *UpdateFileSystemOutput) SetAvailabilityZoneName(v string) *UpdateFileSystemOutput {
+	s.AvailabilityZoneName = &v
+	return s
 }
 
 // SetCreationTime sets the CreationTime field's value.
@@ -7215,6 +8177,12 @@ func (s *UpdateFileSystemOutput) SetCreationToken(v string) *UpdateFileSystemOut
 // SetEncrypted sets the Encrypted field's value.
 func (s *UpdateFileSystemOutput) SetEncrypted(v bool) *UpdateFileSystemOutput {
 	s.Encrypted = &v
+	return s
+}
+
+// SetFileSystemArn sets the FileSystemArn field's value.
+func (s *UpdateFileSystemOutput) SetFileSystemArn(v string) *UpdateFileSystemOutput {
+	s.FileSystemArn = &v
 	return s
 }
 
@@ -7284,6 +8252,66 @@ func (s *UpdateFileSystemOutput) SetThroughputMode(v string) *UpdateFileSystemOu
 	return s
 }
 
+// Returned if the AWS Backup service is not available in the Region in which
+// the request was made.
+type ValidationException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	// ErrorCode is a required field
+	ErrorCode *string `min:"1" type:"string" required:"true"`
+
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s ValidationException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ValidationException) GoString() string {
+	return s.String()
+}
+
+func newErrorValidationException(v protocol.ResponseMetadata) error {
+	return &ValidationException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *ValidationException) Code() string {
+	return "ValidationException"
+}
+
+// Message returns the exception's message.
+func (s *ValidationException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *ValidationException) OrigErr() error {
+	return nil
+}
+
+func (s *ValidationException) Error() string {
+	return fmt.Sprintf("%s: %s\n%s", s.Code(), s.Message(), s.String())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *ValidationException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *ValidationException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
 const (
 	// LifeCycleStateCreating is a LifeCycleState enum value
 	LifeCycleStateCreating = "creating"
@@ -7299,7 +8327,22 @@ const (
 
 	// LifeCycleStateDeleted is a LifeCycleState enum value
 	LifeCycleStateDeleted = "deleted"
+
+	// LifeCycleStateError is a LifeCycleState enum value
+	LifeCycleStateError = "error"
 )
+
+// LifeCycleState_Values returns all elements of the LifeCycleState enum
+func LifeCycleState_Values() []string {
+	return []string{
+		LifeCycleStateCreating,
+		LifeCycleStateAvailable,
+		LifeCycleStateUpdating,
+		LifeCycleStateDeleting,
+		LifeCycleStateDeleted,
+		LifeCycleStateError,
+	}
+}
 
 const (
 	// PerformanceModeGeneralPurpose is a PerformanceMode enum value
@@ -7309,6 +8352,73 @@ const (
 	PerformanceModeMaxIo = "maxIO"
 )
 
+// PerformanceMode_Values returns all elements of the PerformanceMode enum
+func PerformanceMode_Values() []string {
+	return []string{
+		PerformanceModeGeneralPurpose,
+		PerformanceModeMaxIo,
+	}
+}
+
+// An EFS resource, for example a file system or a mount target.
+const (
+	// ResourceFileSystem is a Resource enum value
+	ResourceFileSystem = "FILE_SYSTEM"
+
+	// ResourceMountTarget is a Resource enum value
+	ResourceMountTarget = "MOUNT_TARGET"
+)
+
+// Resource_Values returns all elements of the Resource enum
+func Resource_Values() []string {
+	return []string{
+		ResourceFileSystem,
+		ResourceMountTarget,
+	}
+}
+
+// A preference indicating a choice to use 63bit/32bit IDs for all applicable
+// resources.
+const (
+	// ResourceIdTypeLongId is a ResourceIdType enum value
+	ResourceIdTypeLongId = "LONG_ID"
+
+	// ResourceIdTypeShortId is a ResourceIdType enum value
+	ResourceIdTypeShortId = "SHORT_ID"
+)
+
+// ResourceIdType_Values returns all elements of the ResourceIdType enum
+func ResourceIdType_Values() []string {
+	return []string{
+		ResourceIdTypeLongId,
+		ResourceIdTypeShortId,
+	}
+}
+
+const (
+	// StatusEnabled is a Status enum value
+	StatusEnabled = "ENABLED"
+
+	// StatusEnabling is a Status enum value
+	StatusEnabling = "ENABLING"
+
+	// StatusDisabled is a Status enum value
+	StatusDisabled = "DISABLED"
+
+	// StatusDisabling is a Status enum value
+	StatusDisabling = "DISABLING"
+)
+
+// Status_Values returns all elements of the Status enum
+func Status_Values() []string {
+	return []string{
+		StatusEnabled,
+		StatusEnabling,
+		StatusDisabled,
+		StatusDisabling,
+	}
+}
+
 const (
 	// ThroughputModeBursting is a ThroughputMode enum value
 	ThroughputModeBursting = "bursting"
@@ -7316,6 +8426,14 @@ const (
 	// ThroughputModeProvisioned is a ThroughputMode enum value
 	ThroughputModeProvisioned = "provisioned"
 )
+
+// ThroughputMode_Values returns all elements of the ThroughputMode enum
+func ThroughputMode_Values() []string {
+	return []string{
+		ThroughputModeBursting,
+		ThroughputModeProvisioned,
+	}
+}
 
 const (
 	// TransitionToIARulesAfter7Days is a TransitionToIARules enum value
@@ -7333,3 +8451,14 @@ const (
 	// TransitionToIARulesAfter90Days is a TransitionToIARules enum value
 	TransitionToIARulesAfter90Days = "AFTER_90_DAYS"
 )
+
+// TransitionToIARules_Values returns all elements of the TransitionToIARules enum
+func TransitionToIARules_Values() []string {
+	return []string{
+		TransitionToIARulesAfter7Days,
+		TransitionToIARulesAfter14Days,
+		TransitionToIARulesAfter30Days,
+		TransitionToIARulesAfter60Days,
+		TransitionToIARulesAfter90Days,
+	}
+}
