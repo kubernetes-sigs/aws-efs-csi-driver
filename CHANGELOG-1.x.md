@@ -1,3 +1,8 @@
+# v1.3.4
+
+### Bug Fixes
+* Only reap zombie stunnel processes ([#514](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/514), [@wongma7](https://github.com/wongma7))
+
 # v1.3.3
 
 ### Misc.
