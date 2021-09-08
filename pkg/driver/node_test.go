@@ -392,7 +392,7 @@ func TestNodePublishVolume(t *testing.T) {
 			expectMakeDir: false,
 			expectError: errtyp{
 				code:    "InvalidArgument",
-				message: "Volume capability not supported",
+				message: "Volume capability not supported: invalid access mode: SINGLE_NODE_READER_ONLY",
 			},
 		},
 		{
@@ -412,7 +412,7 @@ func TestNodePublishVolume(t *testing.T) {
 			expectMakeDir: false,
 			expectError: errtyp{
 				code:    "InvalidArgument",
-				message: "Volume capability access type must be mount",
+				message: "Volume capability not supported: only filesystem volumes are supported",
 			},
 		},
 		{

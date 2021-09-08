@@ -61,8 +61,8 @@ func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 		return nil, status.Error(codes.InvalidArgument, "Volume capability not provided")
 	}
 
-	if !d.isValidVolumeCapabilities([]*csi.VolumeCapability{volCap}) {
-		return nil, status.Error(codes.InvalidArgument, "Volume capability not supported")
+	if err := d.isValidVolumeCapabilities([]*csi.VolumeCapability{volCap}); err != nil {
+		return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("Volume capability not supported: %s", err))
 	}
 
 	if volCap.GetMount() == nil {
@@ -304,8 +304,19 @@ func (d *Driver) NodeGetInfo(ctx context.Context, req *csi.NodeGetInfoRequest) (
 	}, nil
 }
 
-func (d *Driver) isValidVolumeCapabilities(volCaps []*csi.VolumeCapability) bool {
-	hasSupport := func(cap *csi.VolumeCapability) bool {
+func (d *Driver) isValidVolumeCapabilities(volCaps []*csi.VolumeCapability) error {
+	if err := d.validateAccessMode(volCaps); err != nil {
+		return err
+	}
+
+	if err := d.validateAccessType(volCaps); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (d *Driver) validateAccessMode(volCaps []*csi.VolumeCapability) error {
+	isSupportedAccessMode := func(cap *csi.VolumeCapability) bool {
 		for _, m := range volumeCapAccessModes {
 			if m == cap.AccessMode.GetMode() {
 				return true
@@ -314,13 +325,25 @@ func (d *Driver) isValidVolumeCapabilities(volCaps []*csi.VolumeCapability) bool
 		return false
 	}
 
-	foundAll := true
+	var invalidModes []string
 	for _, c := range volCaps {
-		if !hasSupport(c) {
-			foundAll = false
+		if !isSupportedAccessMode(c) {
+			invalidModes = append(invalidModes, c.AccessMode.GetMode().String())
 		}
 	}
-	return foundAll
+	if len(invalidModes) != 0 {
+		return fmt.Errorf("invalid access mode: %s", strings.Join(invalidModes, ","))
+	}
+	return nil
+}
+
+func (d *Driver) validateAccessType(volCaps []*csi.VolumeCapability) error {
+	for _, c := range volCaps {
+		if c.GetMount() == nil {
+			return fmt.Errorf("only filesystem volumes are supported")
+		}
+	}
+	return nil
 }
 
 // parseVolumeId accepts a NodePublishVolumeRequest.VolumeId as a colon-delimited string of the
