@@ -86,7 +86,7 @@ spec:
               mountPath: /etc/amazon/efs-legacy
           ports:
             - name: healthz
-              containerPort: 9809
+              containerPort: {{ .Values.node.healthPort }}
               protocol: TCP
           livenessProbe:
             httpGet:
@@ -128,7 +128,7 @@ spec:
           imagePullPolicy: {{ .Values.sidecars.livenessProbe.image.pullPolicy }}
           args:
             - --csi-address=/csi/csi.sock
-            - --health-port=9809
+            - --health-port={{ .Values.node.healthPort }}
             - --v={{ .Values.node.logLevel }}
           volumeMounts:
             - name: plugin-dir

@@ -62,7 +62,7 @@ spec:
               mountPath: /var/lib/csi/sockets/pluginproxy/
           ports:
             - name: healthz
-              containerPort: 9909
+              containerPort: {{ .Values.controller.healthPort }}
               protocol: TCP
           livenessProbe:
             httpGet:
@@ -100,7 +100,7 @@ spec:
           imagePullPolicy: {{ .Values.sidecars.livenessProbe.image.pullPolicy }}
           args:
             - --csi-address=/csi/csi.sock
-            - --health-port=9909
+            - --health-port={{ .Values.controller.healthPort }}
           volumeMounts:
             - name: socket-dir
               mountPath: /csi
