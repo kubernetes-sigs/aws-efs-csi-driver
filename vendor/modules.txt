@@ -61,6 +61,8 @@ github.com/docker/spdystream/spdy
 github.com/evanphx/json-patch
 # github.com/fsnotify/fsnotify v1.4.9
 github.com/fsnotify/fsnotify
+# github.com/go-logr/logr v0.4.0
+github.com/go-logr/logr
 # github.com/gogo/protobuf v1.3.1
 github.com/gogo/protobuf/gogoproto
 github.com/gogo/protobuf/proto
@@ -172,7 +174,7 @@ github.com/prometheus/procfs
 github.com/prometheus/procfs/internal/fs
 # github.com/spf13/pflag v1.0.5
 github.com/spf13/pflag
-# github.com/stretchr/testify v1.5.1
+# github.com/stretchr/testify v1.7.0
 github.com/stretchr/testify/assert
 github.com/stretchr/testify/require
 # go.etcd.io/etcd v0.0.0-20191023171146-3cf2f69b5738
@@ -357,6 +359,8 @@ gopkg.in/square/go-jose.v2/jwt
 gopkg.in/tomb.v1
 # gopkg.in/yaml.v2 v2.3.0
 gopkg.in/yaml.v2
+# gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
+gopkg.in/yaml.v3
 # k8s.io/api v0.18.10 => k8s.io/api v0.18.10
 k8s.io/api/admission/v1
 k8s.io/api/admission/v1beta1
@@ -696,6 +700,8 @@ k8s.io/csi-translation-lib
 k8s.io/csi-translation-lib/plugins
 # k8s.io/klog v1.0.0
 k8s.io/klog
+# k8s.io/klog/v2 v2.9.0
+k8s.io/klog/v2
 # k8s.io/kube-openapi v0.0.0-20200410145947-61e04a5be9a6
 k8s.io/kube-openapi/pkg/util/proto
 # k8s.io/kube-scheduler v0.0.0 => k8s.io/kube-scheduler v0.18.10
@@ -805,10 +811,13 @@ k8s.io/kubernetes/test/e2e/system
 k8s.io/kubernetes/test/utils
 k8s.io/kubernetes/test/utils/image
 k8s.io/kubernetes/third_party/forked/golang/expansion
-# k8s.io/utils v0.0.0-20200324210504-a9aa75ae1b89
+# k8s.io/mount-utils v0.22.1
+k8s.io/mount-utils
+# k8s.io/utils v0.0.0-20210707171843-4b05e18ac7d9
 k8s.io/utils/buffer
 k8s.io/utils/exec
 k8s.io/utils/integer
+k8s.io/utils/internal/third_party/forked/golang/net
 k8s.io/utils/io
 k8s.io/utils/keymutex
 k8s.io/utils/mount
