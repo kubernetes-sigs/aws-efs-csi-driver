@@ -138,7 +138,8 @@ var csiTestSuites = []func() storageframework.TestSuite{
 var _ = ginkgo.SynchronizedBeforeSuite(func() []byte {
 	// Validate parameters
 	if FileSystemId == "" && (Region == "" || ClusterName == "") {
-		ginkgo.Fail("FileSystemId is empty and can't create an EFS filesystem because both Region and ClusterName are empty")
+		ginkgo.By("FileSystemId is empty, set it to an existing file system. Or set both Region and ClusterName so that the test can create a new file system.")
+		return []byte{}
 	}
 
 	if FileSystemId == "" {
@@ -210,6 +211,12 @@ var _ = ginkgo.SynchronizedAfterSuite(func() {
 })
 
 var _ = ginkgo.Describe("[efs-csi] EFS CSI", func() {
+	ginkgo.BeforeEach(func() {
+		if FileSystemId == "" {
+			ginkgo.Fail("FileSystemId is empty, set it to an existing file system. Or set both Region and ClusterName so that the test can create a new file system.")
+		}
+	})
+
 	driver := InitEFSCSIDriver()
 	ginkgo.Context(storageframework.GetDriverNameWithFeatureTags(driver), func() {
 		storageframework.DefineTestSuites(driver, csiTestSuites)

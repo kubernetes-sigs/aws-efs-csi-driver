@@ -23,7 +23,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"k8s.io/utils/mount"
+	"k8s.io/mount-utils"
 
 	"github.com/golang/mock/gomock"
 	"github.com/kubernetes-csi/csi-test/pkg/sanity"

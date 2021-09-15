@@ -14,7 +14,7 @@ require (
 	k8s.io/client-go v0.22.1
 	k8s.io/klog v1.0.0
 	k8s.io/kubernetes v1.22.1
-	k8s.io/utils v0.0.0-20210707171843-4b05e18ac7d9
+	k8s.io/mount-utils v0.22.1
 )
 
 replace (

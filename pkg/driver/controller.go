@@ -18,6 +18,7 @@ package driver
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"strconv"
 	"strings"
@@ -70,8 +71,8 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 		return nil, status.Error(codes.InvalidArgument, "Volume capabilities not provided")
 	}
 
-	if !d.isValidVolumeCapabilities(volCaps) {
-		return nil, status.Error(codes.InvalidArgument, "Volume capabilities not supported")
+	if err := d.isValidVolumeCapabilities(volCaps); err != nil {
+		return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("Volume capabilities not supported: %s", err))
 	}
 
 	var (
@@ -358,7 +359,7 @@ func (d *Driver) ValidateVolumeCapabilities(ctx context.Context, req *csi.Valida
 	}
 
 	var confirmed *csi.ValidateVolumeCapabilitiesResponse_Confirmed
-	if d.isValidVolumeCapabilities(volCaps) {
+	if err := d.isValidVolumeCapabilities(volCaps); err == nil {
 		confirmed = &csi.ValidateVolumeCapabilitiesResponse_Confirmed{VolumeCapabilities: volCaps}
 	}
 	return &csi.ValidateVolumeCapabilitiesResponse{
