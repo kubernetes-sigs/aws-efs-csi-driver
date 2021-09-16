@@ -1,10 +1,10 @@
-FROM registry.ci.openshift.org/ocp/builder:rhel-8-golang-1.16-openshift-4.9 AS builder
+FROM registry.ci.openshift.org/ocp/builder:rhel-8-golang-1.16-openshift-4.10 AS builder
 WORKDIR /go/src/github.com/kubernetes-sigs/aws-efs-csi-driver
 COPY . .
 RUN make
 
 # Use a base image with aws-efs-utils installed
-FROM  registry.ci.openshift.org/ocp/4.9:aws-efs-utils-base
+FROM registry.ci.openshift.org/ocp/4.10:aws-efs-utils-base
 
 # From the upstream Dockerfile:
 # At image build time, static files installed by efs-utils in the config directory, i.e. CAs file, need
