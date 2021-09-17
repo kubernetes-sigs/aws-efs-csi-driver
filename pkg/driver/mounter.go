@@ -16,7 +16,7 @@ package driver
 import (
 	"os"
 
-	"k8s.io/utils/mount"
+	"k8s.io/mount-utils"
 )
 
 // Mounter is an interface for mount operations
