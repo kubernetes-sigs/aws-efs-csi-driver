@@ -23,7 +23,7 @@ spec:
       annotations: {{- toYaml . | nindent 8 }}
       {{- end }}
     spec:
-      hostNetwork: true 
+      hostNetwork: true
       {{- if .Values.imagePullSecrets }}
       imagePullSecrets:
         {{- range .Values.imagePullSecrets }}
@@ -54,6 +54,7 @@ spec:
             {{- end }}
             - --v={{ .Values.controller.logLevel }}
             - --delete-access-point-root-dir={{ hasKey .Values.controller "deleteAccessPointRootDir" | ternary .Values.controller.deleteAccessPointRootDir false }}
+            - --volMetricsOptIn={{ hasKey .Values.controller "volMetricsOptIn" | ternary .Values.controller.volMetricsOptIn false }}
           env:
             - name: CSI_ENDPOINT
               value: unix:///var/lib/csi/sockets/pluginproxy/csi.sock
