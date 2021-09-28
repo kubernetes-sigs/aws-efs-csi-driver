@@ -1,5 +1,8 @@
 # Helm chart
 
+# v2.2.1
+* Add controller.volMetricsOptIn for emitting volume metrics
+
 # v2.2.0
 * Allow health ports to be configured
 * Add Missing "patch" permission for "events"
