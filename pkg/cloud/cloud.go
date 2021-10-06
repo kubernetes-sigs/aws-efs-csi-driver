@@ -20,15 +20,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math/rand"
+	"time"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
-	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/efs"
 	"k8s.io/klog"
-	"math/rand"
-	"time"
 )
 
 const (
@@ -72,24 +72,6 @@ type MountTarget struct {
 	AZId          string
 	MountTargetId string
 	IPAddress     string
-}
-
-// Efs abstracts efs client(https://docs.aws.amazon.com/sdk-for-go/api/service/efs/)
-type Efs interface {
-	CreateAccessPointWithContext(aws.Context, *efs.CreateAccessPointInput, ...request.Option) (*efs.CreateAccessPointOutput, error)
-	DeleteAccessPointWithContext(aws.Context, *efs.DeleteAccessPointInput, ...request.Option) (*efs.DeleteAccessPointOutput, error)
-	DescribeAccessPointsWithContext(aws.Context, *efs.DescribeAccessPointsInput, ...request.Option) (*efs.DescribeAccessPointsOutput, error)
-	DescribeFileSystemsWithContext(aws.Context, *efs.DescribeFileSystemsInput, ...request.Option) (*efs.DescribeFileSystemsOutput, error)
-	DescribeMountTargetsWithContext(aws.Context, *efs.DescribeMountTargetsInput, ...request.Option) (*efs.DescribeMountTargetsOutput, error)
-}
-
-type Cloud interface {
-	GetMetadata() MetadataService
-	CreateAccessPoint(ctx context.Context, volumeName string, accessPointOpts *AccessPointOptions) (accessPoint *AccessPoint, err error)
-	DeleteAccessPoint(ctx context.Context, accessPointId string) (err error)
-	DescribeAccessPoint(ctx context.Context, accessPointId string) (accessPoint *AccessPoint, err error)
-	DescribeFileSystem(ctx context.Context, fileSystemId string) (fs *FileSystem, err error)
-	DescribeMountTargets(ctx context.Context, fileSystemId, az string) (fs *MountTarget, err error)
 }
 
 type cloud struct {

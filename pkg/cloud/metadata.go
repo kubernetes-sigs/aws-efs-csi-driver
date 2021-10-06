@@ -18,22 +18,11 @@ package cloud
 
 import (
 	"fmt"
+	"os"
+
 	"github.com/aws/aws-sdk-go/aws/ec2metadata"
 	"github.com/aws/aws-sdk-go/aws/session"
-	"os"
 )
-
-type EC2Metadata interface {
-	Available() bool
-	GetInstanceIdentityDocument() (ec2metadata.EC2InstanceIdentityDocument, error)
-}
-
-// MetadataService represents AWS metadata service.
-type MetadataService interface {
-	GetInstanceID() string
-	GetRegion() string
-	GetAvailabilityZone() string
-}
 
 type metadata struct {
 	instanceID       string

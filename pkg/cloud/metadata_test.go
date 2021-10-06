@@ -22,7 +22,6 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws/ec2metadata"
 	"github.com/golang/mock/gomock"
-	"github.com/kubernetes-sigs/aws-efs-csi-driver/pkg/cloud/mocks"
 )
 
 var (
@@ -107,7 +106,7 @@ func TestGetEC2MetadataService(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			mockCtrl := gomock.NewController(t)
-			mockEC2Metadata := mocks.NewMockEC2Metadata(mockCtrl)
+			mockEC2Metadata := NewMockEC2Metadata(mockCtrl)
 
 			mockEC2Metadata.EXPECT().Available().Return(tc.isAvailable)
 			if tc.isAvailable {

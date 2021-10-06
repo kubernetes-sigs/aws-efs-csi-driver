@@ -19,20 +19,17 @@ package cloud
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/kubernetes-sigs/aws-efs-csi-driver/pkg/util"
 	"net/http"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/kubernetes-sigs/aws-efs-csi-driver/pkg/util"
 )
 
 const (
 	taskMetadataV4EnvName = "ECS_CONTAINER_METADATA_URI_V4"
 )
-
-type TaskMetadataService interface {
-	GetTMDSV4Response() ([]byte, error)
-}
 
 type taskMetadata struct {
 }

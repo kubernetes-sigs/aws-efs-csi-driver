@@ -9,7 +9,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/efs"
 	"github.com/golang/mock/gomock"
-	"github.com/kubernetes-sigs/aws-efs-csi-driver/pkg/cloud/mocks"
 )
 
 type errtyp struct {
@@ -36,7 +35,7 @@ func TestCreateAccessPoint(t *testing.T) {
 			name: "Success",
 			testFunc: func(t *testing.T) {
 				mockCtl := gomock.NewController(t)
-				mockEfs := mocks.NewMockEfs(mockCtl)
+				mockEfs := NewMockEfs(mockCtl)
 				c := &cloud{
 					efs: mockEfs,
 				}
@@ -98,7 +97,7 @@ func TestCreateAccessPoint(t *testing.T) {
 			name: "Fail",
 			testFunc: func(t *testing.T) {
 				mockCtl := gomock.NewController(t)
-				mockEfs := mocks.NewMockEfs(mockCtl)
+				mockEfs := NewMockEfs(mockCtl)
 				c := &cloud{efs: mockEfs}
 
 				req := &AccessPointOptions{
@@ -122,7 +121,7 @@ func TestCreateAccessPoint(t *testing.T) {
 			name: "Fail: Access Denied",
 			testFunc: func(t *testing.T) {
 				mockCtl := gomock.NewController(t)
-				mockEfs := mocks.NewMockEfs(mockCtl)
+				mockEfs := NewMockEfs(mockCtl)
 				c := &cloud{efs: mockEfs}
 
 				req := &AccessPointOptions{
@@ -164,7 +163,7 @@ func TestDeleteAccessPoint(t *testing.T) {
 			name: "Success",
 			testFunc: func(t *testing.T) {
 				mockctl := gomock.NewController(t)
-				mockEfs := mocks.NewMockEfs(mockctl)
+				mockEfs := NewMockEfs(mockctl)
 				c := &cloud{efs: mockEfs}
 
 				output := &efs.DeleteAccessPointOutput{}
@@ -182,7 +181,7 @@ func TestDeleteAccessPoint(t *testing.T) {
 			name: "Fail: Access Point Not Found",
 			testFunc: func(t *testing.T) {
 				mockctl := gomock.NewController(t)
-				mockEfs := mocks.NewMockEfs(mockctl)
+				mockEfs := NewMockEfs(mockctl)
 				c := &cloud{efs: mockEfs}
 
 				ctx := context.Background()
@@ -201,7 +200,7 @@ func TestDeleteAccessPoint(t *testing.T) {
 			name: "Fail: Access Denied",
 			testFunc: func(t *testing.T) {
 				mockctl := gomock.NewController(t)
-				mockEfs := mocks.NewMockEfs(mockctl)
+				mockEfs := NewMockEfs(mockctl)
 				c := &cloud{efs: mockEfs}
 
 				ctx := context.Background()
@@ -220,7 +219,7 @@ func TestDeleteAccessPoint(t *testing.T) {
 			name: "Fail: Other",
 			testFunc: func(t *testing.T) {
 				mockctl := gomock.NewController(t)
-				mockEfs := mocks.NewMockEfs(mockctl)
+				mockEfs := NewMockEfs(mockctl)
 				c := &cloud{efs: mockEfs}
 
 				ctx := context.Background()
@@ -256,7 +255,7 @@ func TestDescribeAccessPoint(t *testing.T) {
 			name: "Success",
 			testFunc: func(t *testing.T) {
 				mockctl := gomock.NewController(t)
-				mockEfs := mocks.NewMockEfs(mockctl)
+				mockEfs := NewMockEfs(mockctl)
 				c := &cloud{efs: mockEfs}
 
 				output := &efs.DescribeAccessPointsOutput{
@@ -308,7 +307,7 @@ func TestDescribeAccessPoint(t *testing.T) {
 			name: "Fail: DescribeAccessPoint result has 0 access points",
 			testFunc: func(t *testing.T) {
 				mockctl := gomock.NewController(t)
-				mockEfs := mocks.NewMockEfs(mockctl)
+				mockEfs := NewMockEfs(mockctl)
 				c := &cloud{efs: mockEfs}
 
 				output := &efs.DescribeAccessPointsOutput{
@@ -328,7 +327,7 @@ func TestDescribeAccessPoint(t *testing.T) {
 			name: "Fail: DescribeAccessPoint result has more than 1 access points",
 			testFunc: func(t *testing.T) {
 				mockctl := gomock.NewController(t)
-				mockEfs := mocks.NewMockEfs(mockctl)
+				mockEfs := NewMockEfs(mockctl)
 				c := &cloud{efs: mockEfs}
 
 				output := &efs.DescribeAccessPointsOutput{
@@ -387,7 +386,7 @@ func TestDescribeAccessPoint(t *testing.T) {
 			name: "Fail: Access Point Not Found",
 			testFunc: func(t *testing.T) {
 				mockctl := gomock.NewController(t)
-				mockEfs := mocks.NewMockEfs(mockctl)
+				mockEfs := NewMockEfs(mockctl)
 				c := &cloud{efs: mockEfs}
 
 				ctx := context.Background()
@@ -406,7 +405,7 @@ func TestDescribeAccessPoint(t *testing.T) {
 			name: "Fail: Access Denied",
 			testFunc: func(t *testing.T) {
 				mockctl := gomock.NewController(t)
-				mockEfs := mocks.NewMockEfs(mockctl)
+				mockEfs := NewMockEfs(mockctl)
 				c := &cloud{efs: mockEfs}
 
 				ctx := context.Background()
@@ -425,7 +424,7 @@ func TestDescribeAccessPoint(t *testing.T) {
 			name: "Fail: Other",
 			testFunc: func(t *testing.T) {
 				mockctl := gomock.NewController(t)
-				mockEfs := mocks.NewMockEfs(mockctl)
+				mockEfs := NewMockEfs(mockctl)
 				c := &cloud{efs: mockEfs}
 
 				ctx := context.Background()
@@ -455,7 +454,7 @@ func TestDescribeFileSystem(t *testing.T) {
 			name: "Success",
 			testFunc: func(t *testing.T) {
 				mockctl := gomock.NewController(t)
-				mockEfs := mocks.NewMockEfs(mockctl)
+				mockEfs := NewMockEfs(mockctl)
 				c := &cloud{efs: mockEfs}
 
 				output := &efs.DescribeFileSystemsOutput{
@@ -491,7 +490,7 @@ func TestDescribeFileSystem(t *testing.T) {
 			name: "Fail: DescribeFileSystems result has 0 file systems",
 			testFunc: func(t *testing.T) {
 				mockctl := gomock.NewController(t)
-				mockEfs := mocks.NewMockEfs(mockctl)
+				mockEfs := NewMockEfs(mockctl)
 				c := &cloud{efs: mockEfs}
 
 				output := &efs.DescribeFileSystemsOutput{
@@ -511,7 +510,7 @@ func TestDescribeFileSystem(t *testing.T) {
 			name: "Fail: DescribeFileSystem result has more than 1 file-system",
 			testFunc: func(t *testing.T) {
 				mockctl := gomock.NewController(t)
-				mockEfs := mocks.NewMockEfs(mockctl)
+				mockEfs := NewMockEfs(mockctl)
 				c := &cloud{efs: mockEfs}
 
 				output := &efs.DescribeFileSystemsOutput{
@@ -546,7 +545,7 @@ func TestDescribeFileSystem(t *testing.T) {
 			name: "Fail: File System Not Found",
 			testFunc: func(t *testing.T) {
 				mockctl := gomock.NewController(t)
-				mockEfs := mocks.NewMockEfs(mockctl)
+				mockEfs := NewMockEfs(mockctl)
 				c := &cloud{efs: mockEfs}
 
 				ctx := context.Background()
@@ -565,7 +564,7 @@ func TestDescribeFileSystem(t *testing.T) {
 			name: "Fail: Access Denied",
 			testFunc: func(t *testing.T) {
 				mockctl := gomock.NewController(t)
-				mockEfs := mocks.NewMockEfs(mockctl)
+				mockEfs := NewMockEfs(mockctl)
 				c := &cloud{efs: mockEfs}
 
 				ctx := context.Background()
@@ -584,7 +583,7 @@ func TestDescribeFileSystem(t *testing.T) {
 			name: "Fail: Other",
 			testFunc: func(t *testing.T) {
 				mockctl := gomock.NewController(t)
-				mockEfs := mocks.NewMockEfs(mockctl)
+				mockEfs := NewMockEfs(mockctl)
 				c := &cloud{efs: mockEfs}
 
 				ctx := context.Background()
@@ -706,7 +705,7 @@ func TestDescribeMountTargets(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			mockctl := gomock.NewController(t)
 			defer mockctl.Finish()
-			mockEfs := mocks.NewMockEfs(mockctl)
+			mockEfs := NewMockEfs(mockctl)
 			c := &cloud{efs: mockEfs}
 			ctx := context.Background()
 

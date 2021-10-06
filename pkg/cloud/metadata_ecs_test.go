@@ -3,10 +3,10 @@ package cloud
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/golang/mock/gomock"
-	"github.com/kubernetes-sigs/aws-efs-csi-driver/pkg/cloud/mocks"
 	"os"
 	"testing"
+
+	"github.com/golang/mock/gomock"
 )
 
 var (
@@ -56,7 +56,7 @@ func TestGetTaskMetadataService(t *testing.T) {
 			mockCtrl := gomock.NewController(t)
 			defer mockCtrl.Finish()
 
-			mockTaskMetadata := mocks.NewMockTaskMetadataService(mockCtrl)
+			mockTaskMetadata := NewMockTaskMetadataService(mockCtrl)
 			jsonData, _ := json.Marshal(tc.returnResponse)
 			mockTaskMetadata.EXPECT().GetTMDSV4Response().Return(jsonData, tc.err)
 

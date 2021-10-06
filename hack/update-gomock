@@ -13,10 +13,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 set -euo pipefail
 
-IMPORT_PATH=github.com/kubernetes-sigs/aws-efs-csi-driver
-mockgen -package=mocks -destination=./pkg/driver/mocks/mock_mount.go ${IMPORT_PATH}/pkg/driver Mounter 
-mockgen -package=mocks -destination=./pkg/cloud/mocks/mock_ec2metadata.go ${IMPORT_PATH}/pkg/cloud EC2Metadata
-mockgen -package=mocks -destination=./pkg/cloud/mocks/mock_taskmetadata.go ${IMPORT_PATH}/pkg/cloud TaskMetadataService
+mockgen -package=cloud -destination=./pkg/cloud/mock_efs.go -source pkg/cloud/efs_interface.go
+mockgen -package=cloud -destination=./pkg/cloud/mock_cloud.go -source pkg/cloud/cloud_interface.go
+mockgen -package=cloud -destination=./pkg/cloud/mock_metadata.go -source pkg/cloud/metadata_interface.go
+mockgen -package=driver -destination=./pkg/driver/mock_mounter.go -source pkg/driver/mounter.go

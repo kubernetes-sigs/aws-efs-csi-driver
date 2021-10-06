@@ -8,7 +8,6 @@ import (
 	"github.com/container-storage-interface/spec/lib/go/csi"
 	"github.com/golang/mock/gomock"
 	"github.com/kubernetes-sigs/aws-efs-csi-driver/pkg/cloud"
-	"github.com/kubernetes-sigs/aws-efs-csi-driver/pkg/driver/mocks"
 )
 
 func TestCreateVolume(t *testing.T) {
@@ -36,7 +35,7 @@ func TestCreateVolume(t *testing.T) {
 			name: "Success: Using fixed UID/GID",
 			testFunc: func(t *testing.T) {
 				mockCtl := gomock.NewController(t)
-				mockCloud := mocks.NewMockCloud(mockCtl)
+				mockCloud := cloud.NewMockCloud(mockCtl)
 
 				driver := &Driver{
 					endpoint:     endpoint,
@@ -101,7 +100,7 @@ func TestCreateVolume(t *testing.T) {
 			name: "Success: Using fixed UID/GID and GID range",
 			testFunc: func(t *testing.T) {
 				mockCtl := gomock.NewController(t)
-				mockCloud := mocks.NewMockCloud(mockCtl)
+				mockCloud := cloud.NewMockCloud(mockCtl)
 
 				driver := &Driver{
 					endpoint:     endpoint,
@@ -168,7 +167,7 @@ func TestCreateVolume(t *testing.T) {
 			name: "Success: Normal flow",
 			testFunc: func(t *testing.T) {
 				mockCtl := gomock.NewController(t)
-				mockCloud := mocks.NewMockCloud(mockCtl)
+				mockCloud := cloud.NewMockCloud(mockCtl)
 
 				driver := &Driver{
 					endpoint:     endpoint,
@@ -226,7 +225,7 @@ func TestCreateVolume(t *testing.T) {
 			name: "Success: Using Default GID ranges",
 			testFunc: func(t *testing.T) {
 				mockCtl := gomock.NewController(t)
-				mockCloud := mocks.NewMockCloud(mockCtl)
+				mockCloud := cloud.NewMockCloud(mockCtl)
 
 				driver := &Driver{
 					endpoint:     endpoint,
@@ -281,7 +280,7 @@ func TestCreateVolume(t *testing.T) {
 			name: "Success: Normal flow with tags",
 			testFunc: func(t *testing.T) {
 				mockCtl := gomock.NewController(t)
-				mockCloud := mocks.NewMockCloud(mockCtl)
+				mockCloud := cloud.NewMockCloud(mockCtl)
 
 				driver := &Driver{
 					endpoint:     endpoint,
@@ -338,7 +337,7 @@ func TestCreateVolume(t *testing.T) {
 			name: "Success: Normal flow with invalid tags",
 			testFunc: func(t *testing.T) {
 				mockCtl := gomock.NewController(t)
-				mockCloud := mocks.NewMockCloud(mockCtl)
+				mockCloud := cloud.NewMockCloud(mockCtl)
 
 				driver := &Driver{
 					endpoint:     endpoint,
@@ -395,7 +394,7 @@ func TestCreateVolume(t *testing.T) {
 			name: "Fail: Volume name missing",
 			testFunc: func(t *testing.T) {
 				mockCtl := gomock.NewController(t)
-				mockCloud := mocks.NewMockCloud(mockCtl)
+				mockCloud := cloud.NewMockCloud(mockCtl)
 
 				driver := &Driver{
 					endpoint:     endpoint,
@@ -423,7 +422,7 @@ func TestCreateVolume(t *testing.T) {
 			name: "Fail: Capacity Range missing",
 			testFunc: func(t *testing.T) {
 				mockCtl := gomock.NewController(t)
-				mockCloud := mocks.NewMockCloud(mockCtl)
+				mockCloud := cloud.NewMockCloud(mockCtl)
 
 				driver := &Driver{
 					endpoint:     endpoint,
@@ -452,7 +451,7 @@ func TestCreateVolume(t *testing.T) {
 			name: "Fail: Volume capability Missing",
 			testFunc: func(t *testing.T) {
 				mockCtl := gomock.NewController(t)
-				mockCloud := mocks.NewMockCloud(mockCtl)
+				mockCloud := cloud.NewMockCloud(mockCtl)
 
 				driver := &Driver{
 					endpoint:     endpoint,
@@ -484,7 +483,7 @@ func TestCreateVolume(t *testing.T) {
 			name: "Fail: Volume capability Not Supported",
 			testFunc: func(t *testing.T) {
 				mockCtl := gomock.NewController(t)
-				mockCloud := mocks.NewMockCloud(mockCtl)
+				mockCloud := cloud.NewMockCloud(mockCtl)
 
 				driver := &Driver{
 					endpoint:     endpoint,
@@ -526,7 +525,7 @@ func TestCreateVolume(t *testing.T) {
 			name: "Fail: AccessType is block",
 			testFunc: func(t *testing.T) {
 				mockCtl := gomock.NewController(t)
-				mockCloud := mocks.NewMockCloud(mockCtl)
+				mockCloud := cloud.NewMockCloud(mockCtl)
 
 				driver := &Driver{
 					endpoint:     endpoint,
@@ -568,7 +567,7 @@ func TestCreateVolume(t *testing.T) {
 			name: "Fail: Provisioning Mode Not Supported",
 			testFunc: func(t *testing.T) {
 				mockCtl := gomock.NewController(t)
-				mockCloud := mocks.NewMockCloud(mockCtl)
+				mockCloud := cloud.NewMockCloud(mockCtl)
 
 				driver := &Driver{
 					endpoint:     endpoint,
@@ -603,7 +602,7 @@ func TestCreateVolume(t *testing.T) {
 			name: "Fail: Missing Provisioning Mode parameter",
 			testFunc: func(t *testing.T) {
 				mockCtl := gomock.NewController(t)
-				mockCloud := mocks.NewMockCloud(mockCtl)
+				mockCloud := cloud.NewMockCloud(mockCtl)
 
 				driver := &Driver{
 					endpoint:     endpoint,
@@ -637,7 +636,7 @@ func TestCreateVolume(t *testing.T) {
 			name: "Fail: Missing Parameter FsId",
 			testFunc: func(t *testing.T) {
 				mockCtl := gomock.NewController(t)
-				mockCloud := mocks.NewMockCloud(mockCtl)
+				mockCloud := cloud.NewMockCloud(mockCtl)
 
 				driver := &Driver{
 					endpoint:     endpoint,
@@ -671,7 +670,7 @@ func TestCreateVolume(t *testing.T) {
 			name: "Fail: FsId cannot be blank",
 			testFunc: func(t *testing.T) {
 				mockCtl := gomock.NewController(t)
-				mockCloud := mocks.NewMockCloud(mockCtl)
+				mockCloud := cloud.NewMockCloud(mockCtl)
 
 				driver := &Driver{
 					endpoint:     endpoint,
@@ -706,7 +705,7 @@ func TestCreateVolume(t *testing.T) {
 			name: "Fail: Uid invalid",
 			testFunc: func(t *testing.T) {
 				mockCtl := gomock.NewController(t)
-				mockCloud := mocks.NewMockCloud(mockCtl)
+				mockCloud := cloud.NewMockCloud(mockCtl)
 
 				driver := &Driver{
 					endpoint:     endpoint,
@@ -742,7 +741,7 @@ func TestCreateVolume(t *testing.T) {
 			name: "Fail: Uid cannot be negative",
 			testFunc: func(t *testing.T) {
 				mockCtl := gomock.NewController(t)
-				mockCloud := mocks.NewMockCloud(mockCtl)
+				mockCloud := cloud.NewMockCloud(mockCtl)
 
 				driver := &Driver{
 					endpoint:     endpoint,
@@ -778,7 +777,7 @@ func TestCreateVolume(t *testing.T) {
 			name: "Fail: Gid invalid",
 			testFunc: func(t *testing.T) {
 				mockCtl := gomock.NewController(t)
-				mockCloud := mocks.NewMockCloud(mockCtl)
+				mockCloud := cloud.NewMockCloud(mockCtl)
 
 				driver := &Driver{
 					endpoint:     endpoint,
@@ -814,7 +813,7 @@ func TestCreateVolume(t *testing.T) {
 			name: "Fail: Gid cannot be negative",
 			testFunc: func(t *testing.T) {
 				mockCtl := gomock.NewController(t)
-				mockCloud := mocks.NewMockCloud(mockCtl)
+				mockCloud := cloud.NewMockCloud(mockCtl)
 
 				driver := &Driver{
 					endpoint:     endpoint,
@@ -850,7 +849,7 @@ func TestCreateVolume(t *testing.T) {
 			name: "Fail: Gid min cannot be 0",
 			testFunc: func(t *testing.T) {
 				mockCtl := gomock.NewController(t)
-				mockCloud := mocks.NewMockCloud(mockCtl)
+				mockCloud := cloud.NewMockCloud(mockCtl)
 
 				driver := &Driver{
 					endpoint:     endpoint,
@@ -886,7 +885,7 @@ func TestCreateVolume(t *testing.T) {
 			name: "Fail: GidMin must be an integer",
 			testFunc: func(t *testing.T) {
 				mockCtl := gomock.NewController(t)
-				mockCloud := mocks.NewMockCloud(mockCtl)
+				mockCloud := cloud.NewMockCloud(mockCtl)
 
 				driver := &Driver{
 					endpoint:     endpoint,
@@ -922,7 +921,7 @@ func TestCreateVolume(t *testing.T) {
 			name: "Fail: GidMax must be an integer",
 			testFunc: func(t *testing.T) {
 				mockCtl := gomock.NewController(t)
-				mockCloud := mocks.NewMockCloud(mockCtl)
+				mockCloud := cloud.NewMockCloud(mockCtl)
 
 				driver := &Driver{
 					endpoint:     endpoint,
@@ -959,7 +958,7 @@ func TestCreateVolume(t *testing.T) {
 			name: "Fail: GidMax must be greater than GidMin",
 			testFunc: func(t *testing.T) {
 				mockCtl := gomock.NewController(t)
-				mockCloud := mocks.NewMockCloud(mockCtl)
+				mockCloud := cloud.NewMockCloud(mockCtl)
 
 				driver := &Driver{
 					endpoint:     endpoint,
@@ -996,7 +995,7 @@ func TestCreateVolume(t *testing.T) {
 			name: "Fail: GidMax must be provided with GidMin",
 			testFunc: func(t *testing.T) {
 				mockCtl := gomock.NewController(t)
-				mockCloud := mocks.NewMockCloud(mockCtl)
+				mockCloud := cloud.NewMockCloud(mockCtl)
 
 				driver := &Driver{
 					endpoint:     endpoint,
@@ -1032,7 +1031,7 @@ func TestCreateVolume(t *testing.T) {
 			name: "Fail: GidMin must be provided with GidMax",
 			testFunc: func(t *testing.T) {
 				mockCtl := gomock.NewController(t)
-				mockCloud := mocks.NewMockCloud(mockCtl)
+				mockCloud := cloud.NewMockCloud(mockCtl)
 
 				driver := &Driver{
 					endpoint:     endpoint,
@@ -1068,7 +1067,7 @@ func TestCreateVolume(t *testing.T) {
 			name: "Fail: File system does not exist",
 			testFunc: func(t *testing.T) {
 				mockCtl := gomock.NewController(t)
-				mockCloud := mocks.NewMockCloud(mockCtl)
+				mockCloud := cloud.NewMockCloud(mockCtl)
 
 				driver := &Driver{
 					endpoint:     endpoint,
@@ -1106,7 +1105,7 @@ func TestCreateVolume(t *testing.T) {
 			name: "Fail: DescribeFileSystem Access Denied",
 			testFunc: func(t *testing.T) {
 				mockCtl := gomock.NewController(t)
-				mockCloud := mocks.NewMockCloud(mockCtl)
+				mockCloud := cloud.NewMockCloud(mockCtl)
 
 				driver := &Driver{
 					endpoint:     endpoint,
@@ -1144,7 +1143,7 @@ func TestCreateVolume(t *testing.T) {
 			name: "Fail: Describe File system call fails",
 			testFunc: func(t *testing.T) {
 				mockCtl := gomock.NewController(t)
-				mockCloud := mocks.NewMockCloud(mockCtl)
+				mockCloud := cloud.NewMockCloud(mockCtl)
 
 				driver := &Driver{
 					endpoint:     endpoint,
@@ -1182,7 +1181,7 @@ func TestCreateVolume(t *testing.T) {
 			name: "Fail: Create Access Point call fails",
 			testFunc: func(t *testing.T) {
 				mockCtl := gomock.NewController(t)
-				mockCloud := mocks.NewMockCloud(mockCtl)
+				mockCloud := cloud.NewMockCloud(mockCtl)
 
 				driver := &Driver{
 					endpoint:     endpoint,
@@ -1224,7 +1223,7 @@ func TestCreateVolume(t *testing.T) {
 			name: "Fail: CreateAccessPoint Access Denied",
 			testFunc: func(t *testing.T) {
 				mockCtl := gomock.NewController(t)
-				mockCloud := mocks.NewMockCloud(mockCtl)
+				mockCloud := cloud.NewMockCloud(mockCtl)
 
 				driver := &Driver{
 					endpoint:     endpoint,
@@ -1266,7 +1265,7 @@ func TestCreateVolume(t *testing.T) {
 			name: "Fail: Run out of GIDs",
 			testFunc: func(t *testing.T) {
 				mockCtl := gomock.NewController(t)
-				mockCloud := mocks.NewMockCloud(mockCtl)
+				mockCloud := cloud.NewMockCloud(mockCtl)
 
 				driver := &Driver{
 					endpoint:     endpoint,
@@ -1318,7 +1317,7 @@ func TestCreateVolume(t *testing.T) {
 			name: "Fail: Cannot assume role for x-account",
 			testFunc: func(t *testing.T) {
 				mockCtl := gomock.NewController(t)
-				mockCloud := mocks.NewMockCloud(mockCtl)
+				mockCloud := cloud.NewMockCloud(mockCtl)
 
 				driver := &Driver{
 					endpoint:     endpoint,
@@ -1383,7 +1382,7 @@ func TestDeleteVolume(t *testing.T) {
 			name: "Success: Normal flow",
 			testFunc: func(t *testing.T) {
 				mockCtl := gomock.NewController(t)
-				mockCloud := mocks.NewMockCloud(mockCtl)
+				mockCloud := cloud.NewMockCloud(mockCtl)
 
 				driver := &Driver{
 					endpoint:     endpoint,
@@ -1408,8 +1407,8 @@ func TestDeleteVolume(t *testing.T) {
 			name: "Success: Normal flow with deleteAccessPointRootDir",
 			testFunc: func(t *testing.T) {
 				mockCtl := gomock.NewController(t)
-				mockCloud := mocks.NewMockCloud(mockCtl)
-				mockMounter := mocks.NewMockMounter(mockCtl)
+				mockCloud := cloud.NewMockCloud(mockCtl)
+				mockMounter := NewMockMounter(mockCtl)
 
 				driver := &Driver{
 					endpoint:                 endpoint,
@@ -1447,8 +1446,8 @@ func TestDeleteVolume(t *testing.T) {
 			name: "Success: DescribeAccessPoint Access Point Does not exist",
 			testFunc: func(t *testing.T) {
 				mockCtl := gomock.NewController(t)
-				mockCloud := mocks.NewMockCloud(mockCtl)
-				mockMounter := mocks.NewMockMounter(mockCtl)
+				mockCloud := cloud.NewMockCloud(mockCtl)
+				mockMounter := NewMockMounter(mockCtl)
 
 				driver := &Driver{
 					endpoint:                 endpoint,
@@ -1475,8 +1474,8 @@ func TestDeleteVolume(t *testing.T) {
 			name: "Fail: DescribeAccessPoint Access Denied",
 			testFunc: func(t *testing.T) {
 				mockCtl := gomock.NewController(t)
-				mockCloud := mocks.NewMockCloud(mockCtl)
-				mockMounter := mocks.NewMockMounter(mockCtl)
+				mockCloud := cloud.NewMockCloud(mockCtl)
+				mockMounter := NewMockMounter(mockCtl)
 
 				driver := &Driver{
 					endpoint:                 endpoint,
@@ -1503,8 +1502,8 @@ func TestDeleteVolume(t *testing.T) {
 			name: "Fail: DescribeAccessPoint failed",
 			testFunc: func(t *testing.T) {
 				mockCtl := gomock.NewController(t)
-				mockCloud := mocks.NewMockCloud(mockCtl)
-				mockMounter := mocks.NewMockMounter(mockCtl)
+				mockCloud := cloud.NewMockCloud(mockCtl)
+				mockMounter := NewMockMounter(mockCtl)
 
 				driver := &Driver{
 					endpoint:                 endpoint,
@@ -1531,8 +1530,8 @@ func TestDeleteVolume(t *testing.T) {
 			name: "Fail: Fail to make directory for access point mount",
 			testFunc: func(t *testing.T) {
 				mockCtl := gomock.NewController(t)
-				mockCloud := mocks.NewMockCloud(mockCtl)
-				mockMounter := mocks.NewMockMounter(mockCtl)
+				mockCloud := cloud.NewMockCloud(mockCtl)
+				mockMounter := NewMockMounter(mockCtl)
 
 				driver := &Driver{
 					endpoint:                 endpoint,
@@ -1567,8 +1566,8 @@ func TestDeleteVolume(t *testing.T) {
 			name: "Fail: Fail to mount file system on directory for access point root directory removal",
 			testFunc: func(t *testing.T) {
 				mockCtl := gomock.NewController(t)
-				mockCloud := mocks.NewMockCloud(mockCtl)
-				mockMounter := mocks.NewMockMounter(mockCtl)
+				mockCloud := cloud.NewMockCloud(mockCtl)
+				mockMounter := NewMockMounter(mockCtl)
 
 				driver := &Driver{
 					endpoint:                 endpoint,
@@ -1604,8 +1603,8 @@ func TestDeleteVolume(t *testing.T) {
 			name: "Fail: Fail to unmount file system after access point root directory removal",
 			testFunc: func(t *testing.T) {
 				mockCtl := gomock.NewController(t)
-				mockCloud := mocks.NewMockCloud(mockCtl)
-				mockMounter := mocks.NewMockMounter(mockCtl)
+				mockCloud := cloud.NewMockCloud(mockCtl)
+				mockMounter := NewMockMounter(mockCtl)
 
 				driver := &Driver{
 					endpoint:                 endpoint,
@@ -1642,7 +1641,7 @@ func TestDeleteVolume(t *testing.T) {
 			name: "Success: Access Point already deleted",
 			testFunc: func(t *testing.T) {
 				mockCtl := gomock.NewController(t)
-				mockCloud := mocks.NewMockCloud(mockCtl)
+				mockCloud := cloud.NewMockCloud(mockCtl)
 
 				driver := &Driver{
 					endpoint:     endpoint,
@@ -1667,7 +1666,7 @@ func TestDeleteVolume(t *testing.T) {
 			name: "Fail: DeleteAccessPoint access denied",
 			testFunc: func(t *testing.T) {
 				mockCtl := gomock.NewController(t)
-				mockCloud := mocks.NewMockCloud(mockCtl)
+				mockCloud := cloud.NewMockCloud(mockCtl)
 
 				driver := &Driver{
 					endpoint:     endpoint,
@@ -1692,7 +1691,7 @@ func TestDeleteVolume(t *testing.T) {
 			name: "Fail: DeleteVolume fails",
 			testFunc: func(t *testing.T) {
 				mockCtl := gomock.NewController(t)
-				mockCloud := mocks.NewMockCloud(mockCtl)
+				mockCloud := cloud.NewMockCloud(mockCtl)
 
 				driver := &Driver{
 					endpoint:     endpoint,
@@ -1717,7 +1716,7 @@ func TestDeleteVolume(t *testing.T) {
 			name: "Fail: Access Point is missing in volume Id",
 			testFunc: func(t *testing.T) {
 				mockCtl := gomock.NewController(t)
-				mockCloud := mocks.NewMockCloud(mockCtl)
+				mockCloud := cloud.NewMockCloud(mockCtl)
 
 				driver := &Driver{
 					endpoint:     endpoint,
@@ -1741,7 +1740,7 @@ func TestDeleteVolume(t *testing.T) {
 			name: "Fail: Cannot assume role for x-account",
 			testFunc: func(t *testing.T) {
 				mockCtl := gomock.NewController(t)
-				mockCloud := mocks.NewMockCloud(mockCtl)
+				mockCloud := cloud.NewMockCloud(mockCtl)
 
 				driver := &Driver{
 					endpoint:     endpoint,
@@ -1805,7 +1804,7 @@ func TestValidateVolumeCapabilities(t *testing.T) {
 			name: "Success",
 			testFunc: func(t *testing.T) {
 				mockCtl := gomock.NewController(t)
-				mockCloud := mocks.NewMockCloud(mockCtl)
+				mockCloud := cloud.NewMockCloud(mockCtl)
 
 				driver := &Driver{
 					endpoint: endpoint,
@@ -1835,7 +1834,7 @@ func TestValidateVolumeCapabilities(t *testing.T) {
 			name: "Success: Unsupported volume capability",
 			testFunc: func(t *testing.T) {
 				mockCtl := gomock.NewController(t)
-				mockCloud := mocks.NewMockCloud(mockCtl)
+				mockCloud := cloud.NewMockCloud(mockCtl)
 
 				driver := &Driver{
 					endpoint: endpoint,
@@ -1865,7 +1864,7 @@ func TestValidateVolumeCapabilities(t *testing.T) {
 			name: "Fail: Volume Id is missing",
 			testFunc: func(t *testing.T) {
 				mockCtl := gomock.NewController(t)
-				mockCloud := mocks.NewMockCloud(mockCtl)
+				mockCloud := cloud.NewMockCloud(mockCtl)
 
 				driver := &Driver{
 					endpoint: endpoint,
@@ -1890,7 +1889,7 @@ func TestValidateVolumeCapabilities(t *testing.T) {
 			name: "Fail: Volume Capabilities is missing",
 			testFunc: func(t *testing.T) {
 				mockCtl := gomock.NewController(t)
-				mockCloud := mocks.NewMockCloud(mockCtl)
+				mockCloud := cloud.NewMockCloud(mockCtl)
 
 				driver := &Driver{
 					endpoint: endpoint,
@@ -1919,7 +1918,7 @@ func TestValidateVolumeCapabilities(t *testing.T) {
 func TestControllerGetCapabilities(t *testing.T) {
 	var endpoint = "endpoint"
 	mockCtl := gomock.NewController(t)
-	mockCloud := mocks.NewMockCloud(mockCtl)
+	mockCloud := cloud.NewMockCloud(mockCtl)
 
 	driver := &Driver{
 		endpoint: endpoint,
