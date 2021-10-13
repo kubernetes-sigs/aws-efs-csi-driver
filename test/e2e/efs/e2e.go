@@ -8,21 +8,20 @@ import (
 
 	"github.com/onsi/ginkgo"
 	v1 "k8s.io/api/core/v1"
-	storagev1 "k8s.io/api/storage/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/util/sets"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2enode "k8s.io/kubernetes/test/e2e/framework/node"
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 	e2evolume "k8s.io/kubernetes/test/e2e/framework/volume"
 	storageframework "k8s.io/kubernetes/test/e2e/storage/framework"
-	"k8s.io/kubernetes/test/e2e/storage/testsuites"
-	"k8s.io/kubernetes/test/e2e/storage/utils"
+
+	cloud "github.com/kubernetes-sigs/aws-efs-csi-driver/test/e2e/cloud"
+	e2ekubernetes "github.com/kubernetes-sigs/aws-efs-csi-driver/test/e2e/kubernetes"
 )
 
 var (
@@ -47,84 +46,6 @@ var (
 	destroyDriver = false
 )
 
-type efsDriver struct {
-	driverInfo storageframework.DriverInfo
-}
-
-var _ storageframework.TestDriver = &efsDriver{}
-
-// TODO implement Inline (unless it's redundant)
-// var _ testsuites.InlineVolumeTestDriver = &efsDriver{}
-var _ storageframework.PreprovisionedPVTestDriver = &efsDriver{}
-var _ storageframework.DynamicPVTestDriver = &efsDriver{}
-
-func InitEFSCSIDriver() storageframework.TestDriver {
-	return &efsDriver{
-		driverInfo: storageframework.DriverInfo{
-			Name:            "efs.csi.aws.com",
-			SupportedFsType: sets.NewString(""),
-			Capabilities: map[storageframework.Capability]bool{
-				storageframework.CapPersistence: true,
-				storageframework.CapExec:        true,
-				storageframework.CapMultiPODs:   true,
-				storageframework.CapRWX:         true,
-			},
-		},
-	}
-}
-
-func (e *efsDriver) GetDriverInfo() *storageframework.DriverInfo {
-	return &e.driverInfo
-}
-
-func (e *efsDriver) SkipUnsupportedTest(storageframework.TestPattern) {}
-
-func (e *efsDriver) PrepareTest(f *framework.Framework) (*storageframework.PerTestConfig, func()) {
-	cancelPodLogs := utils.StartPodLogs(f, f.Namespace)
-
-	return &storageframework.PerTestConfig{
-			Driver:    e,
-			Prefix:    "efs",
-			Framework: f,
-		}, func() {
-			cancelPodLogs()
-		}
-}
-
-func (e *efsDriver) CreateVolume(config *storageframework.PerTestConfig, volType storageframework.TestVolType) storageframework.TestVolume {
-	return nil
-}
-
-func (e *efsDriver) GetPersistentVolumeSource(readOnly bool, fsType string, volume storageframework.TestVolume) (*v1.PersistentVolumeSource, *v1.VolumeNodeAffinity) {
-	pvSource := v1.PersistentVolumeSource{
-		CSI: &v1.CSIPersistentVolumeSource{
-			Driver:       e.driverInfo.Name,
-			VolumeHandle: FileSystemId,
-		},
-	}
-	return &pvSource, nil
-}
-
-func (e *efsDriver) GetDynamicProvisionStorageClass(config *storageframework.PerTestConfig, fsType string) *storagev1.StorageClass {
-	parameters := map[string]string{
-		"provisioningMode": "efs-ap",
-		"fileSystemId":     FileSystemId,
-		"directoryPerms":   "777",
-	}
-
-	generateName := fmt.Sprintf("efs-csi-dynamic-sc-test1234-")
-
-	defaultBindingMode := storagev1.VolumeBindingImmediate
-	return &storagev1.StorageClass{
-		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: generateName,
-		},
-		Provisioner:       "efs.csi.aws.com",
-		Parameters:        parameters,
-		VolumeBindingMode: &defaultBindingMode,
-	}
-}
-
 var _ = ginkgo.SynchronizedBeforeSuite(func() []byte {
 	// Validate parameters
 	if FileSystemId == "" && (Region == "" || ClusterName == "") {
@@ -135,9 +56,9 @@ var _ = ginkgo.SynchronizedBeforeSuite(func() []byte {
 	if FileSystemId == "" {
 		ginkgo.By(fmt.Sprintf("Creating EFS filesystem in region %q for cluster %q", Region, ClusterName))
 
-		c := NewCloud(Region)
+		c := cloud.NewCloud(Region)
 
-		opts := CreateOptions{
+		opts := cloud.CreateOptions{
 			Name:             FileSystemName,
 			ClusterName:      ClusterName,
 			SecurityGroupIds: MountTargetSecurityGroupIds,
@@ -149,6 +70,7 @@ var _ = ginkgo.SynchronizedBeforeSuite(func() []byte {
 		}
 
 		FileSystemId = id
+		e2ekubernetes.FileSystemId = id
 		ginkgo.By(fmt.Sprintf("Created EFS filesystem %q in region %q for cluster %q", FileSystemId, Region, ClusterName))
 		deleteFileSystem = true
 	} else {
@@ -177,6 +99,7 @@ var _ = ginkgo.SynchronizedBeforeSuite(func() []byte {
 }, func(data []byte) {
 	// allNodesBody: each node needs to set its FileSystemId as returned by node 1
 	FileSystemId = string(data)
+	e2ekubernetes.FileSystemId = FileSystemId
 })
 
 var _ = ginkgo.SynchronizedAfterSuite(func() {
@@ -185,7 +108,7 @@ var _ = ginkgo.SynchronizedAfterSuite(func() {
 	if deleteFileSystem {
 		ginkgo.By(fmt.Sprintf("Deleting EFS filesystem %q", FileSystemId))
 
-		c := NewCloud(Region)
+		c := cloud.NewCloud(Region)
 		err := c.DeleteFileSystem(FileSystemId)
 		if err != nil {
 			framework.ExpectNoError(err, "deleting file system")
@@ -200,20 +123,16 @@ var _ = ginkgo.SynchronizedAfterSuite(func() {
 	}
 })
 
+var _ = ginkgo.BeforeEach(func() {
+	if FileSystemId == "" {
+		ginkgo.Fail("FileSystemId is empty, set it to an existing file system. Or set both Region and ClusterName so that the test can create a new file system.")
+	}
+})
+
 var _ = ginkgo.Describe("[efs-csi] EFS CSI", func() {
-	ginkgo.BeforeEach(func() {
-		if FileSystemId == "" {
-			ginkgo.Fail("FileSystemId is empty, set it to an existing file system. Or set both Region and ClusterName so that the test can create a new file system.")
-		}
-	})
-
-	driver := InitEFSCSIDriver()
-	ginkgo.Context(storageframework.GetDriverNameWithFeatureTags(driver), func() {
-		storageframework.DefineTestSuites(driver, testsuites.CSISuites)
-	})
-
 	f := framework.NewDefaultFramework("efs")
 
+	driver := e2ekubernetes.InitEFSCSIDriver()
 	ginkgo.Context(storageframework.GetDriverNameWithFeatureTags(driver), func() {
 		ginkgo.It("should mount different paths on same volume on same node", func() {
 			ginkgo.By(fmt.Sprintf("Creating efs pvc & pv with no subpath"))

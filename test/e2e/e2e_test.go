@@ -32,6 +32,9 @@ import (
 	"k8s.io/kubernetes/test/e2e/framework"
 	frameworkconfig "k8s.io/kubernetes/test/e2e/framework/config"
 	"k8s.io/kubernetes/test/e2e/framework/testfiles"
+
+	e2eefs "github.com/kubernetes-sigs/aws-efs-csi-driver/test/e2e/efs"
+	e2ekubernetes "github.com/kubernetes-sigs/aws-efs-csi-driver/test/e2e/kubernetes"
 )
 
 const kubeconfigEnvVar = "KUBECONFIG"
@@ -63,24 +66,26 @@ func init() {
 	framework.RegisterCommonFlags(flag.CommandLine)
 	framework.RegisterClusterFlags(flag.CommandLine)
 
-	flag.StringVar(&ClusterName, "cluster-name", "", "the cluster name")
-	flag.StringVar(&Region, "region", "us-west-2", "the region")
-	flag.StringVar(&FileSystemId, "file-system-id", "", "the ID of an existing file system")
-	flag.StringVar(&FileSystemName, "file-system-name", "", "name to use for provisioned EFS file system, only used if -file-system-id is not set")
+	flag.StringVar(&e2eefs.ClusterName, "cluster-name", "", "the cluster name")
+	flag.StringVar(&e2eefs.Region, "region", "us-west-2", "the region")
+	flag.StringVar(&e2eefs.FileSystemId, "file-system-id", "", "the ID of an existing file system")
+	flag.StringVar(&e2eefs.FileSystemName, "file-system-name", "", "name to use for provisioned EFS file system, only used if -file-system-id is not set")
 	flag.StringVar(&combinedMountTargetSecurityGroupIds, "mount-target-security-group-ids", "", "comma-separated list of security group IDs to use for mount targets of provisioned EFS file system, only used if -file-system-id is not set")
 	flag.StringVar(&combinedMountTargetSubnetIds, "mount-target-subnet-ids", "", "comma-separated list of subnet IDs to use for mount targets of provisioned EFS file system, only used if -file-system-id is not set")
-	flag.StringVar(&EfsDriverNamespace, "efs-driver-namespace", "kube-system", "namespace of EFS driver pods")
+	flag.StringVar(&e2eefs.EfsDriverNamespace, "efs-driver-namespace", "kube-system", "namespace of EFS driver pods")
 	flag.StringVar(&combinedEfsDriverLabelSelectors, "efs-driver-label-selectors", "app=efs-csi-node", "comma-separated label selectors for EFS driver pods, follows the form key1=value1,key2=value2")
 
 	flag.Parse()
 
 	var err error
-	EfsDriverLabelSelectors, err = parseCommaSeparatedKVPairs(combinedEfsDriverLabelSelectors)
+	e2eefs.EfsDriverLabelSelectors, err = parseCommaSeparatedKVPairs(combinedEfsDriverLabelSelectors)
 	if err != nil {
 		log.Fatalln(err)
 	}
-	MountTargetSecurityGroupIds = parseCommaSeparatedStrings(combinedMountTargetSecurityGroupIds)
-	MountTargetSubnetIds = parseCommaSeparatedStrings(combinedMountTargetSubnetIds)
+	e2eefs.MountTargetSecurityGroupIds = parseCommaSeparatedStrings(combinedMountTargetSecurityGroupIds)
+	e2eefs.MountTargetSubnetIds = parseCommaSeparatedStrings(combinedMountTargetSubnetIds)
+
+	e2ekubernetes.FileSystemId = e2eefs.FileSystemId
 }
 
 func TestEFSCSI(t *testing.T) {

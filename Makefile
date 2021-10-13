@@ -29,6 +29,12 @@ GOPROXY=direct
 GOPATH=$(shell go env GOPATH)
 GOOS=$(shell go env GOOS)
 
+# e2e vars that developers will want to change to run test-e2e, in particular
+# KOPS_STATE_FILE must refer to an s3 bucket the developer can access
+TEST_ID?=$(shell bash -c 'echo $$RANDOM')
+CLEAN?=true
+KOPS_STATE_FILE?=s3://k8s-kops-csi-e2e
+
 .EXPORT_ALL_VARIABLES:
 
 .PHONY: aws-efs-csi-driver
@@ -62,6 +68,9 @@ test:
 
 .PHONY: test-e2e
 test-e2e:
+	TEST_ID=${TEST_ID} \
+	CLEAN=${CLEAN} \
+	KOPS_STATE_FILE=${KOPS_STATE_FILE} \
 	DRIVER_NAME=aws-efs-csi-driver \
 	CONTAINER_NAME=efs-plugin \
 	TEST_EXTRA_FLAGS='--cluster-name=$$CLUSTER_NAME' \
