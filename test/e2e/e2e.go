@@ -125,16 +125,6 @@ func (e *efsDriver) GetDynamicProvisionStorageClass(config *storageframework.Per
 	}
 }
 
-// List of testSuites to be executed in below loop
-var csiTestSuites = []func() storageframework.TestSuite{
-	testsuites.InitVolumesTestSuite,
-	testsuites.InitVolumeIOTestSuite,
-	testsuites.InitVolumeModeTestSuite,
-	testsuites.InitSubPathTestSuite,
-	testsuites.InitProvisioningTestSuite,
-	testsuites.InitMultiVolumeTestSuite,
-}
-
 var _ = ginkgo.SynchronizedBeforeSuite(func() []byte {
 	// Validate parameters
 	if FileSystemId == "" && (Region == "" || ClusterName == "") {
@@ -219,7 +209,7 @@ var _ = ginkgo.Describe("[efs-csi] EFS CSI", func() {
 
 	driver := InitEFSCSIDriver()
 	ginkgo.Context(storageframework.GetDriverNameWithFeatureTags(driver), func() {
-		storageframework.DefineTestSuites(driver, csiTestSuites)
+		storageframework.DefineTestSuites(driver, testsuites.CSISuites)
 	})
 
 	f := framework.NewDefaultFramework("efs")
