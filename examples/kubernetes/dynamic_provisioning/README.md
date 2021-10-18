@@ -21,13 +21,13 @@ This example requires Kubernetes 1.17 or later and a driver version of 1.2.0 or 
       fs-582a03f3
       ```
 
-   1. Download a `StorageClass` manifest for Amazon EFS.
+   2. Download a `StorageClass` manifest for Amazon EFS.
 
       ```sh
       curl -O https://raw.githubusercontent.com/kubernetes-sigs/aws-efs-csi-driver/master/examples/kubernetes/dynamic_provisioning/specs/storageclass.yaml
       ```
 
-   1. Edit [the file](./specs/storageclass.yaml). Find the following line, and replace the value for `fileSystemId` with your file system ID.
+   3. Edit [the file](./specs/storageclass.yaml). Find the following line, and replace the value for `fileSystemId` with your file system ID.
 
       ```
       fileSystemId: fs-582a03f3
@@ -39,14 +39,20 @@ This example requires Kubernetes 1.17 or later and a driver version of 1.2.0 or 
       * `gidRangeStart` (Optional) - The starting range of the Posix group ID to be applied onto the root directory of the access point. The default value is `50000`. 
       * `gidRangeEnd` (Optional) - The ending range of the Posix group ID. The default value is `7000000`.
       * `basePath` (Optional) - The path on the file system under which the access point root directory is created. If the path isn't provided, the access points root directory is created under the root of the file system.
+      * `subPathPattern` (Optional) - A pattern that describes the subPath under which an access point should be created. So if the pattern were `${.PVC.namespace}/${PVC.name}`, the PVC namespace is `foo` and the PVC name is `pvc-123-456`, and the `basePath` is `/dynamic_provisioner` the access point would be
+        created at `/dynamic_provisioner/foo/pvc-123-456`.
+      * `ensureUniqueDirectories` (Optional) - A boolean that ensures that, if set, a UUID is appended to the final element of
+        any dynamically provisioned path, as in the above example. This can be turned off but this requires you as the
+        administrator to ensure that your storage classes are set up correctly. Otherwise, it's possible that 2 pods could
+        end up writing to the same directory by accident. **Please think very carefully before setting this to false!**
 
-   1. Deploy the storage class.
+   4. Deploy the storage class.
 
       ```sh
       kubectl apply -f storageclass.yaml
       ```
 
-1. Test automatic provisioning by deploying a Pod that makes use of the PVC: 
+2. Test automatic provisioning by deploying a Pod that makes use of the PVC: 
 
    1. Download a manifest that deploys a Pod and a PVC.
 
@@ -54,14 +60,12 @@ This example requires Kubernetes 1.17 or later and a driver version of 1.2.0 or 
       curl -O https://raw.githubusercontent.com/kubernetes-sigs/aws-efs-csi-driver/master/examples/kubernetes/dynamic_provisioning/specs/pod.yaml
       ```
 
-   1. Deploy the Pod with a sample app and the PVC used by the Pod.
+   2. Deploy the Pod with a sample app and the PVC used by the Pod.
 
       ```sh
       kubectl apply -f pod.yaml
       ```
-
-1. Determine the names of the Pods running the controller.
-
+3. Determine the names of the Pods running the controller.
    ```sh
    kubectl get pods -n kube-system | grep efs-csi-controller
    ```
@@ -73,7 +77,7 @@ This example requires Kubernetes 1.17 or later and a driver version of 1.2.0 or 
    efs-csi-controller-74ccf9f566-wswg9   3/3     Running   0          40m
    ```
 
-1. After few seconds, you can observe the controller picking up the change \(edited for readability\). Replace `74ccf9f566-q5989` with a value from one of the Pods in your output from the previous command.
+4. After few seconds, you can observe the controller picking up the change \(edited for readability\). Replace `74ccf9f566-q5989` with a value from one of the Pods in your output from the previous command.
 
    ```sh
    kubectl logs efs-csi-controller-74ccf9f566-q5989 \
@@ -91,7 +95,7 @@ This example requires Kubernetes 1.17 or later and a driver version of 1.2.0 or 
 
    If you don't see the previous output, run the previous command using one of the other controller Pods.
 
-1. Confirm that a persistent volume was created with a status of `Bound` to a `PersistentVolumeClaim`:
+5. Confirm that a persistent volume was created with a status of `Bound` to a `PersistentVolumeClaim`:
 
    ```sh
    kubectl get pv
@@ -104,7 +108,7 @@ This example requires Kubernetes 1.17 or later and a driver version of 1.2.0 or 
    pvc-5983ffec-96cf-40c1-9cd6-e5686ca84eca   20Gi       RWX            Delete           Bound    default/efs-claim   efs-sc                  7m57s
    ```
 
-1. View details about the `PersistentVolumeClaim` that was created.
+6. View details about the `PersistentVolumeClaim` that was created.
 
    ```sh
    kubectl get pvc
@@ -117,7 +121,7 @@ This example requires Kubernetes 1.17 or later and a driver version of 1.2.0 or 
    efs-claim   Bound    pvc-5983ffec-96cf-40c1-9cd6-e5686ca84eca   20Gi       RWX            efs-sc         9m7s
    ```
 
-1. View the sample app Pod's status until the `STATUS` becomes `Running`.
+7. View the sample app Pod's status until the `STATUS` becomes `Running`.
 
    ```sh
    kubectl get pods -o wide
@@ -149,7 +153,7 @@ If a Pod doesn't have an IP address listed, make sure that you added a mount tar
    [...]
    ```
 
-1. \(Optional\) Terminate the Amazon EKS node that your Pod is running on and wait for the Pod to be re\-scheduled. Alternately, you can delete the Pod and redeploy it. Complete the previous step again, confirming that the output includes the previous output.
+2. \(Optional\) Terminate the Amazon EKS node that your Pod is running on and wait for the Pod to be re\-scheduled. Alternately, you can delete the Pod and redeploy it. Complete the previous step again, confirming that the output includes the previous output.
 
 **Note**  
 When you want to delete an access point in a file system when deleting PVC, you should specify `elasticfilesystem:ClientRootAccess` to the file system access policy to provide the root permissions. 
