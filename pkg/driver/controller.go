@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -59,6 +60,13 @@ var (
 	// controllerCaps represents the capability of controller service
 	controllerCaps = []csi.ControllerServiceCapability_RPC_Type{
 		csi.ControllerServiceCapability_RPC_CREATE_DELETE_VOLUME,
+	}
+	// subPathPatternComponents shows the elements that we allow to be in the construction of the root directory
+	// of the access point, as well as the values we need to extract them from the Volume Parameters.
+	subPathPatternComponents = map[string]string{
+		".PVC.name":      PvcName,
+		".PVC.namespace": PvcNamespace,
+		".PV.name":       PvName,
 	}
 )
 
@@ -493,4 +501,40 @@ func getCloud(secrets map[string]string, driver *Driver) (cloud.Cloud, string, e
 	}
 
 	return localCloud, roleArn, nil
+}
+
+func interpolateRootDirectoryName(rootDirectoryPath string, volumeParams map[string]string) (string, error) {
+	r := strings.NewReplacer(createListOfVariableSubstitutions(volumeParams)...)
+	result := r.Replace(rootDirectoryPath)
+
+	// Check if any templating characters still exist
+	if strings.Contains(result, "${") || strings.Contains(result, "}") {
+		return "", status.Errorf(codes.InvalidArgument,
+			"Path specified \"%v\" contains invalid elements. Can only contain %v", rootDirectoryPath,
+			getSupportedComponentNames())
+	}
+	return result, nil
+}
+
+func createListOfVariableSubstitutions(volumeParams map[string]string) []string {
+	variableSubstitutions := make([]string, 2*len(subPathPatternComponents))
+	i := 0
+	for key, volumeParamsKey := range subPathPatternComponents {
+		variableSubstitutions[i] = "${" + key + "}"
+		variableSubstitutions[i+1] = volumeParams[volumeParamsKey]
+		i += 2
+	}
+	return variableSubstitutions
+}
+
+func getSupportedComponentNames() []string {
+	keys := make([]string, len(subPathPatternComponents))
+
+	i := 0
+	for key := range subPathPatternComponents {
+		keys[i] = key
+		i++
+	}
+	sort.Strings(keys)
+	return keys
 }
