@@ -20,6 +20,8 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -45,7 +47,11 @@ const (
 	GidMax              = "gidRangeEnd"
 	MountTargetIp       = "mounttargetip"
 	ProvisioningMode    = "provisioningMode"
+	PvName              = "csi.storage.k8s.io/pv/name"
+	PvcName             = "csi.storage.k8s.io/pvc/name"
+	PvcNamespace        = "csi.storage.k8s.io/pvc/namespace"
 	RoleArn             = "awsRoleArn"
+	SubPathPattern      = "subPathPattern"
 	TempMountPathPrefix = "/var/lib/csi/pv"
 	Uid                 = "uid"
 )
@@ -54,6 +60,13 @@ var (
 	// controllerCaps represents the capability of controller service
 	controllerCaps = []csi.ControllerServiceCapability_RPC_Type{
 		csi.ControllerServiceCapability_RPC_CREATE_DELETE_VOLUME,
+	}
+	// subPathPatternComponents shows the elements that we allow to be in the construction of the root directory
+	// of the access point, as well as the values we need to extract them from the Volume Parameters.
+	subPathPatternComponents = map[string]string{
+		".PVC.name":      PvcName,
+		".PVC.namespace": PvcNamespace,
+		".PV.name":       PvName,
 	}
 )
 
@@ -193,10 +206,6 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 		accessPointsOptions.DirectoryPerms = value
 	}
 
-	if value, ok := volumeParams[BasePath]; ok {
-		basePath = value
-	}
-
 	// Storage class parameter `az` will be used to fetch preferred mount target for cross account mount.
 	// If the `az` storage class parameter is not provided, a random mount target will be picked for mounting.
 	// This storage class parameter different from `az` mount option provided by efs-utils https://github.com/aws/efs-utils/blob/v1.31.1/src/mount_efs/__init__.py#L195
@@ -236,8 +245,27 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 		gid = allocatedGid
 	}
 
+	if value, ok := volumeParams[BasePath]; ok {
+		basePath = value
+	}
+
 	rootDirName := volName
-	rootDir := basePath + "/" + rootDirName
+	// Check if a custom structure should be imposed on the access point directory
+	if value, ok := volumeParams[SubPathPattern]; ok {
+		// Try and construct the root directory and check it only contains supported components
+		val, err := interpolateRootDirectoryName(value, volumeParams)
+		if err == nil {
+			klog.Infof("Using user-specified structure for access point directory.")
+			rootDirName = val
+		} else {
+			return nil, err
+		}
+	} else {
+		klog.Infof("Using PV name for access point directory.")
+	}
+
+	rootDir := path.Join("/", basePath, rootDirName)
+	klog.Infof("Using %v as the access point directory.", rootDir)
 
 	accessPointsOptions.Uid = int64(uid)
 	accessPointsOptions.Gid = int64(gid)
@@ -475,4 +503,40 @@ func getCloud(secrets map[string]string, driver *Driver) (cloud.Cloud, string, e
 	}
 
 	return localCloud, roleArn, nil
+}
+
+func interpolateRootDirectoryName(rootDirectoryPath string, volumeParams map[string]string) (string, error) {
+	r := strings.NewReplacer(createListOfVariableSubstitutions(volumeParams)...)
+	result := r.Replace(rootDirectoryPath)
+
+	// Check if any templating characters still exist
+	if strings.Contains(result, "${") || strings.Contains(result, "}") {
+		return "", status.Errorf(codes.InvalidArgument,
+			"Path specified \"%v\" contains invalid elements. Can only contain %v", rootDirectoryPath,
+			getSupportedComponentNames())
+	}
+	return result, nil
+}
+
+func createListOfVariableSubstitutions(volumeParams map[string]string) []string {
+	variableSubstitutions := make([]string, 2*len(subPathPatternComponents))
+	i := 0
+	for key, volumeParamsKey := range subPathPatternComponents {
+		variableSubstitutions[i] = "${" + key + "}"
+		variableSubstitutions[i+1] = volumeParams[volumeParamsKey]
+		i += 2
+	}
+	return variableSubstitutions
+}
+
+func getSupportedComponentNames() []string {
+	keys := make([]string, len(subPathPatternComponents))
+
+	i := 0
+	for key := range subPathPatternComponents {
+		keys[i] = key
+		i++
+	}
+	sort.Strings(keys)
+	return keys
 }
