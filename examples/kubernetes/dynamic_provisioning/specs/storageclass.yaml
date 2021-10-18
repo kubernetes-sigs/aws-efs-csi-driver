@@ -10,3 +10,4 @@ parameters:
   gidRangeStart: "1000" # optional
   gidRangeEnd: "2000" # optional
   basePath: "/dynamic_provisioning" # optional
+  subPathPattern: "${.PVC.namespace}/${.PVC.name}" # optional
