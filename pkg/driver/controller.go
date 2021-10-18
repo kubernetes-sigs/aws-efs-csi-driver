@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path"
 	"strconv"
 	"strings"
 
@@ -45,7 +46,11 @@ const (
 	GidMax              = "gidRangeEnd"
 	MountTargetIp       = "mounttargetip"
 	ProvisioningMode    = "provisioningMode"
+	PvName              = "csi.storage.k8s.io/pv/name"
+	PvcName             = "csi.storage.k8s.io/pvc/name"
+	PvcNamespace        = "csi.storage.k8s.io/pvc/namespace"
 	RoleArn             = "awsRoleArn"
+	SubPathPattern      = "subPathPattern"
 	TempMountPathPrefix = "/var/lib/csi/pv"
 	Uid                 = "uid"
 )
@@ -234,7 +239,25 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 	}
 
 	rootDirName := volName
-	rootDir := basePath + "/" + rootDirName
+	// Check if a custom structure should be imposed on the access point directory
+	if value, ok := volumeParams[SubPathPattern]; ok {
+		if len(value) == 0 {
+			return nil, status.Errorf(codes.InvalidArgument, "No pattern specified for subPath.")
+		}
+		// Try and construct the root directory and check it only contains supported components
+		val, err := interpolateRootDirectoryName(value, volumeParams)
+		if err == nil {
+			klog.Infof("Using user-specified structure for access point directory.")
+			rootDirName = val
+		} else {
+			return nil, err
+		}
+	} else {
+		klog.Infof("Using PV name for access point directory.")
+	}
+
+	rootDir := path.Join("/", basePath, rootDirName)
+	klog.Infof("Using %v as the access point directory.", rootDir)
 
 	accessPointsOptions.Uid = int64(uid)
 	accessPointsOptions.Gid = int64(gid)
