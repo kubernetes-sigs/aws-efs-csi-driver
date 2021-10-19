@@ -63,7 +63,7 @@ github.com/evanphx/json-patch
 github.com/felixge/httpsnoop
 # github.com/fsnotify/fsnotify v1.4.9
 github.com/fsnotify/fsnotify
-# github.com/go-logr/logr v0.4.0
+# github.com/go-logr/logr v1.1.0
 github.com/go-logr/logr
 # github.com/gogo/protobuf v1.3.2
 github.com/gogo/protobuf/proto
@@ -797,7 +797,7 @@ k8s.io/csi-translation-lib
 k8s.io/csi-translation-lib/plugins
 # k8s.io/klog v1.0.0
 k8s.io/klog
-# k8s.io/klog/v2 v2.9.0
+# k8s.io/klog/v2 v2.20.0
 k8s.io/klog/v2
 # k8s.io/kube-openapi v0.0.0-20210421082810-95288971da7e
 k8s.io/kube-openapi/pkg/util/proto
@@ -874,9 +874,9 @@ k8s.io/kubernetes/test/e2e/storage/testsuites
 k8s.io/kubernetes/test/e2e/storage/utils
 k8s.io/kubernetes/test/utils
 k8s.io/kubernetes/test/utils/image
-# k8s.io/mount-utils v0.22.1 => k8s.io/mount-utils v0.22.2-rc.0
+# k8s.io/mount-utils v0.23.0-rc.0 => k8s.io/mount-utils v0.23.0-alpha.3
 k8s.io/mount-utils
-# k8s.io/utils v0.0.0-20210707171843-4b05e18ac7d9
+# k8s.io/utils v0.0.0-20210819203725-bdf08cb9a70a
 k8s.io/utils/buffer
 k8s.io/utils/exec
 k8s.io/utils/integer
