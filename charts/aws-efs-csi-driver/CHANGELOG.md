@@ -1,5 +1,8 @@
 # Helm chart
 
+# v2.2.1
+* Add STS regional endpoints flag to fix PV creation on private EKS
+
 # v2.2.0
 * Allow health ports to be configured
 * Add Missing "patch" permission for "events"
