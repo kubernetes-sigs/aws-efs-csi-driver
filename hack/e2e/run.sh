@@ -42,7 +42,7 @@ REGION=${AWS_REGION:-us-west-2}
 ZONES=${AWS_AVAILABILITY_ZONES:-us-west-2a,us-west-2b,us-west-2c}
 FIRST_ZONE=$(echo "${ZONES}" | cut -d, -f1)
 NODE_COUNT=${NODE_COUNT:-3}
-INSTANCE_TYPE=${INSTANCE_TYPE:-c4.large}
+INSTANCE_TYPE=${INSTANCE_TYPE:-c5.large}
 
 AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
 IMAGE_NAME=${IMAGE_NAME:-${AWS_ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com/${DRIVER_NAME}}
@@ -57,7 +57,7 @@ KOPS_STATE_FILE=${KOPS_STATE_FILE:-s3://k8s-kops-csi-e2e}
 KOPS_PATCH_FILE=${KOPS_PATCH_FILE:-./hack/kops-patch.yaml}
 KOPS_PATCH_NODE_FILE=${KOPS_PATCH_NODE_FILE:-./hack/kops-patch-node.yaml}
 
-EKSCTL_VERSION=${EKSCTL_VERSION:-0.56.0-rc.1}
+EKSCTL_VERSION=${EKSCTL_VERSION:-0.69.0}
 EKSCTL_PATCH_FILE=${EKSCTL_PATCH_FILE:-./hack/eksctl-patch.yaml}
 EKSCTL_ADMIN_ROLE=${EKSCTL_ADMIN_ROLE:-}
 # Creates a windows node group. The windows ami doesn't (yet) install csi-proxy
