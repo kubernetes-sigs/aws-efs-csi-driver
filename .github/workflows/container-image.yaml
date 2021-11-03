@@ -7,34 +7,34 @@ jobs:
     if: github.repository == 'kubernetes-sigs/aws-efs-csi-driver'
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v1
-    - name: Set up Docker Buildx
-      id: buildx
-      uses: crazy-max/ghaction-docker-buildx@v3
-      with:
-        buildx-version: latest
-        qemu-version: latest
-    - name: Push to Dockerhub registry
-      run: |
-        BRANCH=$(echo $GITHUB_REF | cut -d'/' -f3)
-        SHORT_SHA=$(echo $GITHUB_SHA | cut -c -7)
-        REPO=amazon/aws-efs-csi-driver
-        if [ "$BRANCH" = "master" ]; then
-          TAG=$SHORT_SHA
-        else
-          TAG=$BRANCH
-        fi
-        docker login -u ${{ secrets.DOCKERHUB_USER }} -p ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v1
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+      - name: Push to Dockerhub registry
+        run: |
+          BRANCH=$(echo $GITHUB_REF | cut -d'/' -f3)
+          SHORT_SHA=$(echo $GITHUB_SHA | cut -c -7)
+          REPO=amazon/aws-efs-csi-driver
+          if [ "$BRANCH" = "master" ]; then
+            TAG=$SHORT_SHA
+          else
+            TAG=$BRANCH
+          fi
+          docker login -u ${{ secrets.DOCKERHUB_USER }} -p ${{ secrets.DOCKERHUB_TOKEN }}
 
-        docker buildx build \
-              -t $REPO:$TAG \
-              --platform=linux/amd64,linux/arm64 \
-              --progress plain \
-              --push .
-        if [ "$BRANCH" = "master" ]; then
           docker buildx build \
-                -t $REPO:master \
+                -t $REPO:$TAG \
                 --platform=linux/amd64,linux/arm64 \
                 --progress plain \
                 --push .
-        fi
+          if [ "$BRANCH" = "master" ]; then
+            docker buildx build \
+                  -t $REPO:master \
+                  --platform=linux/amd64,linux/arm64 \
+                  --progress plain \
+                  --push .
+          fi
