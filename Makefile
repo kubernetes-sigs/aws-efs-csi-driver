@@ -13,21 +13,34 @@
 # limitations under the License.
 #
 
+VERSION=v1.3.4
+
 PKG=github.com/kubernetes-sigs/aws-efs-csi-driver
-IMAGE?=amazon/aws-efs-csi-driver
-VERSION=v1.3.4-dirty
 GIT_COMMIT?=$(shell git rev-parse HEAD)
 BUILD_DATE?=$(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
+
 EFS_CLIENT_SOURCE?=k8s
-IMAGE_PLATFORMS?=linux/arm64,linux/amd64
 LDFLAGS?="-X ${PKG}/pkg/driver.driverVersion=${VERSION} \
 		  -X ${PKG}/pkg/driver.gitCommit=${GIT_COMMIT} \
 		  -X ${PKG}/pkg/driver.buildDate=${BUILD_DATE} \
 		  -X ${PKG}/pkg/driver.efsClientSource=${EFS_CLIENT_SOURCE}"
+
 GO111MODULE=on
 GOPROXY=direct
 GOPATH=$(shell go env GOPATH)
 GOOS=$(shell go env GOOS)
+
+IMAGE?=amazon/aws-efs-csi-driver
+
+TAG?=$(GIT_COMMIT)
+
+OUTPUT_TYPE?=docker
+
+OS?=linux
+ARCH?=amd64
+OSVERSION?=amazon
+
+IMAGE_PLATFORMS?=linux/arm64,linux/amd64
 
 .EXPORT_ALL_VARIABLES:
 
@@ -37,6 +50,13 @@ aws-efs-csi-driver:
 	@echo GOARCH:${GOARCH}
 	CGO_ENABLED=0 GOOS=linux go build -mod=vendor -ldflags ${LDFLAGS} -o bin/aws-efs-csi-driver ./cmd/
 
+build-darwin:
+	mkdir -p bin/darwin/
+	CGO_ENABLED=0 GOOS=darwin go build -mod=vendor -ldflags ${LDFLAGS} -o bin/darwin/aws-efs-csi-driver ./cmd/
+
+run-darwin: build-darwin
+	bin/darwin/aws-efs-csi-driver --version
+
 bin /tmp/helm:
 	@mkdir -p $@
 
@@ -44,13 +64,6 @@ bin/helm: | /tmp/helm bin
 	@curl -o /tmp/helm/helm.tar.gz -sSL https://get.helm.sh/helm-v3.5.3-${GOOS}-amd64.tar.gz
 	@tar -zxf /tmp/helm/helm.tar.gz -C bin --strip-components=1
 	@rm -rf /tmp/helm/*
-
-build-darwin:
-	mkdir -p bin/darwin/
-	CGO_ENABLED=0 GOOS=darwin go build -mod=vendor -ldflags ${LDFLAGS} -o bin/darwin/aws-efs-csi-driver ./cmd/
-
-run-darwin: build-darwin
-	bin/darwin/aws-efs-csi-driver --version
 
 .PHONY: verify
 verify:
@@ -77,28 +90,26 @@ test-e2e-bin:
 	CGO_ENABLED=0 GOOS=linux go test -mod=vendor -ldflags ${LDFLAGS} -c -o bin/test-e2e ./test/e2e/
 
 .PHONY: image
-image:
-	docker build -t $(IMAGE):master .
+image: .image-$(TAG)-$(OS)-$(ARCH)-$(OSVERSION)
+.image-$(TAG)-$(OS)-$(ARCH)-$(OSVERSION):
+	docker buildx build \
+		--platform=$(OS)/$(ARCH) \
+		--build-arg OS=$(OS) \
+		--build-arg ARCH=$(ARCH) \
+		--progress=plain \
+		--target=$(OS)-$(OSVERSION) \
+		--output=type=$(OUTPUT_TYPE) \
+		-t=$(IMAGE):$(TAG)-$(OS)-$(ARCH)-$(OSVERSION) \
+		.
+	touch $@
 
 .PHONY: image-multi-arch--push
 image-multi-arch-push:
 	docker buildx build \
-			  -t $(IMAGE):master \
-			  --platform=$(IMAGE_PLATFORMS) \
-			  --progress plain \
-			  --push .
-
-.PHONY: push
-push: image
-	docker push $(IMAGE):master
-
-.PHONY: image-release
-image-release:
-	docker build -t $(IMAGE):$(VERSION) .
-
-.PHONY: push-release
-push-release:
-	docker push $(IMAGE):$(VERSION)
+		-t $(IMAGE):master \
+		--platform=$(IMAGE_PLATFORMS) \
+		--progress plain \
+		--push .
 
 .PHONY: generate-kustomize
 generate-kustomize: bin/helm
