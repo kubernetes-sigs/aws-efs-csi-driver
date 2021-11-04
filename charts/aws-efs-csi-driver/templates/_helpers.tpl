@@ -32,16 +32,28 @@ Create chart name and version as used by the chart label.
 {{- end -}}
 
 {{/*
+Common selectors.
+*/}}
+{{- define "aws-efs-csi-driver.selectors" -}}
+app.kubernetes.io/name: {{ template "aws-efs-csi-driver.name" . }}
+app.kubernetes.io/instance: {{ .Release.Name }}
+{{- end -}}
+
+{{/*
 Common labels
 */}}
 {{- define "aws-efs-csi-driver.labels" -}}
-app.kubernetes.io/name: {{ include "aws-efs-csi-driver.name" . }}
-helm.sh/chart: {{ include "aws-efs-csi-driver.chart" . }}
-app.kubernetes.io/instance: {{ .Release.Name }}
+{{- include "aws-efs-csi-driver.selectors" . }}
+app.kubernetes.io/component: csi-driver
+app.kubernetes.io/part-of: {{ template "aws-efs-csi-driver.name" . }}
+app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- if .Chart.AppVersion }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 {{- end }}
-app.kubernetes.io/managed-by: {{ .Release.Service }}
+helm.sh/chart: {{ include "aws-efs-csi-driver.chart" . }}
+{{- if .Values.customLabels }}
+{{ toYaml .Values.customLabels }}
+{{- end }}
 {{- end -}}
 
 {{/*

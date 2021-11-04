@@ -7,6 +7,8 @@ metadata:
   annotations:
   {{ toYaml . | indent 4 }}
   {{- end }}
+  labels:
+    {{- include "aws-efs-csi-driver.labels" . | nindent 4 }}
 provisioner: efs.csi.aws.com
 {{- with .mountOptions }}
 mountOptions:

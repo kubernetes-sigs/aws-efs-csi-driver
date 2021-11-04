@@ -12,6 +12,10 @@ image:
   tag: "v1.3.4"
   pullPolicy: IfNotPresent
 
+# -- Custom labels to add into metadata
+customLabels: {}
+  # k8s-app: aws-efs-csi-driver
+
 sidecars:
   livenessProbe:
     image:
