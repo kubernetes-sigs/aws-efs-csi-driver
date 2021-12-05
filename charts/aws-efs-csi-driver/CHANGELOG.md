@@ -1,5 +1,7 @@
 # Helm chart
 
+# v2.3.0
+* Add optional podDisruptionBudget to controller deployment
 # v2.2.1
 * Add controller.volMetricsOptIn for emitting volume metrics
 
