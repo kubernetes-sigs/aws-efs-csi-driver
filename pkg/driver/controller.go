@@ -203,10 +203,6 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 		accessPointsOptions.DirectoryPerms = value
 	}
 
-	if value, ok := volumeParams[BasePath]; ok {
-		basePath = value
-	}
-
 	// Storage class parameter `az` will be used to fetch preferred mount target for cross account mount.
 	// If the `az` storage class parameter is not provided, a random mount target will be picked for mounting.
 	// This storage class parameter different from `az` mount option provided by efs-utils https://github.com/aws/efs-utils/blob/v1.31.1/src/mount_efs/__init__.py#L195
@@ -246,12 +242,13 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 		gid = allocatedGid
 	}
 
+	if value, ok := volumeParams[BasePath]; ok {
+		basePath = value
+	}
+
 	rootDirName := volName
 	// Check if a custom structure should be imposed on the access point directory
 	if value, ok := volumeParams[SubPathPattern]; ok {
-		if len(value) == 0 {
-			return nil, status.Errorf(codes.InvalidArgument, "No pattern specified for subPath.")
-		}
 		// Try and construct the root directory and check it only contains supported components
 		val, err := interpolateRootDirectoryName(value, volumeParams)
 		if err == nil {
