@@ -1,5 +1,8 @@
 # Helm chart
 
+# v2.2.2
+* Add STS regional endpoints flag to fix PV creation on private EKS
+
 # v2.2.1
 * Add controller.volMetricsOptIn for emitting volume metrics
 
