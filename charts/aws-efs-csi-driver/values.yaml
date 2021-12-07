@@ -15,8 +15,8 @@ image:
 sidecars:
   livenessProbe:
     image:
-      repository: public.ecr.aws/eks-distro/kubernetes-csi/livenessprobe
-      tag: v2.2.0-eks-1-18-13
+      repository: k8s.gcr.io/sig-storage/livenessprobe
+      tag: v2.4.0
       pullPolicy: IfNotPresent
     resources: {}
   nodeDriverRegistrar:

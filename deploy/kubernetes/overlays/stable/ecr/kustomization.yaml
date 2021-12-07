@@ -8,7 +8,7 @@ images:
     newTag: v1.3.6
   - name: public.ecr.aws/eks-distro/kubernetes-csi/livenessprobe
     newName: 602401143452.dkr.ecr.us-west-2.amazonaws.com/eks/livenessprobe
-    newTag: v2.2.0
+    newTag: v2.4.0
   - name: public.ecr.aws/eks-distro/kubernetes-csi/node-driver-registrar
     newName: 602401143452.dkr.ecr.us-west-2.amazonaws.com/eks/csi-node-driver-registrar
     newTag: v2.1.0
