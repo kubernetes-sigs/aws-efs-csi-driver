@@ -1,3 +1,9 @@
+# v1.3.5
+
+- Release helm-chart v2.1.6 ([#546](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/546), [@chrishenzie](https://github.com/chrishenzie))
+- [release-1.3] Update ecr kustomize overlay to pull sidecars from private ecr, not public ([#550](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/550), [@wongma7](https://github.com/wongma7))
+- Release helm chart v2.1.6 ([#557](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/557), [@wongma7](https://github.com/wongma7))
+- [release-1.3] Feature/allow health ports to be configured ([#558](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/558), [@wongma7](https://github.com/wongma7))
 # v1.3.4
 
 ### Bug Fixes
