@@ -1,7 +1,10 @@
 # Helm chart
 
-# v2.2.1
+# master (unreleased)
 * Add controller.volMetricsOptIn for emitting volume metrics
+
+# v2.2.1
+* Bump app/driver version to `v1.3.5`
 
 # v2.2.0
 * Allow health ports to be configured
