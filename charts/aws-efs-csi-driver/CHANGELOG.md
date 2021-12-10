@@ -1,6 +1,6 @@
 # Helm chart
 
-# master (unreleased)
+# v2.2.2
 * Add controller.volMetricsOptIn for emitting volume metrics
 
 # v2.2.1
