@@ -5,7 +5,7 @@ apiVersion: apps/v1
 metadata:
   name: efs-csi-controller
   labels:
-    {{ include "aws-efs-csi-driver.labels" . }}
+    {{- include "aws-efs-csi-driver.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.replicaCount }}
   selector:
@@ -17,7 +17,7 @@ spec:
     metadata:
       labels:
         app: efs-csi-controller
-        {{ include "aws-efs-csi-driver.labels" . }}
+        {{- include "aws-efs-csi-driver.labels" . | nindent 8 }}
       {{- with .Values.controller.podAnnotations }}
       annotations: {{- toYaml . | nindent 8 }}
       {{- end }}

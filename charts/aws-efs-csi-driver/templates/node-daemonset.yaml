@@ -4,7 +4,7 @@ apiVersion: apps/v1
 metadata:
   name: efs-csi-node
   labels:
-    {{ include "aws-efs-csi-driver.labels" . }}
+    {{- include "aws-efs-csi-driver.labels" . | nindent 4 }}
 spec:
   selector:
     matchLabels:
@@ -15,7 +15,7 @@ spec:
     metadata:
       labels:
         app: efs-csi-node
-        {{ include "aws-efs-csi-driver.labels" . }}
+        {{- include "aws-efs-csi-driver.labels" . | nindent 8 }}
       {{- if .Values.node.podAnnotations }}
       annotations: {{ toYaml .Values.node.podAnnotations | nindent 8 }}
       {{- end }}
