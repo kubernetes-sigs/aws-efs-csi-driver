@@ -36,7 +36,8 @@ var (
 		csi.VolumeCapability_AccessMode_SINGLE_NODE_WRITER,
 		csi.VolumeCapability_AccessMode_MULTI_NODE_MULTI_WRITER,
 	}
-	volumeIdCounter = make(map[string]int)
+	volumeIdCounter  = make(map[string]int)
+	supportedFSTypes = []string{"efs", ""}
 )
 
 func (d *Driver) NodeStageVolume(ctx context.Context, req *csi.NodeStageVolumeRequest) (*csi.NodeStageVolumeResponse, error) {
@@ -312,6 +313,10 @@ func (d *Driver) isValidVolumeCapabilities(volCaps []*csi.VolumeCapability) erro
 	if err := d.validateAccessType(volCaps); err != nil {
 		return err
 	}
+
+	if err := d.validateFStype(volCaps); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -342,6 +347,28 @@ func (d *Driver) validateAccessType(volCaps []*csi.VolumeCapability) error {
 		if c.GetMount() == nil {
 			return fmt.Errorf("only filesystem volumes are supported")
 		}
+	}
+	return nil
+}
+
+func (d *Driver) validateFStype(volCaps []*csi.VolumeCapability) error {
+	isSupportedFStype := func(cap *csi.VolumeCapability) bool {
+		for _, m := range supportedFSTypes {
+			if m == cap.GetMount().FsType {
+				return true
+			}
+		}
+		return false
+	}
+
+	var invalidFStypes []string
+	for _, c := range volCaps {
+		if !isSupportedFStype(c) {
+			invalidFStypes = append(invalidFStypes, c.GetMount().FsType)
+		}
+	}
+	if len(invalidFStypes) != 0 {
+		return fmt.Errorf("invalid fstype: %s", strings.Join(invalidFStypes, ","))
 	}
 	return nil
 }
