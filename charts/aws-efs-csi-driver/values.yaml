@@ -54,10 +54,10 @@ controller:
   volMetricsOptIn: false
   podAnnotations: {}
   updateStrategy: {}
-  # type: RollingUpdate
-  # rollingUpdate:
-  #   maxSurge: 0
-  #   maxUnavailable: 1
+    # type: RollingUpdate
+    # rollingUpdate:
+    #   maxSurge: 0
+    #   maxUnavailable: 1
   resources:
     {}
     # We usually recommend not to specify default resources and to leave this as a conscious
