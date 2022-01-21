@@ -1,3 +1,8 @@
+# v1.3.6
+* [release-1.3] Release v1.3.5: release helm chart v2.2.1 and update kustomize ([#600](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/600), [@wongma7](https://github.com/wongma7))
+ [@wongma7](https://github.com/wongma7))
+* Security patch & upgrade of k8s.io/kubernetes, linux and golang ([#619](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/619), [@Ashley-wenyizha](https://github.com/Ashley-wenyizha))
+* Add uid and gid parameters ([#621](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/621), [@Ashley-wenyizha](https://github.com/Ashley-wenyizha))
 # v1.3.5
 
 - Release helm-chart v2.1.6 ([#546](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/546), [@chrishenzie](https://github.com/chrishenzie))
