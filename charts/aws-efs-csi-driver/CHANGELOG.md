@@ -1,5 +1,12 @@
 # Helm chart
 
+# v2.2.3
+* Bump app/driver version to `v1.3.6`
+
+# v2.2.2
+* Add controller.volMetricsOptIn for emitting volume metrics
+* Update ECR sidecars to 1-18-13
+
 # v2.2.1
 * Bump app/driver version to `v1.3.5`
 
