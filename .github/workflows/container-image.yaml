@@ -30,11 +30,13 @@ jobs:
               -t $REPO:$TAG \
               --platform=linux/amd64,linux/arm64 \
               --progress plain \
+              --no-cache \
               --push .
         if [ "$BRANCH" = "master" ]; then
           docker buildx build \
                 -t $REPO:master \
                 --platform=linux/amd64,linux/arm64 \
                 --progress plain \
+                --no-cache \
                 --push .
         fi
