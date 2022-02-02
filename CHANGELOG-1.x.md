@@ -1,8 +1,31 @@
+# v1.3.6
+* [release-1.3] Release v1.3.5: release helm chart v2.2.1 and update kustomize ([#600](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/600), [@wongma7](https://github.com/wongma7))
+ [@wongma7](https://github.com/wongma7))
+* Security patch & upgrade of k8s.io/kubernetes, linux and golang ([#619](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/619), [@Ashley-wenyizha](https://github.com/Ashley-wenyizha))
+* Add uid and gid parameters ([#621](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/621), [@Ashley-wenyizha](https://github.com/Ashley-wenyizha))
+# v1.3.5
+
+- Release helm-chart v2.1.6 ([#546](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/546), [@chrishenzie](https://github.com/chrishenzie))
+- [release-1.3] Update ecr kustomize overlay to pull sidecars from private ecr, not public ([#550](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/550), [@wongma7](https://github.com/wongma7))
+- Release helm chart v2.1.6 ([#557](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/557), [@wongma7](https://github.com/wongma7))
+- [release-1.3] Feature/allow health ports to be configured ([#558](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/558), [@wongma7](https://github.com/wongma7))
+# v1.3.4
+
+### Bug Fixes
+* Only reap zombie stunnel processes ([#514](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/514), [@wongma7](https://github.com/wongma7))
+
+# v1.3.3
+
+### Misc.
+* Fast-forward to latest ebs hack/e2e scripts with eksctl support, k8s 1.20, etc. ([#510](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/510), [@wongma7](https://github.com/wongma7))
+* Add node/daemonset service account to helm chart ([#512](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/512), [@wongma7](https://github.com/wongma7))
+* Fix (and format) log collector script ([#525](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/525), [@wongma7](https://github.com/wongma7))
+* Fix node-serviceaccount.yaml missing from kustomize ([#527](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/527), [@wongma7](https://github.com/wongma7))
+
 # v1.3.2
 
 ### Misc.
 * Bump release version for multi-arch support. 
-
 
 # v1.3.1
 

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM golang:1.13.4-stretch as builder
+FROM golang:1.17 as builder
 WORKDIR /go/src/github.com/kubernetes-sigs/aws-efs-csi-driver
 
 ARG TARGETOS
@@ -29,6 +29,7 @@ ENV EFS_CLIENT_SOURCE=$client_source
 RUN GOOS=${TARGETOS} GOARCH=${TARGETARCH} make aws-efs-csi-driver
 
 FROM amazonlinux:2
+RUN yum update -y
 # Install efs-utils from github by default. It can be overriden to `yum` with --build-arg when building the Docker image.
 # If value of `EFSUTILSSOURCE` build arg is overriden with `yum`, docker will install efs-utils from Amazon Linux 2's yum repo.
 ARG EFSUTILSSOURCE=github

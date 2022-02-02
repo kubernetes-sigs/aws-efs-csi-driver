@@ -15,7 +15,7 @@
 
 PKG=github.com/kubernetes-sigs/aws-efs-csi-driver
 IMAGE?=amazon/aws-efs-csi-driver
-VERSION=v1.3.2-dirty
+VERSION=v1.3.6
 GIT_COMMIT?=$(shell git rev-parse HEAD)
 BUILD_DATE?=$(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
 EFS_CLIENT_SOURCE?=k8s
@@ -104,5 +104,6 @@ push-release:
 generate-kustomize: bin/helm
 	cd charts/aws-efs-csi-driver && ../../bin/helm template kustomize . -s templates/csidriver.yaml > ../../deploy/kubernetes/base/csidriver.yaml
 	cd charts/aws-efs-csi-driver && ../../bin/helm template kustomize . -s templates/node-daemonset.yaml -f values.yaml > ../../deploy/kubernetes/base/node-daemonset.yaml
+	cd charts/aws-efs-csi-driver && ../../bin/helm template kustomize . -s templates/node-serviceaccount.yaml -f values.yaml > ../../deploy/kubernetes/base/node-serviceaccount.yaml
 	cd charts/aws-efs-csi-driver && ../../bin/helm template kustomize . -s templates/controller-deployment.yaml -f values.yaml > ../../deploy/kubernetes/base/controller-deployment.yaml
 	cd charts/aws-efs-csi-driver && ../../bin/helm template kustomize . -s templates/controller-serviceaccount.yaml -f values.yaml > ../../deploy/kubernetes/base/controller-serviceaccount.yaml

@@ -17,10 +17,14 @@ limitations under the License.
 package driver
 
 import (
+	"fmt"
+	"io/ioutil"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 
+	"github.com/mitchellh/go-ps"
 	"k8s.io/klog"
 )
 
@@ -45,20 +49,29 @@ func (r *reaper) start() {
 	go r.runLoop()
 }
 
-// runLoop waits for all child processes that exit
-// currently only stunnel process is created by efs mount helper
-// and is inherited as the child process of the driver
+// runLoop catches SIGCHLD signals to remove stunnel zombie processes. stunnel
+// processes are guaranteed to become zombies because their parent is the
+// driver process but they get terminated by the efs-utils watchdog process:
+// https://github.com/aws/efs-utils/blob/v1.31.2/src/watchdog/__init__.py#L608
+// pid_max is 4194303.
 func (r *reaper) runLoop() {
 	for {
 		select {
 		case <-r.sigs:
-			var status syscall.WaitStatus
-			var rusage syscall.Rusage
-			childPid, err := syscall.Wait4(-1, &status, syscall.WNOHANG, &rusage)
+			procs, err := ps.Processes()
 			if err != nil {
-				klog.Warningf("Failed to wait for child process %s", err)
+				klog.Warningf("reaper: failed to get all procs: %v", err)
 			} else {
-				klog.V(4).Infof("Waited for child process %d", childPid)
+				for _, p := range procs {
+					reaped := waitIfZombieStunnel(p)
+					if reaped {
+						// wait for only one process per SIGCHLD received over channel. It
+						// doesn't have to be the same process that triggered the
+						// particular SIGCHLD (there's no way to tell anyway), the
+						// intention is to reap zombies as they come.
+						break
+					}
+				}
 			}
 		case <-r.stopCh:
 			break
@@ -69,4 +82,35 @@ func (r *reaper) runLoop() {
 // stop stops the reaper
 func (r *reaper) stop() {
 	r.stopCh <- struct{}{}
+}
+
+func waitIfZombieStunnel(p ps.Process) bool {
+	if !strings.Contains(p.Executable(), "stunnel") {
+		return false
+	}
+	data, err := ioutil.ReadFile(fmt.Sprintf("/proc/%v/status", p.Pid()))
+	if err != nil {
+		klog.Warningf("reaper: failed to read process %v's status: %v", p, err)
+		return false
+	}
+
+	lines := strings.Split(string(data), "\n")
+	for _, line := range lines {
+		if strings.HasPrefix(line, "State") {
+			if strings.Contains(line, "zombie") {
+				var wstatus syscall.WaitStatus
+				var rusage syscall.Rusage
+				_, err := syscall.Wait4(p.Pid(), &wstatus, 0, &rusage)
+				if err != nil {
+					klog.Warningf("reaper: failed to wait for process %v: %v", p, err)
+				}
+				klog.V(4).Infof("reaper: waited for process %v", p)
+				return true
+			} else {
+				return false
+			}
+		}
+	}
+
+	return false
 }

@@ -35,7 +35,7 @@ spec:
         {{- with .Values.controller.nodeSelector }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
-      serviceAccountName: {{ include "aws-efs-csi-driver.serviceAccountName" . }}
+      serviceAccountName: {{ .Values.controller.serviceAccount.name }}
       priorityClassName: system-cluster-critical
       {{- with .Values.controller.tolerations }}
       tolerations: {{- toYaml . | nindent 8 }}
@@ -44,7 +44,7 @@ spec:
         - name: efs-plugin
           securityContext:
             privileged: true
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          image: {{ printf "%s:%s" .Values.image.repository (default (printf "v%s" .Chart.AppVersion) (toString .Values.image.tag)) }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           args:
             - --endpoint=$(CSI_ENDPOINT)
@@ -62,7 +62,7 @@ spec:
               mountPath: /var/lib/csi/sockets/pluginproxy/
           ports:
             - name: healthz
-              containerPort: 9909
+              containerPort: {{ .Values.controller.healthPort }}
               protocol: TCP
           livenessProbe:
             httpGet:
@@ -100,7 +100,7 @@ spec:
           imagePullPolicy: {{ .Values.sidecars.livenessProbe.image.pullPolicy }}
           args:
             - --csi-address=/csi/csi.sock
-            - --health-port=9909
+            - --health-port={{ .Values.controller.healthPort }}
           volumeMounts:
             - name: socket-dir
               mountPath: /csi

@@ -1,5 +1,21 @@
 # Helm chart
 
+# v2.2.1
+* Bump app/driver version to `v1.3.5`
+
+# v2.2.0
+* Allow health ports to be configured
+* Add Missing "patch" permission for "events"
+
+# v2.1.6
+* Bump app/driver version to `v1.3.4`
+
+# v2.1.5
+* Bump app/driver version to `v1.3.3`
+
+# v2.1.4
+* Add node.serviceAccount values for creating and/or specifying daemonset service account
+
 # v2.1.3
 * Bump app/driver version to `v1.3.2` 
 
