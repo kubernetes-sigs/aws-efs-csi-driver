@@ -317,6 +317,26 @@ func TestNodePublishVolume(t *testing.T) {
 			mountSuccess:  true,
 		},
 		{
+			name: "success: supported volume fstype capability",
+			req: &csi.NodePublishVolumeRequest{
+				VolumeId: volumeId,
+				VolumeCapability: &csi.VolumeCapability{
+					AccessType: &csi.VolumeCapability_Mount{
+						Mount: &csi.VolumeCapability_MountVolume{
+							FsType: "efs",
+						},
+					},
+					AccessMode: &csi.VolumeCapability_AccessMode{
+						Mode: csi.VolumeCapability_AccessMode_MULTI_NODE_MULTI_WRITER,
+					},
+				},
+				TargetPath: targetPath,
+			},
+			expectMakeDir: true,
+			mountArgs:     []interface{}{volumeId + ":/", targetPath, "efs", []string{"tls"}},
+			mountSuccess:  true,
+		},
+		{
 			name: "fail: conflicting access point in volume handle and mount options",
 			req: &csi.NodePublishVolumeRequest{
 				VolumeId: volumeId + "::" + accessPointID,
@@ -413,6 +433,47 @@ func TestNodePublishVolume(t *testing.T) {
 			expectError: errtyp{
 				code:    "InvalidArgument",
 				message: "Volume capability not supported: only filesystem volumes are supported",
+			},
+		},
+		{
+			name: "fail: unsupported volume fstype capability",
+			req: &csi.NodePublishVolumeRequest{
+				VolumeId: volumeId,
+				VolumeCapability: &csi.VolumeCapability{
+					AccessType: &csi.VolumeCapability_Mount{
+						Mount: &csi.VolumeCapability_MountVolume{FsType: "abc"},
+					},
+					AccessMode: &csi.VolumeCapability_AccessMode{
+						Mode: csi.VolumeCapability_AccessMode_MULTI_NODE_MULTI_WRITER,
+					},
+				},
+				TargetPath: targetPath,
+			},
+			expectMakeDir: false,
+			expectError: errtyp{
+				code:    "InvalidArgument",
+				message: "Volume capability not supported: invalid fstype: abc",
+			},
+		},
+		{
+			name: "fail: multiple unsupported volume capabilities",
+			req: &csi.NodePublishVolumeRequest{
+				VolumeId: volumeId,
+				VolumeCapability: &csi.VolumeCapability{
+					AccessType: &csi.VolumeCapability_Mount{
+						Mount: &csi.VolumeCapability_MountVolume{FsType: "abc"},
+					},
+					AccessMode: &csi.VolumeCapability_AccessMode{
+						Mode: csi.VolumeCapability_AccessMode_SINGLE_NODE_READER_ONLY,
+					},
+				},
+
+				TargetPath: targetPath,
+			},
+			expectMakeDir: false,
+			expectError: errtyp{
+				code:    "InvalidArgument",
+				message: "Volume capability not supported: invalid access mode: SINGLE_NODE_READER_ONLY",
 			},
 		},
 		{
