@@ -109,6 +109,15 @@ node:
     #   cpu: 100m
     #   memory: 128Mi
   nodeSelector: {}
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: eks.amazonaws.com/compute-type
+            operator: NotIn
+            values:
+            - fargate
   tolerations:
     - operator: Exists
   # Specifies whether a service account should be created
