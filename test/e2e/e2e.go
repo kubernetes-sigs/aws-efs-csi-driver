@@ -27,8 +27,6 @@ import (
 
 var (
 	// Parameters that are expected to be set by consumers of this package.
-	// If FileSystemId is not set, ClusterName and Region must be set so that a
-	// file system can be created
 	ClusterName                 string
 	Region                      string
 	FileSystemId                string
@@ -38,13 +36,18 @@ var (
 	EfsDriverNamespace          string
 	EfsDriverLabelSelectors     map[string]string
 
-	deleteFileSystem = false
+	// CreateFileSystem if set true will create a file system before tests.
+	// Alternatively, provide an existing file system via FileSystemId. If this
+	// is true, ClusterName and Region must be set. For CI it should be true
+	// because there is no existing long-lived file system in the CI environment.
+	CreateFileSystem bool
+	deleteFileSystem bool
 
 	// DeployDriver if set true will deploy a stable version of the driver before
 	// tests. For CI it should be false because something else ought to deploy an
 	// unstable version of the driver to be tested.
-	DeployDriver  = false
-	destroyDriver = false
+	DeployDriver  bool
+	destroyDriver bool
 )
 
 type efsDriver struct {
@@ -136,33 +139,35 @@ var csiTestSuites = []func() storageframework.TestSuite{
 }
 
 var _ = ginkgo.SynchronizedBeforeSuite(func() []byte {
-	// Validate parameters
-	if FileSystemId == "" && (Region == "" || ClusterName == "") {
-		ginkgo.By("FileSystemId is empty, set it to an existing file system. Or set both Region and ClusterName so that the test can create a new file system.")
-		return []byte{}
-	}
-
-	if FileSystemId == "" {
-		ginkgo.By(fmt.Sprintf("Creating EFS filesystem in region %q for cluster %q", Region, ClusterName))
-
-		c := NewCloud(Region)
-
-		opts := CreateOptions{
-			Name:             FileSystemName,
-			ClusterName:      ClusterName,
-			SecurityGroupIds: MountTargetSecurityGroupIds,
-			SubnetIds:        MountTargetSubnetIds,
-		}
-		id, err := c.CreateFileSystem(opts)
-		if err != nil {
-			framework.ExpectNoError(err, "creating file system")
+	if CreateFileSystem {
+		// Validate parameters
+		if Region == "" || ClusterName == "" {
+			ginkgo.By("CreateFileSystem is true. Set both Region and ClusterName so that the test can create a new file system. Or set CreateFileSystem false and set FileSystemId to an existing file system.")
+			return []byte{}
 		}
 
-		FileSystemId = id
-		ginkgo.By(fmt.Sprintf("Created EFS filesystem %q in region %q for cluster %q", FileSystemId, Region, ClusterName))
-		deleteFileSystem = true
-	} else {
-		ginkgo.By(fmt.Sprintf("Using already-created EFS file system %q", FileSystemId))
+		if FileSystemId == "" {
+			ginkgo.By(fmt.Sprintf("Creating EFS filesystem in region %q for cluster %q", Region, ClusterName))
+
+			c := NewCloud(Region)
+
+			opts := CreateOptions{
+				Name:             FileSystemName,
+				ClusterName:      ClusterName,
+				SecurityGroupIds: MountTargetSecurityGroupIds,
+				SubnetIds:        MountTargetSubnetIds,
+			}
+			id, err := c.CreateFileSystem(opts)
+			if err != nil {
+				framework.ExpectNoError(err, "creating file system")
+			}
+
+			FileSystemId = id
+			ginkgo.By(fmt.Sprintf("Created EFS filesystem %q in region %q for cluster %q", FileSystemId, Region, ClusterName))
+			deleteFileSystem = true
+		} else {
+			ginkgo.By(fmt.Sprintf("Using already-created EFS file system %q", FileSystemId))
+		}
 	}
 
 	if DeployDriver {
@@ -178,7 +183,7 @@ var _ = ginkgo.SynchronizedBeforeSuite(func() []byte {
 			framework.ExpectNoError(err, "getting csidriver efs.csi.aws.com")
 		} else {
 			ginkgo.By("Deploying EFS CSI driver")
-			framework.RunKubectlOrDie("apply", "-k", "github.com/kubernetes-sigs/aws-efs-csi-driver/deploy/kubernetes/overlays/stable/?ref=master")
+			framework.RunKubectlOrDie("kube-system", "apply", "-k", "github.com/kubernetes-sigs/aws-efs-csi-driver/deploy/kubernetes/overlays/stable/?ref=master")
 			ginkgo.By("Deployed EFS CSI driver")
 			destroyDriver = true
 		}
@@ -213,7 +218,7 @@ var _ = ginkgo.SynchronizedAfterSuite(func() {
 var _ = ginkgo.Describe("[efs-csi] EFS CSI", func() {
 	ginkgo.BeforeEach(func() {
 		if FileSystemId == "" {
-			ginkgo.Fail("FileSystemId is empty, set it to an existing file system. Or set both Region and ClusterName so that the test can create a new file system.")
+			ginkgo.Fail("FileSystemId is empty. Set it to an existing file system. Or set CreateFileSystem, Region and ClusterName so that the test can create a new file system.")
 		}
 	})
 

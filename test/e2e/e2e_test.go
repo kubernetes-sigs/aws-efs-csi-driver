@@ -67,6 +67,8 @@ func init() {
 	flag.StringVar(&Region, "region", "us-west-2", "the region")
 	flag.StringVar(&FileSystemId, "file-system-id", "", "the ID of an existing file system")
 	flag.StringVar(&FileSystemName, "file-system-name", "", "name to use for provisioned EFS file system, only used if -file-system-id is not set")
+	flag.BoolVar(&CreateFileSystem, "create-file-system", true, "provision a file system for the test with name -file-system-name. Requires -cluster-name and -region. Either this should be true or file-system-id should be set to an existing file system, otherwise tests will fail")
+	flag.BoolVar(&DeployDriver, "deploy-driver", false, "deploy a driver. Either this should be true or a driver should already be deployed, otherwise the tests will fail")
 	flag.StringVar(&combinedMountTargetSecurityGroupIds, "mount-target-security-group-ids", "", "comma-separated list of security group IDs to use for mount targets of provisioned EFS file system, only used if -file-system-id is not set")
 	flag.StringVar(&combinedMountTargetSubnetIds, "mount-target-subnet-ids", "", "comma-separated list of subnet IDs to use for mount targets of provisioned EFS file system, only used if -file-system-id is not set")
 	flag.StringVar(&EfsDriverNamespace, "efs-driver-namespace", "kube-system", "namespace of EFS driver pods")
