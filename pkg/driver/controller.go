@@ -19,6 +19,7 @@ package driver
 import (
 	"context"
 	"fmt"
+	"github.com/google/uuid"
 	"os"
 	"path"
 	"sort"
@@ -33,27 +34,28 @@ import (
 )
 
 const (
-	AccessPointMode     = "efs-ap"
-	AzName              = "az"
-	BasePath            = "basePath"
-	DefaultGidMin       = 50000
-	DefaultGidMax       = 7000000
-	DefaultTagKey       = "efs.csi.aws.com/cluster"
-	DefaultTagValue     = "true"
-	DirectoryPerms      = "directoryPerms"
-	FsId                = "fileSystemId"
-	Gid                 = "gid"
-	GidMin              = "gidRangeStart"
-	GidMax              = "gidRangeEnd"
-	MountTargetIp       = "mounttargetip"
-	ProvisioningMode    = "provisioningMode"
-	PvName              = "csi.storage.k8s.io/pv/name"
-	PvcName             = "csi.storage.k8s.io/pvc/name"
-	PvcNamespace        = "csi.storage.k8s.io/pvc/namespace"
-	RoleArn             = "awsRoleArn"
-	SubPathPattern      = "subPathPattern"
-	TempMountPathPrefix = "/var/lib/csi/pv"
-	Uid                 = "uid"
+	AccessPointMode       = "efs-ap"
+	AzName                = "az"
+	BasePath              = "basePath"
+	DefaultGidMin         = 50000
+	DefaultGidMax         = 7000000
+	DefaultTagKey         = "efs.csi.aws.com/cluster"
+	DefaultTagValue       = "true"
+	DirectoryPerms        = "directoryPerms"
+	EnsureUniqueDirectory = "ensureUniqueDirectory"
+	FsId                  = "fileSystemId"
+	Gid                   = "gid"
+	GidMin                = "gidRangeStart"
+	GidMax                = "gidRangeEnd"
+	MountTargetIp         = "mounttargetip"
+	ProvisioningMode      = "provisioningMode"
+	PvName                = "csi.storage.k8s.io/pv/name"
+	PvcName               = "csi.storage.k8s.io/pvc/name"
+	PvcNamespace          = "csi.storage.k8s.io/pvc/namespace"
+	RoleArn               = "awsRoleArn"
+	SubPathPattern        = "subPathPattern"
+	TempMountPathPrefix   = "/var/lib/csi/pv"
+	Uid                   = "uid"
 )
 
 var (
@@ -254,6 +256,17 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 		if err == nil {
 			klog.Infof("Using user-specified structure for access point directory.")
 			rootDirName = val
+			if value, ok := volumeParams[EnsureUniqueDirectory]; ok {
+				if ensureUniqueDirectory, _ := strconv.ParseBool(value); !ensureUniqueDirectory {
+					klog.Infof("Not appending PVC UID to path.")
+				} else {
+					klog.Infof("Appending PVC UID to path.")
+					rootDirName = fmt.Sprintf("%s-%s", val, uuid.New().String())
+				}
+			} else {
+				klog.Infof("Appending PVC UID to path.")
+				rootDirName = fmt.Sprintf("%s-%s", val, uuid.New().String())
+			}
 		} else {
 			return nil, err
 		}
@@ -262,6 +275,9 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 	}
 
 	rootDir := path.Join("/", basePath, rootDirName)
+	if ok, err := validateEfsPathRequirements(rootDir); !ok {
+		return nil, err
+	}
 	klog.Infof("Using %v as the access point directory.", rootDir)
 
 	accessPointsOptions.Uid = int64(uid)
@@ -534,4 +550,16 @@ func getSupportedComponentNames() []string {
 	}
 	sort.Strings(keys)
 	return keys
+}
+
+func validateEfsPathRequirements(proposedPath string) (bool, error) {
+	if len(proposedPath) > 100 {
+		// Check the proposed path is 100 characters or less
+		return false, status.Errorf(codes.InvalidArgument, "Proposed path '%s' exceeds EFS limit of 100 characters", proposedPath)
+	} else if strings.Count(proposedPath, "/") > 5 {
+		// Check the proposed path contains at most 4 subdirectories
+		return false, status.Errorf(codes.InvalidArgument, "Proposed path '%s' EFS limit of 4 subdirectories", proposedPath)
+	} else {
+		return true, nil
+	}
 }

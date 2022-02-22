@@ -4,8 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/google/uuid"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"regexp"
 	"testing"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
@@ -443,8 +445,8 @@ func TestCreateVolume(t *testing.T) {
 
 				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(accessPoint, nil).
 					Do(func(ctx context.Context, volumeName string, accessPointOpts *cloud.AccessPointOptions) {
-						if accessPointOpts.DirectoryPath != directoryCreated {
-							t.Fatalf("Root directory mismatch. Expected: %v, actual: %v",
+						if !verifyPathWhenUUIDIncluded(accessPointOpts.DirectoryPath, directoryCreated) {
+							t.Fatalf("Root directory mismatch. Expected: %v (with UID appended), actual: %v",
 								directoryCreated,
 								accessPointOpts.DirectoryPath)
 						}
@@ -514,8 +516,8 @@ func TestCreateVolume(t *testing.T) {
 
 				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(accessPoint, nil).
 					Do(func(ctx context.Context, volumeName string, accessPointOpts *cloud.AccessPointOptions) {
-						if accessPointOpts.DirectoryPath != directoryCreated {
-							t.Fatalf("Root directory mismatch. Expected: %v, actual: %v",
+						if !verifyPathWhenUUIDIncluded(accessPointOpts.DirectoryPath, directoryCreated) {
+							t.Fatalf("Root directory mismatch. Expected: %v (with UID appended), actual: %v",
 								directoryCreated,
 								accessPointOpts.DirectoryPath)
 						}
@@ -564,14 +566,89 @@ func TestCreateVolume(t *testing.T) {
 						RequiredBytes: capacityRange,
 					},
 					Parameters: map[string]string{
-						ProvisioningMode: "efs-ap",
-						FsId:             fsId,
-						GidMin:           "1000",
-						GidMax:           "2000",
-						DirectoryPerms:   "777",
-						SubPathPattern:   "${.PVC.name}",
-						BasePath:         basePath,
-						PvcName:          pvcName,
+						ProvisioningMode:      "efs-ap",
+						FsId:                  fsId,
+						GidMin:                "1000",
+						GidMax:                "2000",
+						DirectoryPerms:        "777",
+						SubPathPattern:        "${.PVC.name}",
+						BasePath:              basePath,
+						EnsureUniqueDirectory: "true",
+						PvcName:               pvcName,
+					},
+				}
+
+				ctx := context.Background()
+				fileSystem := &cloud.FileSystem{
+					FileSystemId: fsId,
+				}
+				accessPoint := &cloud.AccessPoint{
+					AccessPointId: apId,
+					FileSystemId:  fsId,
+				}
+				mockCloud.EXPECT().DescribeFileSystem(gomock.Eq(ctx), gomock.Any()).Return(fileSystem, nil)
+
+				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(accessPoint, nil).
+					Do(func(ctx context.Context, volumeName string, accessPointOpts *cloud.AccessPointOptions) {
+						if !verifyPathWhenUUIDIncluded(accessPointOpts.DirectoryPath, directoryCreated) {
+							t.Fatalf("Root directory mismatch. Expected: %v (with UID appended), actual: %v",
+								directoryCreated,
+								accessPointOpts.DirectoryPath)
+						}
+					})
+
+				res, err := driver.CreateVolume(ctx, req)
+
+				if err != nil {
+					t.Fatalf("CreateVolume failed: %v", err)
+				}
+
+				if res.Volume == nil {
+					t.Fatal("Volume is nil")
+				}
+
+				if res.Volume.VolumeId != volumeId {
+					t.Fatalf("Volume Id mismatched. Expected: %v, Actual: %v", volumeId, res.Volume.VolumeId)
+				}
+
+				mockCtl.Finish()
+			},
+		},
+		{
+			name: "Success: Normal flow with a valid directory structure set, and a basePath, and uniqueness guarantees turned off",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockCloud := mocks.NewMockCloud(mockCtl)
+
+				driver := &Driver{
+					endpoint:     endpoint,
+					cloud:        mockCloud,
+					gidAllocator: NewGidAllocator(),
+					tags:         parseTagsFromStr(""),
+				}
+
+				pvcName := "foo"
+				basePath := "bash"
+				directoryCreated := fmt.Sprintf("/%s/%s", basePath, pvcName)
+
+				req := &csi.CreateVolumeRequest{
+					Name: volumeName,
+					VolumeCapabilities: []*csi.VolumeCapability{
+						stdVolCap,
+					},
+					CapacityRange: &csi.CapacityRange{
+						RequiredBytes: capacityRange,
+					},
+					Parameters: map[string]string{
+						ProvisioningMode:      "efs-ap",
+						FsId:                  fsId,
+						GidMin:                "1000",
+						GidMax:                "2000",
+						DirectoryPerms:        "777",
+						SubPathPattern:        "${.PVC.name}",
+						BasePath:              basePath,
+						EnsureUniqueDirectory: "false",
+						PvcName:               pvcName,
 					},
 				}
 
@@ -612,7 +689,7 @@ func TestCreateVolume(t *testing.T) {
 			},
 		},
 		{
-			name: "Success: Normal flow with an empty subPath Pattern and no basePath",
+			name: "Success: Normal flow with an empty subPath Pattern, no basePath and uniqueness guarantees turned off",
 			testFunc: func(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockCloud := mocks.NewMockCloud(mockCtl)
@@ -633,12 +710,13 @@ func TestCreateVolume(t *testing.T) {
 						RequiredBytes: capacityRange,
 					},
 					Parameters: map[string]string{
-						ProvisioningMode: "efs-ap",
-						FsId:             fsId,
-						GidMin:           "1000",
-						GidMax:           "2000",
-						DirectoryPerms:   "777",
-						SubPathPattern:   "",
+						ProvisioningMode:      "efs-ap",
+						FsId:                  fsId,
+						GidMin:                "1000",
+						GidMax:                "2000",
+						DirectoryPerms:        "777",
+						SubPathPattern:        "",
+						EnsureUniqueDirectory: "false",
 					},
 				}
 
@@ -2266,4 +2344,12 @@ func TestControllerGetCapabilities(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ControllerGetCapabilities failed: %v", err)
 	}
+}
+
+func verifyPathWhenUUIDIncluded(pathToVerify string, expectedPathWithoutUUID string) bool {
+	r := regexp.MustCompile("(.*)-([0-9A-fA-F]+-[0-9A-fA-F]+-[0-9A-fA-F]+-[0-9A-fA-F]+-[0-9A-fA-F]+$)")
+	matches := r.FindStringSubmatch(pathToVerify)
+	doesPathMatchWithUuid := matches[1] == expectedPathWithoutUUID
+	_, err := uuid.Parse(matches[2])
+	return err == nil && doesPathMatchWithUuid
 }
