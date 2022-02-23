@@ -21,6 +21,7 @@ parameters:
   gidRangeEnd: "2000"
   basePath: "/dynamic_provisioning"
   subPathPattern: "${.PVC.namespace}/${PVC.name}"
+  ensureUniqueDirectories: true
 ```
 * provisioningMode - The type of volume to be provisioned by efs. Currently, only access point based provisioning is supported `efs-ap`.
 * fileSystemId - The file system under which Access Point is created.
@@ -31,7 +32,11 @@ parameters:
   provided, access points root directory are created under the root of the file system.
 * subPathPattern (Optional) - A pattern that describes the subPath under which an access point should be created. So in
   the example given above if the PVC namespace is `foo` and the PVC name is `pvc-123-456` the access point would be
-  created at `/dynamic_provisioner/foo/pvc-123-456`.
+  created at `/dynamic_provisioner/foo/pvc-123-456-<UUID>`. (The UUID being appended is due to ensureUniqueDirectories below)
+* ensureUniqueDirectories (Optional) - A boolean that ensures that, if set, a UUID is appended to the final element of
+  any dynamically provisioned path, as in the above example. This can be turned off but this requires you as the
+  administrator to ensure that your storage classes are set up correctly. Otherwise, it's possible that 2 pods could
+  end up writing to the same directory by accident. **Please think very carefully before setting this to false!**
 
 ### Deploy the Example
 Create storage class, persistent volume claim (PVC) and the pod which consumes PV:
