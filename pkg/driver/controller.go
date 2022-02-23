@@ -257,7 +257,7 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 			klog.Infof("Using user-specified structure for access point directory.")
 			rootDirName = val
 			if value, ok := volumeParams[EnsureUniqueDirectory]; ok {
-				if ensureUniqueDirectory, _ := strconv.ParseBool(value); !ensureUniqueDirectory {
+				if ensureUniqueDirectory, err := strconv.ParseBool(value); !ensureUniqueDirectory && err == nil {
 					klog.Infof("Not appending PVC UID to path.")
 				} else {
 					klog.Infof("Appending PVC UID to path.")
