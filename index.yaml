@@ -3,6 +3,28 @@ entries:
   aws-efs-csi-driver:
   - apiVersion: v2
     appVersion: 1.3.6
+    created: "2022-03-10T22:17:30.815900788Z"
+    description: A Helm chart for AWS EFS CSI Driver
+    digest: ba8f85379ee897f2e4833a787065e9b37b98ed556e38d75474b1cd7e8551e2d0
+    home: https://github.com/kubernetes-sigs/aws-efs-csi-driver
+    keywords:
+    - aws
+    - efs
+    - csi
+    kubeVersion: '>=1.17.0-0'
+    maintainers:
+    - name: leakingtapan
+      url: https://github.com/leakingtapan
+    - name: krmichel
+      url: https://github.com/krmichel
+    name: aws-efs-csi-driver
+    sources:
+    - https://github.com/kubernetes-sigs/aws-efs-csi-driver
+    urls:
+    - https://github.com/kubernetes-sigs/aws-efs-csi-driver/releases/download/helm-chart-aws-efs-csi-driver-2.2.4/aws-efs-csi-driver-2.2.4.tgz
+    version: 2.2.4
+  - apiVersion: v2
+    appVersion: 1.3.6
     created: "2022-01-21T22:53:25.368621121Z"
     description: A Helm chart for AWS EFS CSI Driver
     digest: 4b55de9e26ffbb8a3819439d406f532b97e924e0e516cb18bc0c9d2b380f42bf
