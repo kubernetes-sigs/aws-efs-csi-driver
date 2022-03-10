@@ -58,6 +58,10 @@ spec:
           env:
             - name: CSI_ENDPOINT
               value: unix:///var/lib/csi/sockets/pluginproxy/csi.sock
+            {{- if .Values.controller.regionalStsEndpoints }}
+            - name: AWS_STS_REGIONAL_ENDPOINTS
+              value: regional
+            {{- end }}
           volumeMounts:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
