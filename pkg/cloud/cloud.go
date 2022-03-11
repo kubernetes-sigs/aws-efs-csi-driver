@@ -91,6 +91,7 @@ type Cloud interface {
 	CreateAccessPoint(ctx context.Context, volumeName string, accessPointOpts *AccessPointOptions) (accessPoint *AccessPoint, err error)
 	DeleteAccessPoint(ctx context.Context, accessPointId string) (err error)
 	DescribeAccessPoint(ctx context.Context, accessPointId string) (accessPoint *AccessPoint, err error)
+	DescribeAccessPoints(ctx context.Context, fileSystemId string, maxResults int64) (accessPoint []*AccessPoint, err error)
 	DescribeFileSystem(ctx context.Context, fileSystemId string) (fs *FileSystem, err error)
 	DescribeMountTargets(ctx context.Context, fileSystemId, az string) (fs *MountTarget, err error)
 }
@@ -228,6 +229,33 @@ func (c *cloud) DescribeAccessPoint(ctx context.Context, accessPointId string) (
 		FileSystemId:       *accessPoints[0].FileSystemId,
 		AccessPointRootDir: *accessPoints[0].RootDirectory.Path,
 	}, nil
+}
+
+func (c *cloud) DescribeAccessPoints(ctx context.Context, fileSystemId string, maxResults int64) (accessPoints []*AccessPoint, err error) {
+	describeAPInput := &efs.DescribeAccessPointsInput{
+		FileSystemId: &fileSystemId,
+		MaxResults:   aws.Int64(maxResults),
+	}
+	res, err := c.efs.DescribeAccessPointsWithContext(ctx, describeAPInput)
+	if err != nil {
+		if isAccessDenied(err) {
+			return nil, ErrAccessDenied
+		}
+		if isAccessPointNotFound(err) {
+			return nil, ErrNotFound
+		}
+		return nil, fmt.Errorf("Describe Access Point failed: %v", err)
+	}
+
+	for _, ap := range res.AccessPoints {
+		accessPoints = append(accessPoints, &AccessPoint{
+			AccessPointId:      *ap.AccessPointId,
+			FileSystemId:       *ap.FileSystemId,
+			AccessPointRootDir: *ap.RootDirectory.Path,
+		})
+	}
+
+	return accessPoints, nil
 }
 
 func (c *cloud) DescribeFileSystem(ctx context.Context, fileSystemId string) (fs *FileSystem, err error) {

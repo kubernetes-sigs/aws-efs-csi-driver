@@ -48,6 +48,7 @@ const (
 	RoleArn             = "awsRoleArn"
 	TempMountPathPrefix = "/var/lib/csi/pv"
 	Uid                 = "uid"
+	MaxAps              = 120
 )
 
 var (
@@ -120,11 +121,21 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 		Tags:        tags,
 	}
 
+	localCloud, roleArn, err = getCloud(req.GetSecrets(), d)
+	if err != nil {
+		return nil, err
+	}
+
 	if value, ok := volumeParams[FsId]; ok {
 		if strings.TrimSpace(value) == "" {
 			return nil, status.Errorf(codes.InvalidArgument, "Parameter %v cannot be empty", FsId)
 		}
-		accessPointsOptions.FileSystemId = value
+		if fsId, err := getFsId(ctx, value, localCloud); err == nil {
+			accessPointsOptions.FileSystemId = fsId
+		} else {
+			return nil, status.Errorf(codes.InvalidArgument, "Error getting FsId: %v", err)
+
+		}
 	} else {
 		return nil, status.Errorf(codes.InvalidArgument, "Missing %v parameter", FsId)
 	}
@@ -201,11 +212,6 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 	// To make use of the `az` mount option, add it under storage class's `mountOptions` section. https://kubernetes.io/docs/concepts/storage/storage-classes/#mount-options
 	if value, ok := volumeParams[AzName]; ok {
 		azName = value
-	}
-
-	localCloud, roleArn, err = getCloud(req.GetSecrets(), d)
-	if err != nil {
-		return nil, err
 	}
 
 	// Check if file system exists. Describe FS handles appropriate error codes
@@ -470,4 +476,33 @@ func getCloud(secrets map[string]string, driver *Driver) (cloud.Cloud, string, e
 	}
 
 	return localCloud, roleArn, nil
+}
+
+func getFsId(ctx context.Context, value string, localCloud cloud.Cloud) (string, error) {
+	klog.V(5).Infof("getFsId called with: %v", value)
+	// Comma separated string
+	ids := strings.Split(value, ",")
+
+	if len(ids) == 1 {
+		return ids[0], nil
+	}
+
+	// Check if they have too many access points
+	for _, id := range ids {
+		if aps, err := localCloud.DescribeAccessPoints(ctx, id, MaxAps); err != nil {
+			if err == cloud.ErrAccessDenied {
+				return "", status.Errorf(codes.Unauthenticated, "Access Denied. Please ensure you have the right AWS permissions: %v", err)
+			}
+			if err == cloud.ErrNotFound {
+				return "", status.Errorf(codes.InvalidArgument, "File System does not exist: %v", err)
+			}
+			return "", status.Errorf(codes.Internal, "Failed to fetch File System info: %v", err)
+		} else {
+			klog.V(5).Infof("FS: %v had %v APs", id, len(aps))
+			if len(aps) < MaxAps {
+				return id, nil
+			}
+		}
+	}
+	return "", status.Errorf(codes.Internal, "All provided fsId's have the maximum number of access points")
 }

@@ -67,6 +67,15 @@ func (c *FakeCloudProvider) DescribeAccessPoint(ctx context.Context, accessPoint
 	return nil, ErrNotFound
 }
 
+func (c *FakeCloudProvider) DescribeAccessPoints(ctx context.Context, fileSystemId string, maxResults int64) (accessPoints []*AccessPoint, err error) {
+	for _, ap := range c.accessPoints {
+		if ap.FileSystemId == fileSystemId {
+			accessPoints = append(accessPoints, ap)
+		}
+	}
+	return accessPoints, nil
+}
+
 // CreateVolume calls DescribeFileSystem and then CreateAccessPoint.
 // Add file system into the map here to allow CreateVolume sanity tests to succeed.
 func (c *FakeCloudProvider) DescribeFileSystem(ctx context.Context, fileSystemId string) (fileSystem *FileSystem, err error) {
