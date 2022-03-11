@@ -106,6 +106,7 @@ spec:
           args:
             - --csi-address=/csi/csi.sock
             - --health-port={{ .Values.controller.healthPort }}
+            - --v={{ .Values.controller.logLevel }}
           volumeMounts:
             - name: socket-dir
               mountPath: /csi
