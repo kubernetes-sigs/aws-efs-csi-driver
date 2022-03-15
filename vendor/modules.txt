@@ -773,7 +773,7 @@ k8s.io/kube-scheduler/extender/v1
 # k8s.io/kubectl v0.0.0 => k8s.io/kubectl v0.18.10
 ## explicit; go 1.13
 k8s.io/kubectl/pkg/scale
-# k8s.io/kubernetes v1.23.10
+# k8s.io/kubernetes v1.18.10
 ## explicit; go 1.13
 k8s.io/kubernetes/pkg/api/legacyscheme
 k8s.io/kubernetes/pkg/api/service
