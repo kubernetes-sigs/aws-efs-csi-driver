@@ -65,6 +65,20 @@ func (mr *MockMounterMockRecorder) GetMountRefs(arg0 interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMountRefs", reflect.TypeOf((*MockMounter)(nil).GetMountRefs), arg0)
 }
 
+// IsCorruptedMnt mocks base method.
+func (m *MockMounter) IsCorruptedMnt(arg0 error) bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IsCorruptedMnt", arg0)
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// IsCorruptedMnt indicates an expected call of IsCorruptedMnt.
+func (mr *MockMounterMockRecorder) IsCorruptedMnt(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsCorruptedMnt", reflect.TypeOf((*MockMounter)(nil).IsCorruptedMnt), arg0)
+}
+
 // IsLikelyNotMountPoint mocks base method.
 func (m *MockMounter) IsLikelyNotMountPoint(arg0 string) (bool, error) {
 	m.ctrl.T.Helper()
@@ -163,6 +177,21 @@ func (m *MockMounter) MountSensitiveWithoutSystemdWithMountFlags(arg0, arg1, arg
 func (mr *MockMounterMockRecorder) MountSensitiveWithoutSystemdWithMountFlags(arg0, arg1, arg2, arg3, arg4, arg5 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MountSensitiveWithoutSystemdWithMountFlags", reflect.TypeOf((*MockMounter)(nil).MountSensitiveWithoutSystemdWithMountFlags), arg0, arg1, arg2, arg3, arg4, arg5)
+}
+
+// PathExists mocks base method.
+func (m *MockMounter) PathExists(arg0 string) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PathExists", arg0)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// PathExists indicates an expected call of PathExists.
+func (mr *MockMounterMockRecorder) PathExists(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PathExists", reflect.TypeOf((*MockMounter)(nil).PathExists), arg0)
 }
 
 // Unmount mocks base method.
