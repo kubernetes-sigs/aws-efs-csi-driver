@@ -35,7 +35,7 @@ RUN yum update -y
 ARG EFSUTILSSOURCE=github
 RUN if [ "$EFSUTILSSOURCE" = "yum" ]; \
     then echo "Installing efs-utils from Amazon Linux 2 yum repo" && \
-         yum -y install amazon-efs-utils-1.31.1-1.amzn2.noarch; \
+         yum -y install amazon-efs-utils; \
     else echo "Installing efs-utils from github using the latest git tag" && \
          yum -y install git rpm-build make && \
          git clone https://github.com/aws/efs-utils && \
