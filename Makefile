@@ -94,7 +94,7 @@ push: image
 
 .PHONY: image-release
 image-release:
-	docker build -t $(IMAGE):$(VERSION) .
+	docker build --build-arg EFSUTILSSOURCE=yum -t $(IMAGE):$(VERSION) .
 
 .PHONY: push-release
 push-release:
