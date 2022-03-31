@@ -48,8 +48,7 @@ RUN if [ "$EFSUTILSSOURCE" = "yum" ]; \
     fi
 
 # Install botocore required by efs-utils for cross account mount
-RUN yum -y install wget && \
-    wget https://bootstrap.pypa.io/get-pip.py -O /tmp/get-pip.py && \
+RUN curl -SL -O --output-dir /tmp https://bootstrap.pypa.io/get-pip.py && \
     python3 /tmp/get-pip.py && \
     pip3 install botocore || /usr/local/bin/pip3 install botocore && \
     rm -rf /tmp/get-pip.py
