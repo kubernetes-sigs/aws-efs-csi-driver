@@ -97,6 +97,7 @@ stunnel_cafile = /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
 [mount-watchdog]
 enabled = true
 poll_interval_sec = 1
+unmount_count_for_consistency = 5
 unmount_grace_period_sec = 30
 
 # Set client auth/access point certificate renewal rate. Minimum value is 1 minute.
