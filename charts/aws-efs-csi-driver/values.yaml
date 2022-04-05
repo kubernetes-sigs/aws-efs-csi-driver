@@ -53,6 +53,11 @@ controller:
   deleteAccessPointRootDir: false
   volMetricsOptIn: false
   podAnnotations: {}
+  updateStrategy: {}
+    # type: RollingUpdate
+    # rollingUpdate:
+    #   maxSurge: 0
+    #   maxUnavailable: 1
   resources:
     {}
     # We usually recommend not to specify default resources and to leave this as a conscious
@@ -101,6 +106,10 @@ node:
     #   nameservers:
     #     - 169.254.169.253
   podAnnotations: {}
+  updateStrategy: {}
+    # type: RollingUpdate
+    # rollingUpdate:
+    #   maxUnavailable: "10%"
   resources:
     {}
     # limits:
