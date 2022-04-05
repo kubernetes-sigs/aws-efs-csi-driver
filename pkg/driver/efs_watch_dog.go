@@ -102,6 +102,11 @@ unmount_grace_period_sec = 30
 # Set client auth/access point certificate renewal rate. Minimum value is 1 minute.
 tls_cert_renewal_interval_min = 60
 
+# Periodically check the health of stunnel to make sure the connection is fully established
+stunnel_health_check_enabled = true
+stunnel_health_check_interval_min = 5
+stunnel_health_check_command_timeout_sec = 30
+
 [client-info] 
 source={{.EfsClientSource}}
 
