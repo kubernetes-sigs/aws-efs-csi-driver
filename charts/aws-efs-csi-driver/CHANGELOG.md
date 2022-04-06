@@ -1,5 +1,8 @@
 # Helm chart
 
+# v2.2.5
+* Bump app/driver version to `v1.3.7`
+
 # v2.2.4
 * Add STS regional endpoints flag to fix PV creation on private EKS
 
