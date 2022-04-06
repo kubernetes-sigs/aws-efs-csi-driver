@@ -1,6 +1,6 @@
 # V1.3.7
 * go.mod: fix non-existing k8s.io/kubernetes version ([#645](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/645), [@bertinatto](https://github.com/bertinatto))
-* New efs-utils version of v1.32.1 (https://github.com/aws/efs-utils/releases/tag/1.32.1)
+* New efs-utils version of v1.32.1 (https://github.com/aws/efs-utils/releases/tag/v1.32.1)
 # v1.3.6
 * [release-1.3] Release v1.3.5: release helm chart v2.2.1 and update kustomize ([#600](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/600), [@wongma7](https://github.com/wongma7))
  [@wongma7](https://github.com/wongma7))
