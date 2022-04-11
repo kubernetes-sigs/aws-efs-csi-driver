@@ -22,7 +22,7 @@ parameters:
   basePath: "/dynamic_provisioning"
   az: us-east-1a
   csi.storage.k8s.io/provisioner-secret-name: x-account
-  csi.storage.k8s.io/provisioner-secret-namespace: kube-system
+  csi.storage.k8s.io/provisioner-secret-namespace: efs-secrets
 ```
 
 ### Prerequisite setup
