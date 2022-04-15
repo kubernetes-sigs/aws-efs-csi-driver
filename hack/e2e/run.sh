@@ -44,15 +44,22 @@ IMAGE_TAG=${IMAGE_TAG:-${TEST_ID}}
 K8S_VERSION=${K8S_VERSION:-1.18.16}
 KOPS_VERSION=${KOPS_VERSION:-1.18.2}
 KOPS_STATE_FILE=${KOPS_STATE_FILE:-s3://k8s-kops-csi-e2e}
-KOPS_FEATURE_GATES_FILE=${KOPS_FEATURE_GATES_FILE:-./hack/feature-gates.yaml}
-KOPS_ADDITIONAL_POLICIES_FILE=${KOPS_ADDITIONAL_POLICIES_FILE:-./hack/additional-policies.yaml}
+KOPS_PATCH_FILE=${KOPS_PATCH_FILE:-./hack/kops-patch.yaml}
+KOPS_PATCH_NODE_FILE=${KOPS_PATCH_NODE_FILE:-./hack/kops-patch-node.yaml}
+
+EKSCTL_VERSION=${EKSCTL_VERSION:-0.100.0}
+EKSCTL_PATCH_FILE=${EKSCTL_PATCH_FILE:-./hack/eksctl-patch.yaml}
+EKSCTL_ADMIN_ROLE=${EKSCTL_ADMIN_ROLE:-}
+# Creates a windows node group. The windows ami doesn't (yet) install csi-proxy
+# so that has to be done separately.
+WINDOWS=${WINDOWS:-"false"}
 
 HELM_VALUES_FILE=${HELM_VALUES_FILE:-./hack/values.yaml}
 
 TEST_PATH=${TEST_PATH:-"./tests/e2e/..."}
 KUBECONFIG=${KUBECONFIG:-"${HOME}/.kube/config"}
 ARTIFACTS=${ARTIFACTS:-"${TEST_DIR}/artifacts"}
-GINKGO_FOCUS=${GINKGO_FOCUS:-"\[ebs-csi-e2e\]"}
+GINKGO_FOCUS=${GINKGO_FOCUS:-"\[efs-csi]"}
 GINKGO_SKIP=${GINKGO_SKIP:-"\[Disruptive\]"}
 GINKGO_NODES=${GINKGO_NODES:-4}
 TEST_EXTRA_FLAGS=${TEST_EXTRA_FLAGS:-}
