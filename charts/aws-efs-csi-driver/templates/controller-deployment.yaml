@@ -61,6 +61,10 @@ spec:
             - name: AWS_STS_REGIONAL_ENDPOINTS
               value: regional
             {{- end }}
+            - name: CSI_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
           volumeMounts:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
