@@ -20,15 +20,18 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math/rand"
+	"os"
+	"time"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
+	"github.com/aws/aws-sdk-go/aws/ec2metadata"
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/efs"
 	"k8s.io/klog"
-	"math/rand"
-	"time"
 )
 
 const (
@@ -100,34 +103,48 @@ type cloud struct {
 // NewCloud returns a new instance of AWS cloud
 // It panics if session is invalid
 func NewCloud() (Cloud, error) {
-	sess := session.Must(session.NewSession(&aws.Config{}))
-	metadata, err := NewMetadataService(sess)
-	if err != nil {
-		return nil, fmt.Errorf("could not get metadata from AWS: %v", err)
-	}
-
-	efsClient := efs.New(session.Must(session.NewSession(aws.NewConfig().WithRegion(metadata.GetRegion()))))
-	return &cloud{
-		metadata: metadata,
-		efs:      efsClient,
-	}, nil
+	return createCloud("")
 }
 
 // NewCloudWithRole returns a new instance of AWS cloud after assuming an aws role
 // It panics if driver does not have permissions to assume role.
 func NewCloudWithRole(awsRoleArn string) (Cloud, error) {
+	return createCloud(awsRoleArn)
+}
+
+func createCloud(awsRoleArn string) (Cloud, error) {
 	sess := session.Must(session.NewSession(&aws.Config{}))
-	metadata, err := NewMetadataService(sess)
-	if err != nil {
-		return nil, fmt.Errorf("Could not get metadata from AWS: %v", err)
+	svc := ec2metadata.New(sess)
+	api, err := DefaultKubernetesAPIClient()
+
+	if err != nil && !isDriverBootedInECS() {
+		klog.Warningf("Could not create Kubernetes Client: %v", err)
 	}
 
-	creds := stscreds.NewCredentials(sess, awsRoleArn)
-	efsClient := efs.New(session.Must(session.NewSession(aws.NewConfig().WithCredentials(creds).WithRegion(metadata.GetRegion()))))
+	metadataProvider, err := GetNewMetadataProvider(svc, api)
+
+	if err != nil {
+		return nil, fmt.Errorf("error creating MetadataProvider: %v", err)
+	}
+
+	metadata, err := metadataProvider.getMetadata()
+
+	if err != nil {
+		return nil, fmt.Errorf("could not get metadata: %v", err)
+	}
+
 	return &cloud{
 		metadata: metadata,
-		efs:      efsClient,
+		efs:      createEfsClient(awsRoleArn, metadata, sess),
 	}, nil
+}
+
+func createEfsClient(awsRoleArn string, metadata MetadataService, sess *session.Session) Efs {
+	config := aws.NewConfig().WithRegion(metadata.GetRegion())
+	if awsRoleArn != "" {
+		config = config.WithCredentials(stscreds.NewCredentials(sess, awsRoleArn))
+	}
+	return efs.New(session.Must(session.NewSession(config)))
 }
 
 func (c *cloud) GetMetadata() MetadataService {
@@ -307,6 +324,11 @@ func isAccessDenied(err error) bool {
 		}
 	}
 	return false
+}
+
+func isDriverBootedInECS() bool {
+	ecsContainerMetadataUri := os.Getenv(taskMetadataV4EnvName)
+	return ecsContainerMetadataUri != ""
 }
 
 func parseEfsTags(tagMap map[string]string) []*efs.Tag {

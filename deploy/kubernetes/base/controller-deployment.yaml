@@ -21,7 +21,6 @@ spec:
         app.kubernetes.io/name: aws-efs-csi-driver
         app.kubernetes.io/instance: kustomize
     spec:
-      hostNetwork: true
       nodeSelector:
         kubernetes.io/os: linux
       serviceAccountName: efs-csi-controller-sa
@@ -41,6 +40,10 @@ spec:
           env:
             - name: CSI_ENDPOINT
               value: unix:///var/lib/csi/sockets/pluginproxy/csi.sock
+            - name: CSI_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
           volumeMounts:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
