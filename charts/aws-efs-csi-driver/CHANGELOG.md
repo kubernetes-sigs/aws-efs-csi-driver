@@ -1,5 +1,8 @@
 # Helm chart
 
+# v2.2.6
+* Add controller.hostNetwork values for switching POD network mode
+
 # v2.2.5
 * Bump app/driver version to `v1.3.7`
 
