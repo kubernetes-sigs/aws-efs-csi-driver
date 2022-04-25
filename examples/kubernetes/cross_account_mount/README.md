@@ -34,7 +34,13 @@ Lets say you have an EKS cluster in aws account `A` & you wish to mount your fil
 5. Create an IAM role for service accounts for EKS cluster in account `A` with required [permissions](./iam-policy-examples/node-deamonset-iam-policy-example.json) for EFS client mount. Alternatively, you can find this policy under AWS managed policy as `AmazonElasticFileSystemClientFullAccess`.  
 6. Attach the service account from step 5 to node daemonset.
 7. Create a [file system policy](https://docs.aws.amazon.com/efs/latest/ug/iam-access-control-nfs-efs.html#file-sys-policy-examples) for file system in account `B` which allows account `A` to perform mount on it.
-
+8. Add below rules setup to namespace.yaml rules section 
+```
+rules:
+  - apiGroups: [ "" ]
+    resources: [ "secrets" ]
+    verbs: [ "get", "watch", "list" ]
+```
 #### Note: 
 In dynamic provisioning, if you wish to enable delete access points root directory by setting `delete-access-point-root-dir=true`, you must attach the IAM policy from step 5 above to controller service account's IAM role. 
 
