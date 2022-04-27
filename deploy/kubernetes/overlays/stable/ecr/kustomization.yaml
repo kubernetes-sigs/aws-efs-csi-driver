@@ -5,7 +5,7 @@ bases:
 images:
   - name: amazon/aws-efs-csi-driver
     newName: 602401143452.dkr.ecr.us-west-2.amazonaws.com/eks/aws-efs-csi-driver
-    newTag: v1.3.7
+    newTag: v1.3.8
   - name: public.ecr.aws/eks-distro/kubernetes-csi/livenessprobe
     newName: 602401143452.dkr.ecr.us-west-2.amazonaws.com/eks/livenessprobe
     newTag: v2.2.0

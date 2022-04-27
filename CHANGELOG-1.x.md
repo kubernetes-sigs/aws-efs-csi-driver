@@ -1,3 +1,9 @@
+# V1.3.8
+* From V1.3.8 and forward, efs-csi-driver will stop updating docker Hub for new releases
+* Revise utils tag number ([#666](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/666), [@Ashley-wenyizha](https://github.com/Ashley-wenyizha))
+* Upgrade to k8s.io/kubernetes v1.22.1 ([#671](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/671), [@Ashley-wenyizha](https://github.com/Ashley-wenyizha))
+* Upgrade to k8s.io/kubernetes v1.22.2 ([#680](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/680), [@Ashley-wenyizha](https://github.com/Ashley-wenyizha))
+* Disable getting all secrets from ns by default ([#674](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/674), [@Ashley-wenyizha](https://github.com/Ashley-wenyizha))
 # V1.3.7
 * go.mod: fix non-existing k8s.io/kubernetes version ([#645](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/645), [@bertinatto](https://github.com/bertinatto))
 * New efs-utils version of v1.32.1 (https://github.com/aws/efs-utils/releases/tag/v1.32.1)
