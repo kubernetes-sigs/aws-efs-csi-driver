@@ -4,4 +4,7 @@ metadata:
   name: efs-sc
 provisioner: efs.csi.aws.com
 parameters:
+  provisioningMode: efs-ap
+  fileSystemId: [FileSystemId]
+  directoryPerms: "700"
   encryptInTransit: "false"

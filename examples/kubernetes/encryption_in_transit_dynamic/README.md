@@ -1,30 +1,23 @@
 ## Encryption in Transit
-This example shows how to make a static provisioned EFS persistent volume (PV) mounted inside container with encryption in transit configured.
+This example shows how to make a dynamically provisioned EFS persistent volume (PV) mounted inside container with encryption in transit configured.
 
-**Note**: this example requires Kubernetes v1.13+ and driver version > 0.3. For driver versions <= 0.3, encryption in transit is enabled (or disabled) by adding (or omitting) mountOption "tls" to (or from) a PV.
+**Note**: this example requires Kubernetes v1.13+ and driver version > 0.3. For driver versions <= 0.3, encryption in transit is enabled (or disabled) by setting `encryptInTransit` as required on the StorageClass Parameters.
 
 ### Edit [Persistence Volume Spec](./specs/pv.yaml) 
 
 ```
-apiVersion: v1
-kind: PersistentVolume
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
 metadata:
-  name: efs-pv
-spec:
-  capacity:
-    storage: 5Gi
-  volumeMode: Filesystem
-  accessModes:
-    - ReadWriteOnce
-  persistentVolumeReclaimPolicy: Retain
-  storageClassName: efs-sc
-  csi:
-    driver: efs.csi.aws.com
-    volumeHandle: [FileSystemId] 
-    volumeAttributes:
-      encryptInTransit: "true"
+  name: efs-sc
+provisioner: efs.csi.aws.com
+parameters:
+  provisioningMode: efs-ap
+  fileSystemId: [FileSystemId]
+  directoryPerms: "700"
+  encryptInTransit: "false"
 ```
-Replace `VolumeHandle` value with `FileSystemId` of the EFS filesystem that
+Replace `FileSystemId` with the ID of the EFS filesystem that
 needs to be mounted. The following table illustrates how the setting of
 `encryptInTransit` determines whether encryption in transit is enabled or not:
 
@@ -42,7 +35,6 @@ You can find it using AWS CLI:
 Create PV, persistent volume claim (PVC) and storage class:
 ```sh
 >> kubectl apply -f examples/kubernetes/encryption_in_transit/specs/storageclass.yaml
->> kubectl apply -f examples/kubernetes/encryption_in_transit/specs/pv.yaml
 >> kubectl apply -f examples/kubernetes/encryption_in_transit/specs/claim.yaml
 >> kubectl apply -f examples/kubernetes/encryption_in_transit/specs/pod.yaml
 ```
