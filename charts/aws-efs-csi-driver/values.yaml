@@ -54,7 +54,8 @@ controller:
   logLevel: 2
   # If set, add pv/pvc metadata to plugin create requests as parameters.
   extraCreateMetadata: true
-  # Add additional tags to access points
+  # Add additional tags to access points, if you need to use spaces or colons in your tags please enclose them
+  # with single quotes. i.e. 'A tag with spaces':'this:value:has:colons' will be parsed correctly.
   tags:
     {}
     # environment: prod
