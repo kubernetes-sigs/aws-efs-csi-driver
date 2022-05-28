@@ -43,7 +43,7 @@ func TestParseTags(t *testing.T) {
 	}, {
 		name: "Value contains multiple :'s",
 		testFunc: func(t *testing.T) {
-			compareParseTags(t, "foo:bash:bar:i:am:fish", map[string]string{"foo": "bash:bar:i:am:fish"})
+			compareParseTags(t, "foo:'bash:bar:i:am:fish'", map[string]string{"foo": "bash:bar:i:am:fish"})
 		},
 	}, {
 		name: "Value behaves with quotes",
