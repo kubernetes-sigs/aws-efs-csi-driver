@@ -40,17 +40,14 @@ func extractPairsFromRawString(raw string) []string {
 		switch chars[i] {
 		case '\'':
 			literal = !literal
-			accumulator += string(chars[i])
 		case ' ':
-			if literal {
-				accumulator += string(chars[i])
-			} else {
+			if !literal {
 				result = append(result, accumulator)
 				accumulator = ""
+				continue
 			}
-		default:
-			accumulator += string(chars[i])
 		}
+		accumulator += string(chars[i])
 	}
 	if accumulator != "" {
 		result = append(result, accumulator)
@@ -67,19 +64,17 @@ func extractKeyAndValueFromRawPair(pair string) (string, string, error) {
 		switch chars[i] {
 		case '\'':
 			literal = !literal
+			continue
 		case ':':
-			if literal {
-				key += string(chars[i])
-			} else {
+			if !literal {
 				finalKeyIndex = i
 				break
 			}
-		default:
-			key += string(chars[i])
 		}
 		if finalKeyIndex >= 0 {
 			break
 		}
+		key += string(chars[i])
 	}
 
 	if literal {
@@ -88,13 +83,15 @@ func extractKeyAndValueFromRawPair(pair string) (string, string, error) {
 		return "", "", fmt.Errorf("cannot have empty key")
 	}
 
-	value := string(chars[finalKeyIndex+1:])
+	return key, stripOuterQuotes(string(chars[finalKeyIndex+1:])), nil
+}
+
+func stripOuterQuotes(value string) string {
 	if len(value) > 0 && value[0] == '\'' {
 		value = value[1:]
 	}
 	if len(value) > 0 && value[len(value)-1] == '\'' {
 		value = value[:len(value)-1]
 	}
-
-	return key, value, nil
+	return value
 }
