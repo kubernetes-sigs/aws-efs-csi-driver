@@ -39,6 +39,7 @@ const (
 	DefaultTagKey       = "efs.csi.aws.com/cluster"
 	DefaultTagValue     = "true"
 	DirectoryPerms      = "directoryPerms"
+	extraTags           = "extraTags"
 	FsId                = "fileSystemId"
 	Gid                 = "gid"
 	GidMin              = "gidRangeStart"
@@ -114,6 +115,14 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 	// Append input tags to default tag
 	if len(d.tags) != 0 {
 		for k, v := range d.tags {
+			tags[k] = v
+		}
+	}
+
+	// Add tags specified by the StorageClass
+	if value, ok := volumeParams[extraTags]; ok {
+		newTags := parseTagsFromStr(strings.TrimSpace(value))
+		for k, v := range newTags {
 			tags[k] = v
 		}
 	}
