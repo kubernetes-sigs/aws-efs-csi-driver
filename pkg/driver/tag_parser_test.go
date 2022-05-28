@@ -51,6 +51,12 @@ func TestParseTags(t *testing.T) {
 			compareParseTags(t, "foo:'bashbariamfish'", map[string]string{"foo": "bashbariamfish"})
 		},
 	}, {
+		name: "Multiple Entries with and without quotes and colons",
+		testFunc: func(t *testing.T) {
+			compareParseTags(t, "foo:'bashbariamfish' 'a:b:c':fowl bash:baz",
+				map[string]string{"foo": "bashbariamfish", "a:b:c": "fowl", "bash": "baz"})
+		},
+	}, {
 		name: "Key with spaces",
 		testFunc: func(t *testing.T) {
 			compareParseTags(t, "'foo and another thing':bar", map[string]string{"foo and another thing": "bar"})
