@@ -55,11 +55,13 @@ controller:
   # If set, add pv/pvc metadata to plugin create requests as parameters.
   extraCreateMetadata: true
   # Add additional tags to access points, if you need to use spaces or colons in your tags please enclose them
-  # with single quotes. i.e. 'A tag with spaces':'this:value:has:colons' will be parsed correctly.
+  # with single quotes. i.e. 'A tag with spaces':'this:value:has:colons' will be parsed correctly. Beware you will
+  # need to add double quotes around the key and value so they are interpretted correctly by Helm as the example
+  # below demonstrates.
   tags:
-    {}
     # environment: prod
     # region: us-east-1
+    # "'I have spaces'": "'and:I:have:colons'"
   # Enable if you want the controller to also delete the
   # path on efs when deleteing an access point
   deleteAccessPointRootDir: false
