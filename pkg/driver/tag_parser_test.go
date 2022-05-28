@@ -11,6 +11,11 @@ func TestParseTags(t *testing.T) {
 		name     string
 		testFunc func(t *testing.T)
 	}{{
+		name: "Empty String gives Empty Map",
+		testFunc: func(t *testing.T) {
+			compareParseTags(t, "", map[string]string{})
+		},
+	}, {
 		name: "One Entry - No Spaces or Odd Characters",
 		testFunc: func(t *testing.T) {
 			compareParseTags(t, "foo:bar", map[string]string{"foo": "bar"})
