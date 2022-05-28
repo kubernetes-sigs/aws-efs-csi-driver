@@ -100,10 +100,10 @@ spec:
               mountPath: /var/amazon/efs
             - name: efs-utils-config-legacy
               mountPath: /etc/amazon/efs-legacy
-            {{- if .Values.node.caBundle }}
+          {{- if .Values.node.caBundle }}
             - name: custom-ca-bundle
               mountPath: {{ .Values.node.caBundle.mountPath }}
-            {{- end }}
+          {{- end }}
           ports:
             - name: healthz
               containerPort: {{ .Values.node.healthPort }}
@@ -189,11 +189,11 @@ spec:
           hostPath:
             path: /etc/amazon/efs
             type: DirectoryOrCreate
-        {{- if .Values.node.caBundle }}
+      {{- if .Values.node.caBundle }}
         - name: custom-ca-bundle
           configMap:
             name: {{ .Values.node.caBundle.name }}
             items:
               - key: {{ .Values.node.caBundle.key }}
                 path: {{ .Values.node.caBundle.path }}
-        {{- end }}
+      {{- end }}
