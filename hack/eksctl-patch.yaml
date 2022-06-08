@@ -1,0 +1,9 @@
+iam:
+  vpcResourceControllerPolicy: true
+  withOIDC: true
+  serviceAccounts:
+    - metadata:
+        name: efs-csi-controller-sa
+        namespace: kube-system
+      wellKnownPolicies:
+        efsCSIController: true
