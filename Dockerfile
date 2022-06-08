@@ -26,9 +26,9 @@ ADD . .
 ARG client_source=k8s
 ENV EFS_CLIENT_SOURCE=$client_source
 
-RUN GOOS=${TARGETOS} GOARCH=${TARGETARCH} make aws-efs-csi-driver
+RUN OS=${TARGETOS} ARCH=${TARGETARCH} make $TARGETOS/$TARGETARCH
 
-FROM amazonlinux:2
+FROM amazonlinux:2 as linux-amazon
 RUN yum update -y
 # Install efs-utils from github by default. It can be overriden to `yum` with --build-arg when building the Docker image.
 # If value of `EFSUTILSSOURCE` build arg is overriden with `yum`, docker will install efs-utils from Amazon Linux 2's yum repo.
