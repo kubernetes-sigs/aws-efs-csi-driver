@@ -23,6 +23,9 @@ import (
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
 	"google.golang.org/grpc"
+	"k8s.io/client-go/kubernetes"
+	k8sv1 "k8s.io/client-go/kubernetes/typed/core/v1"
+	"k8s.io/client-go/rest"
 	"k8s.io/klog"
 
 	"github.com/kubernetes-sigs/aws-efs-csi-driver/pkg/cloud"
@@ -48,6 +51,7 @@ type Driver struct {
 	gidAllocator             GidAllocator
 	deleteAccessPointRootDir bool
 	tags                     map[string]string
+	k8sClient                k8sv1.CoreV1Interface
 }
 
 func NewDriver(endpoint, efsUtilsCfgPath, efsUtilsStaticFilesPath, tags string, volMetricsOptIn bool, volMetricsRefreshPeriod float64, volMetricsFsRateLimit int, deleteAccessPointRootDir bool) *Driver {
@@ -58,6 +62,17 @@ func NewDriver(endpoint, efsUtilsCfgPath, efsUtilsStaticFilesPath, tags string, 
 
 	nodeCaps := SetNodeCapOptInFeatures(volMetricsOptIn)
 	watchdog := newExecWatchdog(efsUtilsCfgPath, efsUtilsStaticFilesPath, "amazon-efs-mount-watchdog")
+
+	cfg, err := rest.InClusterConfig()
+	if err != nil {
+		klog.Fatal(err)
+	}
+
+	clientset, err := kubernetes.NewForConfig(cfg)
+	if err != nil {
+		klog.Fatal(err)
+	}
+
 	return &Driver{
 		endpoint:                 endpoint,
 		nodeID:                   cloud.GetMetadata().GetInstanceID(),
@@ -72,6 +87,7 @@ func NewDriver(endpoint, efsUtilsCfgPath, efsUtilsStaticFilesPath, tags string, 
 		gidAllocator:             NewGidAllocator(),
 		deleteAccessPointRootDir: deleteAccessPointRootDir,
 		tags:                     parseTagsFromStr(strings.TrimSpace(tags)),
+		k8sClient:                clientset.CoreV1(),
 	}
 }
 
