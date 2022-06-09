@@ -8,6 +8,7 @@ fullnameOverride: ""
 replicaCount: 2
 
 useFIPS: false
+podIAMAuthorization: false
 
 image:
   repository: amazon/aws-efs-csi-driver
