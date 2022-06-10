@@ -75,6 +75,7 @@ controller:
     annotations: {}
     ## Enable if EKS IAM for SA is used
     #  eks.amazonaws.com/role-arn: arn:aws:iam::111122223333:role/efs-csi-role
+  secretsNamespaces: []
   healthPort: 9909
   regionalStsEndpoints: false
 ## Node daemonset variables
