@@ -450,7 +450,7 @@ func TestCreateVolume(t *testing.T) {
 			},
 		},
 		{
-			name: "Success: Normal flow, encryption in transit turned on",
+			name: "Success: Normal flow, encryption in transit turned off",
 			testFunc: func(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockCloud := mocks.NewMockCloud(mockCtl)
