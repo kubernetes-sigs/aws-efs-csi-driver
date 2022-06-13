@@ -319,12 +319,39 @@ func (c *cloud) getKopsSubnetIds(clusterName string) ([]string, error) {
 }
 
 func (c *cloud) getEksSubnetIds(clusterName string) ([]string, error) {
+	subnetIds, err := c.getEksctlSubnetIds(clusterName)
+	if err != nil {
+		return nil, err
+	} else if len(subnetIds) > 0 {
+		return subnetIds, nil
+	}
+	return c.getEksCloudFormationSubnetIds(clusterName)
+}
+
+func (c *cloud) getEksctlSubnetIds(clusterName string) ([]string, error) {
+	return c.getFilteredSubnetIds(
+		[]*ec2.Filter{
+			{
+				Name: aws.String("tag:alpha.eksctl.io/cluster-name"),
+				Values: []*string{
+					aws.String(fmt.Sprintf("%s", clusterName)),
+				},
+			},
+		},
+	)
+}
+
+func (c *cloud) getEksCloudFormationSubnetIds(clusterName string) ([]string, error) {
+	// There are no guarantees about subnets created using the template
+	// https://docs.aws.amazon.com/eks/latest/userguide/creating-a-vpc.html
+	// because the subnet names are derived from the stack name which is
+	// user-supplied. Assume that they are prefixed by cluster name and a dash.
 	return c.getFilteredSubnetIds(
 		[]*ec2.Filter{
 			{
 				Name: aws.String("tag:Name"),
 				Values: []*string{
-					aws.String(fmt.Sprintf("*%s*", clusterName)),
+					aws.String(fmt.Sprintf("%s-*", clusterName)),
 				},
 			},
 		},
