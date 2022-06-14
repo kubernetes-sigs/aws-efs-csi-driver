@@ -6,7 +6,7 @@ function eksctl_install() {
   INSTALL_PATH=${1}
   EKSCTL_VERSION=${2}
   if [[ ! -e ${INSTALL_PATH}/eksctl ]]; then
-    EKSCTL_DOWNLOAD_URL="https://github.com/weaveworks/eksctl/releases/download/${EKSCTL_VERSION}/eksctl_$(uname -s)_amd64.tar.gz"
+    EKSCTL_DOWNLOAD_URL="https://github.com/weaveworks/eksctl/releases/download/v${EKSCTL_VERSION}/eksctl_$(uname -s)_amd64.tar.gz"
     curl --silent --location "${EKSCTL_DOWNLOAD_URL}" | tar xz -C "${INSTALL_PATH}"
     chmod +x "${INSTALL_PATH}"/eksctl
   fi
@@ -55,6 +55,9 @@ function eksctl_create_cluster() {
   fi
 
   loudecho "Cluster ${CLUSTER_NAME} kubecfg written to ${KUBECONFIG}"
+  # TODO: Workaround for https://github.com/weaveworks/eksctl/issues/5257
+  # Remove when eksctl releases a fix
+  sed -i 's/v1alpha1/v1beta1/g' ${KUBECONFIG}
 
   loudecho "Getting cluster ${CLUSTER_NAME}"
   ${BIN} get cluster "${CLUSTER_NAME}"
@@ -68,6 +71,7 @@ function eksctl_create_cluster() {
 
   if [[ "$WINDOWS" == true ]]; then
     ${BIN} create nodegroup \
+      --managed=false \
       --cluster="${CLUSTER_NAME}" \
       --node-ami-family=WindowsServer2019FullContainer \
       -n ng-windows \
