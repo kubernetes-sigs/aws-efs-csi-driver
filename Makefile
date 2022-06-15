@@ -125,6 +125,21 @@ test-e2e:
 	GINKGO_FOCUS="\[efs-csi\]" \
 	./hack/e2e/run.sh
 
+.PHONY: test-e2e-external-eks
+test-e2e-external-eks:
+	CLUSTER_TYPE=eksctl \
+	K8S_VERSION="1.20" \
+	DRIVER_NAME=aws-efs-csi-driver \
+	HELM_VALUES_FILE="./hack/values_eksctl.yaml" \
+	CONTAINER_NAME=efs-plugin \
+	TEST_EXTRA_FLAGS='--cluster-name=$$CLUSTER_NAME' \
+	AWS_REGION=us-west-2 \
+	AWS_AVAILABILITY_ZONES=us-west-2a,us-west-2b,us-west-2c \
+	TEST_PATH=./test/e2e/... \
+	GINKGO_FOCUS="\[efs-csi\]" \
+	EKSCTL_ADMIN_ROLE="Infra-prod-KopsDeleteAllLambdaServiceRoleF1578477-1ELDFIB4KCMXV" \
+	./hack/e2e/run.sh
+
 .PHONY: test-e2e-bin
 test-e2e-bin:
 	mkdir -p bin
