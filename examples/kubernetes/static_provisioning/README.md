@@ -14,6 +14,7 @@ spec:
   volumeMode: Filesystem
   accessModes:
     - ReadWriteOnce
+  storageClassName: efs-sc
   persistentVolumeReclaimPolicy: Retain
   csi:
     driver: efs.csi.aws.com
@@ -29,6 +30,7 @@ You can find it using AWS CLI:
 ### Deploy the Example Application
 Create PV and persistent volume claim (PVC):
 ```sh
+>> kubectl apply -f examples/kubernetes/static_provisioning/specs/storageclass.yaml
 >> kubectl apply -f examples/kubernetes/static_provisioning/specs/pv.yaml
 >> kubectl apply -f examples/kubernetes/static_provisioning/specs/claim.yaml
 >> kubectl apply -f examples/kubernetes/static_provisioning/specs/pod.yaml
