@@ -119,7 +119,7 @@ test-e2e:
 	K8S_VERSION="1.22.9" \
 	DRIVER_NAME=aws-efs-csi-driver \
 	CONTAINER_NAME=efs-plugin \
-	TEST_EXTRA_FLAGS='--cluster-name=$$CLUSTER_NAME' \
+	TEST_EXTRA_FLAGS='--cluster-name=$$CLUSTER_NAME --created-by=kops' \
 	AWS_REGION=us-west-2 \
 	AWS_AVAILABILITY_ZONES=us-west-2a,us-west-2b,us-west-2c \
 	TEST_PATH=./test/e2e/... \
@@ -133,7 +133,7 @@ test-e2e-external-eks:
 	DRIVER_NAME=aws-efs-csi-driver \
 	HELM_VALUES_FILE="./hack/values_eksctl.yaml" \
 	CONTAINER_NAME=efs-plugin \
-	TEST_EXTRA_FLAGS='--cluster-name=$$CLUSTER_NAME' \
+	TEST_EXTRA_FLAGS='--cluster-name=$$CLUSTER_NAME --created-by=eksctl' \
 	AWS_REGION=us-west-2 \
 	AWS_AVAILABILITY_ZONES=us-west-2a,us-west-2b,us-west-2c \
 	TEST_PATH=./test/e2e/... \

@@ -29,6 +29,7 @@ var (
 	// Parameters that are expected to be set by consumers of this package.
 	ClusterName                 string
 	Region                      string
+	CreatedBy                   string
 	FileSystemId                string
 	FileSystemName              string
 	MountTargetSecurityGroupIds []string

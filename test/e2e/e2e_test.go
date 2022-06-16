@@ -65,6 +65,7 @@ func init() {
 
 	flag.StringVar(&ClusterName, "cluster-name", "", "the cluster name")
 	flag.StringVar(&Region, "region", "us-west-2", "the region")
+	flag.StringVar(&CreatedBy, "created-by", "", "the tool used to create the cluster")
 	flag.StringVar(&FileSystemId, "file-system-id", "", "the ID of an existing file system")
 	flag.StringVar(&FileSystemName, "file-system-name", "", "name to use for provisioned EFS file system, only used if -file-system-id is not set")
 	flag.BoolVar(&CreateFileSystem, "create-file-system", true, "provision a file system for the test with name -file-system-name. Requires -cluster-name and -region. Either this should be true or file-system-id should be set to an existing file system, otherwise tests will fail")
