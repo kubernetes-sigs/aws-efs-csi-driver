@@ -23,6 +23,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/container-storage-interface/spec/lib/go/csi"
 	"k8s.io/mount-utils"
 
 	"github.com/golang/mock/gomock"
@@ -65,8 +66,6 @@ func TestSanityEFSCSI(t *testing.T) {
 	config.Address = endpoint
 	config.TestVolumeParameters = parameters
 
-	nodeCaps := SetNodeCapOptInFeatures(true)
-
 	mockCtrl := gomock.NewController(t)
 	drv := Driver{
 		endpoint:        endpoint,
@@ -74,7 +73,7 @@ func TestSanityEFSCSI(t *testing.T) {
 		mounter:         NewFakeMounter(),
 		efsWatchdog:     &mockWatchdog{},
 		cloud:           cloud.NewFakeCloudProvider(),
-		nodeCaps:        nodeCaps,
+		nodeCaps:        SetNodeCapOptInFeatures([]csi.NodeServiceCapability_RPC_Type{}, true),
 		volMetricsOptIn: true,
 		volStatter:      NewVolStatter(),
 		gidAllocator:    NewGidAllocator(),

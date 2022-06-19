@@ -27,6 +27,7 @@ import (
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
 	"github.com/golang/mock/gomock"
+
 	"github.com/kubernetes-sigs/aws-efs-csi-driver/pkg/driver/mocks"
 )
 
@@ -42,14 +43,13 @@ type errtyp struct {
 
 func setup(mockCtrl *gomock.Controller, volStatter VolStatter, volMetricsOptIn bool) (*mocks.MockMounter, *Driver, context.Context) {
 	mockMounter := mocks.NewMockMounter(mockCtrl)
-	nodeCaps := SetNodeCapOptInFeatures(volMetricsOptIn)
 	driver := &Driver{
 		endpoint:        "endpoint",
 		nodeID:          "nodeID",
 		mounter:         mockMounter,
 		volStatter:      volStatter,
 		volMetricsOptIn: true,
-		nodeCaps:        nodeCaps,
+		nodeCaps:        SetNodeCapOptInFeatures([]csi.NodeServiceCapability_RPC_Type{}, volMetricsOptIn),
 	}
 	ctx := context.Background()
 	return mockMounter, driver, ctx
