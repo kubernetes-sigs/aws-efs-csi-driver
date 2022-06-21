@@ -1,3 +1,8 @@
+# V1.4.0
+* Conditionally added AWS_STS_REGIONAL_ENDPOINTS flag ([#585](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/585), [@holmesb](https://github.com/holmesb))
+* Removing Dependency on IMDS, allowing `hostNetwork: true` to be removed ([#681](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/681), [@jonathanrainer](https://github.com/jonathanrainer))
+* Support e2e test EFS create on EKS clusters by finding EKS node subnets ([#707](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/707), [@wongma7](https://github.com/wongma7))
+* Upgrade gopkg.in yaml.v3 ([#717](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/717), [@Ashley-wenyizha](https://github.com/Ashley-wenyizha))
 # V1.3.8
 * From V1.3.8 and forward, efs-csi-driver will stop updating docker Hub for new releases
 * Revise utils tag number ([#666](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/666), [@Ashley-wenyizha](https://github.com/Ashley-wenyizha))
