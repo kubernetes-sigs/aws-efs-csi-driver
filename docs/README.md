@@ -57,6 +57,7 @@ The following sections are Kubernetes specific. If you are a Kubernetes user, us
 | AWS EFS CSI Driver \ Kubernetes Version| maturity | v1.11 | v1.12 | v1.13 | v1.14 | v1.15 | v1.16 | v1.17+ |
 |----------------------------------------|----------|-------|-------|-------|-------|-------|-------|-------|
 | master branch                          | GA       | no    | no    | no    | no    | no    | no    | yes   |
+| v1.4.x                                 | GA       | no    | no    | no    | no    | no    | no    | yes   |
 | v1.3.x                                 | GA       | no    | no    | no    | no    | no    | no    | yes   |
 | v1.2.x                                 | GA       | no    | no    | no    | no    | no    | no    | yes   |
 | v1.1.x                                 | GA       | no    | no    | no    | yes   | yes   | yes   | yes   |
@@ -108,7 +109,7 @@ The driver requires IAM permission to talk to Amazon EFS to manage the volume on
 
 If you want to deploy the stable driver:
 ```sh
-kubectl apply -k "github.com/kubernetes-sigs/aws-efs-csi-driver/deploy/kubernetes/overlays/stable/?ref=release-1.3"
+kubectl apply -k "github.com/kubernetes-sigs/aws-efs-csi-driver/deploy/kubernetes/overlays/stable/?ref=release-1.4"
 ```
 
 If you want to deploy the development driver:
