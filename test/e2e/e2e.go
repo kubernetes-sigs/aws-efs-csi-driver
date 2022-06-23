@@ -373,6 +373,28 @@ var _ = ginkgo.Describe("[efs-csi] EFS CSI", func() {
 			encryptInTransit := false
 			testEncryptInTransit(f, &encryptInTransit)
 		})
+
+		ginkgo.It("should mount with the correct gid if specified by the pod", func() {
+			pvc, pv, err := createEFSPVCPV(f.ClientSet, f.Namespace.Name, f.Namespace.Name, "/", map[string]string{})
+			framework.ExpectNoError(err, "creating efs pvc & pv")
+			defer func() {
+				_ = f.ClientSet.CoreV1().PersistentVolumes().Delete(context.TODO(), pv.Name, metav1.DeleteOptions{})
+			}()
+			command := fmt.Sprintf("touch /mnt/volume1/%s-%s && trap exit TERM; while true; do sleep 1; done", f.Namespace.Name, time.Now().Format(time.RFC3339))
+			pod := e2epod.MakePod(f.Namespace.Name, nil, []*v1.PersistentVolumeClaim{pvc}, false, command)
+			pod.Spec.RestartPolicy = v1.RestartPolicyNever
+			var fsGroup int64 = 1000
+			pod.Spec.SecurityContext.FSGroup = &fsGroup
+			pod, err = f.ClientSet.CoreV1().Pods(f.Namespace.Name).Create(context.TODO(), pod, metav1.CreateOptions{})
+			framework.ExpectNoError(err, "creating pod")
+
+			err = e2epod.WaitForPodRunningInNamespace(f.ClientSet, pod)
+			framework.ExpectNoError(err, "pod started running successfully")
+
+			stdout, _, err := e2evolume.PodExec(f, pod, "stat -c \"%g\" /mnt/volume1")
+			framework.ExpectNoError(err, "ran ls command in /mnt")
+			framework.ExpectEqual(stdout, fmt.Sprintf("%d", fsGroup), "Checking GID of mounted folder")
+		})
 	})
 })
 
