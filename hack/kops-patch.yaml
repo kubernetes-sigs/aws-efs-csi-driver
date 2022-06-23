@@ -13,3 +13,18 @@ spec:
           "Resource": "*"
         }
       ]
+  kubeAPIServer:
+    featureGates:
+      DelegateFSGroupToCSIDriver: "true"
+  kubeControllerManager:
+    featureGates:
+      DelegateFSGroupToCSIDriver: "true"
+  kubeProxy:
+    featureGates:
+      DelegateFSGroupToCSIDriver: "true"
+  kubeScheduler:
+    featureGates:
+      DelegateFSGroupToCSIDriver: "true"
+  kubelet:
+    featureGates:
+      DelegateFSGroupToCSIDriver: "true"
