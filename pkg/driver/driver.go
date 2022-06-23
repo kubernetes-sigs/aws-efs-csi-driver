@@ -51,12 +51,14 @@ type Driver struct {
 }
 
 func NewDriver(endpoint, efsUtilsCfgPath, efsUtilsStaticFilesPath, tags string, volMetricsOptIn bool, volMetricsRefreshPeriod float64, volMetricsFsRateLimit int, deleteAccessPointRootDir bool) *Driver {
+	var nCaps = []csi.NodeServiceCapability_RPC_Type{
+		csi.NodeServiceCapability_RPC_VOLUME_MOUNT_GROUP,
+	}
 	cloud, err := cloud.NewCloud()
 	if err != nil {
 		klog.Fatalln(err)
 	}
 
-	nodeCaps := SetNodeCapOptInFeatures(volMetricsOptIn)
 	watchdog := newExecWatchdog(efsUtilsCfgPath, efsUtilsStaticFilesPath, "amazon-efs-mount-watchdog")
 	return &Driver{
 		endpoint:                 endpoint,
@@ -64,7 +66,7 @@ func NewDriver(endpoint, efsUtilsCfgPath, efsUtilsStaticFilesPath, tags string, 
 		mounter:                  newNodeMounter(),
 		efsWatchdog:              watchdog,
 		cloud:                    cloud,
-		nodeCaps:                 nodeCaps,
+		nodeCaps:                 SetNodeCapOptInFeatures(nCaps, volMetricsOptIn),
 		volStatter:               NewVolStatter(),
 		volMetricsOptIn:          volMetricsOptIn,
 		volMetricsRefreshPeriod:  volMetricsRefreshPeriod,
@@ -75,8 +77,7 @@ func NewDriver(endpoint, efsUtilsCfgPath, efsUtilsStaticFilesPath, tags string, 
 	}
 }
 
-func SetNodeCapOptInFeatures(volMetricsOptIn bool) []csi.NodeServiceCapability_RPC_Type {
-	var nCaps = []csi.NodeServiceCapability_RPC_Type{}
+func SetNodeCapOptInFeatures(nCaps []csi.NodeServiceCapability_RPC_Type, volMetricsOptIn bool) []csi.NodeServiceCapability_RPC_Type {
 	if volMetricsOptIn {
 		klog.V(4).Infof("Enabling Node Service capability for Get Volume Stats")
 		nCaps = append(nCaps, csi.NodeServiceCapability_RPC_GET_VOLUME_STATS)

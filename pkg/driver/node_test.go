@@ -27,6 +27,7 @@ import (
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
 	"github.com/golang/mock/gomock"
+
 	"github.com/kubernetes-sigs/aws-efs-csi-driver/pkg/driver/mocks"
 )
 
@@ -42,14 +43,13 @@ type errtyp struct {
 
 func setup(mockCtrl *gomock.Controller, volStatter VolStatter, volMetricsOptIn bool) (*mocks.MockMounter, *Driver, context.Context) {
 	mockMounter := mocks.NewMockMounter(mockCtrl)
-	nodeCaps := SetNodeCapOptInFeatures(volMetricsOptIn)
 	driver := &Driver{
 		endpoint:        "endpoint",
 		nodeID:          "nodeID",
 		mounter:         mockMounter,
 		volStatter:      volStatter,
 		volMetricsOptIn: true,
-		nodeCaps:        nodeCaps,
+		nodeCaps:        SetNodeCapOptInFeatures([]csi.NodeServiceCapability_RPC_Type{}, volMetricsOptIn),
 	}
 	ctx := context.Background()
 	return mockMounter, driver, ctx
@@ -334,6 +334,26 @@ func TestNodePublishVolume(t *testing.T) {
 			},
 			expectMakeDir: true,
 			mountArgs:     []interface{}{volumeId + ":/", targetPath, "efs", []string{"tls"}},
+			mountSuccess:  true,
+		},
+		{
+			name: "success: gid used if present in mount call",
+			req: &csi.NodePublishVolumeRequest{
+				VolumeId: volumeId,
+				VolumeCapability: &csi.VolumeCapability{
+					AccessType: &csi.VolumeCapability_Mount{
+						Mount: &csi.VolumeCapability_MountVolume{
+							VolumeMountGroup: "1000",
+						},
+					},
+					AccessMode: &csi.VolumeCapability_AccessMode{
+						Mode: csi.VolumeCapability_AccessMode_MULTI_NODE_MULTI_WRITER,
+					},
+				},
+				TargetPath: targetPath,
+			},
+			expectMakeDir: true,
+			mountArgs:     []interface{}{volumeId + ":/", targetPath, "efs", []string{"tls", "gid=1000"}},
 			mountSuccess:  true,
 		},
 		{

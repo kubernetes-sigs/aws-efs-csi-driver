@@ -132,6 +132,12 @@ func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 		mountOptions = append(mountOptions, "ro")
 	}
 
+	fsGroup := volCap.GetMount().VolumeMountGroup
+	if fsGroup != "" {
+		klog.V(5).Infof("Adding fsGroup parameter of %s to mount call", fsGroup)
+		mountOptions = append(mountOptions, fmt.Sprintf("gid=%s", fsGroup))
+	}
+
 	if m := volCap.GetMount(); m != nil {
 		for _, f := range m.MountFlags {
 			// Special-case check for access point
