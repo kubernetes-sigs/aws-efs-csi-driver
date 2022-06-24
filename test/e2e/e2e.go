@@ -20,6 +20,7 @@ import (
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
+	e2epv "k8s.io/kubernetes/test/e2e/framework/pv"
 	storageframework "k8s.io/kubernetes/test/e2e/storage/framework"
 	"k8s.io/kubernetes/test/e2e/storage/testsuites"
 	"k8s.io/kubernetes/test/e2e/storage/utils"
@@ -361,6 +362,59 @@ var _ = ginkgo.Describe("[efs-csi] EFS CSI", func() {
 		ginkgo.It("should mount without option tls when encryptInTransit set false", func() {
 			encryptInTransit := false
 			testEncryptInTransit(f, &encryptInTransit)
+		})
+
+		testReadWriteOncePod := func(f *framework.Framework, pvc *v1.PersistentVolumeClaim) {
+
+			err := e2epv.WaitForPersistentVolumeClaimPhase(v1.ClaimBound, f.ClientSet, f.Namespace.Name, pvc.Name,
+				time.Second*5, time.Minute)
+			framework.ExpectNoError(err, "waiting for pv to be provisioned and bound")
+
+			podSpec := e2epod.MakePod(f.Namespace.Name, nil, []*v1.PersistentVolumeClaim{pvc}, false, "")
+			podSpec.Spec.RestartPolicy = v1.RestartPolicyNever
+			pod1, err := f.ClientSet.CoreV1().Pods(f.Namespace.Name).Create(context.TODO(), podSpec, metav1.CreateOptions{})
+			framework.ExpectNoError(err, "creating pod")
+
+			err = e2epod.WaitForPodRunningInNamespace(f.ClientSet, pod1)
+			framework.ExpectNoError(err, "pod started running successfully")
+
+			pod2, err := f.ClientSet.CoreV1().Pods(f.Namespace.Name).Create(context.TODO(), podSpec, metav1.CreateOptions{})
+			err = e2epod.WaitForPodNotPending(f.ClientSet, f.Namespace.Name, pod2.Name)
+			framework.ExpectError(err, "second pod could not mount PVC as well")
+		}
+
+		ginkgo.It("should successfully mount a single pod when ReadWriteOncePod is used statically", func() {
+			pvc, pv, err := createEFSPVCPV(f.ClientSet, f.Namespace.Name, f.Namespace.Name,
+				"/", map[string]string{}, []v1.PersistentVolumeAccessMode{v1.ReadWriteOncePod})
+			framework.ExpectNoError(err, "creating efs pv and pvc")
+			defer func() {
+				_ = f.ClientSet.CoreV1().PersistentVolumes().Delete(context.TODO(), pv.Name, metav1.DeleteOptions{})
+			}()
+
+			testReadWriteOncePod(f, pvc)
+		})
+
+		ginkgo.It("should successfully mount a single pod when ReadWriteOncePod is used dynamically", func() {
+			immediateBinding := storagev1.VolumeBindingImmediate
+			sc := storageframework.GetStorageClass("efs.csi.aws.com", map[string]string{
+				"provisioningMode": "efs-ap",
+				"fileSystemId":     FileSystemId,
+				"directoryPerms":   "777",
+				"gidRangeStart":    "1000",
+				"gidRangeEnd":      "2000",
+				"basePath":         "/dynamic_provisioning",
+			}, &immediateBinding, EfsDriverNamespace)
+			defer func() {
+				_ = f.ClientSet.StorageV1().StorageClasses().Delete(context.TODO(), sc.Name, metav1.DeleteOptions{})
+			}()
+			_, err := f.ClientSet.StorageV1().StorageClasses().Create(context.TODO(), sc, metav1.CreateOptions{})
+			framework.ExpectNoError(err, "creating dynamic provisioning storage class")
+			pvcName := "read-write-once-pvc"
+			pvc := makeEFSPVC(f.Namespace.Name, pvcName, sc.Name, []v1.PersistentVolumeAccessMode{v1.ReadWriteOncePod})
+			pvc, err = f.ClientSet.CoreV1().PersistentVolumeClaims(f.Namespace.Name).Create(context.TODO(), pvc, metav1.CreateOptions{})
+			framework.ExpectNoError(err, "creating efs pvc")
+
+			testReadWriteOncePod(f, pvc)
 		})
 	})
 })
