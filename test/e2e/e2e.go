@@ -240,7 +240,7 @@ var _ = ginkgo.Describe("[efs-csi] EFS CSI", func() {
 	ginkgo.Context(storageframework.GetDriverNameWithFeatureTags(driver), func() {
 		ginkgo.It("should mount different paths on same volume on same node", func() {
 			ginkgo.By(fmt.Sprintf("Creating efs pvc & pv with no subpath"))
-			pvcRoot, pvRoot, err := createEFSPVCPV(f.ClientSet, f.Namespace.Name, f.Namespace.Name+"-root", "/", map[string]string{})
+			pvcRoot, pvRoot, err := createEFSPVCPV(f.ClientSet, f.Namespace.Name, f.Namespace.Name+"-root", "/", map[string]string{}, []v1.PersistentVolumeAccessMode{v1.ReadWriteMany})
 			framework.ExpectNoError(err, "creating efs pvc & pv with no subpath")
 			defer func() {
 				_ = f.ClientSet.CoreV1().PersistentVolumes().Delete(context.TODO(), pvRoot.Name, metav1.DeleteOptions{})
@@ -253,14 +253,14 @@ var _ = ginkgo.Describe("[efs-csi] EFS CSI", func() {
 			framework.ExpectNoError(e2epod.WaitForPodSuccessInNamespace(f.ClientSet, pod.Name, f.Namespace.Name), "waiting for pod success")
 
 			ginkgo.By(fmt.Sprintf("Creating efs pvc & pv with subpath /a"))
-			pvcA, pvA, err := createEFSPVCPV(f.ClientSet, f.Namespace.Name, f.Namespace.Name+"-a", "/a", map[string]string{})
+			pvcA, pvA, err := createEFSPVCPV(f.ClientSet, f.Namespace.Name, f.Namespace.Name+"-a", "/a", map[string]string{}, []v1.PersistentVolumeAccessMode{v1.ReadWriteMany})
 			framework.ExpectNoError(err, "creating efs pvc & pv with subpath /a")
 			defer func() {
 				_ = f.ClientSet.CoreV1().PersistentVolumes().Delete(context.TODO(), pvA.Name, metav1.DeleteOptions{})
 			}()
 
 			ginkgo.By(fmt.Sprintf("Creating efs pvc & pv with subpath /b"))
-			pvcB, pvB, err := createEFSPVCPV(f.ClientSet, f.Namespace.Name, f.Namespace.Name+"-b", "/b", map[string]string{})
+			pvcB, pvB, err := createEFSPVCPV(f.ClientSet, f.Namespace.Name, f.Namespace.Name+"-b", "/b", map[string]string{}, []v1.PersistentVolumeAccessMode{v1.ReadWriteMany})
 			framework.ExpectNoError(err, "creating efs pvc & pv with subpath /b")
 			defer func() {
 				_ = f.ClientSet.CoreV1().PersistentVolumes().Delete(context.TODO(), pvB.Name, metav1.DeleteOptions{})
@@ -278,7 +278,9 @@ var _ = ginkgo.Describe("[efs-csi] EFS CSI", func() {
 			const TestDuration = 30 * time.Second
 
 			ginkgo.By("Creating EFS PVC and associated PV")
-			pvc, pv, err := createEFSPVCPV(f.ClientSet, f.Namespace.Name, f.Namespace.Name, "", map[string]string{})
+			pvc, pv, err := createEFSPVCPV(f.ClientSet, f.Namespace.Name, f.Namespace.Name, "", map[string]string{}, []v1.PersistentVolumeAccessMode{
+				v1.ReadWriteMany,
+			})
 			framework.ExpectNoError(err)
 			defer f.ClientSet.CoreV1().PersistentVolumes().Delete(context.TODO(), pv.Name, metav1.DeleteOptions{})
 
@@ -315,7 +317,7 @@ var _ = ginkgo.Describe("[efs-csi] EFS CSI", func() {
 					volumeAttributes["encryptInTransit"] = "false"
 				}
 			}
-			pvc, pv, err := createEFSPVCPV(f.ClientSet, f.Namespace.Name, f.Namespace.Name, "/", volumeAttributes)
+			pvc, pv, err := createEFSPVCPV(f.ClientSet, f.Namespace.Name, f.Namespace.Name, "/", volumeAttributes, []v1.PersistentVolumeAccessMode{v1.ReadWriteMany})
 			framework.ExpectNoError(err, "creating efs pvc & pv with no subpath")
 			defer func() {
 				_ = f.ClientSet.CoreV1().PersistentVolumes().Delete(context.TODO(), pv.Name, metav1.DeleteOptions{})
@@ -363,8 +365,8 @@ var _ = ginkgo.Describe("[efs-csi] EFS CSI", func() {
 	})
 })
 
-func createEFSPVCPV(c clientset.Interface, namespace, name, path string, volumeAttributes map[string]string) (*v1.PersistentVolumeClaim, *v1.PersistentVolume, error) {
-	pvc, pv := makeEFSPVCPV(namespace, name, path, volumeAttributes)
+func createEFSPVCPV(c clientset.Interface, namespace, name, path string, volumeAttributes map[string]string, accessModes []v1.PersistentVolumeAccessMode) (*v1.PersistentVolumeClaim, *v1.PersistentVolume, error) {
+	pvc, pv := makeEFSPVCPV(namespace, name, path, volumeAttributes, accessModes)
 	pvc, err := c.CoreV1().PersistentVolumeClaims(namespace).Create(context.TODO(), pvc, metav1.CreateOptions{})
 	if err != nil {
 		return nil, nil, err
@@ -376,9 +378,9 @@ func createEFSPVCPV(c clientset.Interface, namespace, name, path string, volumeA
 	return pvc, pv, nil
 }
 
-func makeEFSPVCPV(namespace, name, path string, volumeAttributes map[string]string) (*v1.PersistentVolumeClaim, *v1.PersistentVolume) {
-	pvc := makeEFSPVC(namespace, name)
-	pv := makeEFSPV(name, path, volumeAttributes)
+func makeEFSPVCPV(namespace, name, path string, volumeAttributes map[string]string, accessModes []v1.PersistentVolumeAccessMode) (*v1.PersistentVolumeClaim, *v1.PersistentVolume) {
+	pvc := makeEFSPVC(namespace, name, "", accessModes)
+	pv := makeEFSPV(name, path, volumeAttributes, accessModes)
 	pvc.Spec.VolumeName = pv.Name
 	pv.Spec.ClaimRef = &v1.ObjectReference{
 		Namespace: pvc.Namespace,
@@ -387,15 +389,14 @@ func makeEFSPVCPV(namespace, name, path string, volumeAttributes map[string]stri
 	return pvc, pv
 }
 
-func makeEFSPVC(namespace, name string) *v1.PersistentVolumeClaim {
-	storageClassName := ""
+func makeEFSPVC(namespace, name, storageClassName string, accessModes []v1.PersistentVolumeAccessMode) *v1.PersistentVolumeClaim {
 	return &v1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
 		},
 		Spec: v1.PersistentVolumeClaimSpec{
-			AccessModes: []v1.PersistentVolumeAccessMode{v1.ReadWriteMany},
+			AccessModes: accessModes,
 			Resources: v1.ResourceRequirements{
 				Requests: v1.ResourceList{
 					v1.ResourceStorage: resource.MustParse("1Gi"),
@@ -406,7 +407,7 @@ func makeEFSPVC(namespace, name string) *v1.PersistentVolumeClaim {
 	}
 }
 
-func makeEFSPV(name, path string, volumeAttributes map[string]string) *v1.PersistentVolume {
+func makeEFSPV(name, path string, volumeAttributes map[string]string, accessModes []v1.PersistentVolumeAccessMode) *v1.PersistentVolume {
 	volumeHandle := FileSystemId
 	if path != "" {
 		volumeHandle += ":" + path
@@ -427,7 +428,7 @@ func makeEFSPV(name, path string, volumeAttributes map[string]string) *v1.Persis
 					VolumeAttributes: volumeAttributes,
 				},
 			},
-			AccessModes: []v1.PersistentVolumeAccessMode{v1.ReadWriteMany},
+			AccessModes: accessModes,
 		},
 	}
 }
