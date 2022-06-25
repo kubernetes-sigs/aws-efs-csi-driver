@@ -382,9 +382,10 @@ var _ = ginkgo.Describe("[efs-csi] EFS CSI", func() {
 				_ = f.ClientSet.CoreV1().PersistentVolumes().Delete(context.TODO(), pv.Name, metav1.DeleteOptions{})
 			}()
 			pod := e2epod.MakePod(f.Namespace.Name, nil, []*v1.PersistentVolumeClaim{pvc}, false, "")
+
 			pod.Spec.RestartPolicy = v1.RestartPolicyNever
 			var fsGroup int64 = 1000
-			pod.Spec.SecurityContext.FSGroup = &fsGroup
+			pod.Spec.SecurityContext = e2epod.GeneratePodSecurityContext(&fsGroup, nil)
 			pod, err = f.ClientSet.CoreV1().Pods(f.Namespace.Name).Create(context.TODO(), pod, metav1.CreateOptions{})
 			framework.ExpectNoError(err, "creating pod")
 
