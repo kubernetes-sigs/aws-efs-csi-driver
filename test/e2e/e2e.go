@@ -375,13 +375,13 @@ var _ = ginkgo.Describe("[efs-csi] EFS CSI", func() {
 		})
 
 		ginkgo.It("should mount with the correct gid if specified by the pod", func() {
+			requiresFeatureGate("DelegateFSGroupToCSIDriver")
 			pvc, pv, err := createEFSPVCPV(f.ClientSet, f.Namespace.Name, f.Namespace.Name, "/", map[string]string{})
 			framework.ExpectNoError(err, "creating efs pvc & pv")
 			defer func() {
 				_ = f.ClientSet.CoreV1().PersistentVolumes().Delete(context.TODO(), pv.Name, metav1.DeleteOptions{})
 			}()
-			command := fmt.Sprintf("touch /mnt/volume1/%s-%s && trap exit TERM; while true; do sleep 1; done", f.Namespace.Name, time.Now().Format(time.RFC3339))
-			pod := e2epod.MakePod(f.Namespace.Name, nil, []*v1.PersistentVolumeClaim{pvc}, false, command)
+			pod := e2epod.MakePod(f.Namespace.Name, nil, []*v1.PersistentVolumeClaim{pvc}, false, "")
 			pod.Spec.RestartPolicy = v1.RestartPolicyNever
 			var fsGroup int64 = 1000
 			pod.Spec.SecurityContext.FSGroup = &fsGroup
@@ -397,6 +397,12 @@ var _ = ginkgo.Describe("[efs-csi] EFS CSI", func() {
 		})
 	})
 })
+
+func requiresFeatureGate(featureGate string) {
+	if CreatedBy != "kops" {
+		ginkgo.Skip(fmt.Sprintf("EKS does not allow featureGates so %s cannot be enabled", featureGate))
+	}
+}
 
 func createEFSPVCPV(c clientset.Interface, namespace, name, path string, volumeAttributes map[string]string) (*v1.PersistentVolumeClaim, *v1.PersistentVolume, error) {
 	pvc, pv := makeEFSPVCPV(namespace, name, path, volumeAttributes)
