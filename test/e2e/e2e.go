@@ -393,7 +393,37 @@ var _ = ginkgo.Describe("[efs-csi] EFS CSI", func() {
 			framework.ExpectNoError(err, "pod started running successfully")
 
 			stdout, _, err := e2evolume.PodExec(f, pod, "stat -c \"%g\" /mnt/volume1")
-			framework.ExpectNoError(err, "ran ls command in /mnt")
+			framework.ExpectNoError(err, "ran stat command in /mnt/volume1")
+			framework.ExpectEqual(stdout, fmt.Sprintf("%d", fsGroup), "Checking GID of mounted folder")
+		})
+
+		ginkgo.It("should mount with the correct gid if specified by the pod and block others trying to change the gid", func() {
+			requiresFeatureGate("DelegateFSGroupToCSIDriver")
+			pvc, pv, err := createEFSPVCPV(f.ClientSet, f.Namespace.Name, f.Namespace.Name, "/", map[string]string{})
+			framework.ExpectNoError(err, "creating efs pvc & pv")
+			defer func() {
+				_ = f.ClientSet.CoreV1().PersistentVolumes().Delete(context.TODO(), pv.Name, metav1.DeleteOptions{})
+			}()
+			podSpec := e2epod.MakePod(f.Namespace.Name, nil, []*v1.PersistentVolumeClaim{pvc}, false, "")
+
+			podSpec.Spec.RestartPolicy = v1.RestartPolicyNever
+			var fsGroup int64 = 1000
+			podSpec.Spec.SecurityContext = e2epod.GeneratePodSecurityContext(&fsGroup, nil)
+			pod, err := f.ClientSet.CoreV1().Pods(f.Namespace.Name).Create(context.TODO(), podSpec, metav1.CreateOptions{})
+			framework.ExpectNoError(err, "creating pod")
+
+			err = e2epod.WaitForPodNotPending(f.ClientSet, f.Namespace.Name, pod.Name)
+			framework.ExpectNoError(err, "pod started running successfully")
+
+			var newFsGroup int64 = 1005
+			podSpec.Spec.SecurityContext = e2epod.GeneratePodSecurityContext(&newFsGroup, nil)
+			pod2, err := f.ClientSet.CoreV1().Pods(f.Namespace.Name).Create(context.TODO(), podSpec, metav1.CreateOptions{})
+
+			err = e2epod.WaitForPodNotPending(f.ClientSet, f.Namespace.Name, pod2.Name)
+			framework.ExpectError(err, "pod started running successfully")
+
+			stdout, _, err := e2evolume.PodExec(f, pod, "stat -c \"%g\" /mnt/volume1")
+			framework.ExpectNoError(err, "ran stat command in /mnt/volume1")
 			framework.ExpectEqual(stdout, fmt.Sprintf("%d", fsGroup), "Checking GID of mounted folder")
 		})
 	})

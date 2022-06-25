@@ -184,7 +184,7 @@ func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 
 	fsGroup := volCap.GetMount().VolumeMountGroup
 	if fsGroup != "" {
-		fsGroupParsed, _ := strconv.ParseInt(fsGroup, 10, 64)
+		fsGroupParsed, _ := strconv.Atoi(fsGroup)
 		klog.V(5).Infof("NodePublishVolume: changing GID of %s to %s", target, fsGroup)
 		os.Chown(target, -1, int(fsGroupParsed))
 	}
