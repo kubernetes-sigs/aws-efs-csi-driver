@@ -353,8 +353,8 @@ func TestNodePublishVolume(t *testing.T) {
 				TargetPath: targetPath,
 			},
 			expectMakeDir: true,
-			mountArgs:     []interface{}{volumeId + ":/", targetPath, "efs", []string{"tls", "gid=1000"}},
 			mountSuccess:  true,
+			mountArgs:     []interface{}{volumeId + ":/", targetPath, "efs", []string{"tls"}},
 		},
 		{
 			name: "fail: conflicting access point in volume handle and mount options",

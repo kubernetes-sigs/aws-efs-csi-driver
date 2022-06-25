@@ -132,12 +132,6 @@ func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 		mountOptions = append(mountOptions, "ro")
 	}
 
-	fsGroup := volCap.GetMount().VolumeMountGroup
-	if fsGroup != "" {
-		klog.V(5).Infof("Adding fsGroup parameter of %s to mount call", fsGroup)
-		mountOptions = append(mountOptions, fmt.Sprintf("gid=%s", fsGroup))
-	}
-
 	if m := volCap.GetMount(); m != nil {
 		for _, f := range m.MountFlags {
 			// Special-case check for access point
@@ -187,6 +181,13 @@ func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 		return nil, status.Errorf(codes.Internal, "Could not mount %q at %q: %v", source, target, err)
 	}
 	klog.V(5).Infof("NodePublishVolume: %s was mounted", target)
+
+	fsGroup := volCap.GetMount().VolumeMountGroup
+	if fsGroup != "" {
+		fsGroupParsed, _ := strconv.ParseInt(fsGroup, 10, 64)
+		klog.V(5).Infof("NodePublishVolume: changing GID of %s to %s", target, fsGroup)
+		os.Chown(target, -1, int(fsGroupParsed))
+	}
 
 	//Increment volume Id counter
 	if d.volMetricsOptIn {
