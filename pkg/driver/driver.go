@@ -65,22 +65,22 @@ func NewDriver(endpoint, efsUtilsCfgPath, efsUtilsStaticFilesPath, tags string, 
 	watchdog := newExecWatchdog(efsUtilsCfgPath, efsUtilsStaticFilesPath, "amazon-efs-mount-watchdog")
 	parsedTags := parseTagsFromStr(strings.TrimSpace(tags))
 	gidAllocator := NewGidAllocator()
-	provisioners := getProvisioners(parsedTags, cloud, &gidAllocator)
+	mounter := newNodeMounter()
+	provisioners := getProvisioners(parsedTags, cloud, &gidAllocator, deleteAccessPointRootDir, mounter)
 
 	return &Driver{
-		endpoint:                 endpoint,
-		nodeID:                   cloud.GetMetadata().GetInstanceID(),
-		mounter:                  newNodeMounter(),
-		efsWatchdog:              watchdog,
-		provisioners:             provisioners,
-		cloud:                    cloud,
-		nodeCaps:                 nodeCaps,
-		volStatter:               NewVolStatter(),
-		volMetricsOptIn:          volMetricsOptIn,
-		volMetricsRefreshPeriod:  volMetricsRefreshPeriod,
-		volMetricsFsRateLimit:    volMetricsFsRateLimit,
-		deleteAccessPointRootDir: deleteAccessPointRootDir,
-		tags:                     parsedTags,
+		endpoint:                endpoint,
+		nodeID:                  cloud.GetMetadata().GetInstanceID(),
+		mounter:                 mounter,
+		efsWatchdog:             watchdog,
+		provisioners:            provisioners,
+		cloud:                   cloud,
+		nodeCaps:                nodeCaps,
+		volStatter:              NewVolStatter(),
+		volMetricsOptIn:         volMetricsOptIn,
+		volMetricsRefreshPeriod: volMetricsRefreshPeriod,
+		volMetricsFsRateLimit:   volMetricsFsRateLimit,
+		tags:                    parsedTags,
 	}
 }
 
