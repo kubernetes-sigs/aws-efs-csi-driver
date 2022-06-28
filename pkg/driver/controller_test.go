@@ -1551,6 +1551,8 @@ func TestDeleteVolume(t *testing.T) {
 			testFunc: func(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockCloud := mocks.NewMockCloud(mockCtl)
+				ctx := context.Background()
+				mockCloud.EXPECT().DeleteAccessPoint(gomock.Eq(ctx), gomock.Eq(apId)).Return(errors.New("Delete Volume failed"))
 
 				driver := buildDriver(endpoint, mockCloud, "", nil, false)
 
@@ -1558,8 +1560,6 @@ func TestDeleteVolume(t *testing.T) {
 					VolumeId: volumeId,
 				}
 
-				ctx := context.Background()
-				mockCloud.EXPECT().DeleteAccessPoint(gomock.Eq(ctx), gomock.Eq(apId)).Return(errors.New("Delete Volume failed"))
 				_, err := driver.DeleteVolume(ctx, req)
 				if err == nil {
 					t.Fatal("DeleteVolume did not fail")
@@ -1768,12 +1768,11 @@ func buildDriver(endpoint string, cloud cloud.Cloud, tags string, mounter Mounte
 	parsedTags := parseTagsFromStr(tags)
 
 	driver := &Driver{
-		endpoint:                 endpoint,
-		cloud:                    cloud,
-		provisioners:             getProvisioners(parsedTags, cloud, &gidAllocator),
-		tags:                     parsedTags,
-		mounter:                  mounter,
-		deleteAccessPointRootDir: deleteAccessPointRootDir,
+		endpoint:     endpoint,
+		cloud:        cloud,
+		provisioners: getProvisioners(parsedTags, cloud, &gidAllocator, deleteAccessPointRootDir, mounter),
+		tags:         parsedTags,
+		mounter:      mounter,
 	}
 	return driver
 }
