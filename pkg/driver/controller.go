@@ -80,201 +80,28 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 		return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("Volume fstype not supported: %s", err))
 	}
 
-	var (
-		azName           string
-		basePath         string
-		err              error
-		gid              int
-		gidMin           int
-		gidMax           int
-		localCloud       cloud.Cloud
-		provisioningMode string
-		roleArn          string
-		uid              int
-	)
-
 	//Parse parameters
 	volumeParams := req.GetParameters()
 	if value, ok := volumeParams[ProvisioningMode]; ok {
-		provisioningMode = value
-		//TODO: Add FS provisioning mode check when implemented
-		if provisioningMode != AccessPointMode {
-			errStr := "Provisioning mode " + provisioningMode + " is not supported. Only Access point provisioning: 'efs-ap' is supported"
-			return nil, status.Error(codes.InvalidArgument, errStr)
+		if _, ok = d.provisioners[value]; !ok {
+			return nil, status.Errorf(codes.InvalidArgument, "Provisioning mode %s is not supported.", value)
 		}
 	} else {
 		return nil, status.Errorf(codes.InvalidArgument, "Missing %v parameter", ProvisioningMode)
 	}
 
-	// Create tags
-	tags := map[string]string{
-		DefaultTagKey: DefaultTagValue,
-	}
+	mode := volumeParams[ProvisioningMode]
+	provisioner := d.provisioners[mode]
+	klog.V(5).Infof("CreateVolume: provisioning mode %s selected. Support modes are %s", mode,
+		strings.Join(d.GetProvisioningModes(), ","))
+	volume, err := provisioner.Provision(ctx, req)
 
-	// Append input tags to default tag
-	if len(d.tags) != 0 {
-		for k, v := range d.tags {
-			tags[k] = v
-		}
-	}
-
-	accessPointsOptions := &cloud.AccessPointOptions{
-		CapacityGiB: volSize,
-		Tags:        tags,
-	}
-
-	if value, ok := volumeParams[FsId]; ok {
-		if strings.TrimSpace(value) == "" {
-			return nil, status.Errorf(codes.InvalidArgument, "Parameter %v cannot be empty", FsId)
-		}
-		accessPointsOptions.FileSystemId = value
-	} else {
-		return nil, status.Errorf(codes.InvalidArgument, "Missing %v parameter", FsId)
-	}
-
-	uid = -1
-	if value, ok := volumeParams[Uid]; ok {
-		uid, err = strconv.Atoi(value)
-		if err != nil {
-			return nil, status.Errorf(codes.InvalidArgument, "Failed to parse invalid %v: %v", Uid, err)
-		}
-		if uid < 0 {
-			return nil, status.Errorf(codes.InvalidArgument, "%v must be greater or equal than 0", Uid)
-		}
-	}
-
-	gid = -1
-	if value, ok := volumeParams[Gid]; ok {
-		gid, err = strconv.Atoi(value)
-		if err != nil {
-			return nil, status.Errorf(codes.InvalidArgument, "Failed to parse invalid %v: %v", Gid, err)
-		}
-		if uid < 0 {
-			return nil, status.Errorf(codes.InvalidArgument, "%v must be greater or equal than 0", Gid)
-		}
-	}
-
-	if value, ok := volumeParams[GidMin]; ok {
-		gidMin, err = strconv.Atoi(value)
-		if err != nil {
-			return nil, status.Errorf(codes.InvalidArgument, "Failed to parse invalid %v: %v", GidMin, err)
-		}
-		if gidMin <= 0 {
-			return nil, status.Errorf(codes.InvalidArgument, "%v must be greater than 0", GidMin)
-		}
-	}
-
-	if value, ok := volumeParams[GidMax]; ok {
-		// Ensure GID min is provided with GID max
-		if gidMin == 0 {
-			return nil, status.Errorf(codes.InvalidArgument, "Missing %v parameter", GidMin)
-		}
-		gidMax, err = strconv.Atoi(value)
-		if err != nil {
-			return nil, status.Errorf(codes.InvalidArgument, "Failed to parse invalid %v: %v", GidMax, err)
-		}
-		if gidMax <= gidMin {
-			return nil, status.Errorf(codes.InvalidArgument, "%v must be greater than %v", GidMax, GidMin)
-		}
-	} else {
-		// Ensure GID max is provided with GID min
-		if gidMin != 0 {
-			return nil, status.Errorf(codes.InvalidArgument, "Missing %v parameter", GidMax)
-		}
-	}
-
-	// Assign default GID ranges if not provided
-	if gidMin == 0 && gidMax == 0 {
-		gidMin = DefaultGidMin
-		gidMax = DefaultGidMax
-	}
-
-	if value, ok := volumeParams[DirectoryPerms]; ok {
-		accessPointsOptions.DirectoryPerms = value
-	}
-
-	if value, ok := volumeParams[BasePath]; ok {
-		basePath = value
-	}
-
-	// Storage class parameter `az` will be used to fetch preferred mount target for cross account mount.
-	// If the `az` storage class parameter is not provided, a random mount target will be picked for mounting.
-	// This storage class parameter different from `az` mount option provided by efs-utils https://github.com/aws/efs-utils/blob/v1.31.1/src/mount_efs/__init__.py#L195
-	// The `az` mount option provided by efs-utils is used for cross az mount or to provide az of efs one zone file system mount within the same aws-account.
-	// To make use of the `az` mount option, add it under storage class's `mountOptions` section. https://kubernetes.io/docs/concepts/storage/storage-classes/#mount-options
-	if value, ok := volumeParams[AzName]; ok {
-		azName = value
-	}
-
-	localCloud, roleArn, err = getCloud(req.GetSecrets(), d)
 	if err != nil {
-		return nil, err
-	}
-
-	// Check if file system exists. Describe FS handles appropriate error codes
-	if _, err = localCloud.DescribeFileSystem(ctx, accessPointsOptions.FileSystemId); err != nil {
-		if err == cloud.ErrAccessDenied {
-			return nil, status.Errorf(codes.Unauthenticated, "Access Denied. Please ensure you have the right AWS permissions: %v", err)
-		}
-		if err == cloud.ErrNotFound {
-			return nil, status.Errorf(codes.InvalidArgument, "File System does not exist: %v", err)
-		}
-		return nil, status.Errorf(codes.Internal, "Failed to fetch File System info: %v", err)
-	}
-
-	var allocatedGid int
-	if uid == -1 || gid == -1 {
-		allocatedGid, err = d.gidAllocator.getNextGid(accessPointsOptions.FileSystemId, gidMin, gidMax)
-		if err != nil {
-			return nil, err
-		}
-	}
-	if uid == -1 {
-		uid = allocatedGid
-	}
-	if gid == -1 {
-		gid = allocatedGid
-	}
-
-	rootDirName := volName
-	rootDir := basePath + "/" + rootDirName
-
-	accessPointsOptions.Uid = int64(uid)
-	accessPointsOptions.Gid = int64(gid)
-	accessPointsOptions.DirectoryPath = rootDir
-
-	accessPointId, err := localCloud.CreateAccessPoint(ctx, volName, accessPointsOptions)
-	if err != nil {
-		if allocatedGid != 0 {
-			d.gidAllocator.releaseGid(accessPointsOptions.FileSystemId, gid)
-		}
-		if err == cloud.ErrAccessDenied {
-			return nil, status.Errorf(codes.Unauthenticated, "Access Denied. Please ensure you have the right AWS permissions: %v", err)
-		}
-		if err == cloud.ErrAlreadyExists {
-			return nil, status.Errorf(codes.AlreadyExists, "Access Point already exists")
-		}
-		return nil, status.Errorf(codes.Internal, "Failed to create Access point in File System %v : %v", accessPointsOptions.FileSystemId, err)
-	}
-
-	volContext := map[string]string{}
-
-	// Fetch mount target Ip for cross-account mount
-	if roleArn != "" {
-		mountTarget, err := localCloud.DescribeMountTargets(ctx, accessPointsOptions.FileSystemId, azName)
-		if err != nil {
-			klog.Warningf("Failed to describe mount targets for file system %v. Skip using `mounttargetip` mount option: %v", accessPointsOptions.FileSystemId, err)
-		} else {
-			volContext[MountTargetIp] = mountTarget.IPAddress
-		}
+		return nil, status.Errorf(codes.Internal, "Could not provision underlying storage: %v", err)
 	}
 
 	return &csi.CreateVolumeResponse{
-		Volume: &csi.Volume{
-			CapacityBytes: volSize,
-			VolumeId:      accessPointsOptions.FileSystemId + "::" + accessPointId.AccessPointId,
-			VolumeContext: volContext,
-		},
+		Volume: volume,
 	}, nil
 }
 
