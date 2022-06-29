@@ -3,6 +3,7 @@ package driver
 import (
 	"context"
 	"errors"
+	"fmt"
 	"reflect"
 	"testing"
 
@@ -430,6 +431,351 @@ func TestAccessPointProvisioner_Provision(t *testing.T) {
 			},
 		},
 	}
+	for _, test := range tests {
+		t.Run(test.name, test.testFunc)
+	}
+}
+
+func TestAccessPointProvisioner_Delete(t *testing.T) {
+	var (
+		fsId     = "fs-abcd1234"
+		apId     = "fsap-abcd1234xyz987"
+		volumeId = fmt.Sprintf("%s::%s", fsId, apId)
+	)
+
+	tests := []struct {
+		name     string
+		testFunc func(t *testing.T)
+	}{
+		{
+			name: "Success: Setting deleteAccessPointRootDir causes rootDir to be deleted",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockCloud := mocks.NewMockCloud(mockCtl)
+				mockMounter := mocks.NewMockMounter(mockCtl)
+
+				req := &csi.DeleteVolumeRequest{
+					VolumeId: volumeId,
+				}
+
+				accessPoint := &cloud.AccessPoint{
+					AccessPointId:      apId,
+					FileSystemId:       fsId,
+					AccessPointRootDir: "",
+					CapacityGiB:        0,
+				}
+
+				ctx := context.Background()
+				mockMounter.EXPECT().MakeDir(gomock.Any()).Return(nil)
+				mockMounter.EXPECT().Mount(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+				mockMounter.EXPECT().Unmount(gomock.Any()).Return(nil)
+				mockCloud.EXPECT().DescribeAccessPoint(gomock.Eq(ctx), gomock.Eq(apId)).Return(accessPoint, nil)
+				mockCloud.EXPECT().DeleteAccessPoint(gomock.Eq(ctx), gomock.Eq(apId)).Return(nil)
+
+				apProv := AccessPointProvisioner{
+					tags:                     map[string]string{},
+					cloud:                    mockCloud,
+					deleteAccessPointRootDir: true,
+					mounter:                  mockMounter,
+				}
+
+				err := apProv.Delete(ctx, req)
+
+				if err != nil {
+					t.Fatalf("Expected Delete to succeed but it failed: %v", err)
+				}
+				mockCtl.Finish()
+			},
+		},
+		{
+			name: "Success: If AccessPoint does not exist success is returned as no work needs to be done",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockCloud := mocks.NewMockCloud(mockCtl)
+				mockMounter := mocks.NewMockMounter(mockCtl)
+
+				req := &csi.DeleteVolumeRequest{
+					VolumeId: volumeId,
+				}
+
+				ctx := context.Background()
+				mockCloud.EXPECT().DescribeAccessPoint(gomock.Eq(ctx), gomock.Eq(apId)).Return(nil, cloud.ErrNotFound)
+
+				apProv := AccessPointProvisioner{
+					tags:                     map[string]string{},
+					cloud:                    mockCloud,
+					deleteAccessPointRootDir: true,
+					mounter:                  mockMounter,
+				}
+
+				err := apProv.Delete(ctx, req)
+
+				if err != nil {
+					t.Fatalf("Expected Delete to succeed but it failed: %v", err)
+				}
+				mockCtl.Finish()
+			},
+		},
+		{
+			name: "Fail: Return error if AccessDenied error from AWS",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockCloud := mocks.NewMockCloud(mockCtl)
+				mockMounter := mocks.NewMockMounter(mockCtl)
+
+				req := &csi.DeleteVolumeRequest{
+					VolumeId: volumeId,
+				}
+
+				ctx := context.Background()
+				mockCloud.EXPECT().DescribeAccessPoint(gomock.Eq(ctx), gomock.Eq(apId)).Return(nil, cloud.ErrAccessDenied)
+
+				apProv := AccessPointProvisioner{
+					tags:                     map[string]string{},
+					cloud:                    mockCloud,
+					deleteAccessPointRootDir: true,
+					mounter:                  mockMounter,
+				}
+
+				err := apProv.Delete(ctx, req)
+
+				if err == nil {
+					t.Fatal("Expected Delete to fail but it succeeded")
+				}
+				mockCtl.Finish()
+			},
+		},
+		{
+			name: "Fail: Return error if DescribeAccessPoints failed",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockCloud := mocks.NewMockCloud(mockCtl)
+				mockMounter := mocks.NewMockMounter(mockCtl)
+
+				req := &csi.DeleteVolumeRequest{
+					VolumeId: volumeId,
+				}
+
+				ctx := context.Background()
+				mockCloud.EXPECT().DescribeAccessPoint(gomock.Eq(ctx), gomock.Eq(apId)).Return(nil, errors.New("Describe Access Point failed"))
+
+				apProv := AccessPointProvisioner{
+					tags:                     map[string]string{},
+					cloud:                    mockCloud,
+					deleteAccessPointRootDir: true,
+					mounter:                  mockMounter,
+				}
+
+				err := apProv.Delete(ctx, req)
+
+				if err == nil {
+					t.Fatal("Expected Delete to fail but it succeeded")
+				}
+				mockCtl.Finish()
+			},
+		},
+		{
+			name: "Fail: Fail to make directory for access point mount",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockCloud := mocks.NewMockCloud(mockCtl)
+				mockMounter := mocks.NewMockMounter(mockCtl)
+
+				req := &csi.DeleteVolumeRequest{
+					VolumeId: volumeId,
+				}
+
+				accessPoint := &cloud.AccessPoint{
+					AccessPointId:      apId,
+					FileSystemId:       fsId,
+					AccessPointRootDir: "",
+					CapacityGiB:        0,
+				}
+
+				ctx := context.Background()
+				mockMounter.EXPECT().MakeDir(gomock.Any()).Return(errors.New("Failed to makeDir"))
+				mockCloud.EXPECT().DescribeAccessPoint(gomock.Eq(ctx), gomock.Eq(apId)).Return(accessPoint, nil)
+
+				apProv := AccessPointProvisioner{
+					tags:                     map[string]string{},
+					cloud:                    mockCloud,
+					deleteAccessPointRootDir: true,
+					mounter:                  mockMounter,
+				}
+
+				err := apProv.Delete(ctx, req)
+
+				if err == nil {
+					t.Fatal("Expected Delete to fail but it succeeded")
+				}
+				mockCtl.Finish()
+			},
+		},
+		{
+			name: "Fail: Fail to mount file system on directory for access point root directory removal",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockCloud := mocks.NewMockCloud(mockCtl)
+				mockMounter := mocks.NewMockMounter(mockCtl)
+
+				req := &csi.DeleteVolumeRequest{
+					VolumeId: volumeId,
+				}
+
+				accessPoint := &cloud.AccessPoint{
+					AccessPointId:      apId,
+					FileSystemId:       fsId,
+					AccessPointRootDir: "",
+					CapacityGiB:        0,
+				}
+
+				ctx := context.Background()
+				mockMounter.EXPECT().MakeDir(gomock.Any()).Return(nil)
+				mockMounter.EXPECT().Mount(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New("Failed to mount"))
+				mockCloud.EXPECT().DescribeAccessPoint(gomock.Eq(ctx), gomock.Eq(apId)).Return(accessPoint, nil)
+
+				apProv := AccessPointProvisioner{
+					tags:                     map[string]string{},
+					cloud:                    mockCloud,
+					deleteAccessPointRootDir: true,
+					mounter:                  mockMounter,
+				}
+
+				err := apProv.Delete(ctx, req)
+
+				if err == nil {
+					t.Fatal("Expected Delete to fail but it succeeded")
+				}
+				mockCtl.Finish()
+			},
+		},
+		{
+			name: "Fail: Fail to unmount file system after access point root directory removal",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockCloud := mocks.NewMockCloud(mockCtl)
+				mockMounter := mocks.NewMockMounter(mockCtl)
+
+				req := &csi.DeleteVolumeRequest{
+					VolumeId: volumeId,
+				}
+
+				accessPoint := &cloud.AccessPoint{
+					AccessPointId:      apId,
+					FileSystemId:       fsId,
+					AccessPointRootDir: "",
+					CapacityGiB:        0,
+				}
+
+				ctx := context.Background()
+				mockMounter.EXPECT().MakeDir(gomock.Any()).Return(nil)
+				mockMounter.EXPECT().Mount(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+				mockMounter.EXPECT().Unmount(gomock.Any()).Return(errors.New("Failed to unmount"))
+				mockCloud.EXPECT().DescribeAccessPoint(gomock.Eq(ctx), gomock.Eq(apId)).Return(accessPoint, nil)
+
+				apProv := AccessPointProvisioner{
+					tags:                     map[string]string{},
+					cloud:                    mockCloud,
+					deleteAccessPointRootDir: true,
+					mounter:                  mockMounter,
+				}
+
+				err := apProv.Delete(ctx, req)
+
+				if err == nil {
+					t.Fatal("Expected Delete to fail but it succeeded")
+				}
+				mockCtl.Finish()
+			},
+		},
+		{
+			name: "Fail: DeleteAccessPoint access denied",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockCloud := mocks.NewMockCloud(mockCtl)
+
+				req := &csi.DeleteVolumeRequest{
+					VolumeId: volumeId,
+				}
+
+				ctx := context.Background()
+				mockCloud.EXPECT().DeleteAccessPoint(gomock.Eq(ctx), gomock.Eq(apId)).Return(cloud.ErrAccessDenied)
+
+				apProv := AccessPointProvisioner{
+					tags:                     map[string]string{},
+					cloud:                    mockCloud,
+					deleteAccessPointRootDir: false,
+					mounter:                  nil,
+				}
+
+				err := apProv.Delete(ctx, req)
+
+				if err == nil {
+					t.Fatal("Expected Delete to fail but it succeeded")
+				}
+				mockCtl.Finish()
+			},
+		},
+		{
+			name: "Fail: Access Point is missing in volume Id",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockCloud := mocks.NewMockCloud(mockCtl)
+
+				req := &csi.DeleteVolumeRequest{
+					VolumeId: "fs-abcd1234",
+				}
+
+				ctx := context.Background()
+
+				apProv := AccessPointProvisioner{
+					tags:                     map[string]string{},
+					cloud:                    mockCloud,
+					deleteAccessPointRootDir: false,
+					mounter:                  nil,
+				}
+
+				err := apProv.Delete(ctx, req)
+
+				if err == nil {
+					t.Fatal("Expected Delete to fail but it succeeded")
+				}
+				mockCtl.Finish()
+			},
+		},
+		{
+			name: "Fail: Cannot assume role for x-account",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockCloud := mocks.NewMockCloud(mockCtl)
+
+				secrets := map[string]string{}
+				secrets["awsRoleArn"] = "arn:aws:iam::1234567890:role/EFSCrossAccountRole"
+
+				req := &csi.DeleteVolumeRequest{
+					VolumeId: volumeId,
+					Secrets:  secrets,
+				}
+
+				ctx := context.Background()
+
+				apProv := AccessPointProvisioner{
+					tags:                     map[string]string{},
+					cloud:                    mockCloud,
+					deleteAccessPointRootDir: true,
+					mounter:                  nil,
+				}
+
+				err := apProv.Delete(ctx, req)
+
+				if err == nil {
+					t.Fatal("Expected Delete to fail but it succeeded")
+				}
+				mockCtl.Finish()
+			},
+		},
+	}
+
 	for _, test := range tests {
 		t.Run(test.name, test.testFunc)
 	}

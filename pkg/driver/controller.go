@@ -38,6 +38,7 @@ const (
 	DefaultTagKey       = "efs.csi.aws.com/cluster"
 	DefaultTagValue     = "true"
 	DirectoryPerms      = "directoryPerms"
+	DirectoryMode       = "efs-dir"
 	FsId                = "fileSystemId"
 	Gid                 = "gid"
 	GidMin              = "gidRangeStart"

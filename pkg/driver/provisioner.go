@@ -3,9 +3,12 @@ package driver
 import (
 	"context"
 	"os"
+	"path"
+	"strconv"
 	"strings"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
+	"github.com/google/uuid"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"k8s.io/klog"
@@ -32,6 +35,10 @@ func getProvisioners(tags map[string]string, cloud cloud.Cloud, deleteAccessPoin
 			cloud:                    cloud,
 			deleteAccessPointRootDir: deleteAccessPointRootDir,
 			mounter:                  mounter,
+		},
+		DirectoryMode: DirectoryProvisioner{
+			mounter: mounter,
+			cloud:   cloud,
 		},
 	}
 }
@@ -169,66 +176,70 @@ func (a AccessPointProvisioner) Delete(ctx context.Context, req *csi.DeleteVolum
 	}
 
 	fileSystemId, _, accessPointId, _ := parseVolumeId(req.GetVolumeId())
-	// Delete access point root directory if delete-access-point-root-dir is set.
-	if a.deleteAccessPointRootDir {
-		// Check if Access point exists.
-		// If access point exists, retrieve its root directory and delete it/
-		accessPoint, err := localCloud.DescribeAccessPoint(ctx, accessPointId)
-		if err != nil {
+	if accessPointId != "" {
+		// Delete access point root directory if delete-access-point-root-dir is set.
+		if a.deleteAccessPointRootDir {
+			// Check if Access point exists.
+			// If access point exists, retrieve its root directory and delete it/
+			accessPoint, err := localCloud.DescribeAccessPoint(ctx, accessPointId)
+			if err != nil {
+				if err == cloud.ErrAccessDenied {
+					return status.Errorf(codes.Unauthenticated, "Access Denied. Please ensure you have the right AWS permissions: %v", err)
+				}
+				if err == cloud.ErrNotFound {
+					klog.V(5).Infof("DeleteVolume: Access Point %v not found, returning success", accessPointId)
+					return nil
+				}
+				return status.Errorf(codes.Internal, "Could not get describe Access Point: %v , error: %v", accessPointId, err)
+			}
+
+			//Mount File System at it root and delete access point root directory
+			mountOptions := []string{"tls", "iam"}
+			if roleArn != "" {
+				mountTarget, err := localCloud.DescribeMountTargets(ctx, fileSystemId, "")
+
+				if err == nil {
+					mountOptions = append(mountOptions, MountTargetIp+"="+mountTarget.IPAddress)
+				} else {
+					klog.Warningf("Failed to describe mount targets for file system %v. Skip using `mounttargetip` mount option: %v", fileSystemId, err)
+				}
+			}
+
+			target := TempMountPathPrefix + "/" + accessPointId
+			if err := a.mounter.MakeDir(target); err != nil {
+				return status.Errorf(codes.Internal, "Could not create dir %q: %v", target, err)
+			}
+			if err := a.mounter.Mount(fileSystemId, target, "efs", mountOptions); err != nil {
+				os.Remove(target)
+				return status.Errorf(codes.Internal, "Could not mount %q at %q: %v", fileSystemId, target, err)
+			}
+			err = os.RemoveAll(target + accessPoint.AccessPointRootDir)
+			if err != nil {
+				return status.Errorf(codes.Internal, "Could not delete access point root directory %q: %v", accessPoint.AccessPointRootDir, err)
+			}
+			err = a.mounter.Unmount(target)
+			if err != nil {
+				return status.Errorf(codes.Internal, "Could not unmount %q: %v", target, err)
+			}
+			err = os.RemoveAll(target)
+			if err != nil {
+				return status.Errorf(codes.Internal, "Could not delete %q: %v", target, err)
+			}
+		}
+
+		// Delete access point
+		if err = localCloud.DeleteAccessPoint(ctx, accessPointId); err != nil {
 			if err == cloud.ErrAccessDenied {
 				return status.Errorf(codes.Unauthenticated, "Access Denied. Please ensure you have the right AWS permissions: %v", err)
 			}
 			if err == cloud.ErrNotFound {
-				klog.V(5).Infof("DeleteVolume: Access Point %v not found, returning success", accessPointId)
+				klog.V(5).Infof("DeleteVolume: Access Point not found, returning success")
 				return nil
 			}
-			return status.Errorf(codes.Internal, "Could not get describe Access Point: %v , error: %v", accessPointId, err)
+			return status.Errorf(codes.Internal, "Failed to Delete volume %v: %v", req.GetVolumeId(), err)
 		}
-
-		//Mount File System at it root and delete access point root directory
-		mountOptions := []string{"tls", "iam"}
-		if roleArn != "" {
-			mountTarget, err := localCloud.DescribeMountTargets(ctx, fileSystemId, "")
-
-			if err == nil {
-				mountOptions = append(mountOptions, MountTargetIp+"="+mountTarget.IPAddress)
-			} else {
-				klog.Warningf("Failed to describe mount targets for file system %v. Skip using `mounttargetip` mount option: %v", fileSystemId, err)
-			}
-		}
-
-		target := TempMountPathPrefix + "/" + accessPointId
-		if err := a.mounter.MakeDir(target); err != nil {
-			return status.Errorf(codes.Internal, "Could not create dir %q: %v", target, err)
-		}
-		if err := a.mounter.Mount(fileSystemId, target, "efs", mountOptions); err != nil {
-			os.Remove(target)
-			return status.Errorf(codes.Internal, "Could not mount %q at %q: %v", fileSystemId, target, err)
-		}
-		err = os.RemoveAll(target + accessPoint.AccessPointRootDir)
-		if err != nil {
-			return status.Errorf(codes.Internal, "Could not delete access point root directory %q: %v", accessPoint.AccessPointRootDir, err)
-		}
-		err = a.mounter.Unmount(target)
-		if err != nil {
-			return status.Errorf(codes.Internal, "Could not unmount %q: %v", target, err)
-		}
-		err = os.RemoveAll(target)
-		if err != nil {
-			return status.Errorf(codes.Internal, "Could not delete %q: %v", target, err)
-		}
-	}
-
-	// Delete access point
-	if err = localCloud.DeleteAccessPoint(ctx, accessPointId); err != nil {
-		if err == cloud.ErrAccessDenied {
-			return status.Errorf(codes.Unauthenticated, "Access Denied. Please ensure you have the right AWS permissions: %v", err)
-		}
-		if err == cloud.ErrNotFound {
-			klog.V(5).Infof("DeleteVolume: Access Point not found, returning success")
-			return nil
-		}
-		return status.Errorf(codes.Internal, "Failed to Delete volume %v: %v", req.GetVolumeId(), err)
+	} else {
+		return status.Errorf(codes.NotFound, "Failed to find access point for volume: %v", req.GetVolumeId())
 	}
 
 	return nil
@@ -253,6 +264,157 @@ func (a AccessPointProvisioner) getCloud(secrets map[string]string) (cloud.Cloud
 		}
 	} else {
 		localCloud = a.cloud
+	}
+
+	return localCloud, roleArn, nil
+}
+
+type DirectoryProvisioner struct {
+	mounter Mounter
+	cloud   cloud.Cloud
+}
+
+func (d DirectoryProvisioner) Provision(ctx context.Context, req *csi.CreateVolumeRequest, uid, gid int64) (*csi.Volume, error) {
+	var provisionedPath string
+
+	localCloud, roleArn, err := d.getCloud(req.GetSecrets())
+	if err != nil {
+		return nil, err
+	}
+
+	var fileSystemId string
+	volumeParams := req.GetParameters()
+	if value, ok := volumeParams[FsId]; ok {
+		if strings.TrimSpace(value) == "" {
+			return nil, status.Errorf(codes.InvalidArgument, "Parameter %v cannot be empty", FsId)
+		}
+		fileSystemId = value
+	} else {
+		return nil, status.Errorf(codes.InvalidArgument, "Missing %v parameter", FsId)
+	}
+
+	//Mount File System at it root and create the specified directory
+	mountOptions := []string{"tls", "iam"}
+	if roleArn != "" {
+		mountTarget, err := localCloud.DescribeMountTargets(ctx, fileSystemId, "")
+
+		if err == nil {
+			mountOptions = append(mountOptions, MountTargetIp+"="+mountTarget.IPAddress)
+		} else {
+			klog.Warningf("Failed to describe mount targets for file system %v. Skip using `mounttargetip` mount option: %v", fileSystemId, err)
+		}
+	}
+
+	// Mount the
+	target := TempMountPathPrefix + "/" + uuid.New().String()
+	if err := d.mounter.MakeDir(target); err != nil {
+		return nil, status.Errorf(codes.Internal, "Could not create dir %q: %v", target, err)
+	}
+	if err := d.mounter.Mount(fileSystemId, target, "efs", mountOptions); err != nil {
+		// Extract the basePath
+		var basePath string
+		if value, ok := volumeParams[BasePath]; ok {
+			basePath = value
+		}
+
+		rootDirName := req.Name
+		provisionedPath = basePath + "/" + rootDirName
+
+		// Grab the required permissions
+		perms := os.FileMode(0755)
+		if value, ok := volumeParams[DirectoryPerms]; ok {
+			parsedPerms, err := strconv.Atoi(value)
+			if err == nil {
+				perms = os.FileMode(parsedPerms)
+			}
+		}
+
+		provisionedDirectory := path.Join(target, provisionedPath)
+		os.MkdirAll(provisionedDirectory, perms)
+		os.Chown(provisionedDirectory, int(uid), int(gid))
+	} else {
+		return nil, status.Errorf(codes.Internal, "Could not mount %q at %q: %v", fileSystemId, target, err)
+	}
+
+	err = d.mounter.Unmount(target)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "Could not unmount %q: %v", target, err)
+	}
+	err = os.RemoveAll(target)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "Could not delete %q: %v", target, err)
+	}
+
+	return &csi.Volume{
+		CapacityBytes: req.GetCapacityRange().GetRequiredBytes(),
+		VolumeId:      fileSystemId + ":" + provisionedPath,
+		VolumeContext: map[string]string{},
+	}, nil
+}
+
+func (d DirectoryProvisioner) Delete(ctx context.Context, req *csi.DeleteVolumeRequest) error {
+	localCloud, roleArn, err := d.getCloud(req.GetSecrets())
+	if err != nil {
+		return err
+	}
+
+	fileSystemId, subpath, _, _ := parseVolumeId(req.GetVolumeId())
+
+	//Mount File System at it root and delete access point root directory
+	mountOptions := []string{"tls", "iam"}
+	if roleArn != "" {
+		mountTarget, err := localCloud.DescribeMountTargets(ctx, fileSystemId, "")
+
+		if err == nil {
+			mountOptions = append(mountOptions, MountTargetIp+"="+mountTarget.IPAddress)
+		} else {
+			klog.Warningf("Failed to describe mount targets for file system %v. Skip using `mounttargetip` mount option: %v", fileSystemId, err)
+		}
+	}
+
+	target := TempMountPathPrefix + "/" + uuid.New().String()
+	if err := d.mounter.MakeDir(target); err != nil {
+		return status.Errorf(codes.Internal, "Could not create dir %q: %v", target, err)
+	}
+	if err := d.mounter.Mount(fileSystemId, target, "efs", mountOptions); err != nil {
+		os.Remove(target)
+		return status.Errorf(codes.Internal, "Could not mount %q at %q: %v", fileSystemId, target, err)
+	}
+	err = os.RemoveAll(target + subpath)
+	if err != nil {
+		return status.Errorf(codes.Internal, "Could not delete directory %q: %v", subpath, err)
+	}
+	err = d.mounter.Unmount(target)
+	if err != nil {
+		return status.Errorf(codes.Internal, "Could not unmount %q: %v", target, err)
+	}
+	err = os.RemoveAll(target)
+	if err != nil {
+		return status.Errorf(codes.Internal, "Could not delete %q: %v", target, err)
+	}
+
+	return nil
+}
+
+func (d DirectoryProvisioner) getCloud(secrets map[string]string) (cloud.Cloud, string, error) {
+
+	var localCloud cloud.Cloud
+	var roleArn string
+	var err error
+
+	// Fetch aws role ARN for cross account mount from CSI secrets. Link to CSI secrets below
+	// https://kubernetes-csi.github.io/docs/secrets-and-credentials.html#csi-operation-secrets
+	if value, ok := secrets[RoleArn]; ok {
+		roleArn = value
+	}
+
+	if roleArn != "" {
+		localCloud, err = cloud.NewCloudWithRole(roleArn)
+		if err != nil {
+			return nil, "", status.Errorf(codes.Unauthenticated, "Unable to initialize aws cloud: %v. Please verify role has the correct AWS permissions for cross account mount", err)
+		}
+	} else {
+		localCloud = d.cloud
 	}
 
 	return localCloud, roleArn, nil
