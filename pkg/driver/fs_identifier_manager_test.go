@@ -167,8 +167,8 @@ func TestGetUidAndGid(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
+		fsIdManager := NewFileSystemIdentityManager()
 		t.Run(test.name, func(t *testing.T) {
-			fsIdManager := NewFileSystemIdentityManager()
 			uid, gid, err := fsIdManager.GetUidAndGid(test.rawUid, test.rawGid, test.rawGidMin, test.rawGidMax, fileSystemId)
 			if test.expectError {
 				if err == nil {

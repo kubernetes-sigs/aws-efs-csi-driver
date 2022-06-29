@@ -43,49 +43,21 @@ func (a AccessPointProvisioner) Provision(ctx context.Context, req *csi.CreateVo
 		return nil, status.Error(codes.InvalidArgument, "Volume name not provided")
 	}
 
+	var (
+		azName  string
+		err     error
+		roleArn string
+	)
+
 	// Volume size is required to match PV to PVC by k8s.
 	// Volume size is not consumed by EFS for any purposes.
 	volSize := req.GetCapacityRange().GetRequiredBytes()
 
-	var (
-		azName   string
-		basePath string
-		err      error
-		roleArn  string
-	)
+	accessPointsOptions, err := a.deriveAccessPointOptions(req, uid, gid)
 
-	// Create tags
-	tags := map[string]string{
-		DefaultTagKey: DefaultTagValue,
-	}
-
-	// Append input tags to default tag
-	if len(a.tags) != 0 {
-		for k, v := range a.tags {
-			tags[k] = v
-		}
-	}
-
-	accessPointsOptions := &cloud.AccessPointOptions{
-		CapacityGiB: volSize,
-		Tags:        tags,
-	}
-
-	if value, ok := volumeParams[FsId]; ok {
-		if strings.TrimSpace(value) == "" {
-			return nil, status.Errorf(codes.InvalidArgument, "Parameter %v cannot be empty", FsId)
-		}
-		accessPointsOptions.FileSystemId = value
-	} else {
-		return nil, status.Errorf(codes.InvalidArgument, "Missing %v parameter", FsId)
-	}
-
-	if value, ok := volumeParams[DirectoryPerms]; ok {
-		accessPointsOptions.DirectoryPerms = value
-	}
-
-	if value, ok := volumeParams[BasePath]; ok {
-		basePath = value
+	localCloud, roleArn, err := a.getCloud(req.GetSecrets())
+	if err != nil {
+		return nil, err
 	}
 
 	// Storage class parameter `az` will be used to fetch preferred mount target for cross account mount.
@@ -95,11 +67,6 @@ func (a AccessPointProvisioner) Provision(ctx context.Context, req *csi.CreateVo
 	// To make use of the `az` mount option, add it under storage class's `mountOptions` section. https://kubernetes.io/docs/concepts/storage/storage-classes/#mount-options
 	if value, ok := volumeParams[AzName]; ok {
 		azName = value
-	}
-
-	localCloud, roleArn, err := a.getCloud(req.GetSecrets())
-	if err != nil {
-		return nil, err
 	}
 
 	// Check if file system exists. Describe FS handles appropriate error codes
@@ -112,13 +79,6 @@ func (a AccessPointProvisioner) Provision(ctx context.Context, req *csi.CreateVo
 		}
 		return nil, status.Errorf(codes.Internal, "Failed to fetch File System info: %v", err)
 	}
-
-	rootDirName := volName
-	rootDir := basePath + "/" + rootDirName
-
-	accessPointsOptions.Uid = uid
-	accessPointsOptions.Gid = gid
-	accessPointsOptions.DirectoryPath = rootDir
 
 	accessPointId, err := localCloud.CreateAccessPoint(ctx, volName, accessPointsOptions)
 	if err != nil {
@@ -148,6 +108,58 @@ func (a AccessPointProvisioner) Provision(ctx context.Context, req *csi.CreateVo
 		VolumeId:      accessPointsOptions.FileSystemId + "::" + accessPointId.AccessPointId,
 		VolumeContext: volContext,
 	}, nil
+}
+
+func (a AccessPointProvisioner) deriveAccessPointOptions(req *csi.CreateVolumeRequest,
+	uid int64, gid int64) (*cloud.AccessPointOptions, error) {
+
+	accessPointsOptions := &cloud.AccessPointOptions{
+		CapacityGiB: req.GetCapacityRange().GetRequiredBytes(),
+		Tags:        a.getTags(),
+		Uid:         uid,
+		Gid:         gid,
+	}
+
+	volumeParams := req.Parameters
+
+	if value, ok := volumeParams[FsId]; ok {
+		if strings.TrimSpace(value) == "" {
+			return nil, status.Errorf(codes.InvalidArgument, "Parameter %v cannot be empty", FsId)
+		}
+		accessPointsOptions.FileSystemId = value
+	} else {
+		return nil, status.Errorf(codes.InvalidArgument, "Missing %v parameter", FsId)
+	}
+
+	if value, ok := volumeParams[DirectoryPerms]; ok {
+		accessPointsOptions.DirectoryPerms = value
+	}
+
+	var basePath string
+	if value, ok := volumeParams[BasePath]; ok {
+		basePath = value
+	}
+
+	rootDirName := req.Name
+	rootDir := basePath + "/" + rootDirName
+	accessPointsOptions.DirectoryPath = rootDir
+
+	return accessPointsOptions, nil
+}
+
+func (a AccessPointProvisioner) getTags() map[string]string {
+	// Create tags
+	tags := map[string]string{
+		DefaultTagKey: DefaultTagValue,
+	}
+
+	// Append input tags to default tag
+	if len(a.tags) != 0 {
+		for k, v := range a.tags {
+			tags[k] = v
+		}
+	}
+	return tags
 }
 
 func (a AccessPointProvisioner) Delete(ctx context.Context, req *csi.DeleteVolumeRequest) error {

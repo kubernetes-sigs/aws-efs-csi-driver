@@ -79,7 +79,6 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 		return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("Volume fstype not supported: %s", err))
 	}
 
-	//Parse parameters
 	volumeParams := req.GetParameters()
 	if value, ok := volumeParams[ProvisioningMode]; ok {
 		if _, ok = d.provisioners[value]; !ok {
@@ -91,7 +90,7 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 
 	mode := volumeParams[ProvisioningMode]
 	provisioner := d.provisioners[mode]
-	klog.V(5).Infof("CreateVolume: provisioning mode %s selected. Support modes are %s", mode,
+	klog.V(5).Infof("CreateVolume: provisioning mode %s selected. Supported modes are %s", mode,
 		strings.Join(d.GetProvisioningModes(), ","))
 
 	uid, gid, err := d.fsIdentityManager.GetUidAndGid(

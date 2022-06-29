@@ -49,6 +49,7 @@ func (f *FileSystemIdentityManager) GetUidAndGid(rawUid string, rawGid string, r
 	} else {
 		uid, err = f.extractId(rawUid)
 		if err != nil {
+			f.ReleaseGid(fsId, gid)
 			return -1, -1, err
 		}
 	}
