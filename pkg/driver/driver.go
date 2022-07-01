@@ -51,7 +51,7 @@ type Driver struct {
 	tags                     map[string]string
 }
 
-func NewDriver(endpoint, efsUtilsCfgPath, efsUtilsStaticFilesPath, tags string, volMetricsOptIn bool, volMetricsRefreshPeriod float64, volMetricsFsRateLimit int, deleteAccessPointRootDir bool) *Driver {
+func NewDriver(endpoint, efsUtilsCfgPath, efsUtilsStaticFilesPath, tags string, volMetricsOptIn bool, volMetricsRefreshPeriod float64, volMetricsFsRateLimit int, deleteAccessPointRootDir bool, deleteProvisionedDir bool) *Driver {
 	cloud, err := cloud.NewCloud()
 	if err != nil {
 		klog.Fatalln(err)
@@ -61,7 +61,7 @@ func NewDriver(endpoint, efsUtilsCfgPath, efsUtilsStaticFilesPath, tags string, 
 	watchdog := newExecWatchdog(efsUtilsCfgPath, efsUtilsStaticFilesPath, "amazon-efs-mount-watchdog")
 	parsedTags := parseTagsFromStr(strings.TrimSpace(tags))
 	mounter := newNodeMounter()
-	provisioners := getProvisioners(parsedTags, cloud, deleteAccessPointRootDir, mounter)
+	provisioners := getProvisioners(parsedTags, cloud, deleteAccessPointRootDir, mounter, &RealOsClient{}, deleteProvisionedDir)
 
 	return &Driver{
 		endpoint:                endpoint,

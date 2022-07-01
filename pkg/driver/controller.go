@@ -97,7 +97,7 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 	uid, gid, err := d.fsIdentityManager.GetUidAndGid(
 		volumeParams[Uid], volumeParams[Gid], volumeParams[GidMin], volumeParams[GidMax], volumeParams[FsId])
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "Could not assign UID or GID to access point")
+		return nil, status.Errorf(codes.Internal, "Could not find a free UID or GID")
 	}
 	volume, err := provisioner.Provision(ctx, req, uid, gid)
 
@@ -118,21 +118,25 @@ func (d *Driver) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeRequest)
 		return nil, status.Error(codes.InvalidArgument, "Volume ID not provided")
 	}
 
-	_, _, accessPointId, err := parseVolumeId(volId)
+	_, subpath, accessPointId, err := parseVolumeId(volId)
 	if err != nil {
 		//Returning success for an invalid volume ID. See here - https://github.com/kubernetes-csi/csi-test/blame/5deb83d58fea909b2895731d43e32400380aae3c/pkg/sanity/controller.go#L733
 		klog.V(5).Infof("DeleteVolume: Failed to parse volumeID: %v, err: %v, returning success", volId, err)
 		return &csi.DeleteVolumeResponse{}, nil
 	}
 
-	//TODO: Add Delete File System when FS provisioning is implemented
 	if accessPointId != "" {
 		err := d.provisioners[AccessPointMode].Delete(ctx, req)
 		if err != nil {
 			return nil, status.Errorf(codes.Internal, "Failed to Delete volume %v: %v", volId, err)
 		}
+	} else if subpath != "" {
+		err := d.provisioners[DirectoryMode].Delete(ctx, req)
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "Failed to Delete volume %v: %v", volId, err)
+		}
 	} else {
-		return nil, status.Errorf(codes.NotFound, "Failed to find access point for volume: %v", volId)
+		return nil, status.Errorf(codes.NotFound, "Failed to find identifying information for volume: %v", volId)
 	}
 
 	return &csi.DeleteVolumeResponse{}, nil

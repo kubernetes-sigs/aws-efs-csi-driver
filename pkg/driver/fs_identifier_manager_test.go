@@ -11,8 +11,8 @@ func TestGetUidAndGid(t *testing.T) {
 		rawGid      string
 		rawGidMin   string
 		rawGidMax   string
-		resultUid   int64
-		resultGid   int64
+		resultUid   int
+		resultGid   int
 		expectError bool
 	}{
 		{
@@ -21,8 +21,8 @@ func TestGetUidAndGid(t *testing.T) {
 			rawGid:      "1001",
 			rawGidMin:   "",
 			rawGidMax:   "",
-			resultUid:   int64(1000),
-			resultGid:   int64(1001),
+			resultUid:   1000,
+			resultGid:   1001,
 			expectError: false,
 		},
 		{
@@ -31,8 +31,8 @@ func TestGetUidAndGid(t *testing.T) {
 			rawGid:      "1001",
 			rawGidMin:   "5000",
 			rawGidMax:   "70000",
-			resultUid:   int64(1000),
-			resultGid:   int64(1001),
+			resultUid:   1000,
+			resultGid:   1001,
 			expectError: false,
 		},
 		{
@@ -41,8 +41,8 @@ func TestGetUidAndGid(t *testing.T) {
 			rawGid:      "",
 			rawGidMin:   "",
 			rawGidMax:   "",
-			resultUid:   int64(-1),
-			resultGid:   int64(-1),
+			resultUid:   -1,
+			resultGid:   -1,
 			expectError: true,
 		},
 		{
@@ -51,8 +51,8 @@ func TestGetUidAndGid(t *testing.T) {
 			rawGid:      "",
 			rawGidMin:   "",
 			rawGidMax:   "",
-			resultUid:   int64(-1),
-			resultGid:   int64(-1),
+			resultUid:   -1,
+			resultGid:   -1,
 			expectError: true,
 		},
 		{
@@ -61,8 +61,8 @@ func TestGetUidAndGid(t *testing.T) {
 			rawGid:      "invalid",
 			rawGidMin:   "",
 			rawGidMax:   "",
-			resultUid:   int64(-1),
-			resultGid:   int64(-1),
+			resultUid:   -1,
+			resultGid:   -1,
 			expectError: true,
 		},
 		{
@@ -71,8 +71,8 @@ func TestGetUidAndGid(t *testing.T) {
 			rawGid:      "invalid",
 			rawGidMin:   "5000",
 			rawGidMax:   "70000",
-			resultUid:   int64(-1),
-			resultGid:   int64(-1),
+			resultUid:   -1,
+			resultGid:   -1,
 			expectError: true,
 		},
 		{
@@ -81,8 +81,8 @@ func TestGetUidAndGid(t *testing.T) {
 			rawGid:      "-200",
 			rawGidMin:   "",
 			rawGidMax:   "",
-			resultUid:   int64(-1),
-			resultGid:   int64(-1),
+			resultUid:   -1,
+			resultGid:   -1,
 			expectError: true,
 		},
 		{
@@ -91,8 +91,8 @@ func TestGetUidAndGid(t *testing.T) {
 			rawGid:      "",
 			rawGidMin:   "5000",
 			rawGidMax:   "50000",
-			resultUid:   int64(2001),
-			resultGid:   int64(5000),
+			resultUid:   2001,
+			resultGid:   5000,
 			expectError: false,
 		},
 		{
@@ -101,8 +101,8 @@ func TestGetUidAndGid(t *testing.T) {
 			rawGid:      "",
 			rawGidMin:   "0",
 			rawGidMax:   "50000",
-			resultUid:   int64(-1),
-			resultGid:   int64(-1),
+			resultUid:   -1,
+			resultGid:   -1,
 			expectError: true,
 		},
 		{
@@ -111,8 +111,8 @@ func TestGetUidAndGid(t *testing.T) {
 			rawGid:      "",
 			rawGidMin:   "foo",
 			rawGidMax:   "50000",
-			resultUid:   int64(-1),
-			resultGid:   int64(-1),
+			resultUid:   -1,
+			resultGid:   -1,
 			expectError: true,
 		},
 		{
@@ -121,8 +121,8 @@ func TestGetUidAndGid(t *testing.T) {
 			rawGid:      "",
 			rawGidMin:   "1000",
 			rawGidMax:   "foo",
-			resultUid:   int64(-1),
-			resultGid:   int64(-1),
+			resultUid:   -1,
+			resultGid:   -1,
 			expectError: true,
 		},
 		{
@@ -131,8 +131,8 @@ func TestGetUidAndGid(t *testing.T) {
 			rawGid:      "",
 			rawGidMin:   "500",
 			rawGidMax:   "100",
-			resultUid:   int64(-1),
-			resultGid:   int64(-1),
+			resultUid:   -1,
+			resultGid:   -1,
 			expectError: true,
 		},
 		{
@@ -141,8 +141,8 @@ func TestGetUidAndGid(t *testing.T) {
 			rawGid:      "",
 			rawGidMin:   "500",
 			rawGidMax:   "",
-			resultUid:   int64(-1),
-			resultGid:   int64(-1),
+			resultUid:   -1,
+			resultGid:   -1,
 			expectError: true,
 		},
 		{
@@ -151,7 +151,7 @@ func TestGetUidAndGid(t *testing.T) {
 			rawGid:      "",
 			rawGidMin:   "",
 			rawGidMax:   "",
-			resultUid:   int64(2001),
+			resultUid:   2001,
 			resultGid:   DefaultGidMin,
 			expectError: false,
 		},

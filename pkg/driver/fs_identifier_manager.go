@@ -19,11 +19,11 @@ func NewFileSystemIdentityManager() FileSystemIdentityManager {
 }
 
 func (f *FileSystemIdentityManager) GetUidAndGid(rawUid string, rawGid string, rawGidMin string, rawGidMax string,
-	fsId string) (int64, int64, error) {
+	fsId string) (int, int, error) {
 
 	var (
-		uid int64
-		gid int64
+		uid int
+		gid int
 		err error
 	)
 
@@ -41,7 +41,7 @@ func (f *FileSystemIdentityManager) GetUidAndGid(rawUid string, rawGid string, r
 		if err != nil {
 			return -1, -1, err
 		}
-		gid = int64(allocatedGid)
+		gid = allocatedGid
 	}
 
 	if rawUid == "" {
@@ -57,11 +57,13 @@ func (f *FileSystemIdentityManager) GetUidAndGid(rawUid string, rawGid string, r
 	return uid, gid, nil
 }
 
-func (f *FileSystemIdentityManager) ReleaseGid(fsId string, gid int64) {
-	f.gidAllocator.releaseGid(fsId, int(gid))
+func (f *FileSystemIdentityManager) ReleaseGid(fsId string, gid int) {
+	if gid != 0 {
+		f.gidAllocator.releaseGid(fsId, gid)
+	}
 }
 
-func (f *FileSystemIdentityManager) parseGidMinAndMax(rawGidMin string, rawGidMax string) (int64, int64, error) {
+func (f *FileSystemIdentityManager) parseGidMinAndMax(rawGidMin string, rawGidMax string) (int, int, error) {
 	if rawGidMin == "0" {
 		return -1, -1, status.Errorf(codes.InvalidArgument, "GidMin should be a > 0")
 	}
@@ -87,15 +89,15 @@ func (f *FileSystemIdentityManager) parseGidMinAndMax(rawGidMin string, rawGidMa
 	return gidMin, gidMax, nil
 }
 
-func (f *FileSystemIdentityManager) extractId(rawId string) (int64, error) {
-	uid, err := strconv.ParseInt(rawId, 10, 64)
+func (f *FileSystemIdentityManager) extractId(rawId string) (int, error) {
+	id, err := strconv.ParseInt(rawId, 10, 32)
 	if err != nil {
 		return -1, err
 	}
-	if uid < 0 {
-		return -1, status.Errorf(codes.InvalidArgument, "UID should be a positive integer but was %d", uid)
+	if id < 0 {
+		return -1, status.Errorf(codes.InvalidArgument, "UID should be a positive integer but was %d", id)
 	}
-	return uid, nil
+	return int(id), nil
 }
 
 type GidAllocator struct {

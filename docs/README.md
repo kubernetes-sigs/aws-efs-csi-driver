@@ -38,7 +38,13 @@ The following CSI interfaces are implemented:
 | basePath            |        |         | true      | Path under which access points for dynamic provisioning is created. If this parameter is not specified, access points are created under the root directory of the file system |
 | az                  |        |   ""    | true      | Used for cross-account mount. `az` under storage class parameter is optional. If specified, mount target associated with the az will be used for cross-account mount. If not specified, a random mount target will be picked for cross account mount |
 
-**Note**  
+**Note**
+* We suggest the following settings for each provisioning mode:
+  * `efs-ap` -> `directoryPerms: 770`, with `gidRangeStart` and `gidRangeEnd` set to sensible values
+  * `efs-dir` -> `directoryPerms: 777` and omit `gidRangeStart` and `gidRangeEnd`
+  * This ensures that important system utilities will still be to access to the directories created
+  * All parameters are available in all modes but please think very carefully about what you're doing otherwise directories could be created that no-one can read or write to, causing strange bugs in the driver. If you need this feature we recommend you maintain a break-glass root user that can clear up any directories 
+    that get created like this.
 * Custom Posix group Id range for Access Point root directory must include both `gidRangeStart` and `gidRangeEnd` parameters. These parameters are optional only if both are omitted. If you specify one, the other becomes mandatory.
 * When using a custom Posix group ID range, there is a possibility for the driver to run out of available POSIX group Ids. We suggest ensuring custom group ID range is large enough or create a new storage class with a new file system to provision additional volumes. 
 * `az` under storage class parameter is not be confused with efs-utils mount option `az`. The `az` mount option is used for cross-az mount or efs one zone file system mount within the same aws account as the cluster.
@@ -313,6 +319,8 @@ After deploying the driver, you can continue to these sections:
 | Parameters                  | Values | Default | Optional | Description                                                                                                                                                                                                                            |
 |-----------------------------|--------|---------|----------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | delete-access-point-root-dir|        | false  | true     | Opt in to delete access point root directory by DeleteVolume. By default, DeleteVolume will delete the access point behind Persistent Volume and deleting access point will not delete the access point root directory or its contents. |
+| delete-provisioned-dir       |        | false   | true     | Opt in to delete any provisioned directories and their contents. By default, DeleteVolume will not delete the directory behind Persistent Volume. *NOTE*: If root squash is enabled on your EFS it's possible this option will not work, unless you set up IAM roles to circumvent the root-squashing. See [here](https://docs.aws.amazon.com/efs/latest/ug/enable-root-squashing.html) for more details |
+
 ### Upgrading the Amazon EFS CSI Driver
 
 

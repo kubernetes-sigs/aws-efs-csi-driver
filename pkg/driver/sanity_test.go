@@ -80,7 +80,7 @@ func TestSanityEFSCSI(t *testing.T) {
 		nodeCaps:          nodeCaps,
 		volMetricsOptIn:   true,
 		volStatter:        NewVolStatter(),
-		provisioners:      getProvisioners(nil, mockCloud, false, mounter),
+		provisioners:      getProvisioners(nil, mockCloud, false, mounter, &FakeOsClient{}, false),
 		fsIdentityManager: NewFileSystemIdentityManager(),
 	}
 	defer func() {

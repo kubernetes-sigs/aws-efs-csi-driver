@@ -62,6 +62,8 @@ controller:
   # Enable if you want the controller to also delete the
   # path on efs when deleteing an access point
   deleteAccessPointRootDir: false
+  # Enable if you want the controller to delete any directories it also provisions
+  deleteProvisionedDir: false
   podAnnotations: {}
   resources:
     {}
