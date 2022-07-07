@@ -69,6 +69,7 @@ The following sections are Kubernetes specific. If you are a Kubernetes user, us
 |EFS CSI Driver Version     | Image                               |
 |---------------------------|-------------------------------------|
 |master branch              |amazon/aws-efs-csi-driver:master     |
+|v1.4.0                     |amazon/aws-efs-csi-driver:v1.4.0     |
 |v1.3.8                     |amazon/aws-efs-csi-driver:v1.3.8     |
 |v1.3.7                     |amazon/aws-efs-csi-driver:v1.3.7     |
 |v1.3.6                     |amazon/aws-efs-csi-driver:v1.3.6     |

@@ -13,29 +13,90 @@
 # limitations under the License.
 #
 
+VERSION=v1.4.0
+
 PKG=github.com/kubernetes-sigs/aws-efs-csi-driver
-IMAGE?=amazon/aws-efs-csi-driver
-VERSION=v1.3.8
 GIT_COMMIT?=$(shell git rev-parse HEAD)
 BUILD_DATE?=$(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
+
 EFS_CLIENT_SOURCE?=k8s
-IMAGE_PLATFORMS?=linux/arm64,linux/amd64
 LDFLAGS?="-X ${PKG}/pkg/driver.driverVersion=${VERSION} \
 		  -X ${PKG}/pkg/driver.gitCommit=${GIT_COMMIT} \
 		  -X ${PKG}/pkg/driver.buildDate=${BUILD_DATE} \
 		  -X ${PKG}/pkg/driver.efsClientSource=${EFS_CLIENT_SOURCE}"
+
 GO111MODULE=on
 GOPROXY=direct
 GOPATH=$(shell go env GOPATH)
 GOOS=$(shell go env GOOS)
 
+REGISTRY?=amazon
+IMAGE?=$(REGISTRY)/aws-efs-csi-driver
+TAG?=$(GIT_COMMIT)
+
+OUTPUT_TYPE?=docker
+
+OS?=linux
+ARCH?=amd64
+OSVERSION?=amazon
+
+ALL_OS?=linux
+ALL_ARCH_linux?=amd64 arm64
+ALL_OSVERSION_linux?=amazon
+ALL_OS_ARCH_OSVERSION_linux=$(foreach arch, $(ALL_ARCH_linux), $(foreach osversion, ${ALL_OSVERSION_linux}, linux-$(arch)-${osversion}))
+
+ALL_OS_ARCH_OSVERSION=$(foreach os, $(ALL_OS), ${ALL_OS_ARCH_OSVERSION_${os}})
+
+PLATFORM?=linux/amd64,linux/arm64
+
+# split words on hyphen, access by 1-index
+word-hyphen = $(word $2,$(subst -, ,$1))
+
 .EXPORT_ALL_VARIABLES:
 
-.PHONY: aws-efs-csi-driver
-aws-efs-csi-driver:
-	mkdir -p bin
-	@echo GOARCH:${GOARCH}
-	CGO_ENABLED=0 GOOS=linux go build -mod=vendor -ldflags ${LDFLAGS} -o bin/aws-efs-csi-driver ./cmd/
+.PHONY: linux/$(ARCH) bin/aws-efs-csi-driver
+linux/$(ARCH): bin/aws-efs-csi-driver
+bin/aws-efs-csi-driver: | bin
+	CGO_ENABLED=0 GOOS=linux GOARCH=$(ARCH) go build -mod=vendor -ldflags ${LDFLAGS} -o bin/aws-efs-csi-driver ./cmd/
+
+.PHONY: all
+all: all-image-docker
+
+.PHONY: all-push
+all-push:
+	docker buildx build \
+		--no-cache-filter=linux-amazon \
+		--platform=$(PLATFORM) \
+		--progress=plain \
+		--target=$(OS)-$(OSVERSION) \
+		--output=type=registry \
+		-t=$(IMAGE):$(TAG) \
+		.
+	touch $@
+
+.PHONY: all-image-docker
+all-image-docker: $(addprefix sub-image-docker-,$(ALL_OS_ARCH_OSVERSION_linux))
+
+sub-image-%:
+	$(MAKE) OUTPUT_TYPE=$(call word-hyphen,$*,1) OS=$(call word-hyphen,$*,2) ARCH=$(call word-hyphen,$*,3) OSVERSION=$(call word-hyphen,$*,4) image
+
+.PHONY: image
+image: .image-$(TAG)-$(OS)-$(ARCH)-$(OSVERSION)
+.image-$(TAG)-$(OS)-$(ARCH)-$(OSVERSION):
+	docker buildx build \
+		--no-cache-filter=linux-amazon \
+		--platform=$(OS)/$(ARCH) \
+		--progress=plain \
+		--target=$(OS)-$(OSVERSION) \
+		--output=type=$(OUTPUT_TYPE) \
+		-t=$(IMAGE):$(TAG)-$(OS)-$(ARCH)-$(OSVERSION) \
+		.
+	touch $@
+
+
+.PHONY: clean
+clean:
+	rm -rf .*image-* bin/
 
 bin /tmp/helm:
 	@mkdir -p $@
@@ -44,13 +105,6 @@ bin/helm: | /tmp/helm bin
 	@curl -o /tmp/helm/helm.tar.gz -sSL https://get.helm.sh/helm-v3.5.3-${GOOS}-amd64.tar.gz
 	@tar -zxf /tmp/helm/helm.tar.gz -C bin --strip-components=1
 	@rm -rf /tmp/helm/*
-
-build-darwin:
-	mkdir -p bin/darwin/
-	CGO_ENABLED=0 GOOS=darwin go build -mod=vendor -ldflags ${LDFLAGS} -o bin/darwin/aws-efs-csi-driver ./cmd/
-
-run-darwin: build-darwin
-	bin/darwin/aws-efs-csi-driver --version
 
 .PHONY: verify
 verify:
@@ -71,34 +125,25 @@ test-e2e:
 	GINKGO_FOCUS="\[efs-csi\]" \
 	./hack/e2e/run.sh
 
+.PHONY: test-e2e-external-eks
+test-e2e-external-eks:
+	CLUSTER_TYPE=eksctl \
+	K8S_VERSION="1.20" \
+	DRIVER_NAME=aws-efs-csi-driver \
+	HELM_VALUES_FILE="./hack/values_eksctl.yaml" \
+	CONTAINER_NAME=efs-plugin \
+	TEST_EXTRA_FLAGS='--cluster-name=$$CLUSTER_NAME' \
+	AWS_REGION=us-west-2 \
+	AWS_AVAILABILITY_ZONES=us-west-2a,us-west-2b,us-west-2c \
+	TEST_PATH=./test/e2e/... \
+	GINKGO_FOCUS="\[efs-csi\]" \
+	EKSCTL_ADMIN_ROLE="Infra-prod-KopsDeleteAllLambdaServiceRoleF1578477-1ELDFIB4KCMXV" \
+	./hack/e2e/run.sh
+
 .PHONY: test-e2e-bin
 test-e2e-bin:
 	mkdir -p bin
 	CGO_ENABLED=0 GOOS=linux go test -mod=vendor -ldflags ${LDFLAGS} -c -o bin/test-e2e ./test/e2e/
-
-.PHONY: image
-image:
-	docker build -t $(IMAGE):master .
-
-.PHONY: image-multi-arch--push
-image-multi-arch-push:
-	docker buildx build \
-			  -t $(IMAGE):master \
-			  --platform=$(IMAGE_PLATFORMS) \
-			  --progress plain \
-			  --push .
-
-.PHONY: push
-push: image
-	docker push $(IMAGE):master
-
-.PHONY: image-release
-image-release:
-	docker build -t $(IMAGE):$(VERSION) .
-
-.PHONY: push-release
-push-release:
-	docker push $(IMAGE):$(VERSION)
 
 .PHONY: generate-kustomize
 generate-kustomize: bin/helm

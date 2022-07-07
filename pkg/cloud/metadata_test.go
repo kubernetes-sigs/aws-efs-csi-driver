@@ -17,90 +17,44 @@ limitations under the License.
 package cloud
 
 import (
-	"fmt"
+	"reflect"
 	"testing"
 
-	"github.com/aws/aws-sdk-go/aws/ec2metadata"
 	"github.com/golang/mock/gomock"
+	"k8s.io/client-go/kubernetes/fake"
+
 	"github.com/kubernetes-sigs/aws-efs-csi-driver/pkg/cloud/mocks"
 )
 
-var (
-	stdInstanceID       = "instance-1"
-	stdRegion           = "instance-1"
-	stdAvailabilityZone = "az-1"
-)
-
-func TestGetEC2MetadataService(t *testing.T) {
+func TestGetMetadataProvider(t *testing.T) {
 	testCases := []struct {
-		name             string
-		isAvailable      bool
-		isPartial        bool
-		identityDocument ec2metadata.EC2InstanceIdentityDocument
-		err              error
+		name                          string
+		expectedType                  string
+		isRunningInECS                bool
+		isEC2MetadataServiceAvailable bool
 	}{
 		{
-			name:        "success: normal",
-			isAvailable: true,
-			identityDocument: ec2metadata.EC2InstanceIdentityDocument{
-				InstanceID:       stdInstanceID,
-				Region:           stdRegion,
-				AvailabilityZone: stdAvailabilityZone,
-			},
-			err: nil,
+			name:           "success: should use ECS first if booted in ECS",
+			expectedType:   "taskMetadataProvider",
+			isRunningInECS: true,
 		},
 		{
-			name:        "fail: metadata not available",
-			isAvailable: false,
-			identityDocument: ec2metadata.EC2InstanceIdentityDocument{
-				InstanceID:       stdInstanceID,
-				Region:           stdRegion,
-				AvailabilityZone: stdAvailabilityZone,
-			},
-			err: nil,
+			name:                          "success: should use ECS first if booted in ECS, even if other services are available",
+			expectedType:                  "taskMetadataProvider",
+			isRunningInECS:                true,
+			isEC2MetadataServiceAvailable: true,
 		},
 		{
-			name:        "fail: GetInstanceIdentityDocument returned error",
-			isAvailable: true,
-			identityDocument: ec2metadata.EC2InstanceIdentityDocument{
-				InstanceID:       stdInstanceID,
-				Region:           stdRegion,
-				AvailabilityZone: stdAvailabilityZone,
-			},
-			err: fmt.Errorf(""),
+			name:                          "success: should use EC2 if not in ECS and EC2 is available",
+			expectedType:                  "ec2MetadataProvider",
+			isRunningInECS:                false,
+			isEC2MetadataServiceAvailable: true,
 		},
 		{
-			name:        "fail: GetInstanceIdentityDocument returned empty instance",
-			isAvailable: true,
-			isPartial:   true,
-			identityDocument: ec2metadata.EC2InstanceIdentityDocument{
-				InstanceID:       "",
-				Region:           stdRegion,
-				AvailabilityZone: stdAvailabilityZone,
-			},
-			err: nil,
-		},
-		{
-			name:        "fail: GetInstanceIdentityDocument returned empty region",
-			isAvailable: true,
-			isPartial:   true,
-			identityDocument: ec2metadata.EC2InstanceIdentityDocument{
-				InstanceID:       stdInstanceID,
-				Region:           "",
-				AvailabilityZone: stdAvailabilityZone,
-			},
-			err: nil,
-		},
-		{
-			name:        "fail: GetInstanceIdentityDocument returned empty az",
-			isAvailable: true,
-			isPartial:   true,
-			identityDocument: ec2metadata.EC2InstanceIdentityDocument{
-				InstanceID:       stdInstanceID,
-				Region:           stdRegion,
-				AvailabilityZone: "",
-			},
-			err: nil,
+			name:                          "success: should use Kubernetes if not in ECS and EC2 is unavailable",
+			expectedType:                  "kubernetesApiMetadataProvider",
+			isRunningInECS:                false,
+			isEC2MetadataServiceAvailable: false,
 		},
 	}
 
@@ -109,35 +63,26 @@ func TestGetEC2MetadataService(t *testing.T) {
 			mockCtrl := gomock.NewController(t)
 			mockEC2Metadata := mocks.NewMockEC2Metadata(mockCtrl)
 
-			mockEC2Metadata.EXPECT().Available().Return(tc.isAvailable)
-			if tc.isAvailable {
-				mockEC2Metadata.EXPECT().GetInstanceIdentityDocument().Return(tc.identityDocument, tc.err)
-			}
-
-			m, err := getEC2Metadata(mockEC2Metadata)
-			if tc.isAvailable && tc.err == nil && !tc.isPartial {
-				if err != nil {
-					t.Fatalf("getEC2Metadata() failed: expected no error, got %v", err)
-				}
-
-				if m.GetInstanceID() != tc.identityDocument.InstanceID {
-					t.Fatalf("GetInstanceID() failed: expected %v, got %v", tc.identityDocument.InstanceID, m.GetInstanceID())
-				}
-
-				if m.GetRegion() != tc.identityDocument.Region {
-					t.Fatalf("GetRegion() failed: expected %v, got %v", tc.identityDocument.Region, m.GetRegion())
-				}
-
-				if m.GetAvailabilityZone() != tc.identityDocument.AvailabilityZone {
-					t.Fatalf("GetAvailabilityZone() failed: expected %v, got %v", tc.identityDocument.AvailabilityZone, m.GetAvailabilityZone())
-				}
-			} else {
-				if err == nil {
-					t.Fatal("getEC2Metadata() failed: expected error when GetInstanceIdentityDocument returns partial data, got nothing")
+			if tc.isRunningInECS {
+				envVars := map[string]string{taskMetadataV4EnvName: "foobar"}
+				for k, v := range envVars {
+					t.Setenv(k, v)
 				}
 			}
 
-			mockCtrl.Finish()
+			if !tc.isRunningInECS {
+				mockEC2Metadata.EXPECT().Available().Return(tc.isEC2MetadataServiceAvailable)
+			}
+
+			defer mockCtrl.Finish()
+
+			mp, _ := GetNewMetadataProvider(mockEC2Metadata, fake.NewSimpleClientset())
+
+			providerType := reflect.TypeOf(mp).Name()
+
+			if providerType != tc.expectedType {
+				t.Errorf("Expected %s, but got %s", tc.expectedType, providerType)
+			}
 		})
 	}
 }
