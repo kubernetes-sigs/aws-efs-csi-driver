@@ -375,11 +375,12 @@ func (d *Driver) validateFStype(volCaps []*csi.VolumeCapability) error {
 
 // parseVolumeId accepts a NodePublishVolumeRequest.VolumeId as a colon-delimited string of the
 // form `{fileSystemID}:{mountPath}:{accessPointID}`.
-// - The `{fileSystemID}` is required, and expected to be of the form `fs-...`.
-// - The other two fields are optional -- they may be empty or omitted entirely. For example,
-//   `fs-abcd1234::`, `fs-abcd1234:`, and `fs-abcd1234` are equivalent.
-// - The `{mountPath}`, if specified, is not required to be absolute.
-// - The `{accessPointID}` is expected to be of the form `fsap-...`.
+//   - The `{fileSystemID}` is required, and expected to be of the form `fs-...`.
+//   - The other two fields are optional -- they may be empty or omitted entirely. For example,
+//     `fs-abcd1234::`, `fs-abcd1234:`, and `fs-abcd1234` are equivalent.
+//   - The `{mountPath}`, if specified, is not required to be absolute.
+//   - The `{accessPointID}` is expected to be of the form `fsap-...`.
+//
 // parseVolumeId returns the parsed values, of which `subpath` and `apid` may be empty; and an
 // error, which will be a `status.Error` with `codes.InvalidArgument`, or `nil` if the `volumeId`
 // was parsed successfully.
