@@ -133,9 +133,12 @@ func createCloud(awsRoleArn string) (Cloud, error) {
 		return nil, fmt.Errorf("could not get metadata: %v", err)
 	}
 
+	efs_client := createEfsClient(awsRoleArn, metadata, sess)
+	klog.V(5).Infof("EFS Client created using the following endpoint: %+v", efs_client.(*efs.EFS).Client.ClientInfo.Endpoint)
+
 	return &cloud{
 		metadata: metadata,
-		efs:      createEfsClient(awsRoleArn, metadata, sess),
+		efs:      efs_client,
 	}, nil
 }
 
