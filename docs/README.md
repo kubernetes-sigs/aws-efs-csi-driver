@@ -127,6 +127,11 @@ helm repo update
 helm upgrade --install aws-efs-csi-driver --namespace kube-system aws-efs-csi-driver/aws-efs-csi-driver
 ```
 
+To force the efs-csi-driver to use FIPS, you can add an argument to the helm upgrade command:
+```
+helm upgrade --install aws-efs-csi-driver --namespace kube-system aws-efs-csi-driver/aws-efs-csi-driver --set useFips=true
+```
+
 ### Examples
 Before the example, you need to:
 * Get yourself familiar with how to setup Kubernetes on AWS and how to [create EFS file system](https://docs.aws.amazon.com/efs/latest/ug/getting-started.html).

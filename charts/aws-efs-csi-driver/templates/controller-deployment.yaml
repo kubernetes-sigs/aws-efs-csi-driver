@@ -65,6 +65,10 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
+            {{- if .Values.useFIPS }}
+            - name: AWS_USE_FIPS_ENDPOINT
+              value: "true"
+            {{- end }}
           volumeMounts:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
