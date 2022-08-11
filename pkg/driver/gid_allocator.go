@@ -44,7 +44,7 @@ func NewGidAllocator() GidAllocator {
 	}
 }
 
-//Retrieves the next available GID
+// Retrieves the next available GID
 func (g *GidAllocator) getNextGid(fsId string, gidMin, gidMax int) (int, error) {
 	g.mu.Lock()
 	defer g.mu.Unlock()
@@ -74,7 +74,7 @@ func (g *GidAllocator) releaseGid(fsId string, gid int) {
 	gidHeap.Push(gid)
 }
 
-//Creates an entry fsIdGidMap if fsId does not exist.
+// Creates an entry fsIdGidMap if fsId does not exist.
 func (g *GidAllocator) initFsId(fsId string, gidMin, gidMax int) {
 	h := initHeap(gidMin, gidMax)
 	heap.Init(h)
@@ -87,7 +87,7 @@ func (g *GidAllocator) removeFsId(fsId string) {
 	delete(g.fsIdGidMap, fsId)
 }
 
-//Initializes a heap inclusive of min & max
+// Initializes a heap inclusive of min & max
 func initHeap(min, max int) *IntHeap {
 	h := make(IntHeap, max-min+1)
 	val := min
