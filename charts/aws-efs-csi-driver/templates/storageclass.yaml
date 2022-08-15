@@ -22,5 +22,8 @@ reclaimPolicy: {{ . }}
 {{- with .volumeBindingMode }}
 volumeBindingMode: {{ . }}
 {{- end }}
+{{- with .allowVolumeExpansion }}
+allowVolumeExpansion: {{ . }}
+{{- end }}
 ---
 {{- end }}
