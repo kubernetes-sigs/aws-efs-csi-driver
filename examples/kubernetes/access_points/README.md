@@ -98,3 +98,5 @@ as this could subject you to
     `/ap1/my/subpath`.
   - As with normal volume path, the `[Subpath]` must already exist prior to consuming
     the volume from a pod.
+
+- `awscredsuri` mount option is not supported through efs-csi-driver as it's designed and used by ECS tasks.
