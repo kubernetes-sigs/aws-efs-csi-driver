@@ -165,9 +165,9 @@ func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 				}
 			}
 
-			if f == "awscredsuri" {
+			if strings.HasPrefix(f, "awscredsuri") {
 				klog.Warning("awscredsuri mount option is not supported by efs-csi-driver.")
-				return nil, nil
+				continue
 			}
 
 			if !hasOption(mountOptions, f) {
@@ -425,6 +425,7 @@ func parseVolumeId(volumeId string) (fsid, subpath, apid string, err error) {
 	return
 }
 
+// Check and avoid adding duplicate mount options
 func hasOption(options []string, opt string) bool {
 	for _, o := range options {
 		if o == opt {
