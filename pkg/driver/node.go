@@ -78,7 +78,7 @@ func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 		switch strings.ToLower(k) {
 		//Deprecated
 		case "path":
-			klog.Warning("Use of path under volumeAttributes is depracated. This field will be removed in future release")
+			klog.Warning("Use of path under volumeAttributes is deprecated. This field will be removed in future release")
 			if !filepath.IsAbs(v) {
 				return nil, status.Errorf(codes.InvalidArgument, "Volume context property %q must be an absolute path", k)
 			}
@@ -163,6 +163,11 @@ func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 					return nil, status.Errorf(codes.InvalidArgument,
 						"Found tls in mountOptions but encryptInTransit is false")
 				}
+			}
+
+			if strings.HasPrefix(f, "awscredsuri") {
+				klog.Warning("awscredsuri mount option is not supported by efs-csi-driver.")
+				continue
 			}
 
 			if !hasOption(mountOptions, f) {
@@ -375,11 +380,12 @@ func (d *Driver) validateFStype(volCaps []*csi.VolumeCapability) error {
 
 // parseVolumeId accepts a NodePublishVolumeRequest.VolumeId as a colon-delimited string of the
 // form `{fileSystemID}:{mountPath}:{accessPointID}`.
-// - The `{fileSystemID}` is required, and expected to be of the form `fs-...`.
-// - The other two fields are optional -- they may be empty or omitted entirely. For example,
-//   `fs-abcd1234::`, `fs-abcd1234:`, and `fs-abcd1234` are equivalent.
-// - The `{mountPath}`, if specified, is not required to be absolute.
-// - The `{accessPointID}` is expected to be of the form `fsap-...`.
+//   - The `{fileSystemID}` is required, and expected to be of the form `fs-...`.
+//   - The other two fields are optional -- they may be empty or omitted entirely. For example,
+//     `fs-abcd1234::`, `fs-abcd1234:`, and `fs-abcd1234` are equivalent.
+//   - The `{mountPath}`, if specified, is not required to be absolute.
+//   - The `{accessPointID}` is expected to be of the form `fsap-...`.
+//
 // parseVolumeId returns the parsed values, of which `subpath` and `apid` may be empty; and an
 // error, which will be a `status.Error` with `codes.InvalidArgument`, or `nil` if the `volumeId`
 // was parsed successfully.
@@ -419,6 +425,7 @@ func parseVolumeId(volumeId string) (fsid, subpath, apid string, err error) {
 	return
 }
 
+// Check and avoid adding duplicate mount options
 func hasOption(options []string, opt string) bool {
 	for _, o := range options {
 		if o == opt {

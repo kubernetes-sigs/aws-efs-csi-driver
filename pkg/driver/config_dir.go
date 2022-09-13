@@ -28,14 +28,15 @@ import (
 // (i.e. when the user does not need to durably store configs and thus does not mount host directories), an empty
 // directory will be created at etcAmazonEfs.
 //
-// - legacyDir    is the path to a config directory where previous versions of this driver may have written config
-//                files. In previous versions of this driver, a host path that was not writeable on Bottlerocket hosts
-//                was being used, so we introduce preferredDir.
+//   - legacyDir    is the path to a config directory where previous versions of this driver may have written config
+//     files. In previous versions of this driver, a host path that was not writeable on Bottlerocket hosts
+//     was being used, so we introduce preferredDir.
 //
 // - preferredDir is the path to config directory that we will use so long as we do not find files in legacyDir.
 //
-// - etcAmazonEfs is the path where the symlink will be written. In practice, this will always be /etc/amazon/efs, but
-//                we take it as an input so the function can be tested.
+//   - etcAmazonEfs is the path where the symlink will be written. In practice, this will always be /etc/amazon/efs, but
+//     we take it as an input so the function can be tested.
+//
 // Examples:
 // On a host that has EFS mounts created by an earlier version of this driver, InitConfigDir will detect a conf file in
 // legacyDir and write a symlink at etcAmazonEfs pointing to legacyDir.

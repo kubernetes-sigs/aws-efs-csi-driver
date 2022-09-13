@@ -187,7 +187,8 @@ func (w *execWatchdog) setup(efsClientSource string) error {
 	return nil
 }
 
-/**
+/*
+*
 At image build time, static files installed by efs-utils in the config directory, i.e. CAs file, need
 to be saved in another place so that the other stateful files created at runtime, i.e. private key for
 client certificate, in the same config directory can be persisted to host with a host path volume.
