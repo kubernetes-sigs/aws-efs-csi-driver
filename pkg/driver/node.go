@@ -18,6 +18,7 @@ package driver
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"path"
@@ -28,8 +29,23 @@ import (
 	"github.com/container-storage-interface/spec/lib/go/csi"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	k8sv1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/klog"
 )
+
+const (
+	jwtTokenFilePath  = "/home/token"
+	roleAnnotationKey = "eks.amazonaws.com/role-arn"
+	docURL            = "https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts.html"
+)
+
+type podAuth struct {
+	nameSpace, serviceAccount string
+	k8sClient                 k8sv1.CoreV1Interface
+	ctx                       context.Context
+	jwtToken                  string
+}
 
 var (
 	volumeCapAccessModes = []csi.VolumeCapability_AccessMode_Mode{
@@ -46,6 +62,16 @@ func (d *Driver) NodeStageVolume(ctx context.Context, req *csi.NodeStageVolumeRe
 
 func (d *Driver) NodeUnstageVolume(ctx context.Context, req *csi.NodeUnstageVolumeRequest) (*csi.NodeUnstageVolumeResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "")
+}
+
+func newPodAuth(ctx context.Context, nameSpace, serviceAccount string, k8sClient k8sv1.CoreV1Interface, JWT string) (podauth *podAuth) {
+	return &podAuth{
+		nameSpace:      nameSpace,
+		serviceAccount: serviceAccount,
+		k8sClient:      k8sClient,
+		ctx:            ctx,
+		jwtToken:       JWT,
+	}
 }
 
 func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolumeRequest) (*csi.NodePublishVolumeResponse, error) {
@@ -73,9 +99,38 @@ func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 	// TODO when CreateVolume is implemented, it must use the same key names
 	subpath := "/"
 	encryptInTransit := true
+	iamAuth := false
 	volContext := req.GetVolumeContext()
+
 	for k, v := range volContext {
 		switch strings.ToLower(k) {
+		case "csi.storage.k8s.io/pod.name", "csi.storage.k8s.io/pod.namespace", "csi.storage.k8s.io/pod.uid", "csi.storage.k8s.io/serviceaccount.name", "csi.storage.k8s.io/ephemeral":
+			continue
+
+		case "csi.storage.k8s.io/serviceaccount.tokens":
+			//TODO get the token in a cleaner way, not like this.
+			result := make(map[string]interface{})
+			err := json.Unmarshal([]byte(volContext["csi.storage.k8s.io/serviceAccount.tokens"]), &result)
+			if err != nil {
+				return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("Invalid JSON string for tokens : %s, error %v", v, err))
+			}
+
+			//Get JWT token with aud as sts.amazonaws.com
+			tokenInfo := fmt.Sprintf("%v", result["sts.amazonaws.com"].(map[string]interface{})["token"])
+
+			// Set the podauth object then call set pod credentials (ROLE-ARN and Toke file) that are called through efs-utils
+			podauth := newPodAuth(ctx, volContext["csi.storage.k8s.io/pod.namespace"], volContext["csi.storage.k8s.io/serviceAccount.name"], d.k8sClient, tokenInfo)
+			err = podauth.setPodCredentials()
+			if err != nil {
+				return nil, status.Error(codes.Internal, fmt.Sprintf("Unable to set pod iam credentials %v", err))
+			}
+
+		case "podiamauthorization":
+			var err error
+			iamAuth, err = strconv.ParseBool(v)
+			if err != nil {
+				return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("Volume context property %q must be a boolean value: %v", k, err))
+			}
 		//Deprecated
 		case "path":
 			klog.Warning("Use of path under volumeAttributes is deprecated. This field will be removed in future release")
@@ -118,6 +173,11 @@ func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 	//   require this to be present in the mountOptions already, but we won't complain if it is.)
 	if apid != "" {
 		mountOptions = append(mountOptions, fmt.Sprintf("accesspoint=%s", apid), "tls")
+	}
+
+	//Setting the mount option to iam for efs-utils to mount with IAM
+	if iamAuth {
+		mountOptions = append(mountOptions, "iam")
 	}
 
 	if encryptInTransit {
@@ -181,6 +241,7 @@ func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 	}
 
 	klog.V(5).Infof("NodePublishVolume: mounting %s at %s with options %v", source, target, mountOptions)
+
 	if err := d.mounter.Mount(source, target, "efs", mountOptions); err != nil {
 		os.Remove(target)
 		return nil, status.Errorf(codes.Internal, "Could not mount %q at %q: %v", source, target, err)
@@ -423,6 +484,78 @@ func parseVolumeId(volumeId string) (fsid, subpath, apid string, err error) {
 	}
 
 	return
+}
+
+func (p podAuth) setPodCredentials() (e error) {
+
+	err := writeToken(p)
+	if err != nil {
+		return err
+	}
+
+	err = setRoleArn(p)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func writeToken(p podAuth) (e error) {
+	destFile, err := os.Create(jwtTokenFilePath)
+	if err != nil {
+		klog.Errorf("Unable to create file at path %s", jwtTokenFilePath)
+		return err
+	}
+
+	n, err := destFile.Write([]byte(p.jwtToken))
+	if err != nil {
+		klog.Errorf("Unable to write JWT token at %s", jwtTokenFilePath)
+		return err
+	}
+	klog.Infof("Wrote JWT bytes of length %d", n)
+
+	err = destFile.Chmod(0400)
+	if err != nil {
+		klog.Errorf("Unable to change the file mode of %s", jwtTokenFilePath)
+		return err
+	}
+
+	err = destFile.Close()
+	if err != nil {
+		klog.Errorf("Error while closing file of %s", jwtTokenFilePath)
+		return err
+	}
+
+	err = os.Setenv("AWS_WEB_IDENTITY_TOKEN_FILE", jwtTokenFilePath)
+	if err != nil {
+		klog.Errorf("Unable to set environment variable %s", err)
+		return err
+	}
+
+	return nil
+}
+
+func setRoleArn(p podAuth) (e error) {
+	response, err := p.k8sClient.ServiceAccounts(p.nameSpace).Get(p.ctx, p.serviceAccount, metav1.GetOptions{})
+	if err != nil {
+		klog.Errorf("Unable to get the service account description %s", err)
+		return err
+	}
+	roleArn := response.Annotations[roleAnnotationKey]
+
+	if len(roleArn) <= 0 {
+		klog.Errorf("Need IAM role for service account %s (namespace: %s) - %s", p.serviceAccount, p.nameSpace, docURL)
+		return fmt.Errorf("An IAM role must be associated with service account %s (namespace: %s)", p.serviceAccount, p.nameSpace)
+	}
+
+	err = os.Setenv("AWS_ROLE_ARN", roleArn)
+	if err != nil {
+		klog.Errorf("Unable to set environment variable %s", err)
+		return err
+	}
+
+	return nil
 }
 
 // Check and avoid adding duplicate mount options
