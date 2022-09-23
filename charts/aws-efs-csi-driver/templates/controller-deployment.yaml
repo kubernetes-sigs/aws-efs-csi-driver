@@ -113,6 +113,7 @@ spec:
           args:
             - --csi-address=/csi/csi.sock
             - --health-port={{ .Values.controller.healthPort }}
+            - --probe-timeout={{ .Values.controller.timeout }}
           volumeMounts:
             - name: socket-dir
               mountPath: /csi

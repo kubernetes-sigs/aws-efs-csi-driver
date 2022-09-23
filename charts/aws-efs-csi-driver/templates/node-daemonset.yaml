@@ -109,6 +109,7 @@ spec:
           args:
             - --csi-address=$(ADDRESS)
             - --kubelet-registration-path=$(DRIVER_REG_SOCK_PATH)
+            - --timeout={{ .Values.node.timeout }}
             - --v={{ .Values.node.logLevel }}
           env:
             - name: ADDRESS
@@ -133,6 +134,7 @@ spec:
           args:
             - --csi-address=/csi/csi.sock
             - --health-port={{ .Values.node.healthPort }}
+            - --probe-timeout={{ .Values.node.timeout }}
             - --v={{ .Values.node.logLevel }}
           volumeMounts:
             - name: plugin-dir
