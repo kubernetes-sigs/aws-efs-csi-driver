@@ -29,13 +29,14 @@ const opGetRoleCredentials = "GetRoleCredentials"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
-//	// Example sending a request using the GetRoleCredentialsRequest method.
-//	req, resp := client.GetRoleCredentialsRequest(params)
 //
-//	err := req.Send()
-//	if err == nil { // resp is now filled
-//	    fmt.Println(resp)
-//	}
+//    // Example sending a request using the GetRoleCredentialsRequest method.
+//    req, resp := client.GetRoleCredentialsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/sso-2019-06-10/GetRoleCredentials
 func (c *SSO) GetRoleCredentialsRequest(input *GetRoleCredentialsInput) (req *request.Request, output *GetRoleCredentialsOutput) {
@@ -68,21 +69,20 @@ func (c *SSO) GetRoleCredentialsRequest(input *GetRoleCredentialsInput) (req *re
 // API operation GetRoleCredentials for usage and error information.
 //
 // Returned Error Types:
+//   * InvalidRequestException
+//   Indicates that a problem occurred with the input to the request. For example,
+//   a required parameter might be missing or out of range.
 //
-//   - InvalidRequestException
-//     Indicates that a problem occurred with the input to the request. For example,
-//     a required parameter might be missing or out of range.
+//   * UnauthorizedException
+//   Indicates that the request is not authorized. This can happen due to an invalid
+//   access token in the request.
 //
-//   - UnauthorizedException
-//     Indicates that the request is not authorized. This can happen due to an invalid
-//     access token in the request.
+//   * TooManyRequestsException
+//   Indicates that the request is being made too frequently and is more than
+//   what the server can handle.
 //
-//   - TooManyRequestsException
-//     Indicates that the request is being made too frequently and is more than
-//     what the server can handle.
-//
-//   - ResourceNotFoundException
-//     The specified resource doesn't exist.
+//   * ResourceNotFoundException
+//   The specified resource doesn't exist.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/sso-2019-06-10/GetRoleCredentials
 func (c *SSO) GetRoleCredentials(input *GetRoleCredentialsInput) (*GetRoleCredentialsOutput, error) {
@@ -122,13 +122,14 @@ const opListAccountRoles = "ListAccountRoles"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
-//	// Example sending a request using the ListAccountRolesRequest method.
-//	req, resp := client.ListAccountRolesRequest(params)
 //
-//	err := req.Send()
-//	if err == nil { // resp is now filled
-//	    fmt.Println(resp)
-//	}
+//    // Example sending a request using the ListAccountRolesRequest method.
+//    req, resp := client.ListAccountRolesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/sso-2019-06-10/ListAccountRoles
 func (c *SSO) ListAccountRolesRequest(input *ListAccountRolesInput) (req *request.Request, output *ListAccountRolesOutput) {
@@ -156,8 +157,7 @@ func (c *SSO) ListAccountRolesRequest(input *ListAccountRolesInput) (req *reques
 
 // ListAccountRoles API operation for AWS Single Sign-On.
 //
-// Lists all roles that are assigned to the user for a given Amazon Web Services
-// account.
+// Lists all roles that are assigned to the user for a given AWS account.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -167,21 +167,20 @@ func (c *SSO) ListAccountRolesRequest(input *ListAccountRolesInput) (req *reques
 // API operation ListAccountRoles for usage and error information.
 //
 // Returned Error Types:
+//   * InvalidRequestException
+//   Indicates that a problem occurred with the input to the request. For example,
+//   a required parameter might be missing or out of range.
 //
-//   - InvalidRequestException
-//     Indicates that a problem occurred with the input to the request. For example,
-//     a required parameter might be missing or out of range.
+//   * UnauthorizedException
+//   Indicates that the request is not authorized. This can happen due to an invalid
+//   access token in the request.
 //
-//   - UnauthorizedException
-//     Indicates that the request is not authorized. This can happen due to an invalid
-//     access token in the request.
+//   * TooManyRequestsException
+//   Indicates that the request is being made too frequently and is more than
+//   what the server can handle.
 //
-//   - TooManyRequestsException
-//     Indicates that the request is being made too frequently and is more than
-//     what the server can handle.
-//
-//   - ResourceNotFoundException
-//     The specified resource doesn't exist.
+//   * ResourceNotFoundException
+//   The specified resource doesn't exist.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/sso-2019-06-10/ListAccountRoles
 func (c *SSO) ListAccountRoles(input *ListAccountRolesInput) (*ListAccountRolesOutput, error) {
@@ -213,14 +212,15 @@ func (c *SSO) ListAccountRolesWithContext(ctx aws.Context, input *ListAccountRol
 //
 // Note: This operation can generate multiple requests to a service.
 //
-//	// Example iterating over at most 3 pages of a ListAccountRoles operation.
-//	pageNum := 0
-//	err := client.ListAccountRolesPages(params,
-//	    func(page *sso.ListAccountRolesOutput, lastPage bool) bool {
-//	        pageNum++
-//	        fmt.Println(page)
-//	        return pageNum <= 3
-//	    })
+//    // Example iterating over at most 3 pages of a ListAccountRoles operation.
+//    pageNum := 0
+//    err := client.ListAccountRolesPages(params,
+//        func(page *sso.ListAccountRolesOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
 func (c *SSO) ListAccountRolesPages(input *ListAccountRolesInput, fn func(*ListAccountRolesOutput, bool) bool) error {
 	return c.ListAccountRolesPagesWithContext(aws.BackgroundContext(), input, fn)
 }
@@ -272,13 +272,14 @@ const opListAccounts = "ListAccounts"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
-//	// Example sending a request using the ListAccountsRequest method.
-//	req, resp := client.ListAccountsRequest(params)
 //
-//	err := req.Send()
-//	if err == nil { // resp is now filled
-//	    fmt.Println(resp)
-//	}
+//    // Example sending a request using the ListAccountsRequest method.
+//    req, resp := client.ListAccountsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/sso-2019-06-10/ListAccounts
 func (c *SSO) ListAccountsRequest(input *ListAccountsInput) (req *request.Request, output *ListAccountsOutput) {
@@ -306,11 +307,10 @@ func (c *SSO) ListAccountsRequest(input *ListAccountsInput) (req *request.Reques
 
 // ListAccounts API operation for AWS Single Sign-On.
 //
-// Lists all Amazon Web Services accounts assigned to the user. These Amazon
-// Web Services accounts are assigned by the administrator of the account. For
-// more information, see Assign User Access (https://docs.aws.amazon.com/singlesignon/latest/userguide/useraccess.html#assignusers)
-// in the Amazon Web Services SSO User Guide. This operation returns a paginated
-// response.
+// Lists all AWS accounts assigned to the user. These AWS accounts are assigned
+// by the administrator of the account. For more information, see Assign User
+// Access (https://docs.aws.amazon.com/singlesignon/latest/userguide/useraccess.html#assignusers)
+// in the AWS SSO User Guide. This operation returns a paginated response.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -320,21 +320,20 @@ func (c *SSO) ListAccountsRequest(input *ListAccountsInput) (req *request.Reques
 // API operation ListAccounts for usage and error information.
 //
 // Returned Error Types:
+//   * InvalidRequestException
+//   Indicates that a problem occurred with the input to the request. For example,
+//   a required parameter might be missing or out of range.
 //
-//   - InvalidRequestException
-//     Indicates that a problem occurred with the input to the request. For example,
-//     a required parameter might be missing or out of range.
+//   * UnauthorizedException
+//   Indicates that the request is not authorized. This can happen due to an invalid
+//   access token in the request.
 //
-//   - UnauthorizedException
-//     Indicates that the request is not authorized. This can happen due to an invalid
-//     access token in the request.
+//   * TooManyRequestsException
+//   Indicates that the request is being made too frequently and is more than
+//   what the server can handle.
 //
-//   - TooManyRequestsException
-//     Indicates that the request is being made too frequently and is more than
-//     what the server can handle.
-//
-//   - ResourceNotFoundException
-//     The specified resource doesn't exist.
+//   * ResourceNotFoundException
+//   The specified resource doesn't exist.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/sso-2019-06-10/ListAccounts
 func (c *SSO) ListAccounts(input *ListAccountsInput) (*ListAccountsOutput, error) {
@@ -366,14 +365,15 @@ func (c *SSO) ListAccountsWithContext(ctx aws.Context, input *ListAccountsInput,
 //
 // Note: This operation can generate multiple requests to a service.
 //
-//	// Example iterating over at most 3 pages of a ListAccounts operation.
-//	pageNum := 0
-//	err := client.ListAccountsPages(params,
-//	    func(page *sso.ListAccountsOutput, lastPage bool) bool {
-//	        pageNum++
-//	        fmt.Println(page)
-//	        return pageNum <= 3
-//	    })
+//    // Example iterating over at most 3 pages of a ListAccounts operation.
+//    pageNum := 0
+//    err := client.ListAccountsPages(params,
+//        func(page *sso.ListAccountsOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
 func (c *SSO) ListAccountsPages(input *ListAccountsInput, fn func(*ListAccountsOutput, bool) bool) error {
 	return c.ListAccountsPagesWithContext(aws.BackgroundContext(), input, fn)
 }
@@ -425,13 +425,14 @@ const opLogout = "Logout"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
-//	// Example sending a request using the LogoutRequest method.
-//	req, resp := client.LogoutRequest(params)
 //
-//	err := req.Send()
-//	if err == nil { // resp is now filled
-//	    fmt.Println(resp)
-//	}
+//    // Example sending a request using the LogoutRequest method.
+//    req, resp := client.LogoutRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/sso-2019-06-10/Logout
 func (c *SSO) LogoutRequest(input *LogoutInput) (req *request.Request, output *LogoutOutput) {
@@ -454,21 +455,7 @@ func (c *SSO) LogoutRequest(input *LogoutInput) (req *request.Request, output *L
 
 // Logout API operation for AWS Single Sign-On.
 //
-// Removes the locally stored SSO tokens from the client-side cache and sends
-// an API call to the Amazon Web Services SSO service to invalidate the corresponding
-// server-side Amazon Web Services SSO sign in session.
-//
-// If a user uses Amazon Web Services SSO to access the AWS CLI, the user’s
-// Amazon Web Services SSO sign in session is used to obtain an IAM session,
-// as specified in the corresponding Amazon Web Services SSO permission set.
-// More specifically, Amazon Web Services SSO assumes an IAM role in the target
-// account on behalf of the user, and the corresponding temporary Amazon Web
-// Services credentials are returned to the client.
-//
-// After user logout, any existing IAM role sessions that were created by using
-// Amazon Web Services SSO permission sets continue based on the duration configured
-// in the permission set. For more information, see User authentications (https://docs.aws.amazon.com/singlesignon/latest/userguide/authconcept.html)
-// in the Amazon Web Services SSO User Guide.
+// Removes the client- and server-side session that is associated with the user.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -478,18 +465,17 @@ func (c *SSO) LogoutRequest(input *LogoutInput) (req *request.Request, output *L
 // API operation Logout for usage and error information.
 //
 // Returned Error Types:
+//   * InvalidRequestException
+//   Indicates that a problem occurred with the input to the request. For example,
+//   a required parameter might be missing or out of range.
 //
-//   - InvalidRequestException
-//     Indicates that a problem occurred with the input to the request. For example,
-//     a required parameter might be missing or out of range.
+//   * UnauthorizedException
+//   Indicates that the request is not authorized. This can happen due to an invalid
+//   access token in the request.
 //
-//   - UnauthorizedException
-//     Indicates that the request is not authorized. This can happen due to an invalid
-//     access token in the request.
-//
-//   - TooManyRequestsException
-//     Indicates that the request is being made too frequently and is more than
-//     what the server can handle.
+//   * TooManyRequestsException
+//   Indicates that the request is being made too frequently and is more than
+//   what the server can handle.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/sso-2019-06-10/Logout
 func (c *SSO) Logout(input *LogoutInput) (*LogoutOutput, error) {
@@ -513,37 +499,26 @@ func (c *SSO) LogoutWithContext(ctx aws.Context, input *LogoutInput, opts ...req
 	return out, req.Send()
 }
 
-// Provides information about your Amazon Web Services account.
+// Provides information about your AWS account.
 type AccountInfo struct {
 	_ struct{} `type:"structure"`
 
-	// The identifier of the Amazon Web Services account that is assigned to the
-	// user.
+	// The identifier of the AWS account that is assigned to the user.
 	AccountId *string `locationName:"accountId" type:"string"`
 
-	// The display name of the Amazon Web Services account that is assigned to the
-	// user.
+	// The display name of the AWS account that is assigned to the user.
 	AccountName *string `locationName:"accountName" type:"string"`
 
-	// The email address of the Amazon Web Services account that is assigned to
-	// the user.
+	// The email address of the AWS account that is assigned to the user.
 	EmailAddress *string `locationName:"emailAddress" min:"1" type:"string"`
 }
 
-// String returns the string representation.
-//
-// API parameter values that are decorated as "sensitive" in the API will not
-// be included in the string output. The member name will be present, but the
-// value will be replaced with "sensitive".
+// String returns the string representation
 func (s AccountInfo) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation.
-//
-// API parameter values that are decorated as "sensitive" in the API will not
-// be included in the string output. The member name will be present, but the
-// value will be replaced with "sensitive".
+// GoString returns the string representation
 func (s AccountInfo) GoString() string {
 	return s.String()
 }
@@ -567,21 +542,16 @@ func (s *AccountInfo) SetEmailAddress(v string) *AccountInfo {
 }
 
 type GetRoleCredentialsInput struct {
-	_ struct{} `type:"structure" nopayload:"true"`
+	_ struct{} `type:"structure"`
 
 	// The token issued by the CreateToken API call. For more information, see CreateToken
 	// (https://docs.aws.amazon.com/singlesignon/latest/OIDCAPIReference/API_CreateToken.html)
-	// in the Amazon Web Services SSO OIDC API Reference Guide.
-	//
-	// AccessToken is a sensitive parameter and its value will be
-	// replaced with "sensitive" in string returned by GetRoleCredentialsInput's
-	// String and GoString methods.
+	// in the AWS SSO OIDC API Reference Guide.
 	//
 	// AccessToken is a required field
 	AccessToken *string `location:"header" locationName:"x-amz-sso_bearer_token" type:"string" required:"true" sensitive:"true"`
 
-	// The identifier for the Amazon Web Services account that is assigned to the
-	// user.
+	// The identifier for the AWS account that is assigned to the user.
 	//
 	// AccountId is a required field
 	AccountId *string `location:"querystring" locationName:"account_id" type:"string" required:"true"`
@@ -592,20 +562,12 @@ type GetRoleCredentialsInput struct {
 	RoleName *string `location:"querystring" locationName:"role_name" type:"string" required:"true"`
 }
 
-// String returns the string representation.
-//
-// API parameter values that are decorated as "sensitive" in the API will not
-// be included in the string output. The member name will be present, but the
-// value will be replaced with "sensitive".
+// String returns the string representation
 func (s GetRoleCredentialsInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation.
-//
-// API parameter values that are decorated as "sensitive" in the API will not
-// be included in the string output. The member name will be present, but the
-// value will be replaced with "sensitive".
+// GoString returns the string representation
 func (s GetRoleCredentialsInput) GoString() string {
 	return s.String()
 }
@@ -654,20 +616,12 @@ type GetRoleCredentialsOutput struct {
 	RoleCredentials *RoleCredentials `locationName:"roleCredentials" type:"structure"`
 }
 
-// String returns the string representation.
-//
-// API parameter values that are decorated as "sensitive" in the API will not
-// be included in the string output. The member name will be present, but the
-// value will be replaced with "sensitive".
+// String returns the string representation
 func (s GetRoleCredentialsOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation.
-//
-// API parameter values that are decorated as "sensitive" in the API will not
-// be included in the string output. The member name will be present, but the
-// value will be replaced with "sensitive".
+// GoString returns the string representation
 func (s GetRoleCredentialsOutput) GoString() string {
 	return s.String()
 }
@@ -687,20 +641,12 @@ type InvalidRequestException struct {
 	Message_ *string `locationName:"message" type:"string"`
 }
 
-// String returns the string representation.
-//
-// API parameter values that are decorated as "sensitive" in the API will not
-// be included in the string output. The member name will be present, but the
-// value will be replaced with "sensitive".
+// String returns the string representation
 func (s InvalidRequestException) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation.
-//
-// API parameter values that are decorated as "sensitive" in the API will not
-// be included in the string output. The member name will be present, but the
-// value will be replaced with "sensitive".
+// GoString returns the string representation
 func (s InvalidRequestException) GoString() string {
 	return s.String()
 }
@@ -744,21 +690,16 @@ func (s *InvalidRequestException) RequestID() string {
 }
 
 type ListAccountRolesInput struct {
-	_ struct{} `type:"structure" nopayload:"true"`
+	_ struct{} `type:"structure"`
 
 	// The token issued by the CreateToken API call. For more information, see CreateToken
 	// (https://docs.aws.amazon.com/singlesignon/latest/OIDCAPIReference/API_CreateToken.html)
-	// in the Amazon Web Services SSO OIDC API Reference Guide.
-	//
-	// AccessToken is a sensitive parameter and its value will be
-	// replaced with "sensitive" in string returned by ListAccountRolesInput's
-	// String and GoString methods.
+	// in the AWS SSO OIDC API Reference Guide.
 	//
 	// AccessToken is a required field
 	AccessToken *string `location:"header" locationName:"x-amz-sso_bearer_token" type:"string" required:"true" sensitive:"true"`
 
-	// The identifier for the Amazon Web Services account that is assigned to the
-	// user.
+	// The identifier for the AWS account that is assigned to the user.
 	//
 	// AccountId is a required field
 	AccountId *string `location:"querystring" locationName:"account_id" type:"string" required:"true"`
@@ -771,20 +712,12 @@ type ListAccountRolesInput struct {
 	NextToken *string `location:"querystring" locationName:"next_token" type:"string"`
 }
 
-// String returns the string representation.
-//
-// API parameter values that are decorated as "sensitive" in the API will not
-// be included in the string output. The member name will be present, but the
-// value will be replaced with "sensitive".
+// String returns the string representation
 func (s ListAccountRolesInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation.
-//
-// API parameter values that are decorated as "sensitive" in the API will not
-// be included in the string output. The member name will be present, but the
-// value will be replaced with "sensitive".
+// GoString returns the string representation
 func (s ListAccountRolesInput) GoString() string {
 	return s.String()
 }
@@ -843,20 +776,12 @@ type ListAccountRolesOutput struct {
 	RoleList []*RoleInfo `locationName:"roleList" type:"list"`
 }
 
-// String returns the string representation.
-//
-// API parameter values that are decorated as "sensitive" in the API will not
-// be included in the string output. The member name will be present, but the
-// value will be replaced with "sensitive".
+// String returns the string representation
 func (s ListAccountRolesOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation.
-//
-// API parameter values that are decorated as "sensitive" in the API will not
-// be included in the string output. The member name will be present, but the
-// value will be replaced with "sensitive".
+// GoString returns the string representation
 func (s ListAccountRolesOutput) GoString() string {
 	return s.String()
 }
@@ -874,15 +799,11 @@ func (s *ListAccountRolesOutput) SetRoleList(v []*RoleInfo) *ListAccountRolesOut
 }
 
 type ListAccountsInput struct {
-	_ struct{} `type:"structure" nopayload:"true"`
+	_ struct{} `type:"structure"`
 
 	// The token issued by the CreateToken API call. For more information, see CreateToken
 	// (https://docs.aws.amazon.com/singlesignon/latest/OIDCAPIReference/API_CreateToken.html)
-	// in the Amazon Web Services SSO OIDC API Reference Guide.
-	//
-	// AccessToken is a sensitive parameter and its value will be
-	// replaced with "sensitive" in string returned by ListAccountsInput's
-	// String and GoString methods.
+	// in the AWS SSO OIDC API Reference Guide.
 	//
 	// AccessToken is a required field
 	AccessToken *string `location:"header" locationName:"x-amz-sso_bearer_token" type:"string" required:"true" sensitive:"true"`
@@ -895,20 +816,12 @@ type ListAccountsInput struct {
 	NextToken *string `location:"querystring" locationName:"next_token" type:"string"`
 }
 
-// String returns the string representation.
-//
-// API parameter values that are decorated as "sensitive" in the API will not
-// be included in the string output. The member name will be present, but the
-// value will be replaced with "sensitive".
+// String returns the string representation
 func (s ListAccountsInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation.
-//
-// API parameter values that are decorated as "sensitive" in the API will not
-// be included in the string output. The member name will be present, but the
-// value will be replaced with "sensitive".
+// GoString returns the string representation
 func (s ListAccountsInput) GoString() string {
 	return s.String()
 }
@@ -958,20 +871,12 @@ type ListAccountsOutput struct {
 	NextToken *string `locationName:"nextToken" type:"string"`
 }
 
-// String returns the string representation.
-//
-// API parameter values that are decorated as "sensitive" in the API will not
-// be included in the string output. The member name will be present, but the
-// value will be replaced with "sensitive".
+// String returns the string representation
 func (s ListAccountsOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation.
-//
-// API parameter values that are decorated as "sensitive" in the API will not
-// be included in the string output. The member name will be present, but the
-// value will be replaced with "sensitive".
+// GoString returns the string representation
 func (s ListAccountsOutput) GoString() string {
 	return s.String()
 }
@@ -989,34 +894,22 @@ func (s *ListAccountsOutput) SetNextToken(v string) *ListAccountsOutput {
 }
 
 type LogoutInput struct {
-	_ struct{} `type:"structure" nopayload:"true"`
+	_ struct{} `type:"structure"`
 
 	// The token issued by the CreateToken API call. For more information, see CreateToken
 	// (https://docs.aws.amazon.com/singlesignon/latest/OIDCAPIReference/API_CreateToken.html)
-	// in the Amazon Web Services SSO OIDC API Reference Guide.
-	//
-	// AccessToken is a sensitive parameter and its value will be
-	// replaced with "sensitive" in string returned by LogoutInput's
-	// String and GoString methods.
+	// in the AWS SSO OIDC API Reference Guide.
 	//
 	// AccessToken is a required field
 	AccessToken *string `location:"header" locationName:"x-amz-sso_bearer_token" type:"string" required:"true" sensitive:"true"`
 }
 
-// String returns the string representation.
-//
-// API parameter values that are decorated as "sensitive" in the API will not
-// be included in the string output. The member name will be present, but the
-// value will be replaced with "sensitive".
+// String returns the string representation
 func (s LogoutInput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation.
-//
-// API parameter values that are decorated as "sensitive" in the API will not
-// be included in the string output. The member name will be present, but the
-// value will be replaced with "sensitive".
+// GoString returns the string representation
 func (s LogoutInput) GoString() string {
 	return s.String()
 }
@@ -1044,20 +937,12 @@ type LogoutOutput struct {
 	_ struct{} `type:"structure"`
 }
 
-// String returns the string representation.
-//
-// API parameter values that are decorated as "sensitive" in the API will not
-// be included in the string output. The member name will be present, but the
-// value will be replaced with "sensitive".
+// String returns the string representation
 func (s LogoutOutput) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation.
-//
-// API parameter values that are decorated as "sensitive" in the API will not
-// be included in the string output. The member name will be present, but the
-// value will be replaced with "sensitive".
+// GoString returns the string representation
 func (s LogoutOutput) GoString() string {
 	return s.String()
 }
@@ -1070,20 +955,12 @@ type ResourceNotFoundException struct {
 	Message_ *string `locationName:"message" type:"string"`
 }
 
-// String returns the string representation.
-//
-// API parameter values that are decorated as "sensitive" in the API will not
-// be included in the string output. The member name will be present, but the
-// value will be replaced with "sensitive".
+// String returns the string representation
 func (s ResourceNotFoundException) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation.
-//
-// API parameter values that are decorated as "sensitive" in the API will not
-// be included in the string output. The member name will be present, but the
-// value will be replaced with "sensitive".
+// GoString returns the string representation
 func (s ResourceNotFoundException) GoString() string {
 	return s.String()
 }
@@ -1132,49 +1009,31 @@ type RoleCredentials struct {
 	_ struct{} `type:"structure"`
 
 	// The identifier used for the temporary security credentials. For more information,
-	// see Using Temporary Security Credentials to Request Access to Amazon Web
-	// Services Resources (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_temp_use-resources.html)
-	// in the Amazon Web Services IAM User Guide.
+	// see Using Temporary Security Credentials to Request Access to AWS Resources
+	// (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_temp_use-resources.html)
+	// in the AWS IAM User Guide.
 	AccessKeyId *string `locationName:"accessKeyId" type:"string"`
 
 	// The date on which temporary security credentials expire.
 	Expiration *int64 `locationName:"expiration" type:"long"`
 
 	// The key that is used to sign the request. For more information, see Using
-	// Temporary Security Credentials to Request Access to Amazon Web Services Resources
-	// (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_temp_use-resources.html)
-	// in the Amazon Web Services IAM User Guide.
-	//
-	// SecretAccessKey is a sensitive parameter and its value will be
-	// replaced with "sensitive" in string returned by RoleCredentials's
-	// String and GoString methods.
+	// Temporary Security Credentials to Request Access to AWS Resources (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_temp_use-resources.html)
+	// in the AWS IAM User Guide.
 	SecretAccessKey *string `locationName:"secretAccessKey" type:"string" sensitive:"true"`
 
 	// The token used for temporary credentials. For more information, see Using
-	// Temporary Security Credentials to Request Access to Amazon Web Services Resources
-	// (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_temp_use-resources.html)
-	// in the Amazon Web Services IAM User Guide.
-	//
-	// SessionToken is a sensitive parameter and its value will be
-	// replaced with "sensitive" in string returned by RoleCredentials's
-	// String and GoString methods.
+	// Temporary Security Credentials to Request Access to AWS Resources (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_temp_use-resources.html)
+	// in the AWS IAM User Guide.
 	SessionToken *string `locationName:"sessionToken" type:"string" sensitive:"true"`
 }
 
-// String returns the string representation.
-//
-// API parameter values that are decorated as "sensitive" in the API will not
-// be included in the string output. The member name will be present, but the
-// value will be replaced with "sensitive".
+// String returns the string representation
 func (s RoleCredentials) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation.
-//
-// API parameter values that are decorated as "sensitive" in the API will not
-// be included in the string output. The member name will be present, but the
-// value will be replaced with "sensitive".
+// GoString returns the string representation
 func (s RoleCredentials) GoString() string {
 	return s.String()
 }
@@ -1207,27 +1066,19 @@ func (s *RoleCredentials) SetSessionToken(v string) *RoleCredentials {
 type RoleInfo struct {
 	_ struct{} `type:"structure"`
 
-	// The identifier of the Amazon Web Services account assigned to the user.
+	// The identifier of the AWS account assigned to the user.
 	AccountId *string `locationName:"accountId" type:"string"`
 
 	// The friendly name of the role that is assigned to the user.
 	RoleName *string `locationName:"roleName" type:"string"`
 }
 
-// String returns the string representation.
-//
-// API parameter values that are decorated as "sensitive" in the API will not
-// be included in the string output. The member name will be present, but the
-// value will be replaced with "sensitive".
+// String returns the string representation
 func (s RoleInfo) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation.
-//
-// API parameter values that are decorated as "sensitive" in the API will not
-// be included in the string output. The member name will be present, but the
-// value will be replaced with "sensitive".
+// GoString returns the string representation
 func (s RoleInfo) GoString() string {
 	return s.String()
 }
@@ -1253,20 +1104,12 @@ type TooManyRequestsException struct {
 	Message_ *string `locationName:"message" type:"string"`
 }
 
-// String returns the string representation.
-//
-// API parameter values that are decorated as "sensitive" in the API will not
-// be included in the string output. The member name will be present, but the
-// value will be replaced with "sensitive".
+// String returns the string representation
 func (s TooManyRequestsException) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation.
-//
-// API parameter values that are decorated as "sensitive" in the API will not
-// be included in the string output. The member name will be present, but the
-// value will be replaced with "sensitive".
+// GoString returns the string representation
 func (s TooManyRequestsException) GoString() string {
 	return s.String()
 }
@@ -1318,20 +1161,12 @@ type UnauthorizedException struct {
 	Message_ *string `locationName:"message" type:"string"`
 }
 
-// String returns the string representation.
-//
-// API parameter values that are decorated as "sensitive" in the API will not
-// be included in the string output. The member name will be present, but the
-// value will be replaced with "sensitive".
+// String returns the string representation
 func (s UnauthorizedException) String() string {
 	return awsutil.Prettify(s)
 }
 
-// GoString returns the string representation.
-//
-// API parameter values that are decorated as "sensitive" in the API will not
-// be included in the string output. The member name will be present, but the
-// value will be replaced with "sensitive".
+// GoString returns the string representation
 func (s UnauthorizedException) GoString() string {
 	return s.String()
 }

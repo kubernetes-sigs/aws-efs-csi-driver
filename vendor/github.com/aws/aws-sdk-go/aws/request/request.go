@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"reflect"
@@ -526,14 +525,6 @@ func (r *Request) GetBody() io.ReadSeeker {
 // Send will not close the request.Request's body.
 func (r *Request) Send() error {
 	defer func() {
-		// Ensure a non-nil HTTPResponse parameter is set to ensure handlers
-		// checking for HTTPResponse values, don't fail.
-		if r.HTTPResponse == nil {
-			r.HTTPResponse = &http.Response{
-				Header: http.Header{},
-				Body:   ioutil.NopCloser(&bytes.Buffer{}),
-			}
-		}
 		// Regardless of success or failure of the request trigger the Complete
 		// request handlers.
 		r.Handlers.Complete.Run(r)
