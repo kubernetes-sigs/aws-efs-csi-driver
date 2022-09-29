@@ -11,32 +11,31 @@ const (
 	// ErrCodeAccessPointAlreadyExists for service response error code
 	// "AccessPointAlreadyExists".
 	//
-	// Returned if the access point that you are trying to create already exists,
-	// with the creation token you provided in the request.
+	// Returned if the access point you are trying to create already exists, with
+	// the creation token you provided in the request.
 	ErrCodeAccessPointAlreadyExists = "AccessPointAlreadyExists"
 
 	// ErrCodeAccessPointLimitExceeded for service response error code
 	// "AccessPointLimitExceeded".
 	//
-	// Returned if the Amazon Web Services account has already created the maximum
-	// number of access points allowed per file system. For more informaton, see
-	// https://docs.aws.amazon.com/efs/latest/ug/limits.html#limits-efs-resources-per-account-per-region
-	// (https://docs.aws.amazon.com/efs/latest/ug/limits.html#limits-efs-resources-per-account-per-region).
+	// Returned if the AWS account has already created the maximum number of access
+	// points allowed per file system.
 	ErrCodeAccessPointLimitExceeded = "AccessPointLimitExceeded"
 
 	// ErrCodeAccessPointNotFound for service response error code
 	// "AccessPointNotFound".
 	//
 	// Returned if the specified AccessPointId value doesn't exist in the requester's
-	// Amazon Web Services account.
+	// AWS account.
 	ErrCodeAccessPointNotFound = "AccessPointNotFound"
 
 	// ErrCodeAvailabilityZonesMismatch for service response error code
 	// "AvailabilityZonesMismatch".
 	//
 	// Returned if the Availability Zone that was specified for a mount target is
-	// different from the Availability Zone that was specified for One Zone storage.
-	// For more information, see Regional and One Zone storage redundancy (https://docs.aws.amazon.com/efs/latest/ug/availability-durability.html).
+	// different from the Availability Zone that was specified for One Zone storage
+	// classes. For more information, see Regional and One Zone storage redundancy
+	// (https://docs.aws.amazon.com/efs/latest/ug/availability-durability.html).
 	ErrCodeAvailabilityZonesMismatch = "AvailabilityZonesMismatch"
 
 	// ErrCodeBadRequest for service response error code
@@ -69,15 +68,15 @@ const (
 	// ErrCodeFileSystemLimitExceeded for service response error code
 	// "FileSystemLimitExceeded".
 	//
-	// Returned if the Amazon Web Services account has already created the maximum
-	// number of file systems allowed per account.
+	// Returned if the AWS account has already created the maximum number of file
+	// systems allowed per account.
 	ErrCodeFileSystemLimitExceeded = "FileSystemLimitExceeded"
 
 	// ErrCodeFileSystemNotFound for service response error code
 	// "FileSystemNotFound".
 	//
 	// Returned if the specified FileSystemId value doesn't exist in the requester's
-	// Amazon Web Services account.
+	// AWS account.
 	ErrCodeFileSystemNotFound = "FileSystemNotFound"
 
 	// ErrCodeIncorrectFileSystemLifeCycleState for service response error code
@@ -99,8 +98,7 @@ const (
 	// This value might be returned when you try to create a file system in provisioned
 	// throughput mode, when you attempt to increase the provisioned throughput
 	// of an existing file system, or when you attempt to change an existing file
-	// system from Bursting Throughput to Provisioned Throughput mode. Try again
-	// later.
+	// system from bursting to provisioned throughput mode. Try again later.
 	ErrCodeInsufficientThroughputCapacity = "InsufficientThroughputCapacity"
 
 	// ErrCodeInternalServerError for service response error code
@@ -112,9 +110,9 @@ const (
 	// ErrCodeInvalidPolicyException for service response error code
 	// "InvalidPolicyException".
 	//
-	// Returned if the FileSystemPolicy is malformed or contains an error such as
-	// a parameter value that is not valid or a missing required parameter. Returned
-	// in the case of a policy lockout safety check error.
+	// Returned if the FileSystemPolicy is is malformed or contains an error such
+	// as an invalid parameter value or a missing required parameter. Returned in
+	// the case of a policy lockout safety check error.
 	ErrCodeInvalidPolicyException = "InvalidPolicyException"
 
 	// ErrCodeIpAddressInUse for service response error code
@@ -135,18 +133,18 @@ const (
 	// "MountTargetNotFound".
 	//
 	// Returned if there is no mount target with the specified ID found in the caller's
-	// Amazon Web Services account.
+	// account.
 	ErrCodeMountTargetNotFound = "MountTargetNotFound"
 
 	// ErrCodeNetworkInterfaceLimitExceeded for service response error code
 	// "NetworkInterfaceLimitExceeded".
 	//
 	// The calling account has reached the limit for elastic network interfaces
-	// for the specific Amazon Web Services Region. Either delete some network interfaces
-	// or request that the account quota be raised. For more information, see Amazon
-	// VPC Quotas (https://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/VPC_Appendix_Limits.html)
-	// in the Amazon VPC User Guide (see the Network interfaces per Region entry
-	// in the Network interfaces table).
+	// for the specific AWS Region. The client should try to delete some elastic
+	// network interfaces or get the account limit raised. For more information,
+	// see Amazon VPC Limits (https://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/VPC_Appendix_Limits.html)
+	// in the Amazon VPC User Guide (see the Network interfaces per VPC entry in
+	// the table).
 	ErrCodeNetworkInterfaceLimitExceeded = "NetworkInterfaceLimitExceeded"
 
 	// ErrCodeNoFreeAddressesInSubnet for service response error code
@@ -163,12 +161,6 @@ const (
 	// system specified.
 	ErrCodePolicyNotFound = "PolicyNotFound"
 
-	// ErrCodeReplicationNotFound for service response error code
-	// "ReplicationNotFound".
-	//
-	// Returned if the specified file system does not have a replication configuration.
-	ErrCodeReplicationNotFound = "ReplicationNotFound"
-
 	// ErrCodeSecurityGroupLimitExceeded for service response error code
 	// "SecurityGroupLimitExceeded".
 	//
@@ -180,7 +172,7 @@ const (
 	// "SecurityGroupNotFound".
 	//
 	// Returned if one of the specified security groups doesn't exist in the subnet's
-	// virtual private cloud (VPC).
+	// VPC.
 	ErrCodeSecurityGroupNotFound = "SecurityGroupNotFound"
 
 	// ErrCodeSubnetNotFound for service response error code
@@ -188,13 +180,6 @@ const (
 	//
 	// Returned if there is no subnet with ID SubnetId provided in the request.
 	ErrCodeSubnetNotFound = "SubnetNotFound"
-
-	// ErrCodeThrottlingException for service response error code
-	// "ThrottlingException".
-	//
-	// Returned when the CreateAccessPoint API action is called too quickly and
-	// the number of Access Points in the account is nearing the limit of 120.
-	ErrCodeThrottlingException = "ThrottlingException"
 
 	// ErrCodeThroughputLimitExceeded for service response error code
 	// "ThroughputLimitExceeded".
@@ -206,8 +191,8 @@ const (
 	// ErrCodeTooManyRequests for service response error code
 	// "TooManyRequests".
 	//
-	// Returned if you don’t wait at least 24 hours before either changing the
-	// throughput mode, or decreasing the Provisioned Throughput value.
+	// Returned if you don’t wait at least 24 hours before changing the throughput
+	// mode, or decreasing the Provisioned Throughput value.
 	ErrCodeTooManyRequests = "TooManyRequests"
 
 	// ErrCodeUnsupportedAvailabilityZone for service response error code
@@ -220,8 +205,8 @@ const (
 	// ErrCodeValidationException for service response error code
 	// "ValidationException".
 	//
-	// Returned if the Backup service is not available in the Amazon Web Services
-	// Region in which the request was made.
+	// Returned if the AWS Backup service is not available in the Region in which
+	// the request was made.
 	ErrCodeValidationException = "ValidationException"
 )
 
@@ -247,11 +232,9 @@ var exceptionFromCode = map[string]func(protocol.ResponseMetadata) error{
 	"NetworkInterfaceLimitExceeded":     newErrorNetworkInterfaceLimitExceeded,
 	"NoFreeAddressesInSubnet":           newErrorNoFreeAddressesInSubnet,
 	"PolicyNotFound":                    newErrorPolicyNotFound,
-	"ReplicationNotFound":               newErrorReplicationNotFound,
 	"SecurityGroupLimitExceeded":        newErrorSecurityGroupLimitExceeded,
 	"SecurityGroupNotFound":             newErrorSecurityGroupNotFound,
 	"SubnetNotFound":                    newErrorSubnetNotFound,
-	"ThrottlingException":               newErrorThrottlingException,
 	"ThroughputLimitExceeded":           newErrorThroughputLimitExceeded,
 	"TooManyRequests":                   newErrorTooManyRequests,
 	"UnsupportedAvailabilityZone":       newErrorUnsupportedAvailabilityZone,

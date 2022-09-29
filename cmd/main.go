@@ -60,7 +60,6 @@ func main() {
 	if err != nil {
 		klog.Fatalln(err)
 	}
-
 	drv := driver.NewDriver(*endpoint, etcAmazonEfs, *efsUtilsStaticFilesPath, *tags, *volMetricsOptIn, *volMetricsRefreshPeriod, *volMetricsFsRateLimit, *deleteAccessPointRootDir)
 	if err := drv.Run(); err != nil {
 		klog.Fatalln(err)

@@ -258,8 +258,7 @@ func (o PeerCallOption) after(c *callInfo, attempt *csAttempt) {
 }
 
 // WaitForReady configures the action to take when an RPC is attempted on broken
-// connections or unreachable servers. If waitForReady is false and the
-// connection is in the TRANSIENT_FAILURE state, the RPC will fail
+// connections or unreachable servers. If waitForReady is false, the RPC will fail
 // immediately. Otherwise, the RPC client will block the call until a
 // connection is available (or the call is canceled or times out) and will
 // retry the call if it fails due to a transient error.  gRPC will not retry if
@@ -712,11 +711,13 @@ func recvAndDecompress(p *parser, s *transport.Stream, dc Decompressor, maxRecei
 		if err != nil {
 			return nil, status.Errorf(codes.Internal, "grpc: failed to decompress the received message %v", err)
 		}
-		if size > maxReceiveMessageSize {
-			// TODO: Revisit the error code. Currently keep it consistent with java
-			// implementation.
-			return nil, status.Errorf(codes.ResourceExhausted, "grpc: received message after decompression larger than max (%d vs. %d)", size, maxReceiveMessageSize)
-		}
+	} else {
+		size = len(d)
+	}
+	if size > maxReceiveMessageSize {
+		// TODO: Revisit the error code. Currently keep it consistent with java
+		// implementation.
+		return nil, status.Errorf(codes.ResourceExhausted, "grpc: received message larger than max (%d vs. %d)", size, maxReceiveMessageSize)
 	}
 	return d, nil
 }
@@ -827,28 +828,26 @@ func Errorf(c codes.Code, format string, a ...interface{}) error {
 
 // toRPCErr converts an error into an error from the status package.
 func toRPCErr(err error) error {
-	switch err {
-	case nil, io.EOF:
+	if err == nil || err == io.EOF {
 		return err
-	case context.DeadlineExceeded:
-		return status.Error(codes.DeadlineExceeded, err.Error())
-	case context.Canceled:
-		return status.Error(codes.Canceled, err.Error())
-	case io.ErrUnexpectedEOF:
+	}
+	if err == io.ErrUnexpectedEOF {
 		return status.Error(codes.Internal, err.Error())
 	}
-
-	switch e := err.(type) {
-	case transport.ConnectionError:
-		return status.Error(codes.Unavailable, e.Desc)
-	case *transport.NewStreamError:
-		return toRPCErr(e.Err)
-	}
-
 	if _, ok := status.FromError(err); ok {
 		return err
 	}
-
+	switch e := err.(type) {
+	case transport.ConnectionError:
+		return status.Error(codes.Unavailable, e.Desc)
+	default:
+		switch err {
+		case context.DeadlineExceeded:
+			return status.Error(codes.DeadlineExceeded, err.Error())
+		case context.Canceled:
+			return status.Error(codes.Canceled, err.Error())
+		}
+	}
 	return status.Error(codes.Unknown, err.Error())
 }
 

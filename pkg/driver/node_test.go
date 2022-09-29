@@ -173,26 +173,6 @@ func TestNodePublishVolume(t *testing.T) {
 			mountSuccess:  true,
 		},
 		{
-			name: "success: normal with iam mount options",
-			req: &csi.NodePublishVolumeRequest{
-				VolumeId: volumeId,
-				VolumeCapability: &csi.VolumeCapability{
-					AccessType: &csi.VolumeCapability_Mount{
-						Mount: &csi.VolumeCapability_MountVolume{
-							MountFlags: []string{"iam"},
-						},
-					},
-					AccessMode: &csi.VolumeCapability_AccessMode{
-						Mode: csi.VolumeCapability_AccessMode_MULTI_NODE_MULTI_WRITER,
-					},
-				},
-				TargetPath: targetPath,
-			},
-			expectMakeDir: true,
-			mountArgs:     []interface{}{volumeId + ":/", targetPath, "efs", []string{"tls", "iam"}},
-			mountSuccess:  true,
-		},
-		{
 			// TODO: Validate deprecation warning
 			name: "success: normal with path in volume context",
 			req: &csi.NodePublishVolumeRequest{
@@ -321,30 +301,6 @@ func TestNodePublishVolume(t *testing.T) {
 			},
 			expectMakeDir: true,
 			mountArgs:     []interface{}{volumeId + ":/", targetPath, "efs", []string{}},
-			mountSuccess:  true,
-		},
-		{
-			name: "success: normal with podIAMAuthorization true volume context",
-			req: &csi.NodePublishVolumeRequest{
-				VolumeId:         volumeId + "::" + accessPointID,
-				VolumeCapability: stdVolCap,
-				TargetPath:       targetPath,
-				VolumeContext:    map[string]string{"podIAMAuthorization": "true"},
-			},
-			expectMakeDir: true,
-			mountArgs:     []interface{}{volumeId + ":/", targetPath, "efs", []string{"accesspoint=" + accessPointID, "tls", "iam"}},
-			mountSuccess:  true,
-		},
-		{
-			name: "success: normal with podIAMAuthorization true volume context",
-			req: &csi.NodePublishVolumeRequest{
-				VolumeId:         volumeId + "::" + accessPointID,
-				VolumeCapability: stdVolCap,
-				TargetPath:       targetPath,
-				VolumeContext:    map[string]string{"podIAMAuthorization": "false"},
-			},
-			expectMakeDir: true,
-			mountArgs:     []interface{}{volumeId + ":/", targetPath, "efs", []string{"accesspoint=" + accessPointID, "tls"}},
 			mountSuccess:  true,
 		},
 		{
@@ -610,20 +566,6 @@ func TestNodePublishVolume(t *testing.T) {
 			expectError: errtyp{
 				code:    "InvalidArgument",
 				message: "Found tls in mountOptions but encryptInTransit is false",
-			},
-		},
-		{
-			name: "fail: normal with podIAMAuthorization true volume context",
-			req: &csi.NodePublishVolumeRequest{
-				VolumeId:         volumeId + "::" + accessPointID,
-				VolumeCapability: stdVolCap,
-				TargetPath:       targetPath,
-				VolumeContext:    map[string]string{"podIAMAuthorization": "aaa"},
-			},
-			expectMakeDir: false,
-			expectError: errtyp{
-				code:    "InvalidArgument",
-				message: "Volume context property \"podIAMAuthorization\" must be a boolean value: strconv.ParseBool: parsing \"aaa\": invalid syntax",
 			},
 		},
 		{
