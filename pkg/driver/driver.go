@@ -46,7 +46,7 @@ type Driver struct {
 	volMetricsRefreshPeriod  float64
 	volMetricsFsRateLimit    int
 	volStatter               VolStatter
-	gidAllocator             GidAllocator
+	fsIdentityManager        FileSystemIdentityManager
 	deleteAccessPointRootDir bool
 	tags                     map[string]string
 }
@@ -60,9 +60,8 @@ func NewDriver(endpoint, efsUtilsCfgPath, efsUtilsStaticFilesPath, tags string, 
 	nodeCaps := SetNodeCapOptInFeatures(volMetricsOptIn)
 	watchdog := newExecWatchdog(efsUtilsCfgPath, efsUtilsStaticFilesPath, "amazon-efs-mount-watchdog")
 	parsedTags := parseTagsFromStr(strings.TrimSpace(tags))
-	gidAllocator := NewGidAllocator()
 	mounter := newNodeMounter()
-	provisioners := getProvisioners(parsedTags, cloud, &gidAllocator, deleteAccessPointRootDir, mounter)
+	provisioners := getProvisioners(parsedTags, cloud, deleteAccessPointRootDir, mounter)
 
 	return &Driver{
 		endpoint:                endpoint,
@@ -77,6 +76,7 @@ func NewDriver(endpoint, efsUtilsCfgPath, efsUtilsStaticFilesPath, tags string, 
 		volMetricsRefreshPeriod: volMetricsRefreshPeriod,
 		volMetricsFsRateLimit:   volMetricsFsRateLimit,
 		tags:                    parsedTags,
+		fsIdentityManager:       NewFileSystemIdentityManager(),
 	}
 }
 

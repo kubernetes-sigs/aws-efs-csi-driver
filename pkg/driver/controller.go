@@ -93,9 +93,16 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 	provisioner := d.provisioners[mode]
 	klog.V(5).Infof("CreateVolume: provisioning mode %s selected. Support modes are %s", mode,
 		strings.Join(d.GetProvisioningModes(), ","))
-	volume, err := provisioner.Provision(ctx, req)
+
+	uid, gid, err := d.fsIdentityManager.GetUidAndGid(
+		volumeParams[Uid], volumeParams[Gid], volumeParams[GidMin], volumeParams[GidMax], volumeParams[FsId])
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "Could not assign UID or GID to access point")
+	}
+	volume, err := provisioner.Provision(ctx, req, uid, gid)
 
 	if err != nil {
+		d.fsIdentityManager.ReleaseGid(volumeParams[FsId], gid)
 		return nil, status.Errorf(codes.Internal, "Could not provision underlying storage: %v", err)
 	}
 
@@ -208,28 +215,4 @@ func (d *Driver) ControllerExpandVolume(ctx context.Context, req *csi.Controller
 func (d *Driver) ControllerGetVolume(ctx context.Context, req *csi.ControllerGetVolumeRequest) (*csi.ControllerGetVolumeResponse, error) {
 
 	return nil, status.Error(codes.Unimplemented, "")
-}
-
-func getCloud(secrets map[string]string, driver *Driver) (cloud.Cloud, string, error) {
-
-	var localCloud cloud.Cloud
-	var roleArn string
-	var err error
-
-	// Fetch aws role ARN for cross account mount from CSI secrets. Link to CSI secrets below
-	// https://kubernetes-csi.github.io/docs/secrets-and-credentials.html#csi-operation-secrets
-	if value, ok := secrets[RoleArn]; ok {
-		roleArn = value
-	}
-
-	if roleArn != "" {
-		localCloud, err = cloud.NewCloudWithRole(roleArn)
-		if err != nil {
-			return nil, "", status.Errorf(codes.Unauthenticated, "Unable to initialize aws cloud: %v. Please verify role has the correct AWS permissions for cross account mount", err)
-		}
-	} else {
-		localCloud = driver.cloud
-	}
-
-	return localCloud, roleArn, nil
 }

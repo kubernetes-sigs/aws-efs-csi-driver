@@ -3,7 +3,6 @@ package driver
 import (
 	"context"
 	"os"
-	"strconv"
 	"strings"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
@@ -15,31 +14,29 @@ import (
 )
 
 type Provisioner interface {
-	Provision(ctx context.Context, req *csi.CreateVolumeRequest) (*csi.Volume, error)
+	Provision(ctx context.Context, req *csi.CreateVolumeRequest, uid, gid int64) (*csi.Volume, error)
 	Delete(ctx context.Context, req *csi.DeleteVolumeRequest) error
 }
 
 type AccessPointProvisioner struct {
 	tags                     map[string]string
 	cloud                    cloud.Cloud
-	gidAllocator             *GidAllocator
 	deleteAccessPointRootDir bool
 	mounter                  Mounter
 }
 
-func getProvisioners(tags map[string]string, cloud cloud.Cloud, gidAllocator *GidAllocator, deleteAccessPointRootDir bool, mounter Mounter) map[string]Provisioner {
+func getProvisioners(tags map[string]string, cloud cloud.Cloud, deleteAccessPointRootDir bool, mounter Mounter) map[string]Provisioner {
 	return map[string]Provisioner{
 		AccessPointMode: AccessPointProvisioner{
 			tags:                     tags,
 			cloud:                    cloud,
-			gidAllocator:             gidAllocator,
 			deleteAccessPointRootDir: deleteAccessPointRootDir,
 			mounter:                  mounter,
 		},
 	}
 }
 
-func (a AccessPointProvisioner) Provision(ctx context.Context, req *csi.CreateVolumeRequest) (*csi.Volume, error) {
+func (a AccessPointProvisioner) Provision(ctx context.Context, req *csi.CreateVolumeRequest, uid, gid int64) (*csi.Volume, error) {
 	volumeParams := req.GetParameters()
 	volName := req.GetName()
 	if volName == "" {
@@ -54,11 +51,7 @@ func (a AccessPointProvisioner) Provision(ctx context.Context, req *csi.CreateVo
 		azName   string
 		basePath string
 		err      error
-		gid      int
-		gidMin   int
-		gidMax   int
 		roleArn  string
-		uid      int
 	)
 
 	// Create tags
@@ -85,63 +78,6 @@ func (a AccessPointProvisioner) Provision(ctx context.Context, req *csi.CreateVo
 		accessPointsOptions.FileSystemId = value
 	} else {
 		return nil, status.Errorf(codes.InvalidArgument, "Missing %v parameter", FsId)
-	}
-
-	uid = -1
-	if value, ok := volumeParams[Uid]; ok {
-		uid, err = strconv.Atoi(value)
-		if err != nil {
-			return nil, status.Errorf(codes.InvalidArgument, "Failed to parse invalid %v: %v", Uid, err)
-		}
-		if uid < 0 {
-			return nil, status.Errorf(codes.InvalidArgument, "%v must be greater or equal than 0", Uid)
-		}
-	}
-
-	gid = -1
-	if value, ok := volumeParams[Gid]; ok {
-		gid, err = strconv.Atoi(value)
-		if err != nil {
-			return nil, status.Errorf(codes.InvalidArgument, "Failed to parse invalid %v: %v", Gid, err)
-		}
-		if uid < 0 {
-			return nil, status.Errorf(codes.InvalidArgument, "%v must be greater or equal than 0", Gid)
-		}
-	}
-
-	if value, ok := volumeParams[GidMin]; ok {
-		gidMin, err = strconv.Atoi(value)
-		if err != nil {
-			return nil, status.Errorf(codes.InvalidArgument, "Failed to parse invalid %v: %v", GidMin, err)
-		}
-		if gidMin <= 0 {
-			return nil, status.Errorf(codes.InvalidArgument, "%v must be greater than 0", GidMin)
-		}
-	}
-
-	if value, ok := volumeParams[GidMax]; ok {
-		// Ensure GID min is provided with GID max
-		if gidMin == 0 {
-			return nil, status.Errorf(codes.InvalidArgument, "Missing %v parameter", GidMin)
-		}
-		gidMax, err = strconv.Atoi(value)
-		if err != nil {
-			return nil, status.Errorf(codes.InvalidArgument, "Failed to parse invalid %v: %v", GidMax, err)
-		}
-		if gidMax <= gidMin {
-			return nil, status.Errorf(codes.InvalidArgument, "%v must be greater than %v", GidMax, GidMin)
-		}
-	} else {
-		// Ensure GID max is provided with GID min
-		if gidMin != 0 {
-			return nil, status.Errorf(codes.InvalidArgument, "Missing %v parameter", GidMax)
-		}
-	}
-
-	// Assign default GID ranges if not provided
-	if gidMin == 0 && gidMax == 0 {
-		gidMin = DefaultGidMin
-		gidMax = DefaultGidMax
 	}
 
 	if value, ok := volumeParams[DirectoryPerms]; ok {
@@ -177,30 +113,15 @@ func (a AccessPointProvisioner) Provision(ctx context.Context, req *csi.CreateVo
 		return nil, status.Errorf(codes.Internal, "Failed to fetch File System info: %v", err)
 	}
 
-	var allocatedGid int
-	if uid == -1 || gid == -1 {
-		allocatedGid, err = a.gidAllocator.getNextGid(accessPointsOptions.FileSystemId, gidMin, gidMax)
-		if err != nil {
-			return nil, err
-		}
-	}
-	if uid == -1 {
-		uid = allocatedGid
-	}
-	if gid == -1 {
-		gid = allocatedGid
-	}
-
 	rootDirName := volName
 	rootDir := basePath + "/" + rootDirName
 
-	accessPointsOptions.Uid = int64(uid)
-	accessPointsOptions.Gid = int64(gid)
+	accessPointsOptions.Uid = uid
+	accessPointsOptions.Gid = gid
 	accessPointsOptions.DirectoryPath = rootDir
 
 	accessPointId, err := localCloud.CreateAccessPoint(ctx, volName, accessPointsOptions)
 	if err != nil {
-		a.gidAllocator.releaseGid(accessPointsOptions.FileSystemId, gid)
 		if err == cloud.ErrAccessDenied {
 			return nil, status.Errorf(codes.Unauthenticated, "Access Denied. Please ensure you have the right AWS permissions: %v", err)
 		}
