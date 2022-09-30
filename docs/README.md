@@ -26,17 +26,18 @@ The following CSI interfaces are implemented:
 * Identity Service: GetPluginInfo, GetPluginCapabilities, Probe
 
 ### Storage Class Parameters for Dynamic Provisioning
-| Parameters          | Values | Default | Optional  | Description |
-|---------------------|--------|---------|-----------|-------------|
-| provisioningMode    | efs-ap |         | false     | Type of volume provisioned by efs. Currently, Access Points are supported. |
-| fileSystemId        |        |         | false     | File System under which access points are created. | 
-| directoryPerms      |        |         | false     | Directory permissions for [Access Point root directory](https://docs.aws.amazon.com/efs/latest/ug/efs-access-points.html#enforce-root-directory-access-point) creation. |
-| uid                 |        |         | true      | POSIX user Id to be applied for [Access Point root directory](https://docs.aws.amazon.com/efs/latest/ug/efs-access-points.html#enforce-root-directory-access-point) creation and for [user identity enforcement](https://docs.aws.amazon.com/efs/latest/ug/efs-access-points.html#enforce-identity-access-points). |
-| gid                 |        |         | true      | POSIX group Id to be applied for [Access Point root directory](https://docs.aws.amazon.com/efs/latest/ug/efs-access-points.html#enforce-root-directory-access-point) creation and for [user identity enforcement](https://docs.aws.amazon.com/efs/latest/ug/efs-access-points.html#enforce-identity-access-points). |
-| gidRangeStart       |        | 50000   | true      | Start range of the POSIX group Id to be applied for [Access Point root directory](https://docs.aws.amazon.com/efs/latest/ug/efs-access-points.html#enforce-root-directory-access-point) creation and for [user identity enforcement](https://docs.aws.amazon.com/efs/latest/ug/efs-access-points.html#enforce-identity-access-points). Not used if uid/gid is set. For user identity enforcement, this value will be applied as both the uid and the gid. |
-| gidRangeEnd         |        | 7000000 | true      | End range of the POSIX group Id. Not used if uid/gid is set. |
-| basePath            |        |         | true      | Path under which access points for dynamic provisioning is created. If this parameter is not specified, access points are created under the root directory of the file system |
-| az                  |        |   ""    | true      | Used for cross-account mount. `az` under storage class parameter is optional. If specified, mount target associated with the az will be used for cross-account mount. If not specified, a random mount target will be picked for cross account mount |
+| Parameters       | Values | Default | Optional  | Description                                                                                                                                                                                                                                          |
+|------------------|--------|---------|-----------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| provisioningMode | efs-ap |         | false     | Type of volume provisioned by efs. Currently, Access Points are supported.                                                                                                                                                                           |
+| fileSystemId     |        |         | false     | File System under which access points are created.                                                                                                                                                                                                   | 
+| directoryPerms   |        |         | false     | Directory permissions for [Access Point root directory](https://docs.aws.amazon.com/efs/latest/ug/efs-access-points.html#enforce-root-directory-access-point) creation.                                                                              |
+| uid              |        |         | true      | POSIX user Id to be applied for [Access Point root directory](https://docs.aws.amazon.com/efs/latest/ug/efs-access-points.html#enforce-root-directory-access-point) creation.                                                                        |
+| gid              |        |         | true      | POSIX group Id to be applied for [Access Point root directory](https://docs.aws.amazon.com/efs/latest/ug/efs-access-points.html#enforce-root-directory-access-point) creation.                                                                       |
+| gidRangeStart    |        | 50000   | true      | Start range of the POSIX group Id to be applied for [Access Point root directory](https://docs.aws.amazon.com/efs/latest/ug/efs-access-points.html#enforce-root-directory-access-point) creation. Not used if uid/gid is set.                        |
+| gidRangeEnd      |        | 7000000 | true      | End range of the POSIX group Id. Not used if uid/gid is set.                                                                                                                                                                                         |
+| basePath         |        |         | true      | Path under which access points for dynamic provisioning is created. If this parameter is not specified, access points are created under the root directory of the file system                                                                        |
+| az               |        | ""      | true      | Used for cross-account mount. `az` under storage class parameter is optional. If specified, mount target associated with the az will be used for cross-account mount. If not specified, a random mount target will be picked for cross account mount |
+| encryptInTransit |        | false   | true      | A boolean to indicate whether `encryptInTransit` should be set on the PersistentVolumes that are created                                                                                                                                             |
 
 **Notes**:
 * Custom Posix group Id range for Access Point root directory must include both `gidRangeStart` and `gidRangeEnd` parameters. These parameters are optional only if both are omitted. If you specify one, the other becomes mandatory.
@@ -49,7 +50,10 @@ The following CSI interfaces are implemented:
 ### Encryption In Transit
 One of the advantages of using EFS is that it provides [encryption in transit](https://aws.amazon.com/blogs/aws/new-encryption-of-data-in-transit-for-amazon-efs/) support using TLS. Using encryption in transit, data will be encrypted during its transition over the network to the EFS service. This provides an extra layer of defence-in-depth for applications that requires strict security compliance.
 
-Encryption in transit is enabled by default in the master branch version of the driver. To disable it and mount volumes using plain NFSv4, set `volumeAttributes` field `encryptInTransit` to `"false"` in your persistent volume manifest. For an example manifest, see [Encryption in Transit Example](../examples/kubernetes/encryption_in_transit/specs/pv.yaml).
+Encryption in transit is enabled by default in the master branch version of the driver, for both static and dynamic provisioning. 
+To disable it and mount volumes using plain NFSv4:
+* If using static provisioning, set `volumeAttributes` field `encryptInTransit` to `"false"` in your persistent volume manifest, see [example](../examples/kubernetes/encryption_in_transit_static/specs/pv.yaml)
+* If using dynamic provisioning, add `encryptInTransit: true` to the StorageClass Parameters . For an example manifest, see [example](../examples/kubernetes/encryption_in_transit_dynamic/specs/storageclass.yaml).
 
 **Note** Kubernetes version 1.13+ is required if you are using this feature in Kubernetes.
 
@@ -142,7 +146,7 @@ Before the example, you need to:
 #### Example links
 * [Static provisioning](../examples/kubernetes/static_provisioning/README.md)
 * [Dynamic provisioning](../examples/kubernetes/dynamic_provisioning/README.md)
-* [Encryption in transit](../examples/kubernetes/encryption_in_transit/README.md)
+* [Encryption in transit](../examples/kubernetes/encryption_in_transit_static/README.md)
 * [Accessing the file system from multiple pods](../examples/kubernetes/multiple_pods/README.md)
 * [Consume EFS in StatefulSets](../examples/kubernetes/statefulset/README.md)
 * [Mount subpath](../examples/kubernetes/volume_path/README.md)

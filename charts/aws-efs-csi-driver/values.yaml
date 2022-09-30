@@ -138,5 +138,6 @@ storageClasses: []
 #     gidRangeStart: "1000"
 #     gidRangeEnd: "2000"
 #     basePath: "/dynamic_provisioning"
+#     encryptInTransit: false
 #   reclaimPolicy: Delete
 #   volumeBindingMode: Immediate
