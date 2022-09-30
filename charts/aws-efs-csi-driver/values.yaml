@@ -179,5 +179,6 @@ storageClasses: []
 #     gidRangeStart: "1000"
 #     gidRangeEnd: "2000"
 #     basePath: "/dynamic_provisioning"
+#     extraTags: "a:b foo:bar"
 #   reclaimPolicy: Delete
 #   volumeBindingMode: Immediate
