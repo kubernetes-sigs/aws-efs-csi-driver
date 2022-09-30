@@ -162,6 +162,12 @@ node:
     runAsUser: 0
     runAsGroup: 0
     fsGroup: 0
+  ## Set this if using the driver in a disconnected region or partition, and you have to provide a custom CA bundle.
+  #caBundle:
+  #  name: custom-bundle-configmap-name
+  #  key: custom-bundle-configmap-key
+  #  path: custom-bundle-path
+  #  mountPath: path-to-mount-bundle-in-container
 
 storageClasses: []
 # Add StorageClass resources like:
