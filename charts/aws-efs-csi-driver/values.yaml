@@ -60,7 +60,7 @@ controller:
     # environment: prod
     # region: us-east-1
   # Enable if you want the controller to also delete the
-  # path on efs when deleteing an access point
+  # path on efs when deleting an EFS access point
   deleteAccessPointRootDir: false
   # Enable if you want the controller to delete any directories it also provisions
   deleteProvisionedDir: false

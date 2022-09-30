@@ -26,17 +26,17 @@ The following CSI interfaces are implemented:
 * Identity Service: GetPluginInfo, GetPluginCapabilities, Probe
 
 ### Storage Class Parameters for Dynamic Provisioning
-| Parameters          | Values | Default | Optional  | Description |
-|---------------------|--------|---------|-----------|-------------|
-| provisioningMode    | efs-ap |         | false     | Type of volume provisioned by efs. Currently, Access Points are supported. |
-| fileSystemId        |        |         | false     | File System under which access points are created. | 
-| directoryPerms      |        |         | false     | Directory permissions for [Access Point root directory](https://docs.aws.amazon.com/efs/latest/ug/efs-access-points.html#enforce-root-directory-access-point) creation. |
-| uid                 |        |         | true      | POSIX user Id to be applied for [Access Point root directory](https://docs.aws.amazon.com/efs/latest/ug/efs-access-points.html#enforce-root-directory-access-point) creation and for [user identity enforcement](https://docs.aws.amazon.com/efs/latest/ug/efs-access-points.html#enforce-identity-access-points). |
-| gid                 |        |         | true      | POSIX group Id to be applied for [Access Point root directory](https://docs.aws.amazon.com/efs/latest/ug/efs-access-points.html#enforce-root-directory-access-point) creation and for [user identity enforcement](https://docs.aws.amazon.com/efs/latest/ug/efs-access-points.html#enforce-identity-access-points). |
-| gidRangeStart       |        | 50000   | true      | Start range of the POSIX group Id to be applied for [Access Point root directory](https://docs.aws.amazon.com/efs/latest/ug/efs-access-points.html#enforce-root-directory-access-point) creation and for [user identity enforcement](https://docs.aws.amazon.com/efs/latest/ug/efs-access-points.html#enforce-identity-access-points). Not used if uid/gid is set. For user identity enforcement, this value will be applied as both the uid and the gid. |
-| gidRangeEnd         |        | 7000000 | true      | End range of the POSIX group Id. Not used if uid/gid is set. |
-| basePath            |        |         | true      | Path under which access points for dynamic provisioning is created. If this parameter is not specified, access points are created under the root directory of the file system |
-| az                  |        |   ""    | true      | Used for cross-account mount. `az` under storage class parameter is optional. If specified, mount target associated with the az will be used for cross-account mount. If not specified, a random mount target will be picked for cross account mount |
+| Parameters          | Values         | Default | Optional  | Description                                                                                                                                                                                                                                          |
+|---------------------|----------------|---------|-----------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| provisioningMode    | efs-ap/efs-dir |         | false     | Type of volume provisioned by efs. `efs-ap` will provision EFS Access Points, while `efs-dir` will provision directories on the EFS instead.                                                                                                         |
+| fileSystemId        |                |         | false     | File System under which access points are created.                                                                                                                                                                                                   | 
+| directoryPerms      |                |         | false     | Directory permissions for [Access Point root directory](https://docs.aws.amazon.com/efs/latest/ug/efs-access-points.html#enforce-root-directory-access-point) creation.                                                                              |
+| uid                 |                |         | true      | POSIX user Id to be applied for [Access Point root directory](https://docs.aws.amazon.com/efs/latest/ug/efs-access-points.html#enforce-root-directory-access-point) creation.                                                                        |
+| gid                 |                |         | true      | POSIX group Id to be applied for [Access Point root directory](https://docs.aws.amazon.com/efs/latest/ug/efs-access-points.html#enforce-root-directory-access-point) creation.                                                                       |
+| gidRangeStart       |                | 50000   | true      | Start range of the POSIX group Id to be applied for [Access Point root directory](https://docs.aws.amazon.com/efs/latest/ug/efs-access-points.html#enforce-root-directory-access-point) creation. Not used if uid/gid is set.                        |
+| gidRangeEnd         |                | 7000000 | true      | End range of the POSIX group Id. Not used if uid/gid is set.                                                                                                                                                                                         |
+| basePath            |                |         | true      | Path under which access points for dynamic provisioning is created. If this parameter is not specified, access points are created under the root directory of the file system                                                                        |
+| az                  |                |   ""    | true      | Used for cross-account mount. `az` under storage class parameter is optional. If specified, mount target associated with the az will be used for cross-account mount. If not specified, a random mount target will be picked for cross account mount |
 
 **Note**
 * We suggest the following settings for each provisioning mode:
@@ -134,7 +134,7 @@ You can find previous efs-csi-driver versions' images from [here](https://galler
 
 ### Features
 * Static provisioning - Amazon EFS file system needs to be created manually first, then it could be mounted inside container as a persistent volume (PV) using the driver.
-* Dynamic provisioning - Uses a persistent volume claim (PVC) to dynamically provision a persistent volume (PV). On Creating a PVC, kuberenetes requests Amazon EFS to create an Access Point in a file system which will be used to mount the PV.
+* Dynamic provisioning - Uses a persistent volume claim (PVC) to dynamically provision a persistent volume (PV). On Creating a PVC, Kubernetes requests Amazon EFS to create an Access Point or a Directory in the file system which will be used to mount the PV.
 * Mount Options - Mount options can be specified in the persistent volume (PV) or storage class for dynamic provisioning to define how the volume should be mounted.
 * Encryption of data in transit - Amazon EFS file systems are mounted with encryption in transit enabled by default in the master branch version of the driver.
 * Cross account mount - Amazon EFS file systems from different aws accounts can be mounted from an Amazon EKS cluster.
@@ -185,13 +185,13 @@ This procedure requires Helm V3 or later. To install or upgrade Helm, see [Using
    helm repo add aws-efs-csi-driver https://kubernetes-sigs.github.io/aws-efs-csi-driver/
    ```
 
-1. Update the repo.
+2. Update the repo.
 
    ```sh
    helm repo update aws-efs-csi-driver
    ```
 
-1. Install a release of the driver using the Helm chart.
+3. Install a release of the driver using the Helm chart.
 
    ```sh
    helm upgrade --install aws-efs-csi-driver --namespace kube-system aws-efs-csi-driver/aws-efs-csi-driver
@@ -238,19 +238,19 @@ If you want to download the image with a manifest, we recommend first trying the
    **Note**  
    If you encounter an issue that you aren't able to resolve by adding IAM permissions, try the [Manifest \(public registry\)](#-manifest-public-registry-) steps instead.
 
-1. In the following command, replace `region-code` with the AWS Region that your cluster is in. Then run the modified command to replace `us-west-2` in the file with your AWS Region.
+2. In the following command, replace `region-code` with the AWS Region that your cluster is in. Then run the modified command to replace `us-west-2` in the file with your AWS Region.
 
    ```sh
    sed -i.bak -e 's|us-west-2|region-code|' private-ecr-driver.yaml
    ```
 
-1. Replace `account` in the following command with the account from [Amazon container image registries](add-ons-images.md) for the AWS Region that your cluster is in and then run the modified command to replace `602401143452` in the file.
+3. Replace `account` in the following command with the account from [Amazon container image registries](add-ons-images.md) for the AWS Region that your cluster is in and then run the modified command to replace `602401143452` in the file.
 
    ```sh
    sed -i.bak -e 's|602401143452|account|' private-ecr-driver.yaml
    ```
 
-1. If you already created a service account by following [Create an IAM policy and role for Amazon EKS](./iam-policy-create.md), then edit the `private-ecr-driver.yaml` file. Remove the following lines that create a Kubernetes service account.
+4. If you already created a service account by following [Create an IAM policy and role for Amazon EKS](./iam-policy-create.md), then edit the `private-ecr-driver.yaml` file. Remove the following lines that create a Kubernetes service account.
 
    ```
    apiVersion: v1
@@ -263,7 +263,7 @@ If you want to download the image with a manifest, we recommend first trying the
    ---
    ```
 
-1. Apply the manifest.
+5. Apply the manifest.
 
    ```sh
    kubectl apply -f private-ecr-driver.yaml
@@ -283,7 +283,7 @@ For some situations, you may not be able to add the necessary IAM permissions to
        "github.com/kubernetes-sigs/aws-efs-csi-driver/deploy/kubernetes/overlays/stable/?ref=release-1.X" > public-ecr-driver.yaml
    ```
 
-1. If you already created a service account by following [Create an IAM policy and role](./iam-policy-create.md), then edit the `private-ecr-driver.yaml` file. Remove the following lines that create a Kubernetes service account.
+2. If you already created a service account by following [Create an IAM policy and role](./iam-policy-create.md), then edit the `private-ecr-driver.yaml` file. Remove the following lines that create a Kubernetes service account.
 
    ```sh
    apiVersion: v1
@@ -296,7 +296,7 @@ For some situations, you may not be able to add the necessary IAM permissions to
    ---
    ```
 
-1. Apply the manifest.
+3. Apply the manifest.
 
    ```sh
    kubectl apply -f public-ecr-driver.yaml
@@ -308,17 +308,17 @@ After deploying the driver, you can continue to these sections:
 * [Examples](#examples)
 
 ### Container Arguments for efs-plugin of efs-csi-node daemonset
-| Parameters                  | Values | Default | Optional | Description                                                                                                                                                                                                                             |
-|-----------------------------|--------|---------|----------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| vol-metrics-opt-in          |        | false   | true     | Opt in to emit volume metrics.                                                                                                                                                                                                          |
-| vol-metrics-refresh-period  |        | 240     | true     | Refresh period for volume metrics in minutes.                                                                                                                                                                                           |
-| vol-metrics-fs-rate-limit   |        | 5       | true     | Volume metrics routines rate limiter per file system.                                                                                                                                                                                   |
-| tags                         |       |         | true     | Space separated key:value pairs which will be added as tags for Amazon EFS resources. For example, '--tags=name:efs-tag-test date:Jan24'                                                                                                       |
+| Parameters                 | Values | Default | Optional | Description                                                                                                                              |
+|----------------------------|--------|---------|----------|------------------------------------------------------------------------------------------------------------------------------------------|
+| vol-metrics-opt-in         |        | false   | true     | Opt in to emit volume metrics.                                                                                                           |
+| vol-metrics-refresh-period |        | 240     | true     | Refresh period for volume metrics in minutes.                                                                                            |
+| vol-metrics-fs-rate-limit  |        | 5       | true     | Volume metrics routines rate limiter per file system.                                                                                    |
+| tags                       |        |         | true     | Space separated key:value pairs which will be added as tags for Amazon EFS resources. For example, '--tags=name:efs-tag-test date:Jan24' |
 
 ### Container Arguments for deployment(controller) 
-| Parameters                  | Values | Default | Optional | Description                                                                                                                                                                                                                            |
-|-----------------------------|--------|---------|----------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| delete-access-point-root-dir|        | false  | true     | Opt in to delete access point root directory by DeleteVolume. By default, DeleteVolume will delete the access point behind Persistent Volume and deleting access point will not delete the access point root directory or its contents. |
+| Parameters                   | Values | Default | Optional | Description                                                                                                                                                                                                                                                                                                                                                                                              |
+|------------------------------|--------|---------|----------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| delete-access-point-root-dir |        | false   | true     | Opt in to delete access point root directory by DeleteVolume. By default, DeleteVolume will delete the access point behind Persistent Volume and deleting access point will not delete the access point root directory or its contents.                                                                                                                                                                  |
 | delete-provisioned-dir       |        | false   | true     | Opt in to delete any provisioned directories and their contents. By default, DeleteVolume will not delete the directory behind Persistent Volume. *NOTE*: If root squash is enabled on your EFS it's possible this option will not work, unless you set up IAM roles to circumvent the root-squashing. See [here](https://docs.aws.amazon.com/efs/latest/ug/enable-root-squashing.html) for more details |
 
 ### Upgrading the Amazon EFS CSI Driver
@@ -349,7 +349,8 @@ Before following the examples, you need to:
 
 #### Example links
 * [Static provisioning](../examples/kubernetes/static_provisioning/README.md)
-* [Dynamic provisioning](../examples/kubernetes/dynamic_provisioning/README.md)
+* [Dynamic provisioning with Access Points](../examples/kubernetes/dynamic_provisioning/access_points/README.md)
+* [Dynamic provisioning with Directories](../examples/kubernetes/dynamic_provisioning/directories/README.md)
 * [Encryption in transit](../examples/kubernetes/encryption_in_transit/README.md)
 * [Accessing the file system from multiple pods](../examples/kubernetes/multiple_pods/README.md)
 * [Consume Amazon EFS in StatefulSets](../examples/kubernetes/statefulset/README.md)

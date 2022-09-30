@@ -61,7 +61,7 @@ func (d DirectoryProvisioner) Provision(ctx context.Context, req *csi.CreateVolu
 	}
 
 	rootDirName := req.Name
-	provisionedPath = basePath + "/" + rootDirName
+	provisionedPath = path.Join(basePath, rootDirName)
 
 	klog.V(5).Infof("Provisioning directory at path %s", provisionedPath)
 
@@ -81,6 +81,13 @@ func (d DirectoryProvisioner) Provision(ctx context.Context, req *csi.CreateVolu
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "Could not provision directory: %v", err)
 	}
+
+	// Check the permissions that actually got created
+	actualPerms, err := d.osClient.GetPerms(provisionedDirectory)
+	if err != nil {
+		klog.V(5).Infof("Could not load file info for '%s'", provisionedDirectory)
+	}
+	klog.V(5).Infof("Permissions of folder '%s' are '%s'", provisionedDirectory, actualPerms)
 
 	err = d.mounter.Unmount(target)
 	if err != nil {
@@ -103,6 +110,7 @@ func (d DirectoryProvisioner) Delete(ctx context.Context, req *csi.DeleteVolumeR
 		return nil
 	}
 	fileSystemId, subpath, _, _ := parseVolumeId(req.GetVolumeId())
+	klog.V(5).Infof("Running delete for EFS %s at subpath %s", fileSystemId, subpath)
 
 	localCloud, roleArn, err := getCloud(d.cloud, req.GetSecrets())
 	if err != nil {
@@ -115,31 +123,39 @@ func (d DirectoryProvisioner) Delete(ctx context.Context, req *csi.DeleteVolumeR
 	}
 
 	target := TempMountPathPrefix + "/" + uuid.New().String()
+	klog.V(5).Infof("Making temporary directory at '%s' to temporarily mount EFS folder in", target)
 	if err := d.mounter.MakeDir(target); err != nil {
 		return status.Errorf(codes.Internal, "Could not create dir %q: %v", target, err)
 	}
 
 	defer func() {
 		// Try and unmount the directory
+		klog.V(5).Infof("Unmounting directory mounted at '%s'", target)
 		unmountErr := d.mounter.Unmount(target)
 		// If that fails then track the error but don't do anything else
 		if unmountErr != nil {
+			klog.V(5).Infof("Unmount failed at '%s'", target)
 			e = status.Errorf(codes.Internal, "Could not unmount %q: %v", target, err)
 		} else {
 			// If it is nil then it's safe to try and delete the directory as it should now be empty
+			klog.V(5).Infof("Deleting temporary directory at '%s'", target)
 			if err := d.osClient.RemoveAll(target); err != nil {
 				e = status.Errorf(codes.Internal, "Could not delete %q: %v", target, err)
 			}
 		}
 	}()
 
+	klog.V(5).Infof("Mounting EFS '%s' into temporary directory at '%s'", fileSystemId, target)
 	if err := d.mounter.Mount(fileSystemId, target, "efs", mountOptions); err != nil {
 		// If this call throws an error we're about to return anyway and the mount has failed, so it's more
 		// important we return with that information than worry about the folder not being deleted
 		_ = d.osClient.Remove(target)
 		return status.Errorf(codes.Internal, "Could not mount %q at %q: %v", fileSystemId, target, err)
 	}
-	if err := d.osClient.RemoveAll(target + subpath); err != nil {
+
+	pathToRemove := path.Join(target, subpath)
+	klog.V(5).Infof("Delete all files at %s, stored on EFS %s", pathToRemove, fileSystemId)
+	if err := d.osClient.RemoveAll(pathToRemove); err != nil {
 		return status.Errorf(codes.Internal, "Could not delete directory %q: %v", subpath, err)
 	}
 
