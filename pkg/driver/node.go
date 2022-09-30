@@ -78,7 +78,7 @@ func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 		switch strings.ToLower(k) {
 		//Deprecated
 		case "path":
-			klog.Warning("Use of path under volumeAttributes is depracated. This field will be removed in future release")
+			klog.Warning("Use of path under volumeAttributes is deprecated. This field will be removed in future release")
 			if !filepath.IsAbs(v) {
 				return nil, status.Errorf(codes.InvalidArgument, "Volume context property %q must be an absolute path", k)
 			}
@@ -163,6 +163,11 @@ func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 					return nil, status.Errorf(codes.InvalidArgument,
 						"Found tls in mountOptions but encryptInTransit is false")
 				}
+			}
+
+			if strings.HasPrefix(f, "awscredsuri") {
+				klog.Warning("awscredsuri mount option is not supported by efs-csi-driver.")
+				continue
 			}
 
 			if !hasOption(mountOptions, f) {
@@ -420,6 +425,7 @@ func parseVolumeId(volumeId string) (fsid, subpath, apid string, err error) {
 	return
 }
 
+// Check and avoid adding duplicate mount options
 func hasOption(options []string, opt string) bool {
 	for _, o := range options {
 		if o == opt {
