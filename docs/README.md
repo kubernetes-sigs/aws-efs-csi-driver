@@ -29,7 +29,7 @@ The following CSI interfaces are implemented:
 | Parameters          | Values | Default | Optional  | Description |
 |---------------------|--------|---------|-----------|-------------|
 | provisioningMode    | efs-ap |         | false     | Type of volume provisioned by efs. Currently, Access Points are supported. |
-| fileSystemId        |        |         | false     | File System under which access points are created. | 
+| fileSystemId        |        |         | false     | File System under which access points are created. |
 | directoryPerms      |        |         | false     | Directory permissions for [Access Point root directory](https://docs.aws.amazon.com/efs/latest/ug/efs-access-points.html#enforce-root-directory-access-point) creation. |
 | uid                 |        |         | true      | POSIX user Id to be applied for [Access Point root directory](https://docs.aws.amazon.com/efs/latest/ug/efs-access-points.html#enforce-root-directory-access-point) creation and for [user identity enforcement](https://docs.aws.amazon.com/efs/latest/ug/efs-access-points.html#enforce-identity-access-points). |
 | gid                 |        |         | true      | POSIX group Id to be applied for [Access Point root directory](https://docs.aws.amazon.com/efs/latest/ug/efs-access-points.html#enforce-root-directory-access-point) creation and for [user identity enforcement](https://docs.aws.amazon.com/efs/latest/ug/efs-access-points.html#enforce-identity-access-points). |
@@ -40,7 +40,7 @@ The following CSI interfaces are implemented:
 
 **Notes**:
 * Custom Posix group Id range for Access Point root directory must include both `gidRangeStart` and `gidRangeEnd` parameters. These parameters are optional only if both are omitted. If you specify one, the other becomes mandatory.
-* When using a custom Posix group ID range, there is a possibility for the driver to run out of available POSIX group Ids. We suggest ensuring custom group ID range is large enough or create a new storage class with a new file system to provision additional volumes. 
+* When using a custom Posix group ID range, there is a possibility for the driver to run out of available POSIX group Ids. We suggest ensuring custom group ID range is large enough or create a new storage class with a new file system to provision additional volumes.
 * `az` under storage class parameter is not be confused with efs-utils mount option `az`. The `az` mount option is used for cross-az mount or efs one zone file system mount within the same aws account as the cluster.
 * Using dynamic provisioning, [user identity enforcement]((https://docs.aws.amazon.com/efs/latest/ug/efs-access-points.html#enforce-identity-access-points)) is always applied.
  * When user enforcement is enabled, Amazon EFS replaces the NFS client's user and group IDs with the identity configured on the access point for all file system operations.
@@ -106,7 +106,7 @@ The following sections are Kubernetes specific. If you are a Kubernetes user, us
 ### Installation
 #### Set up driver permission:
 The driver requires IAM permission to talk to Amazon EFS to manage the volume on user's behalf. There are several methods to grant driver IAM permission:
-* Using IAM Role for Service Account (Recommended if you're using EKS): create an [IAM Role for service accounts](https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts.html) with the [required permissions](./iam-policy-example.json). Uncomment annotations and put the IAM role ARN in [service-account manifest](../deploy/kubernetes/base/serviceaccount-csi-controller.yaml)
+* Using IAM Role for Service Account (Recommended if you're using EKS): create an [IAM Role for service accounts](https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts.html) with the [required permissions](./iam-policy-example.json). Uncomment annotations and put the IAM role ARN in [service-account manifest](../deploy/kubernetes/base/controller-serviceaccount.yaml)
 * Using IAM [instance profile](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_use_switch-role-ec2_instance-profiles.html) - grant all the worker nodes with [required permissions](./iam-policy-example.json) by attaching policy to the instance profile of the worker.
 
 #### Deploy the driver:
