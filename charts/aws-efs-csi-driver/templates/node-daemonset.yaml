@@ -24,9 +24,10 @@ spec:
     {{- with .Values.node.hostAliases }}
       hostAliases:
       {{- range $k, $v := . }}
-        - ip: {{ $v.ip }}
+        - ip: {{ $ip }}
           hostnames:
             - {{ $k }}.efs.{{ $v.region }}.amazonaws.com
+      {{- end }}
       {{- end }}
     {{- end }}
     {{- if .Values.imagePullSecrets }}
