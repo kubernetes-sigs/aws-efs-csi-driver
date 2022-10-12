@@ -1,3 +1,16 @@
+# V1.4.1
+* EFS-CSI pod impersonation implementation ([#710](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/710), [@lmouhib](https://github.com/lmouhib))
+* Changelog/Version/Readme udpate of v1.4.0 ([#730](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/730), [@Ashley-wenyizha](https://github.com/Ashley-wenyizha))
+* Update golang.org/x/text/language for CVE-2021-38561 ([#738](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/738), [@RomanBednar](https://github.com/RomanBednar))
+* Update uid/gid Readme ([#752](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/752), [@Ashley-wenyizha](https://github.com/Ashley-wenyizha))
+* Should not pass in mount option of awscredsuri ([#755](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/755), [@Ashley-wenyizha](https://github.com/Ashley-wenyizha))
+* Added support for FIPS ([#760](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/760), [@dima618](https://github.com/dima618))
+* Revise awscredsuri validation to prefix check ([#762](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/762), [@Ashley-wenyizha](https://github.com/Ashley-wenyizha))
+# V1.4.0
+* Conditionally added AWS_STS_REGIONAL_ENDPOINTS flag ([#585](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/585), [@holmesb](https://github.com/holmesb))
+* Removing Dependency on IMDS, allowing `hostNetwork: true` to be removed ([#681](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/681), [@jonathanrainer](https://github.com/jonathanrainer))
+* Support e2e test EFS create on EKS clusters by finding EKS node subnets ([#707](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/707), [@wongma7](https://github.com/wongma7))
+* Upgrade gopkg.in yaml.v3 ([#717](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/717), [@Ashley-wenyizha](https://github.com/Ashley-wenyizha))
 # V1.3.8
 * From V1.3.8 and forward, efs-csi-driver will stop updating docker Hub for new releases
 * Revise utils tag number ([#666](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/666), [@Ashley-wenyizha](https://github.com/Ashley-wenyizha))

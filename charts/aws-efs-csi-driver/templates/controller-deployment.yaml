@@ -23,7 +23,6 @@ spec:
       annotations: {{- toYaml . | nindent 8 }}
       {{- end }}
     spec:
-      hostNetwork: true
       {{- if .Values.imagePullSecrets }}
       imagePullSecrets:
         {{- range .Values.imagePullSecrets }}
@@ -61,6 +60,14 @@ spec:
             {{- if .Values.controller.regionalStsEndpoints }}
             - name: AWS_STS_REGIONAL_ENDPOINTS
               value: regional
+            {{- end }}
+            - name: CSI_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            {{- if .Values.useFIPS }}
+            - name: AWS_USE_FIPS_ENDPOINT
+              value: "true"
             {{- end }}
           volumeMounts:
             - name: socket-dir
