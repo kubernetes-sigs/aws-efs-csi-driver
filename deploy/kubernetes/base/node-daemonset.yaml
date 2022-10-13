@@ -120,7 +120,7 @@ spec:
             type: Directory
         - name: efs-state-dir
           hostPath:
-            path: /var/run/efs
+            path: /var/run/efs_csi
             type: DirectoryOrCreate
         - name: efs-utils-config
           hostPath:
