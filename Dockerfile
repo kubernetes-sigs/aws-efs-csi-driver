@@ -51,7 +51,7 @@ RUN if [ "$EFSUTILSSOURCE" = "yum" ]; \
 RUN yum -y install wget && \
     wget https://bootstrap.pypa.io/get-pip.py -O /tmp/get-pip.py && \
     python3 /tmp/get-pip.py && \
-    pip3 install botocore || /usr/local/bin/pip3 install botocore && \
+    pip3 install --no-cache-dir botocore || /usr/local/bin/pip3 install --no-cache-dir botocore && \
     rm -rf /tmp/get-pip.py
 
 # At image build time, static files installed by efs-utils in the config directory, i.e. CAs file, need
