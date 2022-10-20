@@ -17,6 +17,9 @@
 # v2.3.0
 * Bump app/driver version to `v1.4.3`
 
+# v2.2.10
+* Add control over daemnoset affinity
+
 # v2.2.9
 * Bump app/driver version to `v1.4.2`
 

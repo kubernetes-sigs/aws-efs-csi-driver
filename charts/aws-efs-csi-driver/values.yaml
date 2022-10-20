@@ -122,6 +122,16 @@ node:
     ## Enable if EKS IAM for SA is used
     #  eks.amazonaws.com/role-arn: arn:aws:iam::111122223333:role/efs-csi-role
   healthPort: 9809
+  # Default affinity - don't run on Fargate nodes
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: eks.amazonaws.com/compute-type
+            operator: NotIn
+            values:
+            - fargate
 
 storageClasses: []
 # Add StorageClass resources like:
