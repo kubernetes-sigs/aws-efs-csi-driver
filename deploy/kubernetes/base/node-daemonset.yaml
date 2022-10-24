@@ -21,7 +21,7 @@ spec:
         app.kubernetes.io/instance: kustomize
     spec:
       nodeSelector:
-        beta.kubernetes.io/os: linux
+        kubernetes.io/os: linux
       affinity:
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
