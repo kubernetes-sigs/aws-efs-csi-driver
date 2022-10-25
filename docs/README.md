@@ -107,7 +107,22 @@ The following sections are Kubernetes specific. If you are a Kubernetes user, us
 #### Set up driver permission:
 The driver requires IAM permission to talk to Amazon EFS to manage the volume on user's behalf. There are several methods to grant driver IAM permission:
 * Using IAM Role for Service Account (Recommended if you're using EKS): create an [IAM Role for service accounts](https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts.html) with the [required permissions](./iam-policy-example.json). Uncomment annotations and put the IAM role ARN in [service-account manifest](../deploy/kubernetes/base/controller-serviceaccount.yaml)
+
 * Using IAM [instance profile](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_use_switch-role-ec2_instance-profiles.html) - grant all the worker nodes with [required permissions](./iam-policy-example.json) by attaching policy to the instance profile of the worker.
+
+* If you are using a self managed cluster on EC2, using secret object - create an IAM user, attach the [general policy](./iam-policy-example.json) to it, then create a generic secret called aws-secret in the kube-system namespace with the user's credentials.
+```sh
+kubectl create secret generic aws-secret \
+    --namespace kube-system \
+    --from-literal "key_id=${AWS_ACCESS_KEY_ID}" \
+    --from-literal "access_key=${AWS_SECRET_ACCESS_KEY}"
+```
+    
+After the secrets are created, verify that secret is existing:
+
+```
+kubectl get secret -n kube-system
+```
 
 #### Deploy the driver:
 
