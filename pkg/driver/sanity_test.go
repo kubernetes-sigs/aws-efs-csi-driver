@@ -26,7 +26,7 @@ import (
 	"k8s.io/mount-utils"
 
 	"github.com/golang/mock/gomock"
-	"github.com/kubernetes-csi/csi-test/pkg/sanity"
+	"github.com/kubernetes-csi/csi-test/v5/pkg/sanity"
 	"github.com/kubernetes-sigs/aws-efs-csi-driver/pkg/cloud"
 )
 
@@ -63,6 +63,7 @@ func TestSanityEFSCSI(t *testing.T) {
 		Address:              endpoint,
 		TestVolumeParameters: parameters,
 	}
+	sanity.New
 
 	nodeCaps := SetNodeCapOptInFeatures(true)
 

@@ -18,16 +18,12 @@ package e2e
 
 import (
 	"flag"
-	"fmt"
 	"log"
 	"os"
-	"path"
 	"path/filepath"
 	"testing"
 
-	"github.com/onsi/ginkgo"
-	"github.com/onsi/ginkgo/config"
-	"github.com/onsi/ginkgo/reporters"
+	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 	"k8s.io/kubernetes/test/e2e/framework"
 	frameworkconfig "k8s.io/kubernetes/test/e2e/framework/config"
@@ -88,16 +84,19 @@ func init() {
 func TestEFSCSI(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
 
+	configuration, _ := ginkgo.GinkgoConfiguration()
 	// Run tests through the Ginkgo runner with output to console + JUnit for Jenkins
-	var r []ginkgo.Reporter
+	//var r []ginkgo.Reporter
 	if framework.TestContext.ReportDir != "" {
 		if err := os.MkdirAll(framework.TestContext.ReportDir, 0755); err != nil {
 			log.Fatalf("Failed creating report directory: %v", err)
-		} else {
-			r = append(r, reporters.NewJUnitReporter(path.Join(framework.TestContext.ReportDir, fmt.Sprintf("junit_%v%02d.xml", framework.TestContext.ReportPrefix, config.GinkgoConfig.ParallelNode))))
 		}
+		//else {
+		//	_, reporterConfig := ginkgo.GinkgoConfiguration()
+		//	r = append(r, reporters.NewJUnitReporter(path.Join(framework.TestContext.ReportDir, fmt.Sprintf("junit_%v%02d.xml", framework.TestContext.ReportPrefix, reporterConfig))))
+		//}
 	}
-	log.Printf("Starting e2e run %q on Ginkgo node %d", framework.RunID, config.GinkgoConfig.ParallelNode)
+	log.Printf("Starting e2e run %q on Ginkgo node %d", framework.RunID, configuration.ParallelTotal)
 
-	ginkgo.RunSpecsWithDefaultAndCustomReporters(t, "EFS CSI Suite", r)
+	ginkgo.RunSpecs(t, "EFS CSI Suite")
 }
