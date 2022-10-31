@@ -1,3 +1,5 @@
+# V1.4.3
+* update of document to solve the vulnerabilities which brings out the latest version 1.4.3 ([#801](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/801))
 # V1.4.2
 * Update golang.org/x/text/language for CVE-2021-38561 ([#738](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/738), [@RomanBednar](https://github.com/RomanBednar))
 * Update uid/gid Readme ([#752](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/752), [@Ashley-wenyizha](https://github.com/Ashley-wenyizha))
