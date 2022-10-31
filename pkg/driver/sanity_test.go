@@ -57,13 +57,7 @@ func TestSanityEFSCSI(t *testing.T) {
 	parameters[ProvisioningMode] = "efs-ap"
 	parameters[DirectoryPerms] = "777"
 
-	config := &sanity.Config{
-		TargetPath:           targetPath,
-		StagingPath:          stagingPath,
-		Address:              endpoint,
-		TestVolumeParameters: parameters,
-	}
-	sanity.New
+	config := createTestConfig(targetPath, stagingPath, endpoint, parameters)
 
 	nodeCaps := SetNodeCapOptInFeatures(true)
 
@@ -94,6 +88,16 @@ func TestSanityEFSCSI(t *testing.T) {
 	sanity.Test(t, config)
 
 	mockCtrl.Finish()
+}
+
+func createTestConfig(targetPath string, stagingPath string, endpoint string, parameters map[string]string) sanity.TestConfig {
+	config := sanity.NewTestConfig()
+	config.TargetPath = targetPath
+	config.StagingPath = stagingPath
+	config.Address = endpoint
+	config.TestVolumeParameters = parameters
+
+	return config
 }
 
 func NewFakeMounter() Mounter {
