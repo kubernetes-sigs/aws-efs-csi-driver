@@ -1,4 +1,7 @@
-# V1.4.2
+# V1.4.3
+* Release-1.4 : post-release files updated ([#782](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/782), [@mskanth972](https://github.com/mskanth972))
+* mitigated AL2 related CVEs including : CVE-2022-27664, CVE-2018-25032, CVE-2021-4189, CVE-2022-0391, CVE-2021-3999, CVE-2022-30630, CVE-2022-3099, CVE-2022-30631, CVE-2022-2982, CVE-2022-29526, CVE-2022-2287, CVE-2021-3737, CVE-2021-3733, CVE-2019-12900
+* # V1.4.2
 * Update golang.org/x/text/language for CVE-2021-38561 ([#738](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/738), [@RomanBednar](https://github.com/RomanBednar))
 * Update uid/gid Readme ([#752](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/752), [@Ashley-wenyizha](https://github.com/Ashley-wenyizha))
 * Should not pass in mount option of awscredsuri ([#755](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/755), [@Ashley-wenyizha](https://github.com/Ashley-wenyizha))
