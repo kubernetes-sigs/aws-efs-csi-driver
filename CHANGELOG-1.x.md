@@ -1,17 +1,15 @@
+# V1.4.3
+* Release-1.4 : post-release files updated ([#782](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/782), [@mskanth972](https://github.com/mskanth972))
+* Mitigated AL2 related CVEs including : CVE-2022-27664, CVE-2018-25032, CVE-2021-4189, CVE-2022-0391, CVE-2021-3999, CVE-2022-30630, CVE-2022-3099, CVE-2022-30631, CVE-2022-2982, CVE-2022-29526, CVE-2022-2287, CVE-2021-3737, CVE-2021-3733, CVE-2019-12900
+* Update deprecated NodeSelector ([#743](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/743), [@dschunack](https://github.com/dschunack))
 # V1.4.2
 * Update golang.org/x/text/language for CVE-2021-38561 ([#738](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/738), [@RomanBednar](https://github.com/RomanBednar))
 * Update uid/gid Readme ([#752](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/752), [@Ashley-wenyizha](https://github.com/Ashley-wenyizha))
 * Should not pass in mount option of awscredsuri ([#755](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/755), [@Ashley-wenyizha](https://github.com/Ashley-wenyizha))
 * Added support for FIPS ([#760](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/760), [@dima618](https://github.com/dima618))
 * Revise awscredsuri validation to prefix check ([#762](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/762), [@Ashley-wenyizha](https://github.com/Ashley-wenyizha))
-# V1.4.1
-* EFS-CSI pod impersonation implementation ([#710](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/710), [@lmouhib](https://github.com/lmouhib))
-* Changelog/Version/Readme udpate of v1.4.0 ([#730](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/730), [@Ashley-wenyizha](https://github.com/Ashley-wenyizha))
-* Update golang.org/x/text/language for CVE-2021-38561 ([#738](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/738), [@RomanBednar](https://github.com/RomanBednar))
-* Update uid/gid Readme ([#752](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/752), [@Ashley-wenyizha](https://github.com/Ashley-wenyizha))
-* Should not pass in mount option of awscredsuri ([#755](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/755), [@Ashley-wenyizha](https://github.com/Ashley-wenyizha))
-* Added support for FIPS ([#760](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/760), [@dima618](https://github.com/dima618))
-* Revise awscredsuri validation to prefix check ([#762](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/762), [@Ashley-wenyizha](https://github.com/Ashley-wenyizha))
+# V1.4.1 
+* Latest AL2 base image update
 # V1.4.0
 * Conditionally added AWS_STS_REGIONAL_ENDPOINTS flag ([#585](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/585), [@holmesb](https://github.com/holmesb))
 * Removing Dependency on IMDS, allowing `hostNetwork: true` to be removed ([#681](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/681), [@jonathanrainer](https://github.com/jonathanrainer))
