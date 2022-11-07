@@ -1,3 +1,5 @@
+# V1.4.4
+* Reverting back the efs-utils version from v1.34.1 (latest version) to v1.33.4 (previous version) as in the the new version v1.34.1 stunnel bin is removed in csi-driver.
 # V1.4.3
 * Release-1.4 : post-release files updated ([#782](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/782), [@mskanth972](https://github.com/mskanth972))
 * Mitigated AL2 related CVEs including : CVE-2022-27664, CVE-2018-25032, CVE-2021-4189, CVE-2022-0391, CVE-2021-3999, CVE-2022-30630, CVE-2022-3099, CVE-2022-30631, CVE-2022-2982, CVE-2022-29526, CVE-2022-2287, CVE-2021-3737, CVE-2021-3733, CVE-2019-12900
