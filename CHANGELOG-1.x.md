@@ -1,3 +1,5 @@
+# V1.4.5
+* upgrade to k8s.io/kubernetes v1.22.3 to mitigate the CVE-2021-25740.
 # V1.4.4
 * Reverting back the efs-utils version from v1.34.1 (latest version) to v1.33.4 (previous version) as in the the new version v1.34.1 stunnel bin is removed in csi-driver.
 # V1.4.3
