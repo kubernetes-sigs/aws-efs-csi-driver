@@ -69,31 +69,32 @@ The following sections are Kubernetes specific. If you are a Kubernetes user, us
 | v0.1.0                                 | alpha    | yes   | yes   | yes   | no    | no    | no    | no    |
 
 ### Container Images
-|EFS CSI Driver Version     | Image                               |
-|---------------------------|-------------------------------------|
-|master branch              |amazon/aws-efs-csi-driver:master     |
-|v1.4.4                     |amazon/aws-efs-csi-driver:v1.4.4     |
-|v1.4.3                     |amazon/aws-efs-csi-driver:v1.4.3     |
-|v1.4.2                     |amazon/aws-efs-csi-driver:v1.4.2     |
-|v1.4.1                     |amazon/aws-efs-csi-driver:v1.4.1     |
-|v1.4.0                     |amazon/aws-efs-csi-driver:v1.4.0     |
-|v1.3.8                     |amazon/aws-efs-csi-driver:v1.3.8     |
-|v1.3.7                     |amazon/aws-efs-csi-driver:v1.3.7     |
-|v1.3.6                     |amazon/aws-efs-csi-driver:v1.3.6     |
-|v1.3.5                     |amazon/aws-efs-csi-driver:v1.3.5     |
-|v1.3.4                     |amazon/aws-efs-csi-driver:v1.3.4     |
-|v1.3.3                     |amazon/aws-efs-csi-driver:v1.3.3     |
-|v1.3.2                     |amazon/aws-efs-csi-driver:v1.3.2     |
-|v1.3.1                     |amazon/aws-efs-csi-driver:v1.3.1     |
-|v1.3.0                     |amazon/aws-efs-csi-driver:v1.3.0     |
-|v1.2.1                     |amazon/aws-efs-csi-driver:v1.2.1     |
-|v1.2.0                     |amazon/aws-efs-csi-driver:v1.2.0     |
-|v1.1.1                     |amazon/aws-efs-csi-driver:v1.1.1     |
-|v1.1.0                     |amazon/aws-efs-csi-driver:v1.1.0     |
-|v1.0.0                     |amazon/aws-efs-csi-driver:v1.0.0     |
-|v0.3.0                     |amazon/aws-efs-csi-driver:v0.3.0     |
-|v0.2.0                     |amazon/aws-efs-csi-driver:v0.2.0     |
-|v0.1.0                     |amazon/aws-efs-csi-driver:v0.1.0     |
+| EFS CSI Driver Version | Image                            |
+|------------------------|----------------------------------|
+| master branch          | amazon/aws-efs-csi-driver:master |
+| v1.4.5                 | amazon/aws-efs-csi-driver:v1.4.5 |
+| v1.4.4                 | amazon/aws-efs-csi-driver:v1.4.4 |
+| v1.4.3                 | amazon/aws-efs-csi-driver:v1.4.3 |
+| v1.4.2                 | amazon/aws-efs-csi-driver:v1.4.2 |
+| v1.4.1                 | amazon/aws-efs-csi-driver:v1.4.1 |
+| v1.4.0                 | amazon/aws-efs-csi-driver:v1.4.0 |
+| v1.3.8                 | amazon/aws-efs-csi-driver:v1.3.8 |
+| v1.3.7                 | amazon/aws-efs-csi-driver:v1.3.7 |
+| v1.3.6                 | amazon/aws-efs-csi-driver:v1.3.6 |
+| v1.3.5                 | amazon/aws-efs-csi-driver:v1.3.5 |
+| v1.3.4                 | amazon/aws-efs-csi-driver:v1.3.4 |
+| v1.3.3                 | amazon/aws-efs-csi-driver:v1.3.3 |
+| v1.3.2                 | amazon/aws-efs-csi-driver:v1.3.2 |
+| v1.3.1                 | amazon/aws-efs-csi-driver:v1.3.1 |
+| v1.3.0                 | amazon/aws-efs-csi-driver:v1.3.0 |
+| v1.2.1                 | amazon/aws-efs-csi-driver:v1.2.1 |
+| v1.2.0                 | amazon/aws-efs-csi-driver:v1.2.0 |
+| v1.1.1                 | amazon/aws-efs-csi-driver:v1.1.1 |
+| v1.1.0                 | amazon/aws-efs-csi-driver:v1.1.0 |
+| v1.0.0                 | amazon/aws-efs-csi-driver:v1.0.0 |
+| v0.3.0                 | amazon/aws-efs-csi-driver:v0.3.0 |
+| v0.2.0                 | amazon/aws-efs-csi-driver:v0.2.0 |
+| v0.1.0                 | amazon/aws-efs-csi-driver:v0.1.0 |
 
 ### Features
 * Static provisioning - EFS file system needs to be created manually first, then it could be mounted inside container as a persistent volume (PV) using the driver.
