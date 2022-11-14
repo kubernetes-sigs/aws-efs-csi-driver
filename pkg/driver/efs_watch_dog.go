@@ -135,6 +135,8 @@ type Watchdog interface {
 // execWatchdog is a watch dog that monitors a process and restart it
 // if it has crashed accidentally
 type execWatchdog struct {
+	// if set to true, the efs-mount-watchdog will be disabled
+	disableEFSMountWatchdog bool
 	// the command to be exec and monitored
 	execCmd string
 	// the command arguments
@@ -156,8 +158,9 @@ type efsUtilsConfig struct {
 	Region          string
 }
 
-func newExecWatchdog(efsUtilsCfgPath, efsUtilsStaticFilesPath, cmd string, arg ...string) Watchdog {
+func newExecWatchdog(disableEFSMountWatchdog bool, efsUtilsCfgPath, efsUtilsStaticFilesPath, cmd string, arg ...string) Watchdog {
 	return &execWatchdog{
+		disableEFSMountWatchdog: disableEFSMountWatchdog,
 		efsUtilsCfgPath:         efsUtilsCfgPath,
 		efsUtilsStaticFilesPath: efsUtilsStaticFilesPath,
 		execCmd:                 cmd,
@@ -169,6 +172,10 @@ func newExecWatchdog(efsUtilsCfgPath, efsUtilsStaticFilesPath, cmd string, arg .
 func (w *execWatchdog) start() error {
 	if err := w.setup(GetVersion().EfsClientSource); err != nil {
 		return err
+	}
+
+	if w.disableEFSMountWatchdog {
+		return nil
 	}
 
 	go w.runLoop(w.stopCh)

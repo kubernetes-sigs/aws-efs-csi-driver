@@ -35,6 +35,7 @@ spec:
             - --endpoint=$(CSI_ENDPOINT)
             - --logtostderr
             - --v=2
+            - --disable-efs-mount-watchdog=true
             - --delete-access-point-root-dir=false
             - --vol-metrics-opt-in=false
           env:

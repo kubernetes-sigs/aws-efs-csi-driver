@@ -50,14 +50,14 @@ type Driver struct {
 	tags                     map[string]string
 }
 
-func NewDriver(endpoint, efsUtilsCfgPath, efsUtilsStaticFilesPath, tags string, volMetricsOptIn bool, volMetricsRefreshPeriod float64, volMetricsFsRateLimit int, deleteAccessPointRootDir bool) *Driver {
+func NewDriver(endpoint, efsUtilsCfgPath, efsUtilsStaticFilesPath, tags string, volMetricsOptIn bool, volMetricsRefreshPeriod float64, volMetricsFsRateLimit int, deleteAccessPointRootDir bool, disableEFSMountWatchdog bool) *Driver {
 	cloud, err := cloud.NewCloud()
 	if err != nil {
 		klog.Fatalln(err)
 	}
 
 	nodeCaps := SetNodeCapOptInFeatures(volMetricsOptIn)
-	watchdog := newExecWatchdog(efsUtilsCfgPath, efsUtilsStaticFilesPath, "amazon-efs-mount-watchdog")
+	watchdog := newExecWatchdog(disableEFSMountWatchdog, efsUtilsCfgPath, efsUtilsStaticFilesPath, "amazon-efs-mount-watchdog")
 	return &Driver{
 		endpoint:                 endpoint,
 		nodeID:                   cloud.GetMetadata().GetInstanceID(),

@@ -54,6 +54,7 @@ controller:
   # path on efs when deleteing an access point
   deleteAccessPointRootDir: false
   volMetricsOptIn: false
+  disableEFSMountWatchdog: true
   podAnnotations: {}
   resources:
     {}

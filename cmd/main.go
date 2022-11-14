@@ -39,6 +39,7 @@ func main() {
 		volMetricsOptIn          = flag.Bool("vol-metrics-opt-in", false, "Opt in to emit volume metrics")
 		volMetricsRefreshPeriod  = flag.Float64("vol-metrics-refresh-period", 240, "Refresh period for volume metrics in minutes")
 		volMetricsFsRateLimit    = flag.Int("vol-metrics-fs-rate-limit", 5, "Volume metrics routines rate limiter per file system")
+		disableEFSMountWatchdog  = flag.Bool("disable-efs-mount-watchdog", false, "Set to true to skip running efs-utils mount watchdog")
 		deleteAccessPointRootDir = flag.Bool("delete-access-point-root-dir", false,
 			"Opt in to delete access point root directory by DeleteVolume. By default, DeleteVolume will delete the access point behind Persistent Volume and deleting access point will not delete the access point root directory or its contents.")
 		tags = flag.String("tags", "", "Space separated key:value pairs which will be added as tags for EFS resources. For example, 'environment:prod region:us-east-1'")
@@ -60,7 +61,7 @@ func main() {
 	if err != nil {
 		klog.Fatalln(err)
 	}
-	drv := driver.NewDriver(*endpoint, etcAmazonEfs, *efsUtilsStaticFilesPath, *tags, *volMetricsOptIn, *volMetricsRefreshPeriod, *volMetricsFsRateLimit, *deleteAccessPointRootDir)
+	drv := driver.NewDriver(*endpoint, etcAmazonEfs, *efsUtilsStaticFilesPath, *tags, *volMetricsOptIn, *volMetricsRefreshPeriod, *volMetricsFsRateLimit, *deleteAccessPointRootDir, *disableEFSMountWatchdog)
 	if err := drv.Run(); err != nil {
 		klog.Fatalln(err)
 	}

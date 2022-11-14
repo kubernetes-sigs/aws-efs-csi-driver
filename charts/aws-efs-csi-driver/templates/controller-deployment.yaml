@@ -52,6 +52,7 @@ spec:
             - --tags={{ include "aws-efs-csi-driver.tags" .Values.controller.tags }}
             {{- end }}
             - --v={{ .Values.controller.logLevel }}
+            - --disable-efs-mount-watchdog={{ hasKey .Values.controller "disableEFSMountWatchdog" | ternary .Values.controller.disableEFSMountWatchdog false }}
             - --delete-access-point-root-dir={{ hasKey .Values.controller "deleteAccessPointRootDir" | ternary .Values.controller.deleteAccessPointRootDir false }}
             - --vol-metrics-opt-in={{ hasKey .Values.controller "volMetricsOptIn" | ternary .Values.controller.volMetricsOptIn false }}
           env:
