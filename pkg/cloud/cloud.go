@@ -55,6 +55,12 @@ type AccessPoint struct {
 	// Capacity is used for testing purpose only
 	// EFS does not consider capacity while provisioning new file systems or access points
 	CapacityGiB int64
+	PosixUser   *PosixUser
+}
+
+type PosixUser struct {
+	Gid int64
+	Uid int64
 }
 
 type AccessPointOptions struct {
@@ -91,6 +97,7 @@ type Cloud interface {
 	CreateAccessPoint(ctx context.Context, volumeName string, accessPointOpts *AccessPointOptions) (accessPoint *AccessPoint, err error)
 	DeleteAccessPoint(ctx context.Context, accessPointId string) (err error)
 	DescribeAccessPoint(ctx context.Context, accessPointId string) (accessPoint *AccessPoint, err error)
+	ListAccessPoints(ctx context.Context, fileSystemId string) (accessPoints []*AccessPoint, err error)
 	DescribeFileSystem(ctx context.Context, fileSystemId string) (fs *FileSystem, err error)
 	DescribeMountTargets(ctx context.Context, fileSystemId, az string) (fs *MountTarget, err error)
 }
@@ -231,6 +238,37 @@ func (c *cloud) DescribeAccessPoint(ctx context.Context, accessPointId string) (
 		FileSystemId:       *accessPoints[0].FileSystemId,
 		AccessPointRootDir: *accessPoints[0].RootDirectory.Path,
 	}, nil
+}
+
+func (c *cloud) ListAccessPoints(ctx context.Context, fileSystemId string) (accessPoints []*AccessPoint, err error) {
+	describeAPInput := &efs.DescribeAccessPointsInput{
+		FileSystemId: &fileSystemId,
+	}
+	res, err := c.efs.DescribeAccessPointsWithContext(ctx, describeAPInput)
+	if err != nil {
+		if isAccessDenied(err) {
+			return
+		}
+		if isFileSystemNotFound(err) {
+			return
+		}
+		err = fmt.Errorf("List Access Points failed: %v", err)
+		return
+	}
+
+	for _, accessPointDescription := range res.AccessPoints {
+		accessPoint := &AccessPoint{
+			AccessPointId: *accessPointDescription.AccessPointId,
+			FileSystemId:  *accessPointDescription.FileSystemId,
+			PosixUser: &PosixUser{
+				Gid: *accessPointDescription.PosixUser.Gid,
+				Uid: *accessPointDescription.PosixUser.Gid,
+			},
+		}
+		accessPoints = append(accessPoints, accessPoint)
+	}
+
+	return
 }
 
 func (c *cloud) DescribeFileSystem(ctx context.Context, fileSystemId string) (fs *FileSystem, err error) {
