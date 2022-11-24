@@ -40,7 +40,7 @@ RUN if [ "$EFSUTILSSOURCE" = "yum" ]; \
          yum -y install git rpm-build make && \
          git clone https://github.com/aws/efs-utils && \
          cd efs-utils && \
-         git checkout $(git describe --tags $(git rev-list --tags --max-count=1)) && \
+         git checkout $(git describe --tags 16e68529b9b260be828fee435a6fcf9b703fc4d7) && \
          make rpm && yum -y install build/amazon-efs-utils*rpm && \
          # clean up efs-utils folder after install
          cd .. && rm -rf efs-utils && \
