@@ -1,3 +1,5 @@
+# V1.4.6
+* Update efs-utils to stunnel5.
 # V1.4.5
 * upgrade to k8s.io/kubernetes v1.22.3 to mitigate the CVE-2021-25740.
 # V1.4.4
