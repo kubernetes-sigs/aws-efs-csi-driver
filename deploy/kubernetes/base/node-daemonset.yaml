@@ -75,7 +75,7 @@ spec:
             periodSeconds: 2
             failureThreshold: 5
         - name: csi-driver-registrar
-          image: public.ecr.aws/eks-distro/kubernetes-csi/node-driver-registrar:v2.1.0-eks-1-18-13
+          image: public.ecr.aws/eks-distro/kubernetes-csi/node-driver-registrar:v2.6.1-eks-1-23-8
           imagePullPolicy: IfNotPresent
           args:
             - --csi-address=$(ADDRESS)
@@ -96,7 +96,7 @@ spec:
             - name: registration-dir
               mountPath: /registration
         - name: liveness-probe
-          image: public.ecr.aws/eks-distro/kubernetes-csi/livenessprobe:v2.2.0-eks-1-18-13
+          image: public.ecr.aws/eks-distro/kubernetes-csi/livenessprobe:v2.8.0-eks-1-23-8
           imagePullPolicy: IfNotPresent
           args:
             - --csi-address=/csi/csi.sock
