@@ -1,5 +1,6 @@
 # V1.4.7
-* Update the efs-utils to v1.34.3 to reduce possibility of multiple mounts starting from same port range
+* Update the efs-utils to v1.34.3 to reduce possibility of multiple mounts starting from same port range.
+* Added following permissions to the policy json at https://raw.githubusercontent.com/kubernetes-sigs/aws-efs-csi-driver/master/examples/kubernetes/cross_account_mount/iam-policy-examples/describe-mount-target-example.json
 # V1.4.6
 * Update efs-utils to stunnel5.
 # V1.4.5
