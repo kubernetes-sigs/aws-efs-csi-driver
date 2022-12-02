@@ -1,3 +1,5 @@
+# V1.4.7
+* Update the efs-utils to v1.34.3 to reduce possibility of multiple mounts starting from same port range
 # V1.4.6
 * Update efs-utils to stunnel5.
 # V1.4.5
