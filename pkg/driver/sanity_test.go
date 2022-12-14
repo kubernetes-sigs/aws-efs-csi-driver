@@ -69,16 +69,17 @@ func TestSanityEFSCSI(t *testing.T) {
 	nodeCaps := SetNodeCapOptInFeatures(true)
 
 	mockCtrl := gomock.NewController(t)
+	mockCloud := cloud.NewFakeCloudProvider()
 	drv := Driver{
 		endpoint:        endpoint,
 		nodeID:          "sanity",
 		mounter:         NewFakeMounter(),
 		efsWatchdog:     &mockWatchdog{},
-		cloud:           cloud.NewFakeCloudProvider(),
+		cloud:           mockCloud,
 		nodeCaps:        nodeCaps,
 		volMetricsOptIn: true,
 		volStatter:      NewVolStatter(),
-		gidAllocator:    NewGidAllocator(),
+		gidAllocator:    NewGidAllocator(mockCloud),
 	}
 	defer func() {
 		if r := recover(); r != nil {
