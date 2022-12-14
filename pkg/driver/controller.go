@@ -99,13 +99,13 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 		azName           string
 		basePath         string
 		err              error
-		gid              int
+		gid              int64
 		gidMin           int
 		gidMax           int
 		localCloud       cloud.Cloud
 		provisioningMode string
 		roleArn          string
-		uid              int
+		uid              int64
 	)
 
 	//Parse parameters
@@ -149,7 +149,7 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 
 	uid = -1
 	if value, ok := volumeParams[Uid]; ok {
-		uid, err = strconv.Atoi(value)
+		uid, err = strconv.ParseInt(value, 10, 64)
 		if err != nil {
 			return nil, status.Errorf(codes.InvalidArgument, "Failed to parse invalid %v: %v", Uid, err)
 		}
@@ -160,7 +160,7 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 
 	gid = -1
 	if value, ok := volumeParams[Gid]; ok {
-		gid, err = strconv.Atoi(value)
+		gid, err = strconv.ParseInt(value, 10, 64)
 		if err != nil {
 			return nil, status.Errorf(codes.InvalidArgument, "Failed to parse invalid %v: %v", Gid, err)
 		}
@@ -233,9 +233,9 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 		return nil, status.Errorf(codes.Internal, "Failed to fetch File System info: %v", err)
 	}
 
-	var allocatedGid int
+	var allocatedGid int64
 	if uid == -1 || gid == -1 {
-		allocatedGid, err = d.gidAllocator.getNextGid(accessPointsOptions.FileSystemId, gidMin, gidMax)
+		allocatedGid, err = d.gidAllocator.getNextGid(ctx, accessPointsOptions.FileSystemId, gidMin, gidMax)
 		if err != nil {
 			return nil, err
 		}
@@ -283,15 +283,12 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 	}
 	klog.Infof("Using %v as the access point directory.", rootDir)
 
-	accessPointsOptions.Uid = int64(uid)
-	accessPointsOptions.Gid = int64(gid)
+	accessPointsOptions.Uid = uid
+	accessPointsOptions.Gid = gid
 	accessPointsOptions.DirectoryPath = rootDir
 
 	accessPointId, err := localCloud.CreateAccessPoint(ctx, volName, accessPointsOptions)
 	if err != nil {
-		if allocatedGid != 0 {
-			d.gidAllocator.releaseGid(accessPointsOptions.FileSystemId, gid)
-		}
 		if err == cloud.ErrAccessDenied {
 			return nil, status.Errorf(codes.Unauthenticated, "Access Denied. Please ensure you have the right AWS permissions: %v", err)
 		}
