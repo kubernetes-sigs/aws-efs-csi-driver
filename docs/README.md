@@ -140,6 +140,24 @@ To force the efs-csi-driver to use FIPS, you can add an argument to the helm upg
 ```
 helm upgrade --install aws-efs-csi-driver --namespace kube-system aws-efs-csi-driver/aws-efs-csi-driver --set useFips=true
 ```
+### Upgrading the EFS CSI Driver
+
+#### Upgrade to the latest version:
+If you want to update to latest released version:
+```sh
+kubectl apply -k "github.com/kubernetes-sigs/aws-efs-csi-driver/deploy/kubernetes/overlays/stable/?ref=release-1.4"
+```
+
+#### Upgrade to a specific version:
+If you want to update to a specific version, first customize the driver yaml file locally:
+```sh
+kubectl kustomize "github.com/kubernetes-sigs/aws-efs-csi-driver/deploy/kubernetes/overlays/stable/?ref=release-1.4" > driver.yaml
+```
+
+Then, update all lines referencing `image: amazon/aws-efs-csi-driver` to the desired version (e.g., to `image: amazon/aws-efs-csi-driver:v1.4.8`) in the yaml file, and deploy driver yaml again:
+```sh
+kubectl apply -f driver.yaml
+```
 
 ### Examples
 Before the example, you need to:
