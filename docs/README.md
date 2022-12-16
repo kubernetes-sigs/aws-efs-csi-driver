@@ -120,7 +120,7 @@ The driver requires IAM permission to talk to Amazon EFS to manage the volume on
 
 If you want to deploy the stable driver:
 ```sh
-kubectl apply -k "github.com/kubernetes-sigs/aws-efs-csi-driver/deploy/kubernetes/overlays/stable/?ref=release-1.3"
+kubectl apply -k "github.com/kubernetes-sigs/aws-efs-csi-driver/deploy/kubernetes/overlays/stable/?ref=release-1.4"
 ```
 
 If you want to deploy the development driver:
