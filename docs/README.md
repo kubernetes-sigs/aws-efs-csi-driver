@@ -57,16 +57,17 @@ Encryption in transit is enabled by default in the master branch version of the 
 The following sections are Kubernetes specific. If you are a Kubernetes user, use this for driver features, installation steps and examples.
 
 ### Kubernetes Version Compability Matrix
-| AWS EFS CSI Driver \ Kubernetes Version| maturity | v1.11 | v1.12 | v1.13 | v1.14 | v1.15 | v1.16 | v1.17+ |
-|----------------------------------------|----------|-------|-------|-------|-------|-------|-------|-------|
-| master branch                          | GA       | no    | no    | no    | no    | no    | no    | yes   |
-| v1.3.x                                 | GA       | no    | no    | no    | no    | no    | no    | yes   |
-| v1.2.x                                 | GA       | no    | no    | no    | no    | no    | no    | yes   |
-| v1.1.x                                 | GA       | no    | no    | no    | yes   | yes   | yes   | yes   |
-| v1.0.x                                 | GA       | no    | no    | no    | yes   | yes   | yes   | yes   |
-| v0.3.0                                 | beta     | no    | no    | no    | yes   | yes   | yes   | yes   |
-| v0.2.0                                 | beta     | no    | no    | no    | yes   | yes   | yes   | yes   |
-| v0.1.0                                 | alpha    | yes   | yes   | yes   | no    | no    | no    | no    |
+| AWS EFS CSI Driver \ Kubernetes Version | maturity | v1.11 | v1.12 | v1.13 | v1.14 | v1.15 | v1.16 | v1.17+ |
+|-----------------------------------------|----------|-------|-------|-------|-------|-------|-------|-------|
+| master branch                           | GA       | no    | no    | no    | no    | no    | no    | yes   |
+| v1.4.x                                  | GA       | no    | no    | no    | no    | no    | no    | yes   |
+| v1.3.x                                  | GA       | no    | no    | no    | no    | no    | no    | yes   |
+| v1.2.x                                  | GA       | no    | no    | no    | no    | no    | no    | yes   |
+| v1.1.x                                  | GA       | no    | no    | no    | yes   | yes   | yes   | yes   |
+| v1.0.x                                  | GA       | no    | no    | no    | yes   | yes   | yes   | yes   |
+| v0.3.0                                  | beta     | no    | no    | no    | yes   | yes   | yes   | yes   |
+| v0.2.0                                  | beta     | no    | no    | no    | yes   | yes   | yes   | yes   |
+| v0.1.0                                  | alpha    | yes   | yes   | yes   | no    | no    | no    | no    |
 
 ### Container Images
 | EFS CSI Driver Version | Image                            |
@@ -113,7 +114,7 @@ The following sections are Kubernetes specific. If you are a Kubernetes user, us
 ### Installation
 #### Set up driver permission:
 The driver requires IAM permission to talk to Amazon EFS to manage the volume on user's behalf. There are several methods to grant driver IAM permission:
-* Using IAM Role for Service Account (Recommended if you're using EKS): create an [IAM Role for service accounts](https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts.html) with the [required permissions](./iam-policy-example.json). Uncomment annotations and put the IAM role ARN in [service-account manifest](../deploy/kubernetes/base/serviceaccount-csi-controller.yaml)
+* Using IAM Role for Service Account (Recommended if you're using EKS): create an [IAM Role for service accounts](https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts.html) with the [required permissions](./iam-policy-example.json). Uncomment annotations and put the IAM role ARN in [service-account manifest](https://github.com/kubernetes-sigs/aws-efs-csi-driver/blob/master/deploy/kubernetes/base/controller-serviceaccount.yaml)
 * Using IAM [instance profile](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_use_switch-role-ec2_instance-profiles.html) - grant all the worker nodes with [required permissions](./iam-policy-example.json) by attaching policy to the instance profile of the worker.
 
 #### Deploy the driver:
