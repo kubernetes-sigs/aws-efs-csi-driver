@@ -58,16 +58,17 @@ Encryption in transit is enabled by default in the master branch version of the 
 The following sections are Kubernetes specific. If you are a Kubernetes user, use this for driver features, installation steps and examples.
 
 ### Kubernetes Version Compability Matrix
-| AWS EFS CSI Driver \ Kubernetes Version| maturity | v1.11 | v1.12 | v1.13 | v1.14 | v1.15 | v1.16 | v1.17+ |
-|----------------------------------------|----------|-------|-------|-------|-------|-------|-------|-------|
-| master branch                          | GA       | no    | no    | no    | no    | no    | no    | yes   |
-| v1.3.x                                 | GA       | no    | no    | no    | no    | no    | no    | yes   |
-| v1.2.x                                 | GA       | no    | no    | no    | no    | no    | no    | yes   |
-| v1.1.x                                 | GA       | no    | no    | no    | yes   | yes   | yes   | yes   |
-| v1.0.x                                 | GA       | no    | no    | no    | yes   | yes   | yes   | yes   |
-| v0.3.0                                 | beta     | no    | no    | no    | yes   | yes   | yes   | yes   |
-| v0.2.0                                 | beta     | no    | no    | no    | yes   | yes   | yes   | yes   |
-| v0.1.0                                 | alpha    | yes   | yes   | yes   | no    | no    | no    | no    |
+| AWS EFS CSI Driver \ Kubernetes Version | maturity | v1.11 | v1.12 | v1.13 | v1.14 | v1.15 | v1.16 | v1.17+ |
+|-----------------------------------------|----------|-------|-------|-------|-------|-------|-------|-------|
+| master branch                           | GA       | no    | no    | no    | no    | no    | no    | yes   |
+| v1.4.x                                  | GA       | no    | no    | no    | no    | no    | no    | yes   |
+| v1.3.x                                  | GA       | no    | no    | no    | no    | no    | no    | yes   |
+| v1.2.x                                  | GA       | no    | no    | no    | no    | no    | no    | yes   |
+| v1.1.x                                  | GA       | no    | no    | no    | yes   | yes   | yes   | yes   |
+| v1.0.x                                  | GA       | no    | no    | no    | yes   | yes   | yes   | yes   |
+| v0.3.0                                  | beta     | no    | no    | no    | yes   | yes   | yes   | yes   |
+| v0.2.0                                  | beta     | no    | no    | no    | yes   | yes   | yes   | yes   |
+| v0.1.0                                  | alpha    | yes   | yes   | yes   | no    | no    | no    | no    |
 
 ### Container Images
 | EFS CSI Driver Version | Image                            |
