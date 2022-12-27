@@ -4,7 +4,7 @@ apiVersion: apps/v1
 metadata:
   name: efs-csi-node
   labels:
-    app.kubernetes.io/name: {{ include "aws-efs-csi-driver.name" . }}
+    {{- include "aws-efs-csi-driver.labels" . | nindent 4 }}
 spec:
   selector:
     matchLabels:

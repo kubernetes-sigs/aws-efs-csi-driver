@@ -5,7 +5,7 @@ apiVersion: apps/v1
 metadata:
   name: efs-csi-controller
   labels:
-    app.kubernetes.io/name: {{ include "aws-efs-csi-driver.name" . }}
+    {{- include "aws-efs-csi-driver.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.replicaCount }}
   selector:

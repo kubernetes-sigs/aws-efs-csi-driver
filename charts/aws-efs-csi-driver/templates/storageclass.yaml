@@ -3,6 +3,10 @@ kind: StorageClass
 apiVersion: storage.k8s.io/v1
 metadata:
   name: {{ .name }}
+  {{- with .labels }}
+  labels:
+  {{ toYaml . | indent 4 }}
+  {{- end }}
   {{- with .annotations }}
   annotations:
   {{ toYaml . | indent 4 }}
