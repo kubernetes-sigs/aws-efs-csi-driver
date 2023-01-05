@@ -1,5 +1,5 @@
 # V1.4.8
-* Use efs-utils version v1.34.4 for stunnel fix ([#125](https://github.com/aws/efs-utils/issues/125)
+* Update efs-csi-driver to use efs-utils latest release v1.34.4 and include stunnel fix ([#125](https://github.com/aws/efs-utils/issues/125))
 # V1.4.7
 * Update the efs-utils to v1.34.3 to reduce possibility of multiple mounts starting from same port range
 # V1.4.6
