@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM golang:1.17 as builder
+FROM public.ecr.aws/eks-distro-build-tooling/golang:1.17 as go-builder
 WORKDIR /go/src/github.com/kubernetes-sigs/aws-efs-csi-driver
 
 ARG TARGETOS
@@ -28,40 +28,61 @@ ENV EFS_CLIENT_SOURCE=$client_source
 
 RUN OS=${TARGETOS} ARCH=${TARGETARCH} make $TARGETOS/$TARGETARCH
 
-FROM amazonlinux:2 as linux-amazon
-RUN yum update -y
+FROM 736510011942.dkr.ecr.us-west-2.amazonaws.com/python:3.7-yum as rpm-provider
+
+
 # Install efs-utils from github by default. It can be overriden to `yum` with --build-arg when building the Docker image.
 # If value of `EFSUTILSSOURCE` build arg is overriden with `yum`, docker will install efs-utils from Amazon Linux 2's yum repo.
 ARG EFSUTILSSOURCE=github
-RUN if [ "$EFSUTILSSOURCE" = "yum" ]; \
+RUN mkdir -p /tmp/rpms && \
+    if [ "$EFSUTILSSOURCE" = "yum" ]; \
     then echo "Installing efs-utils from Amazon Linux 2 yum repo" && \
-         yum -y install amazon-efs-utils-1.31.1-1.amzn2.noarch; \
+         yum -y install --downloadonly --downloaddir=/tmp/rpms amazon-efs-utils-1.31.1-1.amzn2.noarch; \
     else echo "Installing efs-utils from github using the latest git tag" && \
          yum -y install git rpm-build make && \
          git clone https://github.com/aws/efs-utils && \
          cd efs-utils && \
          git checkout $(git describe --tags $(git rev-list --tags --max-count=1)) && \
-         make rpm && yum -y install build/amazon-efs-utils*rpm && \
+         make rpm && mv build/amazon-efs-utils*rpm /tmp/rpms && \
          # clean up efs-utils folder after install
          cd .. && rm -rf efs-utils && \
          yum clean all; \
     fi
 
 # Install botocore required by efs-utils for cross account mount
-RUN yum -y install wget && \
-    wget https://bootstrap.pypa.io/get-pip.py -O /tmp/get-pip.py && \
-    python3 /tmp/get-pip.py && \
-    pip3 install botocore || /usr/local/bin/pip3 install botocore && \
-    rm -rf /tmp/get-pip.py
+RUN pip3 install --user botocore
+
+
+FROM 736510011942.dkr.ecr.us-west-2.amazonaws.com/eks-distro-minimal-base-python-builder:3.7 as rpm-installer
+
+COPY --from=rpm-provider /tmp/rpms/* /tmp/download/
+
+# second param indicates to skip installing dependency rpms, these will be installed manually
+RUN clean_install amazon-efs-utils true && \
+    install_binary \
+        /usr/bin/cat \
+        /usr/bin/df \
+        /sbin/mount.nfs4 \
+        /usr/bin/openssl \
+        /usr/bin/stat \
+        /usr/bin/stunnel5 \
+        /usr/bin/which && \
+    cleanup "efs-csi"
 
 # At image build time, static files installed by efs-utils in the config directory, i.e. CAs file, need
 # to be saved in another place so that the other stateful files created at runtime, i.e. private key for
 # client certificate, in the same config directory can be persisted to host with a host path volume.
 # Otherwise creating a host path volume for that directory will clean up everything inside at the first time.
 # Those static files need to be copied back to the config directory when the driver starts up.
-RUN mv /etc/amazon/efs /etc/amazon/efs-static-files
+RUN mv /newroot/etc/amazon/efs /newroot/etc/amazon/efs-static-files
 
-COPY --from=builder /go/src/github.com/kubernetes-sigs/aws-efs-csi-driver/bin/aws-efs-csi-driver /bin/aws-efs-csi-driver
+FROM 736510011942.dkr.ecr.us-west-2.amazonaws.com/eks-distro-minimal-base-python:3.7
+
+COPY --from=rpm-installer /newroot /
+COPY --from=rpm-provider /root/.local/lib/python3.7/site-packages/ /usr/local/lib/python3.7/site-packages/
+   
+
+COPY --from=go-builder /go/src/github.com/kubernetes-sigs/aws-efs-csi-driver/bin/aws-efs-csi-driver /bin/aws-efs-csi-driver
 COPY THIRD-PARTY /
 
 ENTRYPOINT ["/bin/aws-efs-csi-driver"]
