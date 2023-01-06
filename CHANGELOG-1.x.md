@@ -1,3 +1,7 @@
+# V1.4.9
+* Bumped up the sidecars version
+* Fixed-AWS EFS CSI Driver crashes if Access Point creation fails and static GID set
+* Update efs-csi-driver to use efs-utils latest release v1.34.5 which Handle invalid mount point name, Avoid redundant get_target_region call, Update man page and Watchdog detect empty private key and regenerate 
 # V1.4.8
 * Use efs-utils version v1.34.4 for stunnel fix ([#125](https://github.com/aws/efs-utils/issues/125)
 # V1.4.7
