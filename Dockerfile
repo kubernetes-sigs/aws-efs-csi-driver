@@ -28,7 +28,7 @@ ENV EFS_CLIENT_SOURCE=$client_source
 
 RUN OS=${TARGETOS} ARCH=${TARGETARCH} make $TARGETOS/$TARGETARCH
 
-FROM 736510011942.dkr.ecr.us-west-2.amazonaws.com/python:3.7-yum as rpm-provider
+FROM public.ecr.aws/k1e6s8o8/python:3.7-yum as rpm-provider
 
 
 # Install efs-utils from github by default. It can be overriden to `yum` with --build-arg when building the Docker image.
@@ -53,19 +53,28 @@ RUN mkdir -p /tmp/rpms && \
 RUN pip3 install --user botocore
 
 
-FROM 736510011942.dkr.ecr.us-west-2.amazonaws.com/eks-distro-minimal-base-python-builder:3.7 as rpm-installer
+FROM public.ecr.aws/k1e6s8o8/eks-distro-minimal-base-python-builder:3.7 as rpm-installer
 
 COPY --from=rpm-provider /tmp/rpms/* /tmp/download/
 
 # second param indicates to skip installing dependency rpms, these will be installed manually
+# cd, ls, cat, vim, tcpdump, are for debugging
 RUN clean_install amazon-efs-utils true && \
     install_binary \
         /usr/bin/cat \
+        /usr/bin/cd \
         /usr/bin/df \
+        /usr/bin/env \
+        /usr/bin/find \
+        /usr/bin/grep \
+        /usr/bin/ls \
+        /usr/bin/mount \
         /sbin/mount.nfs4 \
         /usr/bin/openssl \
+        /usr/bin/sed \
         /usr/bin/stat \
         /usr/bin/stunnel5 \
+        /usr/sbin/tcpdump \
         /usr/bin/which && \
     cleanup "efs-csi"
 
@@ -76,7 +85,7 @@ RUN clean_install amazon-efs-utils true && \
 # Those static files need to be copied back to the config directory when the driver starts up.
 RUN mv /newroot/etc/amazon/efs /newroot/etc/amazon/efs-static-files
 
-FROM 736510011942.dkr.ecr.us-west-2.amazonaws.com/eks-distro-minimal-base-python:3.7
+FROM public.ecr.aws/k1e6s8o8/eks-distro-minimal-base-python:3.7
 
 COPY --from=rpm-installer /newroot /
 COPY --from=rpm-provider /root/.local/lib/python3.7/site-packages/ /usr/local/lib/python3.7/site-packages/
