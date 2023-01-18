@@ -65,10 +65,8 @@ all: all-image-docker
 .PHONY: all-push
 all-push:
 	docker buildx build \
-		--no-cache-filter=linux-amazon \
 		--platform=$(PLATFORM) \
 		--progress=plain \
-		--target=$(OS)-$(OSVERSION) \
 		--output=type=registry \
 		-t=$(IMAGE):$(TAG) \
 		.
@@ -84,10 +82,8 @@ sub-image-%:
 image: .image-$(TAG)-$(OS)-$(ARCH)-$(OSVERSION)
 .image-$(TAG)-$(OS)-$(ARCH)-$(OSVERSION):
 	docker buildx build \
-		--no-cache-filter=linux-amazon \
 		--platform=$(OS)/$(ARCH) \
 		--progress=plain \
-		--target=$(OS)-$(OSVERSION) \
 		--output=type=$(OUTPUT_TYPE) \
 		-t=$(IMAGE):$(TAG)-$(OS)-$(ARCH)-$(OSVERSION) \
 		.
