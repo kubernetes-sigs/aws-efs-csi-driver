@@ -57,7 +57,7 @@ git push upstream v1.4.9
 
 ## Verify the release on GitHub
 
-The new tag should trigger a new Github release. It should be a pre-release true because images are not available yet and documentation, like README and CHANGELOG in master branch, does not yet reflect the new release. Verify that it has run by going to [Releases](https://github.com/kubernetes-sigs/aws-ebs-csi-driver/releases). Then, click on the new version and verify all assets have been created:
+The new tag should trigger a new Github release. It should be a pre-release true because images are not available yet and documentation, like README and CHANGELOG in master branch, does not yet reflect the new release. Verify that it has run by going to [Releases](https://github.com/kubernetes-sigs/aws-efs-csi-driver/releases). Then, click on the new version and verify all assets have been created:
 
 - Source code (zip)
 - Source code (tar.gz)
@@ -69,7 +69,7 @@ Follow the AWS-internal process.
 ## Verify the images are available
 
 In ECR Public:
-  - `docker pull public.ecr.aws/ebs-csi-driver/aws-efs-csi-driver:{release version}`
+  - `docker pull public.ecr.aws/efs-csi-driver/aws-efs-csi-driver:{release version}`
 
 In ECR:
   - `aws ecr get-login-password --region us-west-2 | docker login --username AWS --password-stdin 602401143452.dkr.ecr.us-west-2.amazonaws.com`
@@ -77,7 +77,7 @@ In ECR:
 
 ## Create the post-release commit in the release branch
 
-### Update `charts/aws-ebs-csi-driver`
+### Update `charts/aws-efs-csi-driver`
 
 1. Update Helm `appVersion`, `version`, `tag`, and CHANGELOG
   - `charts/aws-efs-csi-driver/Chart.yaml`
