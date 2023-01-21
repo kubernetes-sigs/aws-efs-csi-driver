@@ -8,3 +8,10 @@ metadata:
     "helm.sh/resource-policy": keep
 spec:
   attachRequired: false
+  {{- if .Values.podIAMAuthorization }}
+  podInfoOnMount: true
+  tokenRequests:
+      - audience: "sts.amazonaws.com"
+        expirationSeconds: 3600
+  requiresRepublish: true
+  {{- end}}
