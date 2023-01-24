@@ -204,5 +204,8 @@ Dependencies are managed through go module. To build the project, first turn on 
 ### Testing
 To execute all unit tests, run: `make test`
 
+### Troubleshooting
+To pull logs and troubleshoot the driver, see [troubleshooting/README.md](../troubleshooting/README.md).
+
 ## License
 This library is licensed under the Apache 2.0 License.
