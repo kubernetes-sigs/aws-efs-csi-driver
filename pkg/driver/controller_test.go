@@ -834,6 +834,7 @@ func TestCreateVolume(t *testing.T) {
 						ProvisioningMode: "efs-ap",
 						FsId:             fsId,
 						DirectoryPerms:   "777",
+						Uid:              "1000",
 						Gid:              "-5",
 					},
 				}
