@@ -242,7 +242,9 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 
 	accessPointId, err := localCloud.CreateAccessPoint(ctx, volName, accessPointsOptions)
 	if err != nil {
-		d.gidAllocator.releaseGid(accessPointsOptions.FileSystemId, gid)
+		if allocatedGid != 0 {
+			d.gidAllocator.releaseGid(accessPointsOptions.FileSystemId, gid)
+		}
 		if err == cloud.ErrAccessDenied {
 			return nil, status.Errorf(codes.Unauthenticated, "Access Denied. Please ensure you have the right AWS permissions: %v", err)
 		}
