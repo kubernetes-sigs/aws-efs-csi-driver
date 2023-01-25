@@ -21,4 +21,4 @@ labels:
 
 **Please also attach debug logs to help us better diagnose**
 
-- Instruction to gather debug logs can be found [here](https://github.com/kubernetes-sigs/aws-efs-csi-driver/tree/master/troubleshooting)
+- Instructions to gather debug logs can be found [here](https://github.com/kubernetes-sigs/aws-efs-csi-driver/tree/master/troubleshooting)
