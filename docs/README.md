@@ -156,6 +156,7 @@ helm upgrade --install aws-efs-csi-driver --namespace kube-system aws-efs-csi-dr
 | vol-metrics-refresh-period  |        | 240     | true     | Refresh period for volume metrics in minutes. |
 | vol-metrics-fs-rate-limit   |        | 5       | true     | Volume metrics routines rate limiter per file system. |
  | delete-access-point-root-dir|        | false  | true     |  Opt in to delete access point root directory by DeleteVolume. By default, DeleteVolume will delete the access point behind Persistent Volume and deleting access point will not delete the access point root directory or its contents.|
+| tags                         |       |         |          | Space separated key:value pairs which will be added as tags for EFS resources. For example, 'environment:prod region:us-east-1'|
 
 ### Upgrading the EFS CSI Driver
 
