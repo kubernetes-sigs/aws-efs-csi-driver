@@ -150,13 +150,13 @@ To force the efs-csi-driver to use FIPS, you can add an argument to the helm upg
 helm upgrade --install aws-efs-csi-driver --namespace kube-system aws-efs-csi-driver/aws-efs-csi-driver --set useFips=true
 ```
 ### Container Arguments for efs-plugin of efs-csi-node daemonset
-| Parameters                  | Values | Default | Optional | Description |
-|-----------------------------|--------|---------|----------|-------------|
-| vol-metrics-opt-in          |        | false   | true     | Opt in to emit volume metrics. |
-| vol-metrics-refresh-period  |        | 240     | true     | Refresh period for volume metrics in minutes. |
-| vol-metrics-fs-rate-limit   |        | 5       | true     | Volume metrics routines rate limiter per file system. |
- | delete-access-point-root-dir|        | false  | true     |  Opt in to delete access point root directory by DeleteVolume. By default, DeleteVolume will delete the access point behind Persistent Volume and deleting access point will not delete the access point root directory or its contents.|
-
+| Parameters                  | Values | Default | Optional | Description                                                                                                                                                                                                                             |
+|-----------------------------|--------|---------|----------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| vol-metrics-opt-in          |        | false   | true     | Opt in to emit volume metrics.                                                                                                                                                                                                          |
+| vol-metrics-refresh-period  |        | 240     | true     | Refresh period for volume metrics in minutes.                                                                                                                                                                                           |
+| vol-metrics-fs-rate-limit   |        | 5       | true     | Volume metrics routines rate limiter per file system.                                                                                                                                                                                   |
+ | delete-access-point-root-dir|        | false  | true     | Opt in to delete access point root directory by DeleteVolume. By default, DeleteVolume will delete the access point behind Persistent Volume and deleting access point will not delete the access point root directory or its contents. |
+| tags                         |       |         | true     | Space separated key:value pairs which will be added as tags for EFS resources. For example, '--tags=name:efs-tag-test date:Jan24'                                                                                                       |
 ### Upgrading the EFS CSI Driver
 
 
