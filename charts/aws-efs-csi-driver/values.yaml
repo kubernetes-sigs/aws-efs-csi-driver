@@ -53,7 +53,6 @@ controller:
   # Enable if you want the controller to also delete the
   # path on efs when deleteing an access point
   deleteAccessPointRootDir: false
-  volMetricsOptIn: false
   podAnnotations: {}
   resources:
     {}
@@ -102,6 +101,7 @@ node:
     # dnsConfig:
     #   nameservers:
     #     - 169.254.169.253
+  volMetricsOptIn: false
   podAnnotations: {}
   resources:
     {}

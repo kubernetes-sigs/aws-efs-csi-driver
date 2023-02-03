@@ -53,7 +53,6 @@ spec:
             {{- end }}
             - --v={{ .Values.controller.logLevel }}
             - --delete-access-point-root-dir={{ hasKey .Values.controller "deleteAccessPointRootDir" | ternary .Values.controller.deleteAccessPointRootDir false }}
-            - --vol-metrics-opt-in={{ hasKey .Values.controller "volMetricsOptIn" | ternary .Values.controller.volMetricsOptIn false }}
           env:
             - name: CSI_ENDPOINT
               value: unix:///var/lib/csi/sockets/pluginproxy/csi.sock

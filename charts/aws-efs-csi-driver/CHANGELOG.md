@@ -1,4 +1,7 @@
 # Helm chart
+# v2.3.7
+* Add node.volMetricsOptIn for emitting volume metrics
+* Remove controller.volMetricsOptIn as its the wrong place
 # v2.3.6
 * Bump app/driver version to `v1.4.9`
 # v2.3.5
