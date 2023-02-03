@@ -1,0 +1,19 @@
+{{- if .Values.controller.pdb }}
+{{- if .Capabilities.APIVersions.Has "policy/v1/PodDisruptionBudget" }}
+apiVersion: policy/v1
+{{- else }}
+apiVersion: policy/v1beta1
+{{- end }}
+kind: PodDisruptionBudget
+metadata:
+  name: efs-csi-controller
+  labels:
+    app.kubernetes.io/name: {{ include "aws-efs-csi-driver.name" . }}
+spec:
+  selector:
+    matchLabels:
+      app: efs-csi-controller
+      app.kubernetes.io/name: {{ include "aws-efs-csi-driver.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+{{ toYaml .Values.controller.pdb | indent 2 }}
+{{- end }}

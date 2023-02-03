@@ -1,4 +1,6 @@
 # Helm chart
+# v2.5.0
+* Add optional podDisruptionBudget for controller deployment
 # v2.4.0
 * Bump app/driver version to `v1.5.3`
 # v2.3.9

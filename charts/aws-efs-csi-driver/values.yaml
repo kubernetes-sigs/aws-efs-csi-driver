@@ -80,6 +80,9 @@ controller:
     #  eks.amazonaws.com/role-arn: arn:aws:iam::111122223333:role/efs-csi-role
   healthPort: 9909
   regionalStsEndpoints: false
+  # Pod Disruption Budget
+  pdb: {}
+  # minUnavailable: 1
 ## Node daemonset variables
 
 node:
