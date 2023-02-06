@@ -8,10 +8,10 @@ images:
     newTag: v1.4.9
   - name: public.ecr.aws/eks-distro/kubernetes-csi/livenessprobe
     newName: 602401143452.dkr.ecr.us-west-2.amazonaws.com/eks/livenessprobe
-    newTag: v2.8.0-eks-1-25-latest
+    newTag: v2.8.0-eks-1-23-8
   - name: public.ecr.aws/eks-distro/kubernetes-csi/node-driver-registrar
     newName: 602401143452.dkr.ecr.us-west-2.amazonaws.com/eks/csi-node-driver-registrar
-    newTag: v2.6.2-eks-1-25-latest
+    newTag: v2.6.1-eks-1-23-8
   - name: public.ecr.aws/eks-distro/kubernetes-csi/external-provisioner
     newName: 602401143452.dkr.ecr.us-west-2.amazonaws.com/eks/csi-provisioner
-    newTag: v3.3.0-eks-1-25-latest
+    newTag: v3.3.0-eks-1-23-8

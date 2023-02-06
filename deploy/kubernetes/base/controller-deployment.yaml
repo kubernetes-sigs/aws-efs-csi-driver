@@ -60,7 +60,7 @@ spec:
             periodSeconds: 10
             failureThreshold: 5
         - name: csi-provisioner
-          image: public.ecr.aws/eks-distro/kubernetes-csi/external-provisioner:v3.3.0-eks-1-25-latest
+          image: public.ecr.aws/eks-distro/kubernetes-csi/external-provisioner:v3.3.0-eks-1-23-8
           imagePullPolicy: IfNotPresent
           args:
             - --csi-address=$(ADDRESS)
