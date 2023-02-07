@@ -1,3 +1,6 @@
+# V1.5.0
+* Upgrade to latest sidecars versions
+* Upgrade AL2 version and address CVEs (CVE-2021-4217, CVE-2022-0529, CVE-2022-0530, CVE-2022-4141, CVE-2023-0049, CVE-2022-45061, CVE-2022-27781, CVE-2022-23521, CVE-2021-46848, CVE-2022-4292, CVE-2022-43551, CVE-2022-35737, CVE-2022-42898, CVE-2022-41903)
 # V1.4.9
 * Bumped up the sidecars version
 * Fixed-AWS EFS CSI Driver crashes if Access Point creation fails and static GID set
