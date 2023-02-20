@@ -1,3 +1,25 @@
+# V1.5.6
+* Added the SecurityContext for Driver ([#1001](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1001), [@mskanth972](https://github.com/mskanth972))
+* Updated Side-cars to address pull back error in private manifest ([#1009](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1009), [@mskanth972](https://github.com/mskanth972))
+* Add reminder to always update weaveworks when updating policy ([#1002](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1002), [@Ashley-wenyizha](https://github.com/Ashley-wenyizha))
+* Updating README on how to delete access point when deleting PVC ([#1004](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1004), [@mskanth972](https://github.com/mskanth972))
+* Updated the README with information on mountOptions that can be provided while mounting ([#1006](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1006), [@mskanth972](https://github.com/mskanth972))
+# V1.5.5
+* Updated the K8s packages to 1.22.16 to mitigate the CVE-2022-3294 ([#984](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/984), [@mskanth972](https://github.com/mskanth972)) 
+* Upgrade k8s and eksctl version for Test cluster failure fix ([#987](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/987), [@Ashley-wenyizha](https://github.com/Ashley-wenyizha)) 
+* Bumped the side-cars version to the latest ([#993](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/993), [@mskanth972](https://github.com/mskanth972)) 
+# V1.5.4
+* Mitigated golang CVE-2022-41723 ([#961](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/961), [@RyanStan](https://github.com/RyanStan))
+* Updated the example IAM policy by adding `elasticfilesystem:TagResource` permission for tagging EFS resources. ([#964](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/964), [@mskanth972](https://github.com/mskanth972))
+# V1.5.3
+* Updated the Dockerfile to move python packages to location on sys.path ([#951](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/951), [@RyanStan](https://github.com/RyanStan))
+# V1.5.2
+* Golang.org/x/net version update ([#897](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/897), [@RomanBednar](https://github.com/RomanBednar))
+* New image based on minimal EKS Distro images ([#903](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/903), [@RyanStan](https://github.com/RyanStan))
+* feat(node/controller): allow to set updateStrategy ([#740](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/740), [@lefterisALEX](https://github.com/lefterisALEX))
+* Revised and passed volume related arguments in the daemonset instead of controller ([#942](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/942), [@mskanth972](https://github.com/mskanth972))
+* README update on `delete-access-point-root-dir` argument 
+* README update on DNS name resolving issue
 # V1.5.1
 * Upgrade AL2 version and address CVEs ( CVE-2022-4304, CVE-2023-0215, CVE-2023-0286 )
 # V1.5.0
