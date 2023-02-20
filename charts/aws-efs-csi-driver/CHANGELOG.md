@@ -1,4 +1,6 @@
 # Helm chart
+# v2.4.0
+* Add support for controller/node pod labels
 # v2.3.8
 * Bump app/driver version to `v1.5.1`
 # v2.3.7

@@ -19,6 +19,9 @@ spec:
         app: efs-csi-controller
         app.kubernetes.io/name: {{ include "aws-efs-csi-driver.name" . }}
         app.kubernetes.io/instance: {{ .Release.Name }}
+        {{- with .Values.controller.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
       {{- with .Values.controller.podAnnotations }}
       annotations: {{- toYaml . | nindent 8 }}
       {{- end }}
