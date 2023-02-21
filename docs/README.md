@@ -198,6 +198,9 @@ Before the example, you need to:
 * [Mount subpath](../examples/kubernetes/volume_path/README.md)
 * [Use Access Points](../examples/kubernetes/access_points/README.md)
 
+## Using botocore to retrieve mount target ip address when dns name cannot be resolved
+* EFS CSI driver by default comes with botocore library installed, which can resolve the DNS issue by providing a way to retrieve the IP address of the EFS mount targets but should allow the ```elasticfilesystem:DescribeMountTargets``` and ```ec2:DescribeAvailabilityZones``` action in your policy attached to the IAM role you attached to the instance.
+
 ## Development
 Please go through [CSI Spec](https://github.com/container-storage-interface/spec/blob/master/spec.md) and [Kubernetes CSI Developer Documentation](https://kubernetes-csi.github.io/docs) to get some basic understanding of CSI driver before you start.
 
