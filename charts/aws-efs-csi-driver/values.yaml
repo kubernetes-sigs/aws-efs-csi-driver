@@ -68,6 +68,7 @@ controller:
     #   cpu: 100m
     #   memory: 128Mi
   nodeSelector: {}
+  updateStrategy: {}
   tolerations: []
   affinity: {}
   # Specifies whether a service account should be created
@@ -112,6 +113,10 @@ node:
     #   cpu: 100m
     #   memory: 128Mi
   nodeSelector: {}
+  updateStrategy: {}
+    # Override default strategy (RollingUpdate) to speed up deployment.
+    # This can be useful if helm timeouts are observed.
+    # type: OnDelete
   tolerations:
     - operator: Exists
   # Specifies whether a service account should be created
