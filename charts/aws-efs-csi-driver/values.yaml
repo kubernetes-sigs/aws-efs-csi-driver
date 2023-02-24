@@ -10,26 +10,28 @@ replicaCount: 2
 useFIPS: false
 
 image:
-  repository: amazon/aws-efs-csi-driver
+  repository: /efs-csi-driver/amazon/aws-efs-csi-driver
+  # Container registry to be used, will prefix all repositories (including sidecars)
+  containerRegistry: public.ecr.aws
   tag: "v1.5.4"
   pullPolicy: IfNotPresent
 
 sidecars:
   livenessProbe:
     image:
-      repository: public.ecr.aws/eks-distro/kubernetes-csi/livenessprobe
+      repository: /eks-distro/kubernetes-csi/livenessprobe
       tag: v2.8.0-eks-1-25-latest
       pullPolicy: IfNotPresent
     resources: {}
   nodeDriverRegistrar:
     image:
-      repository: public.ecr.aws/eks-distro/kubernetes-csi/node-driver-registrar
+      repository: /eks-distro/kubernetes-csi/node-driver-registrar
       tag: v2.6.2-eks-1-25-latest
       pullPolicy: IfNotPresent
     resources: {}
   csiProvisioner:
     image:
-      repository: public.ecr.aws/eks-distro/kubernetes-csi/external-provisioner
+      repository: /eks-distro/kubernetes-csi/external-provisioner
       tag: v3.3.0-eks-1-25-latest
       pullPolicy: IfNotPresent
     resources: {}
