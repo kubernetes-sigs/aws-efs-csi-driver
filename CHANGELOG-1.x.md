@@ -1,3 +1,10 @@
+# V1.5.2
+* Golang.org/x/net version update ([#897](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/897), [@RomanBednar](https://github.com/RomanBednar))
+* New image based on minimal EKS Distro images ([#903](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/903), [@RyanStan](https://github.com/RyanStan))
+* feat(node/controller): allow to set updateStrategy ([#740](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/740), [@lefterisALEX](https://github.com/lefterisALEX))
+* Revised and passed volume related arguments in the daemonset instead of controller ([#942](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/942), [@mskanth972](https://github.com/mskanth972))
+* README update on `delete-access-point-root-dir` argument 
+* README update on DNS name resolving issue
 # V1.5.1
 * Upgrade AL2 version and address CVEs ( CVE-2022-4304, CVE-2023-0215, CVE-2023-0286 )
 # V1.5.0
