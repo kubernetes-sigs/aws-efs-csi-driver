@@ -123,6 +123,7 @@ test-e2e:
 	AWS_AVAILABILITY_ZONES=us-west-2a,us-west-2b,us-west-2c \
 	TEST_PATH=./test/e2e/... \
 	GINKGO_FOCUS="\[efs-csi\]" \
+	GINKGO_SKIP="\[Disruptive\]|\[Serial\]" \
 	./hack/e2e/run.sh
 
 .PHONY: test-e2e-external-eks
@@ -137,6 +138,7 @@ test-e2e-external-eks:
 	AWS_AVAILABILITY_ZONES=us-west-2a,us-west-2b,us-west-2c \
 	TEST_PATH=./test/e2e/... \
 	GINKGO_FOCUS="\[efs-csi\]" \
+	GINKGO_SKIP="\[Disruptive\]|\[Serial\]" \
 	EKSCTL_ADMIN_ROLE="Infra-prod-KopsDeleteAllLambdaServiceRoleF1578477-1ELDFIB4KCMXV" \
 	./hack/e2e/run.sh
 

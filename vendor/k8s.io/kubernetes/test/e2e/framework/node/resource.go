@@ -24,7 +24,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/onsi/ginkgo"
+	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 
 	v1 "k8s.io/api/core/v1"
@@ -377,6 +377,42 @@ func GetRandomReadySchedulableNode(c clientset.Interface) (*v1.Node, error) {
 	return &nodes.Items[rand.Intn(len(nodes.Items))], nil
 }
 
+// GetSubnetPrefix gets first 2 number of an IP in the node subnet. [IPv4]
+// It assumes that the subnet mask is /16.
+func GetSubnetPrefix(c clientset.Interface) ([]string, error) {
+	node, err := GetReadySchedulableWorkerNode(c)
+	if err != nil {
+		return nil, fmt.Errorf("error getting a ready schedulable worker Node, err: %v", err)
+	}
+	internalIP, err := GetInternalIP(node)
+	if err != nil {
+		return nil, fmt.Errorf("error getting Node internal IP, err: %v", err)
+	}
+	splitted := strings.Split(internalIP, ".")
+	if len(splitted) == 4 {
+		return splitted[:2], nil
+	}
+	return nil, fmt.Errorf("invalid IP address format: %s", internalIP)
+}
+
+// GetReadySchedulableWorkerNode gets a single worker node which is available for
+// running pods on. If there are no such available nodes it will return an error.
+func GetReadySchedulableWorkerNode(c clientset.Interface) (*v1.Node, error) {
+	nodes, err := GetReadySchedulableNodes(c)
+	if err != nil {
+		return nil, err
+	}
+	for i := range nodes.Items {
+		node := nodes.Items[i]
+		_, isMaster := node.Labels["node-role.kubernetes.io/master"]
+		_, isControlPlane := node.Labels["node-role.kubernetes.io/control-plane"]
+		if !isMaster && !isControlPlane {
+			return &node, nil
+		}
+	}
+	return nil, fmt.Errorf("there are currently no ready, schedulable worker nodes in the cluster")
+}
+
 // GetReadyNodesIncludingTainted returns all ready nodes, even those which are tainted.
 // There are cases when we care about tainted nodes
 // E.g. in tests related to nodes with gpu we care about nodes despite
@@ -563,18 +599,15 @@ func GetClusterZones(c clientset.Interface) (sets.String, error) {
 
 // GetSchedulableClusterZones returns the values of zone label collected from all nodes which are schedulable.
 func GetSchedulableClusterZones(c clientset.Interface) (sets.String, error) {
-	nodes, err := c.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
+	// GetReadySchedulableNodes already filters our tainted and unschedulable nodes.
+	nodes, err := GetReadySchedulableNodes(c)
 	if err != nil {
-		return nil, fmt.Errorf("Error getting nodes while attempting to list cluster zones: %v", err)
+		return nil, fmt.Errorf("error getting nodes while attempting to list cluster zones: %v", err)
 	}
 
 	// collect values of zone label from all nodes
 	zones := sets.NewString()
 	for _, node := range nodes.Items {
-		// We should have at least 1 node in the zone which is schedulable.
-		if !IsNodeSchedulable(&node) {
-			continue
-		}
 		if zone, found := node.Labels[v1.LabelFailureDomainBetaZone]; found {
 			zones.Insert(zone)
 		}
