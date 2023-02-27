@@ -55,7 +55,6 @@ function eksctl_create_cluster() {
   fi
 
   loudecho "Cluster ${CLUSTER_NAME} kubecfg written to ${KUBECONFIG}"
-
   loudecho "Getting cluster ${CLUSTER_NAME}"
   ${BIN} get cluster "${CLUSTER_NAME}"
 
@@ -70,10 +69,10 @@ function eksctl_create_cluster() {
     ${BIN} create nodegroup \
       --managed=false \
       --cluster="${CLUSTER_NAME}" \
-      --node-ami-family=WindowsServer2019FullContainer \
+      --node-ami-family=WindowsServer2022FullContainer \
       -n ng-windows \
-      -m 1 \
-      -M 1 \
+      -m 3 \
+      -M 3 \
       --ssh-access \
       --ssh-public-key "${SSH_KEY_PATH}".pub
     ${BIN} utils install-vpc-controllers --cluster="${CLUSTER_NAME}" --approve

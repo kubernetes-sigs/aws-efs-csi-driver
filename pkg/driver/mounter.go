@@ -16,23 +16,23 @@ package driver
 import (
 	"os"
 
-	"k8s.io/mount-utils"
+	mount_utils "k8s.io/mount-utils"
 )
 
 // Mounter is an interface for mount operations
 type Mounter interface {
-	mount.Interface
+	mount_utils.Interface
 	MakeDir(pathname string) error
 	GetDeviceName(mountPath string) (string, int, error)
 }
 
 type NodeMounter struct {
-	mount.Interface
+	mount_utils.Interface
 }
 
 func newNodeMounter() Mounter {
 	return &NodeMounter{
-		Interface: mount.New(""),
+		Interface: mount_utils.New(""),
 	}
 }
 
@@ -47,5 +47,5 @@ func (m *NodeMounter) MakeDir(pathname string) error {
 }
 
 func (m *NodeMounter) GetDeviceName(mountPath string) (string, int, error) {
-	return mount.GetDeviceNameFromMount(m, mountPath)
+	return mount_utils.GetDeviceNameFromMount(m, mountPath)
 }
