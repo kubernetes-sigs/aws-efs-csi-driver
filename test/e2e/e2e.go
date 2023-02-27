@@ -3,10 +3,11 @@ package e2e
 import (
 	"context"
 	"fmt"
+	"k8s.io/apimachinery/pkg/util/rand"
 	"os"
 	"time"
 
-	"github.com/onsi/ginkgo"
+	"github.com/onsi/ginkgo/v2"
 	v1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -23,6 +24,7 @@ import (
 	storageframework "k8s.io/kubernetes/test/e2e/storage/framework"
 	"k8s.io/kubernetes/test/e2e/storage/testsuites"
 	"k8s.io/kubernetes/test/e2e/storage/utils"
+	admissionapi "k8s.io/pod-security-admission/api"
 )
 
 var (
@@ -120,12 +122,18 @@ func (e *efsDriver) GetDynamicProvisionStorageClass(config *storageframework.Per
 	defaultBindingMode := storagev1.VolumeBindingImmediate
 	return &storagev1.StorageClass{
 		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: generateName,
+			//GenerateName: generateName,
+			Name: generateName + generateRandomString(4),
 		},
 		Provisioner:       "efs.csi.aws.com",
 		Parameters:        parameters,
 		VolumeBindingMode: &defaultBindingMode,
 	}
+}
+
+func generateRandomString(len int) string {
+	rand.Seed(time.Now().UnixNano())
+	return rand.String(len)
 }
 
 // List of testSuites to be executed in below loop
@@ -228,6 +236,7 @@ var _ = ginkgo.Describe("[efs-csi] EFS CSI", func() {
 	})
 
 	f := framework.NewDefaultFramework("efs")
+	f.NamespacePodSecurityEnforceLevel = admissionapi.LevelPrivileged
 
 	ginkgo.Context(storageframework.GetDriverNameWithFeatureTags(driver), func() {
 		ginkgo.It("should mount different paths on same volume on same node", func() {
