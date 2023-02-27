@@ -4,6 +4,7 @@ kind: Deployment
 apiVersion: apps/v1
 metadata:
   name: efs-csi-controller
+  namespace: {{ .Release.Namespace }}
   labels:
     app.kubernetes.io/name: {{ include "aws-efs-csi-driver.name" . }}
 spec:
