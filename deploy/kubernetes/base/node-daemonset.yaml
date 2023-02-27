@@ -47,6 +47,9 @@ spec:
             - --endpoint=$(CSI_ENDPOINT)
             - --logtostderr
             - --v=2
+            - --vol-metrics-opt-in=false
+            - --vol-metrics-refresh-period=240
+            - --vol-metrics-fs-rate-limit=5
           env:
             - name: CSI_ENDPOINT
               value: unix:/csi/csi.sock
