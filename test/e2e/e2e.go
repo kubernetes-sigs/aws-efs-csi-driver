@@ -3,6 +3,7 @@ package e2e
 import (
 	"context"
 	"fmt"
+	"k8s.io/kubernetes/test/e2e/framework/kubectl"
 	"os"
 	"time"
 
@@ -22,7 +23,6 @@ import (
 	e2evolume "k8s.io/kubernetes/test/e2e/framework/volume"
 	storageframework "k8s.io/kubernetes/test/e2e/storage/framework"
 	"k8s.io/kubernetes/test/e2e/storage/testsuites"
-	"k8s.io/kubernetes/test/e2e/storage/utils"
 )
 
 var (
@@ -82,16 +82,13 @@ func (e *efsDriver) GetDriverInfo() *storageframework.DriverInfo {
 
 func (e *efsDriver) SkipUnsupportedTest(storageframework.TestPattern) {}
 
-func (e *efsDriver) PrepareTest(f *framework.Framework) (*storageframework.PerTestConfig, func()) {
-	cancelPodLogs := utils.StartPodLogs(f, f.Namespace)
+func (e *efsDriver) PrepareTest(f *framework.Framework) *storageframework.PerTestConfig {
 
 	return &storageframework.PerTestConfig{
-			Driver:    e,
-			Prefix:    "efs",
-			Framework: f,
-		}, func() {
-			cancelPodLogs()
-		}
+		Driver:    e,
+		Prefix:    "efs",
+		Framework: f,
+	}
 }
 
 func (e *efsDriver) CreateVolume(config *storageframework.PerTestConfig, volType storageframework.TestVolType) storageframework.TestVolume {
@@ -183,7 +180,7 @@ var _ = ginkgo.SynchronizedBeforeSuite(func() []byte {
 			framework.ExpectNoError(err, "getting csidriver efs.csi.aws.com")
 		} else {
 			ginkgo.By("Deploying EFS CSI driver")
-			framework.RunKubectlOrDie("kube-system", "apply", "-k", "github.com/kubernetes-sigs/aws-efs-csi-driver/deploy/kubernetes/overlays/stable/?ref=master")
+			kubectl.RunKubectlOrDie("kube-system", "apply", "-k", "github.com/kubernetes-sigs/aws-efs-csi-driver/deploy/kubernetes/overlays/stable/?ref=master")
 			ginkgo.By("Deployed EFS CSI driver")
 			destroyDriver = true
 		}
@@ -211,7 +208,7 @@ var _ = ginkgo.SynchronizedAfterSuite(func() {
 
 	if destroyDriver {
 		ginkgo.By("Cleaning up EFS CSI driver")
-		framework.RunKubectlOrDie("delete", "-k", "github.com/kubernetes-sigs/aws-efs-csi-driver/deploy/kubernetes/overlays/stable/?ref=master")
+		kubectl.RunKubectlOrDie("delete", "-k", "github.com/kubernetes-sigs/aws-efs-csi-driver/deploy/kubernetes/overlays/stable/?ref=master")
 	}
 })
 

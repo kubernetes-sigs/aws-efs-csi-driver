@@ -47,9 +47,9 @@ type TestDriver interface {
 	SkipUnsupportedTest(TestPattern)
 
 	// PrepareTest is called at test execution time each time a new test case is about to start.
-	// It sets up all necessary resources and returns the per-test configuration
-	// plus a cleanup function that frees all allocated resources.
-	PrepareTest(f *framework.Framework) (*PerTestConfig, func())
+	// It sets up all necessary resources and returns the per-test configuration.
+	// Cleanup is handled via ginkgo.DeferCleanup inside PrepareTest.
+	PrepareTest(f *framework.Framework) *PerTestConfig
 }
 
 // TestVolume is the result of PreprovisionedVolumeTestDriver.CreateVolume.
@@ -151,6 +151,7 @@ const (
 	CapPersistence        Capability = "persistence"        // data is persisted across pod restarts
 	CapBlock              Capability = "block"              // raw block mode
 	CapFsGroup            Capability = "fsGroup"            // volume ownership via fsGroup
+	CapVolumeMountGroup   Capability = "volumeMountGroup"   // Driver has the VolumeMountGroup CSI node capability. Because this is a FSGroup feature, the fsGroup capability must also be set to true.
 	CapExec               Capability = "exec"               // exec a file in the volume
 	CapSnapshotDataSource Capability = "snapshotDataSource" // support populate data from snapshot
 	CapPVCDataSource      Capability = "pvcDataSource"      // support populate data from pvc
@@ -165,15 +166,40 @@ const (
 	CapRWX                 Capability = "RWX"                 // support ReadWriteMany access modes
 	CapControllerExpansion Capability = "controllerExpansion" // support volume expansion for controller
 	CapNodeExpansion       Capability = "nodeExpansion"       // support volume expansion for node
-	CapOnlineExpansion     Capability = "onlineExpansion"     // supports online volume expansion
-	CapVolumeLimits        Capability = "volumeLimits"        // support volume limits (can be *very* slow)
-	CapSingleNodeVolume    Capability = "singleNodeVolume"    // support volume that can run on single node (like hostpath)
-	CapTopology            Capability = "topology"            // support topology
+
+	// offlineExpansion and onlineExpansion both default to true when
+	// controllerExpansion is true. The only reason to set offlineExpansion
+	// to false is when a CSI driver can only expand a volume while it's
+	// attached to a pod. Conversely, onlineExpansion can be set to false
+	// if the driver can only expand a volume while it is detached.
+	CapOfflineExpansion Capability = "offlineExpansion" // supports offline volume expansion (default: true)
+	CapOnlineExpansion  Capability = "onlineExpansion"  // supports online volume expansion (default: true)
+
+	CapVolumeLimits     Capability = "volumeLimits"     // support volume limits (can be *very* slow)
+	CapSingleNodeVolume Capability = "singleNodeVolume" // support volume that can run on single node (like hostpath)
+	CapTopology         Capability = "topology"         // support topology
 
 	// The driver publishes storage capacity information: when the storage class
 	// for dynamic provisioning exists, the driver is expected to provide
 	// capacity information for it.
 	CapCapacity Capability = "capacity"
+
+	// To support ReadWriteOncePod, the following CSI sidecars must be
+	// updated to these versions or greater:
+	// - csi-provisioner:v3.0.0+
+	// - csi-attacher:v3.3.0+
+	// - csi-resizer:v1.3.0+
+	CapReadWriteOncePod Capability = "readWriteOncePod"
+
+	// The driver can handle two PersistentVolumes with the same VolumeHandle (= volume_id in CSI spec).
+	// This capability is highly recommended for volumes that support ReadWriteMany access mode,
+	// because creating multiple PVs for the same VolumeHandle is frequently used to share a single
+	// volume among multiple namespaces.
+	// Note that this capability needs to be disabled only for CSI drivers that break CSI boundary and
+	// inspect Kubernetes PersistentVolume objects. A CSI driver that implements only CSI and does not
+	// talk to Kubernetes API server in any way should keep this capability enabled, because
+	// they will see the same NodeStage / NodePublish requests as if only one PV existed.
+	CapMultiplePVsSameID Capability = "multiplePVsSameID"
 )
 
 // DriverInfo represents static information about a TestDriver.

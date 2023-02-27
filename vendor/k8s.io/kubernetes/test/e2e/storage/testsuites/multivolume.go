@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/onsi/ginkgo"
+	"github.com/onsi/ginkgo/v2"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/errors"
@@ -29,12 +29,13 @@ import (
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2enode "k8s.io/kubernetes/test/e2e/framework/node"
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
+	e2eoutput "k8s.io/kubernetes/test/e2e/framework/pod/output"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 	e2evolume "k8s.io/kubernetes/test/e2e/framework/volume"
 	storageframework "k8s.io/kubernetes/test/e2e/storage/framework"
-	"k8s.io/kubernetes/test/e2e/storage/utils"
 	storageutils "k8s.io/kubernetes/test/e2e/storage/utils"
 	imageutils "k8s.io/kubernetes/test/utils/image"
+	admissionapi "k8s.io/pod-security-admission/api"
 )
 
 type multiVolumeTestSuite struct {
@@ -67,6 +68,7 @@ func InitMultiVolumeTestSuite() storageframework.TestSuite {
 		storageframework.BlockVolModeDynamicPV,
 		storageframework.Ext4DynamicPV,
 		storageframework.XfsDynamicPV,
+		storageframework.NtfsDynamicPV,
 	}
 	return InitCustomMultiVolumeTestSuite(patterns)
 }
@@ -85,8 +87,7 @@ func (t *multiVolumeTestSuite) SkipUnsupportedTests(driver storageframework.Test
 
 func (t *multiVolumeTestSuite) DefineTests(driver storageframework.TestDriver, pattern storageframework.TestPattern) {
 	type local struct {
-		config        *storageframework.PerTestConfig
-		driverCleanup func()
+		config *storageframework.PerTestConfig
 
 		cs        clientset.Interface
 		ns        *v1.Namespace
@@ -103,6 +104,7 @@ func (t *multiVolumeTestSuite) DefineTests(driver storageframework.TestDriver, p
 	// Beware that it also registers an AfterEach which renders f unusable. Any code using
 	// f must run inside an It or Context callback.
 	f := framework.NewFrameworkWithCustomTimeouts("multivolume", storageframework.GetDriverTimeouts(driver))
+	f.NamespacePodSecurityEnforceLevel = admissionapi.LevelPrivileged
 
 	init := func() {
 		l = local{}
@@ -111,7 +113,7 @@ func (t *multiVolumeTestSuite) DefineTests(driver storageframework.TestDriver, p
 		l.driver = driver
 
 		// Now do the more expensive test initialization.
-		l.config, l.driverCleanup = driver.PrepareTest(f)
+		l.config = driver.PrepareTest(f)
 		l.migrationCheck = newMigrationOpCheck(f.ClientSet, f.ClientConfig(), dInfo.InTreePluginName)
 	}
 
@@ -121,8 +123,6 @@ func (t *multiVolumeTestSuite) DefineTests(driver storageframework.TestDriver, p
 			errs = append(errs, resource.CleanupResource())
 		}
 
-		errs = append(errs, storageutils.TryFunc(l.driverCleanup))
-		l.driverCleanup = nil
 		framework.ExpectNoError(errors.NewAggregate(errs), "while cleanup resource")
 		l.migrationCheck.validateMigrationVolumeOpCounts()
 	}
@@ -317,7 +317,7 @@ func (t *multiVolumeTestSuite) DefineTests(driver storageframework.TestDriver, p
 	// [        node1        ]
 	//   |                 |     <- same volume mode
 	// [volume1]   ->  [restored volume1 snapshot]
-	ginkgo.It("should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]", func() {
+	ginkgo.It("should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]", func(ctx context.Context) {
 		init()
 		defer cleanup()
 
@@ -326,12 +326,6 @@ func (t *multiVolumeTestSuite) DefineTests(driver storageframework.TestDriver, p
 		}
 		if pattern.SnapshotType == "" {
 			e2eskipper.Skipf("Driver %q does not support snapshots - skipping", dInfo.Name)
-		}
-		if pattern.VolMode == v1.PersistentVolumeBlock {
-			// TODO: refactor prepareSnapshotDataSourceForProvisioning() below to use
-			// utils.CheckWriteToPath / utils.CheckReadFromPath and remove
-			// redundant InjectContent(). This will enable block volume tests.
-			e2eskipper.Skipf("This test does not support block volumes -- skipping")
 		}
 
 		// Create a volume
@@ -348,8 +342,7 @@ func (t *multiVolumeTestSuite) DefineTests(driver storageframework.TestDriver, p
 		}
 		testConfig := storageframework.ConvertTestConfig(l.config)
 		dc := l.config.Framework.DynamicClient
-		dataSource, cleanupFunc := prepareSnapshotDataSourceForProvisioning(f, testConfig, l.config, pattern, l.cs, dc, resource.Pvc, resource.Sc, sDriver, pattern.VolMode, expectedContent)
-		defer cleanupFunc()
+		dataSourceRef := prepareSnapshotDataSourceForProvisioning(ctx, f, testConfig, l.config, pattern, l.cs, dc, resource.Pvc, resource.Sc, sDriver, pattern.VolMode, expectedContent)
 
 		// Create 2nd PVC for testing
 		pvc2 := &v1.PersistentVolumeClaim{
@@ -360,7 +353,7 @@ func (t *multiVolumeTestSuite) DefineTests(driver storageframework.TestDriver, p
 		}
 		resource.Pvc.Spec.DeepCopyInto(&pvc2.Spec)
 		pvc2.Spec.VolumeName = ""
-		pvc2.Spec.DataSource = dataSource
+		pvc2.Spec.DataSourceRef = dataSourceRef
 
 		pvc2, err := l.cs.CoreV1().PersistentVolumeClaims(pvc2.Namespace).Create(context.TODO(), pvc2, metav1.CreateOptions{})
 		framework.ExpectNoError(err)
@@ -378,18 +371,12 @@ func (t *multiVolumeTestSuite) DefineTests(driver storageframework.TestDriver, p
 	// [        node1        ]
 	//   |                 |     <- same volume mode
 	// [volume1]   ->  [cloned volume1]
-	ginkgo.It("should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]", func() {
+	ginkgo.It("should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]", func(ctx context.Context) {
 		init()
 		defer cleanup()
 
 		if !l.driver.GetDriverInfo().Capabilities[storageframework.CapPVCDataSource] {
 			e2eskipper.Skipf("Driver %q does not support volume clone - skipping", dInfo.Name)
-		}
-		if pattern.VolMode == v1.PersistentVolumeBlock {
-			// TODO: refactor preparePVCDataSourceForProvisioning() below to use
-			// utils.CheckWriteToPath / utils.CheckReadFromPath and remove
-			// redundant InjectContent(). This will enable block volume tests.
-			e2eskipper.Skipf("This test does not support block volumes -- skipping")
 		}
 
 		// Create a volume
@@ -399,8 +386,7 @@ func (t *multiVolumeTestSuite) DefineTests(driver storageframework.TestDriver, p
 		l.resources = append(l.resources, resource)
 		pvcs := []*v1.PersistentVolumeClaim{resource.Pvc}
 		testConfig := storageframework.ConvertTestConfig(l.config)
-		dataSource, cleanupFunc := preparePVCDataSourceForProvisioning(f, testConfig, l.cs, resource.Pvc, resource.Sc, pattern.VolMode, expectedContent)
-		defer cleanupFunc()
+		dataSourceRef := preparePVCDataSourceForProvisioning(ctx, f, testConfig, l.cs, resource.Pvc, resource.Sc, pattern.VolMode, expectedContent)
 
 		// Create 2nd PVC for testing
 		pvc2 := &v1.PersistentVolumeClaim{
@@ -411,7 +397,7 @@ func (t *multiVolumeTestSuite) DefineTests(driver storageframework.TestDriver, p
 		}
 		resource.Pvc.Spec.DeepCopyInto(&pvc2.Spec)
 		pvc2.Spec.VolumeName = ""
-		pvc2.Spec.DataSource = dataSource
+		pvc2.Spec.DataSourceRef = dataSourceRef
 
 		pvc2, err := l.cs.CoreV1().PersistentVolumeClaims(pvc2.Namespace).Create(context.TODO(), pvc2, metav1.CreateOptions{})
 		framework.ExpectNoError(err)
@@ -437,6 +423,10 @@ func (t *multiVolumeTestSuite) DefineTests(driver storageframework.TestDriver, p
 
 		if !l.driver.GetDriverInfo().Capabilities[storageframework.CapMultiPODs] {
 			e2eskipper.Skipf("Driver %q does not support multiple concurrent pods - skipping", dInfo.Name)
+		}
+
+		if l.driver.GetDriverInfo().Name == "vsphere" && pattern == storageframework.BlockVolModeDynamicPV {
+			e2eskipper.Skipf("Driver %q does not support read only raw block volumes - skipping", dInfo.Name)
 		}
 
 		// Create volume
@@ -515,14 +505,14 @@ func testAccessMultipleVolumes(f *framework.Framework, cs clientset.Interface, n
 
 		if readSeedBase > 0 {
 			ginkgo.By(fmt.Sprintf("Checking if read from the volume%d works properly", index))
-			utils.CheckReadFromPath(f, pod, *pvc.Spec.VolumeMode, false, path, byteLen, readSeedBase+int64(i))
+			storageutils.CheckReadFromPath(f, pod, *pvc.Spec.VolumeMode, false, path, byteLen, readSeedBase+int64(i))
 		}
 
 		ginkgo.By(fmt.Sprintf("Checking if write to the volume%d works properly", index))
-		utils.CheckWriteToPath(f, pod, *pvc.Spec.VolumeMode, false, path, byteLen, writeSeedBase+int64(i))
+		storageutils.CheckWriteToPath(f, pod, *pvc.Spec.VolumeMode, false, path, byteLen, writeSeedBase+int64(i))
 
 		ginkgo.By(fmt.Sprintf("Checking if read from the volume%d works properly", index))
-		utils.CheckReadFromPath(f, pod, *pvc.Spec.VolumeMode, false, path, byteLen, writeSeedBase+int64(i))
+		storageutils.CheckReadFromPath(f, pod, *pvc.Spec.VolumeMode, false, path, byteLen, writeSeedBase+int64(i))
 	}
 
 	pod, err = cs.CoreV1().Pods(pod.Namespace).Get(context.TODO(), pod.Name, metav1.GetOptions{})
@@ -608,7 +598,7 @@ func TestConcurrentAccessToSingleVolume(f *framework.Framework, cs clientset.Int
 			framework.Failf("Number of pods shouldn't be less than 1, but got %d", len(pods))
 		}
 		// byteLen should be the size of a sector to enable direct I/O
-		byteLen = utils.GetSectorSize(f, pods[0], path)
+		byteLen = storageutils.GetSectorSize(f, pods[0], path)
 		directIO = true
 	}
 
@@ -626,17 +616,17 @@ func TestConcurrentAccessToSingleVolume(f *framework.Framework, cs clientset.Int
 		if i != 0 {
 			ginkgo.By(fmt.Sprintf("From pod%d, checking if reading the data that pod%d write works properly", index, index-1))
 			// For 1st pod, no one has written data yet, so pass the read check
-			utils.CheckReadFromPath(f, pod, *pvc.Spec.VolumeMode, directIO, path, byteLen, seed)
+			storageutils.CheckReadFromPath(f, pod, *pvc.Spec.VolumeMode, directIO, path, byteLen, seed)
 		}
 
 		// Update the seed and check if write/read works properly
 		seed = time.Now().UTC().UnixNano()
 
 		ginkgo.By(fmt.Sprintf("Checking if write to the volume in pod%d works properly", index))
-		utils.CheckWriteToPath(f, pod, *pvc.Spec.VolumeMode, directIO, path, byteLen, seed)
+		storageutils.CheckWriteToPath(f, pod, *pvc.Spec.VolumeMode, directIO, path, byteLen, seed)
 
 		ginkgo.By(fmt.Sprintf("Checking if read from the volume in pod%d works properly", index))
-		utils.CheckReadFromPath(f, pod, *pvc.Spec.VolumeMode, directIO, path, byteLen, seed)
+		storageutils.CheckReadFromPath(f, pod, *pvc.Spec.VolumeMode, directIO, path, byteLen, seed)
 	}
 
 	if len(pods) < 2 {
@@ -665,16 +655,16 @@ func TestConcurrentAccessToSingleVolume(f *framework.Framework, cs clientset.Int
 		} else {
 			ginkgo.By(fmt.Sprintf("From pod%d, rechecking if reading the data that pod%d write works properly", index, index-1))
 		}
-		utils.CheckReadFromPath(f, pod, *pvc.Spec.VolumeMode, directIO, path, byteLen, seed)
+		storageutils.CheckReadFromPath(f, pod, *pvc.Spec.VolumeMode, directIO, path, byteLen, seed)
 
 		// Update the seed and check if write/read works properly
 		seed = time.Now().UTC().UnixNano()
 
 		ginkgo.By(fmt.Sprintf("Rechecking if write to the volume in pod%d works properly", index))
-		utils.CheckWriteToPath(f, pod, *pvc.Spec.VolumeMode, directIO, path, byteLen, seed)
+		storageutils.CheckWriteToPath(f, pod, *pvc.Spec.VolumeMode, directIO, path, byteLen, seed)
 
 		ginkgo.By(fmt.Sprintf("Rechecking if read from the volume in pod%d works properly", index))
-		utils.CheckReadFromPath(f, pod, *pvc.Spec.VolumeMode, directIO, path, byteLen, seed)
+		storageutils.CheckReadFromPath(f, pod, *pvc.Spec.VolumeMode, directIO, path, byteLen, seed)
 	}
 }
 
@@ -710,15 +700,26 @@ func TestConcurrentAccessToRelatedVolumes(f *framework.Framework, cs clientset.I
 		e2epod.SetAffinity(&node, actualNodeName)
 	}
 
-	// Check that all pods the same content
-	for i, pod := range pods {
-		fileName := "/mnt/volume1/index.html"
-		index := i + 1
+	for i, pvc := range pvcs {
+		var commands []string
 
-		ginkgo.By(fmt.Sprintf("Checking if the volume in pod%d has expected initial content", index))
-		commands := e2evolume.GenerateReadFileCmd(fileName)
-		_, err := framework.LookForStringInPodExec(pod.Namespace, pod.Name, commands, expectedContent, time.Minute)
-		framework.ExpectNoError(err, "failed: finding the contents of the mounted file %s.", fileName)
+		if *pvc.Spec.VolumeMode == v1.PersistentVolumeBlock {
+			fileName := "/mnt/volume1"
+			commands = e2evolume.GenerateReadBlockCmd(fileName, len(expectedContent))
+			// Check that all pods have the same content
+			index := i + 1
+			ginkgo.By(fmt.Sprintf("Checking if the volume in pod%d has expected initial content", index))
+			_, err := e2eoutput.LookForStringInPodExec(pods[i].Namespace, pods[i].Name, commands, expectedContent, time.Minute)
+			framework.ExpectNoError(err, "failed: finding the contents of the block volume %s.", fileName)
+		} else {
+			fileName := "/mnt/volume1/index.html"
+			commands = e2evolume.GenerateReadFileCmd(fileName)
+			// Check that all pods have the same content
+			index := i + 1
+			ginkgo.By(fmt.Sprintf("Checking if the volume in pod%d has expected initial content", index))
+			_, err := e2eoutput.LookForStringInPodExec(pods[i].Namespace, pods[i].Name, commands, expectedContent, time.Minute)
+			framework.ExpectNoError(err, "failed: finding the contents of the mounted file %s.", fileName)
+		}
 	}
 }
 
@@ -745,7 +746,7 @@ func getCurrentTopologiesNumber(cs clientset.Interface, nodes *v1.NodeList, keys
 				break
 			}
 		}
-		if !found {
+		if !found && len(topo) > 0 {
 			framework.Logf("found topology %v", topo)
 			topos = append(topos, topo)
 			topoCount = append(topoCount, 1)

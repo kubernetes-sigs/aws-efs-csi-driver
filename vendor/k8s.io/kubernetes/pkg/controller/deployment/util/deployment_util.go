@@ -302,7 +302,8 @@ var annotationsToSkip = map[string]bool{
 
 // skipCopyAnnotation returns true if we should skip copying the annotation with the given annotation key
 // TODO: How to decide which annotations should / should not be copied?
-//       See https://github.com/kubernetes/kubernetes/pull/20035#issuecomment-179558615
+//
+//	See https://github.com/kubernetes/kubernetes/pull/20035#issuecomment-179558615
 func skipCopyAnnotation(key string) bool {
 	return annotationsToSkip[key]
 }
@@ -509,40 +510,6 @@ func getReplicaSetFraction(rs apps.ReplicaSet, d apps.Deployment) int32 {
 	return integer.RoundToInt32(newRSsize) - *(rs.Spec.Replicas)
 }
 
-// GetAllReplicaSets returns the old and new replica sets targeted by the given Deployment. It gets PodList and ReplicaSetList from client interface.
-// Note that the first set of old replica sets doesn't include the ones with no pods, and the second set of old replica sets include all old replica sets.
-// The third returned value is the new replica set, and it may be nil if it doesn't exist yet.
-func GetAllReplicaSets(deployment *apps.Deployment, c appsclient.AppsV1Interface) ([]*apps.ReplicaSet, []*apps.ReplicaSet, *apps.ReplicaSet, error) {
-	rsList, err := ListReplicaSets(deployment, RsListFromClient(c))
-	if err != nil {
-		return nil, nil, nil, err
-	}
-	oldRSes, allOldRSes := FindOldReplicaSets(deployment, rsList)
-	newRS := FindNewReplicaSet(deployment, rsList)
-	return oldRSes, allOldRSes, newRS, nil
-}
-
-// GetOldReplicaSets returns the old replica sets targeted by the given Deployment; get PodList and ReplicaSetList from client interface.
-// Note that the first set of old replica sets doesn't include the ones with no pods, and the second set of old replica sets include all old replica sets.
-func GetOldReplicaSets(deployment *apps.Deployment, c appsclient.AppsV1Interface) ([]*apps.ReplicaSet, []*apps.ReplicaSet, error) {
-	rsList, err := ListReplicaSets(deployment, RsListFromClient(c))
-	if err != nil {
-		return nil, nil, err
-	}
-	oldRSes, allOldRSes := FindOldReplicaSets(deployment, rsList)
-	return oldRSes, allOldRSes, nil
-}
-
-// GetNewReplicaSet returns a replica set that matches the intent of the given deployment; get ReplicaSetList from client interface.
-// Returns nil if the new replica set doesn't exist yet.
-func GetNewReplicaSet(deployment *apps.Deployment, c appsclient.AppsV1Interface) (*apps.ReplicaSet, error) {
-	rsList, err := ListReplicaSets(deployment, RsListFromClient(c))
-	if err != nil {
-		return nil, err
-	}
-	return FindNewReplicaSet(deployment, rsList), nil
-}
-
 // RsListFromClient returns an rsListFunc that wraps the given client.
 func RsListFromClient(c appsclient.AppsV1Interface) RsListFunc {
 	return func(namespace string, options metav1.ListOptions) ([]*apps.ReplicaSet, error) {
@@ -629,9 +596,9 @@ func ListPods(deployment *apps.Deployment, rsList []*apps.ReplicaSet, getPodList
 
 // EqualIgnoreHash returns true if two given podTemplateSpec are equal, ignoring the diff in value of Labels[pod-template-hash]
 // We ignore pod-template-hash because:
-// 1. The hash result would be different upon podTemplateSpec API changes
-//    (e.g. the addition of a new field will cause the hash code to change)
-// 2. The deployment template won't have hash labels
+//  1. The hash result would be different upon podTemplateSpec API changes
+//     (e.g. the addition of a new field will cause the hash code to change)
+//  2. The deployment template won't have hash labels
 func EqualIgnoreHash(template1, template2 *v1.PodTemplateSpec) bool {
 	t1Copy := template1.DeepCopy()
 	t2Copy := template2.DeepCopy()
@@ -934,7 +901,8 @@ func GetDeploymentsForReplicaSet(deploymentLister appslisters.DeploymentLister, 
 	for _, d := range dList {
 		selector, err := metav1.LabelSelectorAsSelector(d.Spec.Selector)
 		if err != nil {
-			return nil, fmt.Errorf("invalid label selector: %v", err)
+			// This object has an invalid selector, it does not match the replicaset
+			continue
 		}
 		// If a deployment with a nil or empty selector creeps in, it should match nothing, not everything.
 		if selector.Empty() || !selector.Matches(labels.Set(rs.Labels)) {
