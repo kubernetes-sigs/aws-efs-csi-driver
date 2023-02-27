@@ -23,6 +23,9 @@ import (
 	"time"
 
 	"k8s.io/klog/v2"
+
+	"sigs.k8s.io/apiserver-network-proxy/konnectivity-client/pkg/client/metrics"
+	commonmetrics "sigs.k8s.io/apiserver-network-proxy/konnectivity-client/pkg/common/metrics"
 	"sigs.k8s.io/apiserver-network-proxy/konnectivity-client/proto/client"
 )
 
@@ -30,14 +33,20 @@ import (
 // successful delivery of CLOSE_REQ.
 const CloseTimeout = 10 * time.Second
 
+var errConnCloseTimeout = errors.New("close timeout")
+
 // conn is an implementation of net.Conn, where the data is transported
 // over an established tunnel defined by a gRPC service ProxyService.
 type conn struct {
 	stream  client.ProxyService_ProxyClient
 	connID  int64
+	random  int64
 	readCh  chan []byte
 	closeCh chan string
 	rdata   []byte
+
+	// closeTunnel is an optional callback to close the underlying grpc connection.
+	closeTunnel func()
 }
 
 var _ net.Conn = &conn{}
@@ -56,8 +65,11 @@ func (c *conn) Write(data []byte) (n int, err error) {
 
 	klog.V(5).InfoS("[tracing] send req", "type", req.Type)
 
+	const segment = commonmetrics.SegmentFromClient
+	metrics.Metrics.ObservePacket(segment, req.Type)
 	err = c.stream.Send(req)
 	if err != nil {
+		metrics.Metrics.ObserveStreamError(segment, err, req.Type)
 		return 0, err
 	}
 	return len(data), err
@@ -113,18 +125,38 @@ func (c *conn) SetWriteDeadline(t time.Time) error {
 // proxy service to notify remote to drop the connection.
 func (c *conn) Close() error {
 	klog.V(4).Infoln("closing connection")
-	req := &client.Packet{
-		Type: client.PacketType_CLOSE_REQ,
-		Payload: &client.Packet_CloseRequest{
-			CloseRequest: &client.CloseRequest{
-				ConnectID: c.connID,
+	if c.closeTunnel != nil {
+		defer c.closeTunnel()
+	}
+
+	var req *client.Packet
+	if c.connID != 0 {
+		req = &client.Packet{
+			Type: client.PacketType_CLOSE_REQ,
+			Payload: &client.Packet_CloseRequest{
+				CloseRequest: &client.CloseRequest{
+					ConnectID: c.connID,
+				},
 			},
-		},
+		}
+	} else {
+		// Never received a DIAL response so no connection ID.
+		req = &client.Packet{
+			Type: client.PacketType_DIAL_CLS,
+			Payload: &client.Packet_CloseDial{
+				CloseDial: &client.CloseDial{
+					Random: c.random,
+				},
+			},
+		}
 	}
 
 	klog.V(5).InfoS("[tracing] send req", "type", req.Type)
 
+	const segment = commonmetrics.SegmentFromClient
+	metrics.Metrics.ObservePacket(segment, req.Type)
 	if err := c.stream.Send(req); err != nil {
+		metrics.Metrics.ObserveStreamError(segment, err, req.Type)
 		return err
 	}
 
@@ -137,5 +169,5 @@ func (c *conn) Close() error {
 	case <-time.After(CloseTimeout):
 	}
 
-	return errors.New("close timeout")
+	return errConnCloseTimeout
 }

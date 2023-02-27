@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/onsi/ginkgo"
+	"github.com/onsi/ginkgo/v2"
 	v1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -53,6 +53,11 @@ type VolumeResource struct {
 // CreateVolumeResource constructs a VolumeResource for the current test. It knows how to deal with
 // different test pattern volume types.
 func CreateVolumeResource(driver TestDriver, config *PerTestConfig, pattern TestPattern, testVolumeSizeRange e2evolume.SizeRange) *VolumeResource {
+	return CreateVolumeResourceWithAccessModes(driver, config, pattern, testVolumeSizeRange, driver.GetDriverInfo().RequiredAccessModes)
+}
+
+// CreateVolumeResourceWithAccessModes constructs a VolumeResource for the current test with the provided access modes.
+func CreateVolumeResourceWithAccessModes(driver TestDriver, config *PerTestConfig, pattern TestPattern, testVolumeSizeRange e2evolume.SizeRange, accessModes []v1.PersistentVolumeAccessMode) *VolumeResource {
 	r := VolumeResource{
 		Config:  config,
 		Pattern: pattern,
@@ -75,7 +80,7 @@ func CreateVolumeResource(driver TestDriver, config *PerTestConfig, pattern Test
 		if pDriver, ok := driver.(PreprovisionedPVTestDriver); ok {
 			pvSource, volumeNodeAffinity := pDriver.GetPersistentVolumeSource(false, pattern.FsType, r.Volume)
 			if pvSource != nil {
-				r.Pv, r.Pvc = createPVCPV(f, dInfo.Name, pvSource, volumeNodeAffinity, pattern.VolMode, dInfo.RequiredAccessModes)
+				r.Pv, r.Pvc = createPVCPV(f, dInfo.Name, pvSource, volumeNodeAffinity, pattern.VolMode, accessModes)
 				r.VolSource = storageutils.CreateVolumeSource(r.Pvc.Name, false /* readOnly */)
 			}
 		}
@@ -102,13 +107,13 @@ func CreateVolumeResource(driver TestDriver, config *PerTestConfig, pattern Test
 			switch pattern.VolType {
 			case DynamicPV:
 				r.Pv, r.Pvc = createPVCPVFromDynamicProvisionSC(
-					f, dInfo.Name, claimSize, r.Sc, pattern.VolMode, dInfo.RequiredAccessModes)
+					f, dInfo.Name, claimSize, r.Sc, pattern.VolMode, accessModes)
 				r.VolSource = storageutils.CreateVolumeSource(r.Pvc.Name, false /* readOnly */)
 			case GenericEphemeralVolume:
 				driverVolumeSizeRange := dDriver.GetDriverInfo().SupportedSizeRange
 				claimSize, err := storageutils.GetSizeRangesIntersection(testVolumeSizeRange, driverVolumeSizeRange)
 				framework.ExpectNoError(err, "determine intersection of test size range %+v and driver size range %+v", testVolumeSizeRange, driverVolumeSizeRange)
-				r.VolSource = createEphemeralVolumeSource(r.Sc.Name, dInfo.RequiredAccessModes, claimSize)
+				r.VolSource = createEphemeralVolumeSource(r.Sc.Name, pattern.VolMode, accessModes, claimSize)
 			}
 		}
 	case CSIInlineVolume:
@@ -120,6 +125,9 @@ func CreateVolumeResource(driver TestDriver, config *PerTestConfig, pattern Test
 					Driver:           eDriver.GetCSIDriverName(config),
 					VolumeAttributes: attributes,
 				},
+			}
+			if pattern.FsType != "" {
+				r.VolSource.CSI.FSType = &pattern.FsType
 			}
 		}
 	default:
@@ -133,9 +141,12 @@ func CreateVolumeResource(driver TestDriver, config *PerTestConfig, pattern Test
 	return &r
 }
 
-func createEphemeralVolumeSource(scName string, accessModes []v1.PersistentVolumeAccessMode, claimSize string) *v1.VolumeSource {
+func createEphemeralVolumeSource(scName string, volMode v1.PersistentVolumeMode, accessModes []v1.PersistentVolumeAccessMode, claimSize string) *v1.VolumeSource {
 	if len(accessModes) == 0 {
 		accessModes = []v1.PersistentVolumeAccessMode{v1.ReadWriteOnce}
+	}
+	if volMode == "" {
+		volMode = v1.PersistentVolumeFilesystem
 	}
 	return &v1.VolumeSource{
 		Ephemeral: &v1.EphemeralVolumeSource{
@@ -143,6 +154,7 @@ func createEphemeralVolumeSource(scName string, accessModes []v1.PersistentVolum
 				Spec: v1.PersistentVolumeClaimSpec{
 					StorageClassName: &scName,
 					AccessModes:      accessModes,
+					VolumeMode:       &volMode,
 					Resources: v1.ResourceRequirements{
 						Requests: v1.ResourceList{
 							v1.ResourceStorage: resource.MustParse(claimSize),
@@ -169,7 +181,7 @@ func (r *VolumeResource) CleanupResource() error {
 			ginkgo.By("Deleting pvc")
 			// We only delete the PVC so that PV (and disk) can be cleaned up by dynamic provisioner
 			if r.Pv != nil && r.Pv.Spec.PersistentVolumeReclaimPolicy != v1.PersistentVolumeReclaimDelete {
-				framework.Failf("Test framework does not currently support Dynamically Provisioned Persistent Volume %v specified with reclaim policy that isnt %v",
+				framework.Failf("Test framework does not currently support Dynamically Provisioned Persistent Volume %v specified with reclaim policy that isn't %v",
 					r.Pv.Name, v1.PersistentVolumeReclaimDelete)
 			}
 			if r.Pvc != nil {
@@ -200,7 +212,7 @@ func (r *VolumeResource) CleanupResource() error {
 				}
 
 				if pv != nil {
-					err = e2epv.WaitForPersistentVolumeDeleted(f.ClientSet, pv.Name, 5*time.Second, 5*time.Minute)
+					err = e2epv.WaitForPersistentVolumeDeleted(f.ClientSet, pv.Name, 5*time.Second, f.Timeouts.PVDelete)
 					if err != nil {
 						cleanUpErrs = append(cleanUpErrs, fmt.Errorf(
 							"persistent Volume %v not deleted by dynamic provisioner: %w", pv.Name, err))
@@ -255,7 +267,7 @@ func createPVCPV(
 	}
 
 	framework.Logf("Creating PVC and PV")
-	pv, pvc, err := e2epv.CreatePVCPV(f.ClientSet, pvConfig, pvcConfig, f.Namespace.Name, false)
+	pv, pvc, err := e2epv.CreatePVCPV(f.ClientSet, f.Timeouts, pvConfig, pvcConfig, f.Namespace.Name, false)
 	framework.ExpectNoError(err, "PVC, PV creation failed")
 
 	err = e2epv.WaitOnPVandPVC(f.ClientSet, f.Timeouts, f.Namespace.Name, pv, pvc)

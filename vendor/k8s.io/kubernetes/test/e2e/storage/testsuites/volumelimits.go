@@ -23,7 +23,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/onsi/ginkgo"
+	"github.com/onsi/ginkgo/v2"
 
 	v1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
@@ -32,6 +32,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 	clientset "k8s.io/client-go/kubernetes"
+	"k8s.io/component-helpers/storage/ephemeral"
 	migrationplugins "k8s.io/csi-translation-lib/plugins" // volume plugin names are exported nicely there
 	volumeutil "k8s.io/kubernetes/pkg/volume/util"
 	"k8s.io/kubernetes/test/e2e/framework"
@@ -40,6 +41,7 @@ import (
 	e2epv "k8s.io/kubernetes/test/e2e/framework/pv"
 	storageframework "k8s.io/kubernetes/test/e2e/storage/framework"
 	storageutils "k8s.io/kubernetes/test/e2e/storage/utils"
+	admissionapi "k8s.io/pod-security-admission/api"
 )
 
 type volumeLimitsTestSuite struct {
@@ -53,7 +55,7 @@ const (
 	testSlowMultiplier = 10
 
 	// How long to wait until CSINode gets attach limit from installed CSI driver.
-	csiNodeInfoTimeout = 1 * time.Minute
+	csiNodeInfoTimeout = 2 * time.Minute
 )
 
 var _ storageframework.TestSuite = &volumeLimitsTestSuite{}
@@ -74,6 +76,7 @@ func InitCustomVolumeLimitsTestSuite(patterns []storageframework.TestPattern) st
 func InitVolumeLimitsTestSuite() storageframework.TestSuite {
 	patterns := []storageframework.TestPattern{
 		storageframework.FsVolModeDynamicPV,
+		storageframework.DefaultFsGenericEphemeralVolume,
 	}
 	return InitCustomVolumeLimitsTestSuite(patterns)
 }
@@ -87,22 +90,21 @@ func (t *volumeLimitsTestSuite) SkipUnsupportedTests(driver storageframework.Tes
 
 func (t *volumeLimitsTestSuite) DefineTests(driver storageframework.TestDriver, pattern storageframework.TestPattern) {
 	type local struct {
-		config      *storageframework.PerTestConfig
-		testCleanup func()
+		config *storageframework.PerTestConfig
 
 		cs clientset.Interface
 		ns *v1.Namespace
 		// VolumeResource contains pv, pvc, sc, etc. of the first pod created
 		resource *storageframework.VolumeResource
 
-		// All created PVCs, incl. the one in resource
-		pvcs []*v1.PersistentVolumeClaim
+		// All created PVCs
+		pvcNames []string
+
+		// All created Pods
+		podNames []string
 
 		// All created PVs, incl. the one in resource
 		pvNames sets.String
-
-		runningPod       *v1.Pod
-		unschedulablePod *v1.Pod
 	}
 	var (
 		l local
@@ -111,6 +113,7 @@ func (t *volumeLimitsTestSuite) DefineTests(driver storageframework.TestDriver, 
 	// Beware that it also registers an AfterEach which renders f unusable. Any code using
 	// f must run inside an It or Context callback.
 	f := framework.NewFrameworkWithCustomTimeouts("volumelimits", storageframework.GetDriverTimeouts(driver))
+	f.NamespacePodSecurityEnforceLevel = admissionapi.LevelPrivileged
 
 	// This checks that CSIMaxVolumeLimitChecker works as expected.
 	// A randomly chosen node should be able to handle as many CSI volumes as
@@ -120,7 +123,7 @@ func (t *volumeLimitsTestSuite) DefineTests(driver storageframework.TestDriver, 
 	// And one extra pod with a CSI volume should get Pending with a condition
 	// that says it's unschedulable because of volume limit.
 	// BEWARE: the test may create lot of volumes and it's really slow.
-	ginkgo.It("should support volume limits [Serial]", func() {
+	ginkgo.It("should support volume limits [Serial]", func(ctx context.Context) {
 		driverInfo := driver.GetDriverInfo()
 		if !driverInfo.Capabilities[storageframework.CapVolumeLimits] {
 			ginkgo.Skip(fmt.Sprintf("driver %s does not support volume limits", driverInfo.Name))
@@ -133,8 +136,7 @@ func (t *volumeLimitsTestSuite) DefineTests(driver storageframework.TestDriver, 
 		l.ns = f.Namespace
 		l.cs = f.ClientSet
 
-		l.config, l.testCleanup = driver.PrepareTest(f)
-		defer l.testCleanup()
+		l.config = driver.PrepareTest(f)
 
 		ginkgo.By("Picking a node")
 		// Some CSI drivers are deployed to a single node (e.g csi-hostpath),
@@ -164,57 +166,64 @@ func (t *volumeLimitsTestSuite) DefineTests(driver storageframework.TestDriver, 
 			framework.ExpectNoError(err, "while cleaning up resource")
 		}()
 		defer func() {
-			cleanupTest(l.cs, l.ns.Name, l.runningPod.Name, l.unschedulablePod.Name, l.pvcs, l.pvNames, testSlowMultiplier*f.Timeouts.PVDelete)
+			cleanupTest(l.cs, l.ns.Name, l.podNames, l.pvcNames, l.pvNames, testSlowMultiplier*f.Timeouts.PVDelete)
 		}()
 
-		// Create <limit> PVCs for one gigantic pod.
-		ginkgo.By(fmt.Sprintf("Creating %d PVC(s)", limit))
-
-		for i := 0; i < limit; i++ {
-			pvc := e2epv.MakePersistentVolumeClaim(e2epv.PersistentVolumeClaimConfig{
-				ClaimSize:        claimSize,
-				StorageClassName: &l.resource.Sc.Name,
-			}, l.ns.Name)
-			pvc, err = l.cs.CoreV1().PersistentVolumeClaims(l.ns.Name).Create(context.TODO(), pvc, metav1.CreateOptions{})
-			framework.ExpectNoError(err)
-			l.pvcs = append(l.pvcs, pvc)
-		}
-
-		ginkgo.By("Creating pod to use all PVC(s)")
 		selection := e2epod.NodeSelection{Name: nodeName}
-		podConfig := e2epod.Config{
-			NS:            l.ns.Name,
-			PVCs:          l.pvcs,
-			SeLinuxLabel:  e2epv.SELinuxLabel,
-			NodeSelection: selection,
+
+		if pattern.VolType == storageframework.GenericEphemeralVolume {
+			// Create <limit> Pods.
+			ginkgo.By(fmt.Sprintf("Creating %d Pod(s) with one volume each", limit))
+			for i := 0; i < limit; i++ {
+				pod := StartInPodWithVolumeSource(ctx, l.cs, *l.resource.VolSource, l.ns.Name, "volume-limits", "sleep 1000000", selection)
+				l.podNames = append(l.podNames, pod.Name)
+				l.pvcNames = append(l.pvcNames, ephemeral.VolumeClaimName(pod, &pod.Spec.Volumes[0]))
+			}
+		} else {
+			// Create <limit> PVCs for one gigantic pod.
+			var pvcs []*v1.PersistentVolumeClaim
+			ginkgo.By(fmt.Sprintf("Creating %d PVC(s)", limit))
+			for i := 0; i < limit; i++ {
+				pvc := e2epv.MakePersistentVolumeClaim(e2epv.PersistentVolumeClaimConfig{
+					ClaimSize:        claimSize,
+					StorageClassName: &l.resource.Sc.Name,
+				}, l.ns.Name)
+				pvc, err = l.cs.CoreV1().PersistentVolumeClaims(l.ns.Name).Create(context.TODO(), pvc, metav1.CreateOptions{})
+				framework.ExpectNoError(err)
+				l.pvcNames = append(l.pvcNames, pvc.Name)
+				pvcs = append(pvcs, pvc)
+			}
+
+			ginkgo.By("Creating pod to use all PVC(s)")
+			podConfig := e2epod.Config{
+				NS:            l.ns.Name,
+				PVCs:          pvcs,
+				SeLinuxLabel:  e2epv.SELinuxLabel,
+				NodeSelection: selection,
+			}
+			pod, err := e2epod.MakeSecPod(&podConfig)
+			framework.ExpectNoError(err)
+			pod, err = l.cs.CoreV1().Pods(l.ns.Name).Create(context.TODO(), pod, metav1.CreateOptions{})
+			framework.ExpectNoError(err)
+			l.podNames = append(l.podNames, pod.Name)
 		}
-		pod, err := e2epod.MakeSecPod(&podConfig)
-		framework.ExpectNoError(err)
-		l.runningPod, err = l.cs.CoreV1().Pods(l.ns.Name).Create(context.TODO(), pod, metav1.CreateOptions{})
-		framework.ExpectNoError(err)
 
 		ginkgo.By("Waiting for all PVCs to get Bound")
-		l.pvNames, err = waitForAllPVCsBound(l.cs, testSlowMultiplier*f.Timeouts.PVBound, l.pvcs)
+		l.pvNames, err = waitForAllPVCsBound(l.cs, testSlowMultiplier*f.Timeouts.PVBound, l.ns.Name, l.pvcNames)
 		framework.ExpectNoError(err)
 
-		ginkgo.By("Waiting for the pod Running")
-		err = e2epod.WaitTimeoutForPodRunningInNamespace(l.cs, l.runningPod.Name, l.ns.Name, testSlowMultiplier*f.Timeouts.PodStart)
-		framework.ExpectNoError(err)
+		ginkgo.By("Waiting for the pod(s) running")
+		for _, podName := range l.podNames {
+			err = e2epod.WaitTimeoutForPodRunningInNamespace(l.cs, podName, l.ns.Name, testSlowMultiplier*f.Timeouts.PodStart)
+			framework.ExpectNoError(err)
+		}
 
 		ginkgo.By("Creating an extra pod with one volume to exceed the limit")
-		podConfig = e2epod.Config{
-			NS:            l.ns.Name,
-			PVCs:          []*v1.PersistentVolumeClaim{l.resource.Pvc},
-			SeLinuxLabel:  e2epv.SELinuxLabel,
-			NodeSelection: selection,
-		}
-		pod, err = e2epod.MakeSecPod(&podConfig)
-		framework.ExpectNoError(err)
-		l.unschedulablePod, err = l.cs.CoreV1().Pods(l.ns.Name).Create(context.TODO(), pod, metav1.CreateOptions{})
-		framework.ExpectNoError(err, "Failed to create an extra pod with one volume to exceed the limit")
+		pod := StartInPodWithVolumeSource(ctx, l.cs, *l.resource.VolSource, l.ns.Name, "volume-limits-exceeded", "sleep 10000", selection)
+		l.podNames = append(l.podNames, pod.Name)
 
 		ginkgo.By("Waiting for the pod to get unschedulable with the right message")
-		err = e2epod.WaitForPodCondition(l.cs, l.ns.Name, l.unschedulablePod.Name, "Unschedulable", f.Timeouts.PodStart, func(pod *v1.Pod) (bool, error) {
+		err = e2epod.WaitForPodCondition(l.cs, l.ns.Name, pod.Name, "Unschedulable", f.Timeouts.PodStart, func(pod *v1.Pod) (bool, error) {
 			if pod.Status.Phase == v1.PodPending {
 				reg, err := regexp.Compile(`max.+volume.+count`)
 				if err != nil {
@@ -244,8 +253,7 @@ func (t *volumeLimitsTestSuite) DefineTests(driver storageframework.TestDriver, 
 		l.ns = f.Namespace
 		l.cs = f.ClientSet
 
-		l.config, l.testCleanup = driver.PrepareTest(f)
-		defer l.testCleanup()
+		l.config = driver.PrepareTest(f)
 
 		nodeNames := []string{}
 		if l.config.ClientNodeSelection.Name != "" {
@@ -270,24 +278,18 @@ func (t *volumeLimitsTestSuite) DefineTests(driver storageframework.TestDriver, 
 	})
 }
 
-func cleanupTest(cs clientset.Interface, ns string, runningPodName, unschedulablePodName string, pvcs []*v1.PersistentVolumeClaim, pvNames sets.String, timeout time.Duration) error {
+func cleanupTest(cs clientset.Interface, ns string, podNames, pvcNames []string, pvNames sets.String, timeout time.Duration) error {
 	var cleanupErrors []string
-	if runningPodName != "" {
-		err := cs.CoreV1().Pods(ns).Delete(context.TODO(), runningPodName, metav1.DeleteOptions{})
+	for _, podName := range podNames {
+		err := cs.CoreV1().Pods(ns).Delete(context.TODO(), podName, metav1.DeleteOptions{})
 		if err != nil {
-			cleanupErrors = append(cleanupErrors, fmt.Sprintf("failed to delete pod %s: %s", runningPodName, err))
+			cleanupErrors = append(cleanupErrors, fmt.Sprintf("failed to delete pod %s: %s", podName, err))
 		}
 	}
-	if unschedulablePodName != "" {
-		err := cs.CoreV1().Pods(ns).Delete(context.TODO(), unschedulablePodName, metav1.DeleteOptions{})
-		if err != nil {
-			cleanupErrors = append(cleanupErrors, fmt.Sprintf("failed to delete pod %s: %s", unschedulablePodName, err))
-		}
-	}
-	for _, pvc := range pvcs {
-		err := cs.CoreV1().PersistentVolumeClaims(ns).Delete(context.TODO(), pvc.Name, metav1.DeleteOptions{})
-		if err != nil {
-			cleanupErrors = append(cleanupErrors, fmt.Sprintf("failed to delete PVC %s: %s", pvc.Name, err))
+	for _, pvcName := range pvcNames {
+		err := cs.CoreV1().PersistentVolumeClaims(ns).Delete(context.TODO(), pvcName, metav1.DeleteOptions{})
+		if !apierrors.IsNotFound(err) {
+			cleanupErrors = append(cleanupErrors, fmt.Sprintf("failed to delete PVC %s: %s", pvcName, err))
 		}
 	}
 	// Wait for the PVs to be deleted. It includes also pod and PVC deletion because of PVC protection.
@@ -323,12 +325,12 @@ func cleanupTest(cs clientset.Interface, ns string, runningPodName, unschedulabl
 }
 
 // waitForAllPVCsBound waits until the given PVCs are all bound. It then returns the bound PVC names as a set.
-func waitForAllPVCsBound(cs clientset.Interface, timeout time.Duration, pvcs []*v1.PersistentVolumeClaim) (sets.String, error) {
+func waitForAllPVCsBound(cs clientset.Interface, timeout time.Duration, ns string, pvcNames []string) (sets.String, error) {
 	pvNames := sets.NewString()
 	err := wait.Poll(5*time.Second, timeout, func() (bool, error) {
 		unbound := 0
-		for _, pvc := range pvcs {
-			pvc, err := cs.CoreV1().PersistentVolumeClaims(pvc.Namespace).Get(context.TODO(), pvc.Name, metav1.GetOptions{})
+		for _, pvcName := range pvcNames {
+			pvc, err := cs.CoreV1().PersistentVolumeClaims(ns).Get(context.TODO(), pvcName, metav1.GetOptions{})
 			if err != nil {
 				return false, err
 			}
@@ -339,7 +341,7 @@ func waitForAllPVCsBound(cs clientset.Interface, timeout time.Duration, pvcs []*
 			}
 		}
 		if unbound > 0 {
-			framework.Logf("%d/%d of PVCs are Bound", pvNames.Len(), len(pvcs))
+			framework.Logf("%d/%d of PVCs are Bound", pvNames.Len(), len(pvcNames))
 			return false, nil
 		}
 		return true, nil
