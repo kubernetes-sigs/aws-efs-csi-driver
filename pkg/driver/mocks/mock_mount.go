@@ -8,11 +8,12 @@ import (
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
-	mount "k8s.io/mount-utils"
+	mount_utils "k8s.io/mount-utils"
 )
 
 // MockMounter is a mock of Mounter interface.
 type MockMounter struct {
+	mount_utils.Interface
 	ctrl     *gomock.Controller
 	recorder *MockMounterMockRecorder
 }
@@ -80,11 +81,26 @@ func (mr *MockMounterMockRecorder) IsLikelyNotMountPoint(arg0 interface{}) *gomo
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsLikelyNotMountPoint", reflect.TypeOf((*MockMounter)(nil).IsLikelyNotMountPoint), arg0)
 }
 
+// IsMountPoint mocks base method.
+func (m *MockMounter) IsMountPoint(arg0 string) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IsMountPoint", arg0)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// IsMountPoint indicates an expected call of IsMountPoint.
+func (mr *MockMounterMockRecorder) IsMountPoint(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsMountPoint", reflect.TypeOf((*MockMounter)(nil).IsMountPoint), arg0)
+}
+
 // List mocks base method.
-func (m *MockMounter) List() ([]mount.MountPoint, error) {
+func (m *MockMounter) List() ([]mount_utils.MountPoint, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "List")
-	ret0, _ := ret[0].([]mount.MountPoint)
+	ret0, _ := ret[0].([]mount_utils.MountPoint)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -165,7 +181,7 @@ func (mr *MockMounterMockRecorder) MountSensitiveWithoutSystemdWithMountFlags(ar
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MountSensitiveWithoutSystemdWithMountFlags", reflect.TypeOf((*MockMounter)(nil).MountSensitiveWithoutSystemdWithMountFlags), arg0, arg1, arg2, arg3, arg4, arg5)
 }
 
-// Unmount mocks base method.
+// Unmount_utils mocks base method.
 func (m *MockMounter) Unmount(arg0 string) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Unmount", arg0)
@@ -173,8 +189,22 @@ func (m *MockMounter) Unmount(arg0 string) error {
 	return ret0
 }
 
-// Unmount indicates an expected call of Unmount.
+// Unmount_utils indicates an expected call of Unmount_utils.
 func (mr *MockMounterMockRecorder) Unmount(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Unmount", reflect.TypeOf((*MockMounter)(nil).Unmount), arg0)
+}
+
+// canSafelySkipMountPointCheck mocks base method.
+func (m *MockMounter) canSafelySkipMountPointCheck() bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "canSafelySkipMountPointCheck")
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// canSafelySkipMountPointCheck indicates an expected call of canSafelySkipMountPointCheck.
+func (mr *MockMounterMockRecorder) canSafelySkipMountPointCheck() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "canSafelySkipMountPointCheck", reflect.TypeOf((*MockMounter)(nil).canSafelySkipMountPointCheck))
 }

@@ -26,7 +26,7 @@ import (
 	"k8s.io/mount-utils"
 
 	"github.com/golang/mock/gomock"
-	"github.com/kubernetes-csi/csi-test/pkg/sanity"
+	"github.com/kubernetes-csi/csi-test/v5/pkg/sanity"
 	"github.com/kubernetes-sigs/aws-efs-csi-driver/pkg/cloud"
 )
 
@@ -57,12 +57,13 @@ func TestSanityEFSCSI(t *testing.T) {
 	parameters[ProvisioningMode] = "efs-ap"
 	parameters[DirectoryPerms] = "777"
 
-	config := &sanity.Config{
-		TargetPath:           targetPath,
-		StagingPath:          stagingPath,
-		Address:              endpoint,
-		TestVolumeParameters: parameters,
-	}
+	config := sanity.NewTestConfig()
+	config.TargetPath = targetPath
+	config.StagingPath = stagingPath
+	config.CreateTargetDir = createDir
+	config.CreateStagingDir = createDir
+	config.Address = endpoint
+	config.TestVolumeParameters = parameters
 
 	nodeCaps := SetNodeCapOptInFeatures(true)
 
@@ -101,4 +102,13 @@ func NewFakeMounter() Mounter {
 			MountPoints: []mount.MountPoint{},
 		},
 	}
+}
+
+func createDir(targetPath string) (string, error) {
+	if err := os.MkdirAll(targetPath, 0300); err != nil {
+		if os.IsNotExist(err) {
+			return "", err
+		}
+	}
+	return targetPath, nil
 }
