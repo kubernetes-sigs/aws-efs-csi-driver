@@ -1,3 +1,5 @@
+# V1.5.3
+* Updated the Dockerfile to move python packages to location on sys.path ([#951](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/951), [@RyanStan](https://github.com/RyanStan))
 # V1.5.2
 * Golang.org/x/net version update ([#897](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/897), [@RomanBednar](https://github.com/RomanBednar))
 * New image based on minimal EKS Distro images ([#903](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/903), [@RyanStan](https://github.com/RyanStan))
