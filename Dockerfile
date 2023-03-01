@@ -88,7 +88,7 @@ RUN mv /newroot/etc/amazon/efs /newroot/etc/amazon/efs-static-files
 FROM public.ecr.aws/eks-distro-build-tooling/eks-distro-minimal-base-python:3.9.14-al2 AS linux-amazon
 
 COPY --from=rpm-installer /newroot /
-COPY --from=rpm-provider /root/.local/lib/python3.9/site-packages/ /usr/local/lib/python3.9/site-packages/
+COPY --from=rpm-provider /root/.local/lib/python3.9/site-packages/ /usr/lib/python3.9/site-packages/
 
 COPY --from=go-builder /go/src/github.com/kubernetes-sigs/aws-efs-csi-driver/bin/aws-efs-csi-driver /bin/aws-efs-csi-driver
 COPY THIRD-PARTY /
