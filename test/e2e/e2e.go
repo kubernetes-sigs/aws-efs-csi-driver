@@ -188,6 +188,7 @@ var _ = ginkgo.SynchronizedBeforeSuite(func() []byte {
 			destroyDriver = true
 		}
 	}
+
 	return []byte(FileSystemId)
 }, func(data []byte) {
 	// allNodesBody: each node needs to set its FileSystemId as returned by node 1
@@ -230,6 +231,18 @@ var _ = ginkgo.Describe("[efs-csi] EFS CSI", func() {
 	f := framework.NewDefaultFramework("efs")
 
 	ginkgo.Context(storageframework.GetDriverNameWithFeatureTags(driver), func() {
+		ginkgo.It("Validating driver installation", func() {
+			ginkgo.By("Checking botocore")
+			podClient := f.PodClientNS("kube-system")
+			controllerPods, err := podClient.List(context.Background(), metav1.ListOptions{
+				LabelSelector: "app=efs-csi-controller",
+			})
+			framework.ExpectNoError(err, "Fetching efs-csi-driver controller pods")
+			framework.ExpectNotEqual(len(controllerPods.Items), 0, "Get controller pods count")
+			controllerPodName := controllerPods.Items[0].Name
+			framework.RunKubectlOrDie("kube-system", "exec", controllerPodName, "--", "python3", "-c", "import importlib.util;print(importlib.util.find_spec('botocore').name)")
+		})
+
 		ginkgo.It("should mount different paths on same volume on same node", func() {
 			ginkgo.By(fmt.Sprintf("Creating efs pvc & pv with no subpath"))
 			pvcRoot, pvRoot, err := createEFSPVCPV(f.ClientSet, f.Namespace.Name, f.Namespace.Name+"-root", "/", map[string]string{})
