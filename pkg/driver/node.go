@@ -262,6 +262,12 @@ func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 		}
 	}
 
+	//Remove the jwtFile after is has been used
+	//to mount the EFS filesystem
+	if iamAuth {
+		os.Remove(jwtPath)
+	}
+
 	return &csi.NodePublishVolumeResponse{}, nil
 }
 
