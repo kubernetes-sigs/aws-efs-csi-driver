@@ -1,3 +1,17 @@
+# V1.5.3
+* Updated the Dockerfile to move python packages to location on sys.path ([#951](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/951), [@RyanStan](https://github.com/RyanStan))
+# V1.5.2
+* Golang.org/x/net version update ([#897](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/897), [@RomanBednar](https://github.com/RomanBednar))
+* New image based on minimal EKS Distro images ([#903](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/903), [@RyanStan](https://github.com/RyanStan))
+* feat(node/controller): allow to set updateStrategy ([#740](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/740), [@lefterisALEX](https://github.com/lefterisALEX))
+* Revised and passed volume related arguments in the daemonset instead of controller ([#942](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/942), [@mskanth972](https://github.com/mskanth972))
+* README update on `delete-access-point-root-dir` argument 
+* README update on DNS name resolving issue
+# V1.5.1
+* Upgrade AL2 version and address CVEs ( CVE-2022-4304, CVE-2023-0215, CVE-2023-0286 )
+# V1.5.0
+* Upgrade to latest sidecars versions
+* Upgrade AL2 version and address CVEs (CVE-2021-4217, CVE-2022-0529, CVE-2022-0530, CVE-2022-4141, CVE-2023-0049, CVE-2022-45061, CVE-2022-27781, CVE-2022-23521, CVE-2021-46848, CVE-2022-4292, CVE-2022-43551, CVE-2022-35737, CVE-2022-42898, CVE-2022-41903)
 # V1.4.9
 * Bumped up the sidecars version
 * Fixed-AWS EFS CSI Driver crashes if Access Point creation fails and static GID set

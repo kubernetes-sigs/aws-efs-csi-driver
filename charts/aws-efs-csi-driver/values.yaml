@@ -12,26 +12,26 @@ podIAMAuthorization: false
 
 image:
   repository: amazon/aws-efs-csi-driver
-  tag: "v1.4.9"
+  tag: "v1.5.3"
   pullPolicy: IfNotPresent
 
 sidecars:
   livenessProbe:
     image:
       repository: public.ecr.aws/eks-distro/kubernetes-csi/livenessprobe
-      tag: v2.8.0-eks-1-23-8
+      tag: v2.8.0-eks-1-25-latest
       pullPolicy: IfNotPresent
     resources: {}
   nodeDriverRegistrar:
     image:
       repository: public.ecr.aws/eks-distro/kubernetes-csi/node-driver-registrar
-      tag: v2.6.1-eks-1-23-8
+      tag: v2.6.2-eks-1-25-latest
       pullPolicy: IfNotPresent
     resources: {}
   csiProvisioner:
     image:
       repository: public.ecr.aws/eks-distro/kubernetes-csi/external-provisioner
-      tag: v3.3.0-eks-1-23-8
+      tag: v3.3.0-eks-1-25-latest
       pullPolicy: IfNotPresent
     resources: {}
 
@@ -69,6 +69,7 @@ controller:
     #   cpu: 100m
     #   memory: 128Mi
   nodeSelector: {}
+  updateStrategy: {}
   tolerations: []
   affinity: {}
   # Specifies whether a service account should be created
@@ -113,6 +114,10 @@ node:
     #   cpu: 100m
     #   memory: 128Mi
   nodeSelector: {}
+  updateStrategy: {}
+    # Override default strategy (RollingUpdate) to speed up deployment.
+    # This can be useful if helm timeouts are observed.
+    # type: OnDelete
   tolerations:
     - operator: Exists
   # Specifies whether a service account should be created
