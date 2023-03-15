@@ -53,7 +53,6 @@ spec:
                 operator: NotIn
                 values:
                 - fargate
-      hostNetwork: true
       dnsPolicy: {{ .Values.node.dnsPolicy }}
       {{- with .Values.node.dnsConfig }}
       dnsConfig: {{- toYaml . | nindent 8 }}
