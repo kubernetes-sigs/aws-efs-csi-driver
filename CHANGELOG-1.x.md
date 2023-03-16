@@ -1,3 +1,6 @@
+# V1.5.4
+* Mitigated golang CVE-2022-41723 ([#961](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/961), [@RyanStan](https://github.com/RyanStan))
+* Updated the example IAM policy by adding `elasticfilesystem:TagResource` permission for tagging EFS resources. ([#964](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/964), [@mskanth972](https://github.com/mskanth972))
 # V1.5.3
 * Updated the Dockerfile to move python packages to location on sys.path ([#951](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/951), [@RyanStan](https://github.com/RyanStan))
 # V1.5.2
