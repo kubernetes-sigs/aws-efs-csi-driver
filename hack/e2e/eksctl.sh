@@ -33,8 +33,7 @@ function eksctl_create_cluster() {
     loudecho "Creating cluster $CLUSTER_NAME with $CLUSTER_FILE (dry run)"
     ${BIN} create cluster \
       --managed \
-      --ssh-access \
-      --ssh-public-key "${SSH_KEY_PATH}".pub \
+      --ssh-access=false \
       --zones "${ZONES}" \
       --nodes=3 \
       --instance-types="${INSTANCE_TYPE}" \
