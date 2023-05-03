@@ -21,6 +21,7 @@ spec:
         app.kubernetes.io/name: aws-efs-csi-driver
         app.kubernetes.io/instance: kustomize
     spec:
+      hostNetwork: true
       nodeSelector:
         kubernetes.io/os: linux
       serviceAccountName: efs-csi-controller-sa
