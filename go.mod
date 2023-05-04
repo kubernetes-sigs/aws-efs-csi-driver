@@ -9,6 +9,7 @@ require (
 	github.com/onsi/ginkgo v1.14.0
 	github.com/onsi/gomega v1.10.1
 	google.golang.org/grpc v1.47.0
+	gopkg.in/ini.v1 v1.51.0
 	k8s.io/api v0.22.16
 	k8s.io/apimachinery v0.24.3
 	k8s.io/client-go v1.5.2

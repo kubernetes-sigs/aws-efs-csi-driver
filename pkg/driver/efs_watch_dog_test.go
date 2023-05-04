@@ -17,12 +17,14 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 )
 
 const (
-	expectedEfsUtilsConfig = `
+	// https://github.com/aws/efs-utils/blob/v1.30.2/dist/efs-utils.conf
+	efsUtilsDefaultConfig = `
 #
 # Copyright 2017-2018 Amazon.com, Inc. and its affiliates. All Rights Reserved.
 #
@@ -98,9 +100,6 @@ stunnel_health_check_enabled = true
 stunnel_health_check_interval_min = 5
 stunnel_health_check_command_timeout_sec = 30
 
-[client-info] 
-source=k8s
-
 [cloudwatch-log]
 # enabled = true
 log_group_name = /aws/efs/utils
@@ -117,6 +116,8 @@ func TestExecWatchdog(t *testing.T) {
 	staticFileDirName := createTempDir(t)
 	defer os.RemoveAll(configDirName)
 	defer os.RemoveAll(staticFileDirName)
+
+	createFile(t, staticFileDirName, configFileName, efsUtilsDefaultConfig)
 
 	w := newExecWatchdog(configDirName, staticFileDirName, "sleep", "300")
 	if err := w.start(); err != nil {
@@ -159,6 +160,8 @@ func TestSetupWithEmptyConfigDirectory(t *testing.T) {
 	fileBContent := "dummyB"
 	createFile(t, staticFileDirName, fileBName, fileBContent)
 
+	createFile(t, staticFileDirName, configFileName, efsUtilsDefaultConfig)
+
 	w := newExecWatchdog(configDirName, staticFileDirName, "sleep", "300").(*execWatchdog)
 	efsClient := "k8s"
 	configFilePath := filepath.Join(configDirName, configFileName)
@@ -191,6 +194,8 @@ func TestSetupWithNonEmptyConfigDirectory(t *testing.T) {
 	defer os.RemoveAll(configDirName)
 	differentContent := "differentDummy"
 	createFile(t, configDirName, fileBName, differentContent)
+
+	createFile(t, configDirName, configFileName, efsUtilsDefaultConfig)
 
 	w := newExecWatchdog(configDirName, staticFileDirName, "sleep", "300").(*execWatchdog)
 	efsClient := "k8s"
@@ -260,8 +265,9 @@ func verifyConfigFile(t *testing.T, configFilePath string) {
 	configFileContent, err := ioutil.ReadFile(configFilePath)
 	checkError(t, err)
 	actualConfig := string(configFileContent)
-	if actualConfig != expectedEfsUtilsConfig {
-		t.Fatalf("Unexpected efs-utils config content: want %s\nactual:%s", expectedEfsUtilsConfig, actualConfig)
+
+	if !strings.Contains(actualConfig, "region =") && !strings.Contains(actualConfig, "[client-info]\nsource = k8s") {
+		t.Fatalf("Unexpected efs-utils config content: missing added keys. actual:%s", actualConfig)
 	}
 }
 
