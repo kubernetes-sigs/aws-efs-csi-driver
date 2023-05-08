@@ -1,3 +1,7 @@
+# V1.5.5
+* Updated the K8s packages to 1.22.16 to mitigate the CVE-2022-3294 ([#984](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/984), [@mskanth972](https://github.com/mskanth972)) 
+* Upgrade k8s and eksctl version for Test cluster failure fix ([#987](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/987), [@Ashley-wenyizha](https://github.com/Ashley-wenyizha)) 
+* Bumped the side-cars version to the latest ([#993](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/993), [@mskanth972](https://github.com/mskanth972)) 
 # V1.5.4
 * Mitigated golang CVE-2022-41723 ([#961](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/961), [@RyanStan](https://github.com/RyanStan))
 * Updated the example IAM policy by adding `elasticfilesystem:TagResource` permission for tagging EFS resources. ([#964](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/964), [@mskanth972](https://github.com/mskanth972))
