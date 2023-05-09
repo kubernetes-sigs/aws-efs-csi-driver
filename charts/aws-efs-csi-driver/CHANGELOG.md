@@ -1,5 +1,7 @@
 # Helm chart
-# V2.4.2
+# v2.4.3
+* Add ability to configure daemonset affinity
+# v2.4.2
 * Bump app/driver version to `v1.5.5` 
 # v2.4.1
 * Bump app/driver version to `v1.5.4`
