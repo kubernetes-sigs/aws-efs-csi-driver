@@ -1,3 +1,30 @@
+# V1.5.5
+* Updated the K8s packages to 1.22.16 to mitigate the CVE-2022-3294 ([#984](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/984), [@mskanth972](https://github.com/mskanth972)) 
+* Upgrade k8s and eksctl version for Test cluster failure fix ([#987](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/987), [@Ashley-wenyizha](https://github.com/Ashley-wenyizha)) 
+* Bumped the side-cars version to the latest ([#993](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/993), [@mskanth972](https://github.com/mskanth972)) 
+# V1.5.4
+* Mitigated golang CVE-2022-41723 ([#961](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/961), [@RyanStan](https://github.com/RyanStan))
+* Updated the example IAM policy by adding `elasticfilesystem:TagResource` permission for tagging EFS resources. ([#964](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/964), [@mskanth972](https://github.com/mskanth972))
+# V1.5.3
+* Updated the Dockerfile to move python packages to location on sys.path ([#951](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/951), [@RyanStan](https://github.com/RyanStan))
+# V1.5.2
+* Golang.org/x/net version update ([#897](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/897), [@RomanBednar](https://github.com/RomanBednar))
+* New image based on minimal EKS Distro images ([#903](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/903), [@RyanStan](https://github.com/RyanStan))
+* feat(node/controller): allow to set updateStrategy ([#740](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/740), [@lefterisALEX](https://github.com/lefterisALEX))
+* Revised and passed volume related arguments in the daemonset instead of controller ([#942](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/942), [@mskanth972](https://github.com/mskanth972))
+* README update on `delete-access-point-root-dir` argument 
+* README update on DNS name resolving issue
+# V1.5.1
+* Upgrade AL2 version and address CVEs ( CVE-2022-4304, CVE-2023-0215, CVE-2023-0286 )
+# V1.5.0
+* Upgrade to latest sidecars versions
+* Upgrade AL2 version and address CVEs (CVE-2021-4217, CVE-2022-0529, CVE-2022-0530, CVE-2022-4141, CVE-2023-0049, CVE-2022-45061, CVE-2022-27781, CVE-2022-23521, CVE-2021-46848, CVE-2022-4292, CVE-2022-43551, CVE-2022-35737, CVE-2022-42898, CVE-2022-41903)
+# V1.4.9
+* Bumped up the sidecars version
+* Fixed-AWS EFS CSI Driver crashes if Access Point creation fails and static GID set
+* Update efs-csi-driver to use efs-utils latest release v1.34.5 which Handle invalid mount point name, Avoid redundant get_target_region call, Update man page and Watchdog detect empty private key and regenerate
+# V1.4.8
+* Update efs-csi-driver to use efs-utils latest release v1.34.4 and include stunnel fix ([#125](https://github.com/aws/efs-utils/issues/125))
 # V1.4.7
 * Update the efs-utils to v1.34.3 to reduce possibility of multiple mounts starting from same port range
 # V1.4.6

@@ -13,6 +13,10 @@ spec:
       app: efs-csi-controller
       app.kubernetes.io/name: {{ include "aws-efs-csi-driver.name" . }}
       app.kubernetes.io/instance: {{ .Release.Name }}
+  {{- with .Values.controller.updateStrategy }}
+  strategy:
+    {{ toYaml . | nindent 4 }}
+  {{- end }}
   template:
     metadata:
       labels:
@@ -23,6 +27,7 @@ spec:
       annotations: {{- toYaml . | nindent 8 }}
       {{- end }}
     spec:
+      hostNetwork: true
       {{- if .Values.imagePullSecrets }}
       imagePullSecrets:
         {{- range .Values.imagePullSecrets }}

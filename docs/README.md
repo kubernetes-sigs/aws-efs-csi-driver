@@ -58,21 +58,31 @@ Encryption in transit is enabled by default in the master branch version of the 
 The following sections are Kubernetes specific. If you are a Kubernetes user, use this for driver features, installation steps and examples.
 
 ### Kubernetes Version Compability Matrix
-| AWS EFS CSI Driver \ Kubernetes Version| maturity | v1.11 | v1.12 | v1.13 | v1.14 | v1.15 | v1.16 | v1.17+ |
-|----------------------------------------|----------|-------|-------|-------|-------|-------|-------|-------|
-| master branch                          | GA       | no    | no    | no    | no    | no    | no    | yes   |
-| v1.3.x                                 | GA       | no    | no    | no    | no    | no    | no    | yes   |
-| v1.2.x                                 | GA       | no    | no    | no    | no    | no    | no    | yes   |
-| v1.1.x                                 | GA       | no    | no    | no    | yes   | yes   | yes   | yes   |
-| v1.0.x                                 | GA       | no    | no    | no    | yes   | yes   | yes   | yes   |
-| v0.3.0                                 | beta     | no    | no    | no    | yes   | yes   | yes   | yes   |
-| v0.2.0                                 | beta     | no    | no    | no    | yes   | yes   | yes   | yes   |
-| v0.1.0                                 | alpha    | yes   | yes   | yes   | no    | no    | no    | no    |
+| AWS EFS CSI Driver \ Kubernetes Version | maturity | v1.11 | v1.12 | v1.13 | v1.14 | v1.15 | v1.16 | v1.17+ |
+|-----------------------------------------|----------|-------|-------|-------|-------|-------|-------|-------|
+| master branch                           | GA       | no    | no    | no    | no    | no    | no    | yes   |
+| v1.5.x                                  | GA       | no    | no    | no    | no    | no    | no    | yes   |                                        |          |       |       |       |       |       |       |        |
+| v1.4.x                                  | GA       | no    | no    | no    | no    | no    | no    | yes   |
+| v1.3.x                                  | GA       | no    | no    | no    | no    | no    | no    | yes   |
+| v1.2.x                                  | GA       | no    | no    | no    | no    | no    | no    | yes   |
+| v1.1.x                                  | GA       | no    | no    | no    | yes   | yes   | yes   | yes   |
+| v1.0.x                                  | GA       | no    | no    | no    | yes   | yes   | yes   | yes   |
+| v0.3.0                                  | beta     | no    | no    | no    | yes   | yes   | yes   | yes   |
+| v0.2.0                                  | beta     | no    | no    | no    | yes   | yes   | yes   | yes   |
+| v0.1.0                                  | alpha    | yes   | yes   | yes   | no    | no    | no    | no    |
 
 ### Container Images
 | EFS CSI Driver Version | Image                            |
 |------------------------|----------------------------------|
 | master branch          | amazon/aws-efs-csi-driver:master |
+| v1.5.5                 | amazon/aws-efs-csi-driver:v1.5.5 |
+| v1.5.4                 | amazon/aws-efs-csi-driver:v1.5.4 |                                  
+| v1.5.3                 | amazon/aws-efs-csi-driver:v1.5.3 |
+| v1.5.2                 | amazon/aws-efs-csi-driver:v1.5.2 |
+| v1.5.1                 | amazon/aws-efs-csi-driver:v1.5.1 |
+| v1.5.0                 | amazon/aws-efs-csi-driver:v1.5.0 |
+| v1.4.9                 | amazon/aws-efs-csi-driver:v1.4.9 |
+| v1.4.8                 | amazon/aws-efs-csi-driver:v1.4.8 |
 | v1.4.7                 | amazon/aws-efs-csi-driver:v1.4.7 |
 | v1.4.6                 | amazon/aws-efs-csi-driver:v1.4.6 |
 | v1.4.5                 | amazon/aws-efs-csi-driver:v1.4.5 |
@@ -99,6 +109,13 @@ The following sections are Kubernetes specific. If you are a Kubernetes user, us
 | v0.2.0                 | amazon/aws-efs-csi-driver:v0.2.0 |
 | v0.1.0                 | amazon/aws-efs-csi-driver:v0.1.0 |
 
+### ECR Image
+| Driver Version | [ECR](https://gallery.ecr.aws/efs-csi-driver/amazon/aws-efs-csi-driver) Image |
+|----------------|-------------------------------------------------------------------------------|
+| v1.5.0         | public.ecr.aws/efs-csi-driver/amazon/aws-efs-csi-driver:v1.5.0                |
+
+#### Note : You can find previous efs-csi-driver versions' images from [here](https://gallery.ecr.aws/efs-csi-driver/amazon/aws-efs-csi-driver)
+
 ### Features
 * Static provisioning - EFS file system needs to be created manually first, then it could be mounted inside container as a persistent volume (PV) using the driver.
 * Dynamic provisioning - Uses a persistent volume claim (PVC) to dynamically provision a persistent volume (PV). On Creating a PVC, kuberenetes requests EFS to create an Access Point in a file system which will be used to mount the PV.
@@ -120,7 +137,7 @@ The driver requires IAM permission to talk to Amazon EFS to manage the volume on
 
 If you want to deploy the stable driver:
 ```sh
-kubectl apply -k "github.com/kubernetes-sigs/aws-efs-csi-driver/deploy/kubernetes/overlays/stable/?ref=release-1.3"
+kubectl apply -k "github.com/kubernetes-sigs/aws-efs-csi-driver/deploy/kubernetes/overlays/stable/?ref=release-1.5"
 ```
 
 If you want to deploy the development driver:
@@ -139,6 +156,40 @@ To force the efs-csi-driver to use FIPS, you can add an argument to the helm upg
 ```
 helm upgrade --install aws-efs-csi-driver --namespace kube-system aws-efs-csi-driver/aws-efs-csi-driver --set useFips=true
 ```
+**Notes**: 
+* `hostNetwork: true` (should be added under spec/deployment on kubernetes installations where AWS metadata is not reachable from pod network. To fix the following error `NoCredentialProviders: no valid providers in chain` this parameter should be added.)
+
+### Container Arguments for efs-plugin of efs-csi-node daemonset
+| Parameters                  | Values | Default | Optional | Description                                                                                                                                                                                                                             |
+|-----------------------------|--------|---------|----------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| vol-metrics-opt-in          |        | false   | true     | Opt in to emit volume metrics.                                                                                                                                                                                                          |
+| vol-metrics-refresh-period  |        | 240     | true     | Refresh period for volume metrics in minutes.                                                                                                                                                                                           |
+| vol-metrics-fs-rate-limit   |        | 5       | true     | Volume metrics routines rate limiter per file system.                                                                                                                                                                                   |
+| tags                         |       |         | true     | Space separated key:value pairs which will be added as tags for EFS resources. For example, '--tags=name:efs-tag-test date:Jan24'                                                                                                       |
+
+### Container Arguments for deployment(controller) 
+| Parameters                  | Values | Default | Optional | Description                                                                                                                                                                                                                            |
+|-----------------------------|--------|---------|----------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| delete-access-point-root-dir|        | false  | true     | Opt in to delete access point root directory by DeleteVolume. By default, DeleteVolume will delete the access point behind Persistent Volume and deleting access point will not delete the access point root directory or its contents. |
+### Upgrading the EFS CSI Driver
+
+
+#### Upgrade to the latest version:
+If you want to update to latest released version:
+```sh
+kubectl apply -k "github.com/kubernetes-sigs/aws-efs-csi-driver/deploy/kubernetes/overlays/stable/?ref=release-1.5"
+```
+
+#### Upgrade to a specific version:
+If you want to update to a specific version, first customize the driver yaml file locally:
+```sh
+kubectl kustomize "github.com/kubernetes-sigs/aws-efs-csi-driver/deploy/kubernetes/overlays/stable/?ref=release-1.5" > driver.yaml
+```
+
+Then, update all lines referencing `image: amazon/aws-efs-csi-driver` to the desired version (e.g., to `image: amazon/aws-efs-csi-driver:v1.5.0`) in the yaml file, and deploy driver yaml again:
+```sh
+kubectl apply -f driver.yaml
+```
 
 ### Examples
 Before the example, you need to:
@@ -155,6 +206,11 @@ Before the example, you need to:
 * [Mount subpath](../examples/kubernetes/volume_path/README.md)
 * [Use Access Points](../examples/kubernetes/access_points/README.md)
 
+## Using botocore to retrieve mount target ip address when dns name cannot be resolved
+* EFS CSI driver supports using botocore to retrieve mount target ip address when dns name cannot be resolved, e.g., when user is mounting a file system in another VPC, botocore comes preinstalled on efs-csi-driver which can solve this DNS issue.
+* IAM policy prerequisites to use this feature :  
+  Allow ```elasticfilesystem:DescribeMountTargets``` and ```ec2:DescribeAvailabilityZones``` actions in your policy attached to the EKS service account role, refer to example policy [here](https://github.com/kubernetes-sigs/aws-efs-csi-driver/blob/master/docs/iam-policy-example.json#L9-L10).
+
 ## Development
 Please go through [CSI Spec](https://github.com/container-storage-interface/spec/blob/master/spec.md) and [Kubernetes CSI Developer Documentation](https://kubernetes-csi.github.io/docs) to get some basic understanding of CSI driver before you start.
 
@@ -166,6 +222,9 @@ Dependencies are managed through go module. To build the project, first turn on 
 
 ### Testing
 To execute all unit tests, run: `make test`
+
+### Troubleshooting
+To pull logs and troubleshoot the driver, see [troubleshooting/README.md](../troubleshooting/README.md).
 
 ## License
 This library is licensed under the Apache 2.0 License.

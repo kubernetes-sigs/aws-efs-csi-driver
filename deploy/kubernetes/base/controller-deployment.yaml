@@ -21,6 +21,7 @@ spec:
         app.kubernetes.io/name: aws-efs-csi-driver
         app.kubernetes.io/instance: kustomize
     spec:
+      hostNetwork: true
       nodeSelector:
         kubernetes.io/os: linux
       serviceAccountName: efs-csi-controller-sa
@@ -29,14 +30,13 @@ spec:
         - name: efs-plugin
           securityContext:
             privileged: true
-          image: amazon/aws-efs-csi-driver:v1.4.7
+          image: amazon/aws-efs-csi-driver:v1.5.5
           imagePullPolicy: IfNotPresent
           args:
             - --endpoint=$(CSI_ENDPOINT)
             - --logtostderr
             - --v=2
             - --delete-access-point-root-dir=false
-            - --vol-metrics-opt-in=false
           env:
             - name: CSI_ENDPOINT
               value: unix:///var/lib/csi/sockets/pluginproxy/csi.sock
@@ -60,7 +60,7 @@ spec:
             periodSeconds: 10
             failureThreshold: 5
         - name: csi-provisioner
-          image: public.ecr.aws/eks-distro/kubernetes-csi/external-provisioner:v2.1.1-eks-1-18-13
+          image: public.ecr.aws/eks-distro/kubernetes-csi/external-provisioner:v3.4.0-eks-1-27-latest
           imagePullPolicy: IfNotPresent
           args:
             - --csi-address=$(ADDRESS)
@@ -75,7 +75,7 @@ spec:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
         - name: liveness-probe
-          image: public.ecr.aws/eks-distro/kubernetes-csi/livenessprobe:v2.2.0-eks-1-18-13
+          image: public.ecr.aws/eks-distro/kubernetes-csi/livenessprobe:v2.9.0-eks-1-27-latest
           imagePullPolicy: IfNotPresent
           args:
             - --csi-address=/csi/csi.sock
