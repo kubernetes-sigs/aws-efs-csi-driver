@@ -119,6 +119,15 @@ node:
     # type: OnDelete
   tolerations:
     - operator: Exists
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: eks.amazonaws.com/compute-type
+                operator: NotIn
+                values:
+                  - fargate
   # Specifies whether a service account should be created
   serviceAccount:
     create: true
