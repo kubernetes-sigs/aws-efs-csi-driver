@@ -21,18 +21,27 @@ sidecars:
       tag: v2.9.0-eks-1-27-latest
       pullPolicy: IfNotPresent
     resources: {}
+    securityContext:
+      readOnlyRootFilesystem: true
+      allowPrivilegeEscalation: false
   nodeDriverRegistrar:
     image:
       repository: public.ecr.aws/eks-distro/kubernetes-csi/node-driver-registrar
       tag: v2.7.0-eks-1-27-latest
       pullPolicy: IfNotPresent
     resources: {}
+    securityContext:
+      readOnlyRootFilesystem: true
+      allowPrivilegeEscalation: false
   csiProvisioner:
     image:
       repository: public.ecr.aws/eks-distro/kubernetes-csi/external-provisioner
       tag: v3.4.0-eks-1-27-latest
       pullPolicy: IfNotPresent
     resources: {}
+    securityContext:
+      readOnlyRootFilesystem: true
+      allowPrivilegeEscalation: false
 
 imagePullSecrets: []
 
@@ -80,6 +89,14 @@ controller:
     #  eks.amazonaws.com/role-arn: arn:aws:iam::111122223333:role/efs-csi-role
   healthPort: 9909
   regionalStsEndpoints: false
+  # securityContext on the controller pod
+  securityContext:
+    runAsNonRoot: false
+    runAsUser: 0
+    runAsGroup: 0
+    fsGroup: 0
+
+
 ## Node daemonset variables
 
 node:
@@ -127,6 +144,13 @@ node:
     ## Enable if EKS IAM for SA is used
     #  eks.amazonaws.com/role-arn: arn:aws:iam::111122223333:role/efs-csi-role
   healthPort: 9809
+  # securityContext on the node pod
+  securityContext:
+    # The node pod must be run as root to bind to the registration/driver sockets
+    runAsNonRoot: false
+    runAsUser: 0
+    runAsGroup: 0
+    fsGroup: 0
 
 storageClasses: []
 # Add StorageClass resources like:
