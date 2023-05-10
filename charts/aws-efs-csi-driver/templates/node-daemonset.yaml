@@ -57,6 +57,10 @@ spec:
       {{- with .Values.node.tolerations }}
       tolerations: {{- toYaml . | nindent 8 }}
       {{- end }}
+      {{- with .Values.node.securityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       containers:
         - name: efs-plugin
           securityContext:
@@ -125,6 +129,10 @@ spec:
           {{- with .Values.sidecars.nodeDriverRegistrar.resources }}
           resources: {{ toYaml . | nindent 12 }}
           {{- end }}
+          {{- with .Values.sidecars.nodeDriverRegistrar.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
         - name: liveness-probe
           image: {{ printf "%s:%s" .Values.sidecars.livenessProbe.image.repository .Values.sidecars.livenessProbe.image.tag }}
           imagePullPolicy: {{ .Values.sidecars.livenessProbe.image.pullPolicy }}
@@ -137,6 +145,10 @@ spec:
               mountPath: /csi
           {{- with .Values.sidecars.livenessProbe.resources }}
           resources: {{ toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.sidecars.livenessProbe.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
           {{- end }}
       volumes:
         - name: kubelet-dir
