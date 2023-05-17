@@ -45,6 +45,14 @@ sidecars:
 
 imagePullSecrets: []
 
+# Specifies whether a service account should be created
+serviceAccount:
+  create: true
+  name: efs-csi-sa
+  annotations: {}
+  ## Enable if EKS IAM for SA is used
+  #  eks.amazonaws.com/role-arn: arn:aws:iam::111122223333:role/efs-csi-role
+
 ## Controller deployment variables
 
 controller:
@@ -80,13 +88,6 @@ controller:
   updateStrategy: {}
   tolerations: []
   affinity: {}
-  # Specifies whether a service account should be created
-  serviceAccount:
-    create: true
-    name: efs-csi-controller-sa
-    annotations: {}
-    ## Enable if EKS IAM for SA is used
-    #  eks.amazonaws.com/role-arn: arn:aws:iam::111122223333:role/efs-csi-role
   healthPort: 9909
   regionalStsEndpoints: false
   # securityContext on the controller pod
@@ -145,13 +146,6 @@ node:
                 operator: NotIn
                 values:
                   - fargate
-  # Specifies whether a service account should be created
-  serviceAccount:
-    create: true
-    name: efs-csi-node-sa
-    annotations: {}
-    ## Enable if EKS IAM for SA is used
-    #  eks.amazonaws.com/role-arn: arn:aws:iam::111122223333:role/efs-csi-role
   healthPort: 9809
   # securityContext on the node pod
   securityContext:

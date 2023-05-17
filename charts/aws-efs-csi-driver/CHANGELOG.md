@@ -1,4 +1,6 @@
 # Helm chart
+# v3.0.0
+* Merge the node and controller Service Accounts
 # v2.4.3
 * Add ability to configure daemonset affinity
 # v2.4.2

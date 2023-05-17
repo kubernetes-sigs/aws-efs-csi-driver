@@ -38,7 +38,7 @@ spec:
         runAsUser: 0
       hostNetwork: true
       dnsPolicy: ClusterFirst
-      serviceAccountName: efs-csi-node-sa
+      serviceAccountName: efs-csi-sa
       priorityClassName: system-node-critical
       tolerations:
         - operator: Exists

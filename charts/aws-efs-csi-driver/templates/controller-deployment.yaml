@@ -39,7 +39,7 @@ spec:
         {{- with .Values.controller.nodeSelector }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
-      serviceAccountName: {{ .Values.controller.serviceAccount.name }}
+      serviceAccountName: {{ .Values.serviceAccount.name }}
       priorityClassName: system-cluster-critical
       {{- with .Values.controller.tolerations }}
       tolerations: {{- toYaml . | nindent 8 }}

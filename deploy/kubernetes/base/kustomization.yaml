@@ -3,7 +3,6 @@ kind: Kustomization
 namespace: kube-system
 resources:
 - node-daemonset.yaml
-- node-serviceaccount.yaml
 - csidriver.yaml
 - controller-deployment.yaml
-- controller-serviceaccount.yaml
+- serviceaccount.yaml

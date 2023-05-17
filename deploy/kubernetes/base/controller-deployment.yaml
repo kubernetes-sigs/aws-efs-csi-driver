@@ -24,7 +24,7 @@ spec:
       hostNetwork: true
       nodeSelector:
         kubernetes.io/os: linux
-      serviceAccountName: efs-csi-controller-sa
+      serviceAccountName: efs-csi-sa
       priorityClassName: system-cluster-critical
       securityContext:
         fsGroup: 0
