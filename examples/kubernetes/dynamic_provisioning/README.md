@@ -47,3 +47,5 @@ Also you can verify that data is written onto EFS filesystem:
 ```sh
 >> kubectl exec -ti efs-app -- tail -f /data/out
 ```
+### Note:
+When you want to delete an access point in a file system when deleting PVC, you should specify `elasticfilesystem:ClientRootAccess` to the file system access policy to provide the root permissions. 
