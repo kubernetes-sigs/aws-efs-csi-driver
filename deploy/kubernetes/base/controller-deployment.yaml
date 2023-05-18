@@ -26,6 +26,11 @@ spec:
         kubernetes.io/os: linux
       serviceAccountName: efs-csi-controller-sa
       priorityClassName: system-cluster-critical
+      securityContext:
+        fsGroup: 0
+        runAsGroup: 0
+        runAsNonRoot: false
+        runAsUser: 0
       containers:
         - name: efs-plugin
           securityContext:
@@ -74,6 +79,9 @@ spec:
           volumeMounts:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
         - name: liveness-probe
           image: public.ecr.aws/eks-distro/kubernetes-csi/livenessprobe:v2.9.0-eks-1-27-latest
           imagePullPolicy: IfNotPresent
@@ -83,6 +91,9 @@ spec:
           volumeMounts:
             - name: socket-dir
               mountPath: /csi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
       volumes:
         - name: socket-dir
           emptyDir: {}

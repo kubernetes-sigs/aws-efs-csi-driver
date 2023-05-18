@@ -212,7 +212,11 @@ Before the example, you need to:
   Allow ```elasticfilesystem:DescribeMountTargets``` and ```ec2:DescribeAvailabilityZones``` actions in your policy attached to the EKS service account role, refer to example policy [here](https://github.com/kubernetes-sigs/aws-efs-csi-driver/blob/master/docs/iam-policy-example.json#L9-L10).
 
 ## Development
-Please go through [CSI Spec](https://github.com/container-storage-interface/spec/blob/master/spec.md) and [Kubernetes CSI Developer Documentation](https://kubernetes-csi.github.io/docs) to get some basic understanding of CSI driver before you start.
+* Please go through [CSI Spec](https://github.com/container-storage-interface/spec/blob/master/spec.md) and [Kubernetes CSI Developer Documentation](https://kubernetes-csi.github.io/docs) to get some basic understanding of CSI driver before you start.
+
+* If you are about to update iam policy file, please also update efs policy in weaveworks/eksctl
+https://github.com/weaveworks/eksctl/blob/main/pkg/cfn/builder/statement.go
+*/
 
 ### Requirements
 * Golang 1.13.4+

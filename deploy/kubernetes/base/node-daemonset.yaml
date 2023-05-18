@@ -31,6 +31,11 @@ spec:
                 operator: NotIn
                 values:
                 - fargate
+      securityContext:
+        fsGroup: 0
+        runAsGroup: 0
+        runAsNonRoot: false
+        runAsUser: 0
       dnsPolicy: ClusterFirst
       serviceAccountName: efs-csi-node-sa
       priorityClassName: system-node-critical
@@ -101,6 +106,9 @@ spec:
               mountPath: /csi
             - name: registration-dir
               mountPath: /registration
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
         - name: liveness-probe
           image: public.ecr.aws/eks-distro/kubernetes-csi/livenessprobe:v2.9.0-eks-1-27-latest
           imagePullPolicy: IfNotPresent
@@ -111,6 +119,9 @@ spec:
           volumeMounts:
             - name: plugin-dir
               mountPath: /csi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
       volumes:
         - name: kubelet-dir
           hostPath:
