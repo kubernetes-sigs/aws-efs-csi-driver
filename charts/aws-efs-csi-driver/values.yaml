@@ -102,6 +102,8 @@ node:
   # Number for the log level verbosity
   logLevel: 2
   volMetricsOptIn: false
+  volMetricsRefreshPeriod: 240
+  volMetricsFsRateLimit: 5
   hostAliases:
     {}
     # For cross VPC EFS, you need to poison or overwrite the DNS for the efs volume as per
