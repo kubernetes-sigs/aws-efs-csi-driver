@@ -62,7 +62,6 @@ controller:
   # Enable if you want the controller to also delete the
   # path on efs when deleteing an access point
   deleteAccessPointRootDir: false
-  volMetricsOptIn: false
   podAnnotations: {}
   resources:
     {}
@@ -102,6 +101,9 @@ controller:
 node:
   # Number for the log level verbosity
   logLevel: 2
+  volMetricsOptIn: false
+  volMetricsRefreshPeriod: 240
+  volMetricsFsRateLimit: 5
   hostAliases:
     {}
     # For cross VPC EFS, you need to poison or overwrite the DNS for the efs volume as per

@@ -31,17 +31,17 @@ spec:
                 operator: NotIn
                 values:
                 - fargate
-      securityContext:
-        fsGroup: 0
-        runAsGroup: 0
-        runAsNonRoot: false
-        runAsUser: 0
       hostNetwork: true
       dnsPolicy: ClusterFirst
       serviceAccountName: efs-csi-node-sa
       priorityClassName: system-node-critical
       tolerations:
         - operator: Exists
+      securityContext:
+        fsGroup: 0
+        runAsGroup: 0
+        runAsNonRoot: false
+        runAsUser: 0
       containers:
         - name: efs-plugin
           securityContext:
