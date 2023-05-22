@@ -129,7 +129,7 @@ test-e2e:
 .PHONY: test-e2e-external-eks
 test-e2e-external-eks:
 	CLUSTER_TYPE=eksctl \
-	K8S_VERSION="1.25" \
+	K8S_VERSION="1.23" \
 	DRIVER_NAME=aws-efs-csi-driver \
 	HELM_VALUES_FILE="./hack/values_eksctl.yaml" \
 	CONTAINER_NAME=efs-plugin \
