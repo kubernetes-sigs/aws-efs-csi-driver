@@ -17,6 +17,7 @@
 set -euo pipefail
 
 BASE_DIR=$(dirname "$(realpath "${BASH_SOURCE[0]}")")
+source "${BASE_DIR}"/ebs.sh
 source "${BASE_DIR}"/ecr.sh
 source "${BASE_DIR}"/eksctl.sh
 source "${BASE_DIR}"/helm.sh
@@ -33,7 +34,6 @@ CLUSTER_TYPE=${CLUSTER_TYPE:-kops}
 
 TEST_DIR=${BASE_DIR}/csi-test-artifacts
 BIN_DIR=${TEST_DIR}/bin
-SSH_KEY_PATH=${TEST_DIR}/id_rsa
 CLUSTER_FILE=${TEST_DIR}/${CLUSTER_NAME}.${CLUSTER_TYPE}.yaml
 KUBECONFIG=${KUBECONFIG:-"${TEST_DIR}/${CLUSTER_NAME}.${CLUSTER_TYPE}.kubeconfig"}
 
@@ -49,15 +49,15 @@ IMAGE_TAG=${IMAGE_TAG:-${TEST_ID}}
 
 # kops: must include patch version (e.g. 1.19.1)
 # eksctl: mustn't include patch version (e.g. 1.19)
-K8S_VERSION_KOPS=${K8S_VERSION_KOPS:-${K8S_VERSION:-1.25.2}}
-K8S_VERSION_EKSCTL=${K8S_VERSION_EKSCTL:-${K8S_VERSION:-1.23}}
+K8S_VERSION_KOPS=${K8S_VERSION_KOPS:-${K8S_VERSION:-1.26.2}}
+K8S_VERSION_EKSCTL=${K8S_VERSION_EKSCTL:-${K8S_VERSION:-1.25}}
 
-KOPS_VERSION=${KOPS_VERSION:-1.25.1}
+KOPS_VERSION=${KOPS_VERSION:-1.26.2}
 KOPS_STATE_FILE=${KOPS_STATE_FILE:-s3://k8s-kops-csi-e2e}
 KOPS_PATCH_FILE=${KOPS_PATCH_FILE:-./hack/kops-patch.yaml}
 KOPS_PATCH_NODE_FILE=${KOPS_PATCH_NODE_FILE:-./hack/kops-patch-node.yaml}
 
-EKSCTL_VERSION=${EKSCTL_VERSION:-0.113.0}
+EKSCTL_VERSION=${EKSCTL_VERSION:-0.133.0}
 EKSCTL_PATCH_FILE=${EKSCTL_PATCH_FILE:-./hack/eksctl-patch.yaml}
 EKSCTL_ADMIN_ROLE=${EKSCTL_ADMIN_ROLE:-}
 # Creates a windows node group. The windows ami doesn't (yet) install csi-proxy
@@ -76,6 +76,7 @@ TEST_EXTRA_FLAGS=${TEST_EXTRA_FLAGS:-}
 
 EBS_INSTALL_SNAPSHOT=${EBS_INSTALL_SNAPSHOT:-"false"}
 EBS_INSTALL_SNAPSHOT_VERSION=${EBS_INSTALL_SNAPSHOT_VERSION:-"v4.1.1"}
+EBS_CHECK_MIGRATION=${EBS_CHECK_MIGRATION:-"false"}
 
 CLEAN=${CLEAN:-"true"}
 
@@ -115,7 +116,6 @@ ecr_build_and_push "${REGION}" \
 
 if [[ "${CLUSTER_TYPE}" == "kops" ]]; then
   kops_create_cluster \
-    "$SSH_KEY_PATH" \
     "$CLUSTER_NAME" \
     "$KOPS_BIN" \
     "$ZONES" \
@@ -132,7 +132,6 @@ if [[ "${CLUSTER_TYPE}" == "kops" ]]; then
   fi
 elif [[ "${CLUSTER_TYPE}" == "eksctl" ]]; then
   eksctl_create_cluster \
-    "$SSH_KEY_PATH" \
     "$CLUSTER_NAME" \
     "$EKSCTL_BIN" \
     "$ZONES" \

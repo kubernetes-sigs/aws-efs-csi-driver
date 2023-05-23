@@ -3,6 +3,7 @@ package e2e
 import (
 	"context"
 	"fmt"
+	"k8s.io/apimachinery/pkg/util/rand"
 	"os"
 	"time"
 
@@ -121,12 +122,18 @@ func (e *efsDriver) GetDynamicProvisionStorageClass(config *storageframework.Per
 	defaultBindingMode := storagev1.VolumeBindingImmediate
 	return &storagev1.StorageClass{
 		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: generateName,
+			//GenerateName: generateName,
+			Name: generateName + generateRandomString(4),
 		},
 		Provisioner:       "efs.csi.aws.com",
 		Parameters:        parameters,
 		VolumeBindingMode: &defaultBindingMode,
 	}
+}
+
+func generateRandomString(len int) string {
+	rand.Seed(time.Now().UnixNano())
+	return rand.String(len)
 }
 
 // List of testSuites to be executed in below loop
