@@ -1,4 +1,6 @@
 # Helm chart
+# v2.5.0
+* Add optional podDisruptionBudget to controller deployment
 # v2.4.3
 * Add ability to configure daemonset affinity
 # v2.4.2
