@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM golang:1.13.4-stretch as builder
+FROM public.ecr.aws/eks-distro-build-tooling/golang:1.20 as go-builder
 WORKDIR /go/src/github.com/kubernetes-sigs/aws-efs-csi-driver
 
 ARG TARGETOS
@@ -26,42 +26,71 @@ ADD . .
 ARG client_source=k8s
 ENV EFS_CLIENT_SOURCE=$client_source
 
-RUN GOOS=${TARGETOS} GOARCH=${TARGETARCH} make aws-efs-csi-driver
+RUN OS=${TARGETOS} ARCH=${TARGETARCH} make $TARGETOS/$TARGETARCH
 
-FROM amazonlinux:2
-RUN yum update -y
+FROM public.ecr.aws/eks-distro-build-tooling/python:3.9-gcc-al2 as rpm-provider
+
 # Install efs-utils from github by default. It can be overriden to `yum` with --build-arg when building the Docker image.
 # If value of `EFSUTILSSOURCE` build arg is overriden with `yum`, docker will install efs-utils from Amazon Linux 2's yum repo.
 ARG EFSUTILSSOURCE=github
-RUN if [ "$EFSUTILSSOURCE" = "yum" ]; \
+RUN mkdir -p /tmp/rpms && \
+    if [ "$EFSUTILSSOURCE" = "yum" ]; \
     then echo "Installing efs-utils from Amazon Linux 2 yum repo" && \
-         yum -y install amazon-efs-utils-1.31.1-1.amzn2.noarch; \
+         yum -y install --downloadonly --downloaddir=/tmp/rpms amazon-efs-utils-1.34.4-1.amzn2.noarch; \
     else echo "Installing efs-utils from github using the latest git tag" && \
          yum -y install git rpm-build make && \
          git clone https://github.com/aws/efs-utils && \
          cd efs-utils && \
          git checkout $(git describe --tags $(git rev-list --tags --max-count=1)) && \
-         make rpm && yum -y install build/amazon-efs-utils*rpm && \
+         make rpm && mv build/amazon-efs-utils*rpm /tmp/rpms && \
          # clean up efs-utils folder after install
          cd .. && rm -rf efs-utils && \
          yum clean all; \
     fi
 
 # Install botocore required by efs-utils for cross account mount
-RUN yum -y install wget && \
-    wget https://bootstrap.pypa.io/get-pip.py -O /tmp/get-pip.py && \
-    python3 /tmp/get-pip.py && \
-    pip3 install botocore || /usr/local/bin/pip3 install botocore && \
-    rm -rf /tmp/get-pip.py
+RUN pip3 install --user botocore
+
+# This image is equivalent to the eks-distro-minimal-base-python image but with pip installed as well
+FROM public.ecr.aws/eks-distro-build-tooling/eks-distro-minimal-base-python-builder:3.9-al2 as rpm-installer
+
+COPY --from=rpm-provider /tmp/rpms/* /tmp/download/
+
+# second param indicates to skip installing dependency rpms, these will be installed manually
+# cd, ls, cat, vim, tcpdump, are for debugging
+RUN clean_install amazon-efs-utils true && \
+    install_binary \
+        /usr/bin/cat \
+        /usr/bin/cd \
+        /usr/bin/df \
+        /usr/bin/env \
+        /usr/bin/find \
+        /usr/bin/grep \
+        /usr/bin/ls \
+        /usr/bin/mount \
+        /usr/bin/umount \
+        /sbin/mount.nfs4 \
+        /usr/bin/openssl \
+        /usr/bin/sed \
+        /usr/bin/stat \
+        /usr/bin/stunnel5 \
+        /usr/sbin/tcpdump \
+        /usr/bin/which && \
+    cleanup "efs-csi"
 
 # At image build time, static files installed by efs-utils in the config directory, i.e. CAs file, need
 # to be saved in another place so that the other stateful files created at runtime, i.e. private key for
 # client certificate, in the same config directory can be persisted to host with a host path volume.
 # Otherwise creating a host path volume for that directory will clean up everything inside at the first time.
 # Those static files need to be copied back to the config directory when the driver starts up.
-RUN mv /etc/amazon/efs /etc/amazon/efs-static-files
+RUN mv /newroot/etc/amazon/efs /newroot/etc/amazon/efs-static-files
 
-COPY --from=builder /go/src/github.com/kubernetes-sigs/aws-efs-csi-driver/bin/aws-efs-csi-driver /bin/aws-efs-csi-driver
+FROM public.ecr.aws/eks-distro-build-tooling/eks-distro-minimal-base-python:3.9.14-al2 AS linux-amazon
+
+COPY --from=rpm-installer /newroot /
+COPY --from=rpm-provider /root/.local/lib/python3.9/site-packages/ /usr/lib/python3.9/site-packages/
+
+COPY --from=go-builder /go/src/github.com/kubernetes-sigs/aws-efs-csi-driver/bin/aws-efs-csi-driver /bin/aws-efs-csi-driver
 COPY THIRD-PARTY /
 
 ENTRYPOINT ["/bin/aws-efs-csi-driver"]

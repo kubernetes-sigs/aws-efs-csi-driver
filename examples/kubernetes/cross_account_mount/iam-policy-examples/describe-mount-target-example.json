@@ -5,7 +5,9 @@
       "Sid" : "Stmt1DescribeMountTargets",
       "Effect": "Allow",
       "Action": [
-        "elasticfilesystem:DescribeMountTargets"
+        "elasticfilesystem:DescribeFileSystems",
+        "elasticfilesystem:DescribeMountTargets",
+        "elasticfilesystem:CreateAccessPoint"
       ],
       "Resource": "arn:aws:elasticfilesystem:us-west-2:123456789012:file-system/file-system-ID"
     },

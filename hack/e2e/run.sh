@@ -42,7 +42,7 @@ REGION=${AWS_REGION:-us-west-2}
 ZONES=${AWS_AVAILABILITY_ZONES:-us-west-2a,us-west-2b,us-west-2c}
 FIRST_ZONE=$(echo "${ZONES}" | cut -d, -f1)
 NODE_COUNT=${NODE_COUNT:-3}
-INSTANCE_TYPE=${INSTANCE_TYPE:-c4.large}
+INSTANCE_TYPE=${INSTANCE_TYPE:-c5.large}
 
 AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
 IMAGE_NAME=${IMAGE_NAME:-${AWS_ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com/${DRIVER_NAME}}
@@ -50,14 +50,14 @@ IMAGE_TAG=${IMAGE_TAG:-${TEST_ID}}
 
 # kops: must include patch version (e.g. 1.19.1)
 # eksctl: mustn't include patch version (e.g. 1.19)
-K8S_VERSION=${K8S_VERSION:-1.20.8}
+K8S_VERSION=${K8S_VERSION:-1.22.3}
 
-KOPS_VERSION=${KOPS_VERSION:-1.21.0}
+KOPS_VERSION=${KOPS_VERSION:-1.22.3}
 KOPS_STATE_FILE=${KOPS_STATE_FILE:-s3://k8s-kops-csi-e2e}
 KOPS_PATCH_FILE=${KOPS_PATCH_FILE:-./hack/kops-patch.yaml}
 KOPS_PATCH_NODE_FILE=${KOPS_PATCH_NODE_FILE:-./hack/kops-patch-node.yaml}
 
-EKSCTL_VERSION=${EKSCTL_VERSION:-0.56.0-rc.1}
+EKSCTL_VERSION=${EKSCTL_VERSION:-0.133.0}
 EKSCTL_PATCH_FILE=${EKSCTL_PATCH_FILE:-./hack/eksctl-patch.yaml}
 EKSCTL_ADMIN_ROLE=${EKSCTL_ADMIN_ROLE:-}
 # Creates a windows node group. The windows ami doesn't (yet) install csi-proxy
@@ -69,7 +69,7 @@ HELM_EXTRA_FLAGS=${HELM_EXTRA_FLAGS:-}
 
 TEST_PATH=${TEST_PATH:-"./tests/e2e/..."}
 ARTIFACTS=${ARTIFACTS:-"${TEST_DIR}/artifacts"}
-GINKGO_FOCUS=${GINKGO_FOCUS:-"\[ebs-csi-e2e\]"}
+GINKGO_FOCUS=${GINKGO_FOCUS:-"\[efs-csi]"}
 GINKGO_SKIP=${GINKGO_SKIP:-"\[Disruptive\]"}
 GINKGO_NODES=${GINKGO_NODES:-4}
 TEST_EXTRA_FLAGS=${TEST_EXTRA_FLAGS:-}
@@ -105,7 +105,7 @@ loudecho "Installing ginkgo to ${BIN_DIR}"
 GINKGO_BIN=${BIN_DIR}/ginkgo
 if [[ ! -e ${GINKGO_BIN} ]]; then
   pushd /tmp
-  GOPATH=${TEST_DIR} GOBIN=${BIN_DIR} GO111MODULE=on go get github.com/onsi/ginkgo/ginkgo@v1.12.0
+  GOPATH=${TEST_DIR} GOBIN=${BIN_DIR} GO111MODULE=on go install github.com/onsi/ginkgo/ginkgo@v1.12.0
   popd
 fi
 

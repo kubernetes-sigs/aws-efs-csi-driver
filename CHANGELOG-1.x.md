@@ -1,3 +1,69 @@
+# V1.5.5
+* Updated the K8s packages to 1.22.16 to mitigate the CVE-2022-3294 ([#984](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/984), [@mskanth972](https://github.com/mskanth972)) 
+* Upgrade k8s and eksctl version for Test cluster failure fix ([#987](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/987), [@Ashley-wenyizha](https://github.com/Ashley-wenyizha)) 
+* Bumped the side-cars version to the latest ([#993](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/993), [@mskanth972](https://github.com/mskanth972)) 
+# V1.5.4
+* Mitigated golang CVE-2022-41723 ([#961](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/961), [@RyanStan](https://github.com/RyanStan))
+* Updated the example IAM policy by adding `elasticfilesystem:TagResource` permission for tagging EFS resources. ([#964](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/964), [@mskanth972](https://github.com/mskanth972))
+# V1.5.3
+* Updated the Dockerfile to move python packages to location on sys.path ([#951](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/951), [@RyanStan](https://github.com/RyanStan))
+# V1.5.2
+* Golang.org/x/net version update ([#897](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/897), [@RomanBednar](https://github.com/RomanBednar))
+* New image based on minimal EKS Distro images ([#903](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/903), [@RyanStan](https://github.com/RyanStan))
+* feat(node/controller): allow to set updateStrategy ([#740](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/740), [@lefterisALEX](https://github.com/lefterisALEX))
+* Revised and passed volume related arguments in the daemonset instead of controller ([#942](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/942), [@mskanth972](https://github.com/mskanth972))
+* README update on `delete-access-point-root-dir` argument 
+* README update on DNS name resolving issue
+# V1.5.1
+* Upgrade AL2 version and address CVEs ( CVE-2022-4304, CVE-2023-0215, CVE-2023-0286 )
+# V1.5.0
+* Upgrade to latest sidecars versions
+* Upgrade AL2 version and address CVEs (CVE-2021-4217, CVE-2022-0529, CVE-2022-0530, CVE-2022-4141, CVE-2023-0049, CVE-2022-45061, CVE-2022-27781, CVE-2022-23521, CVE-2021-46848, CVE-2022-4292, CVE-2022-43551, CVE-2022-35737, CVE-2022-42898, CVE-2022-41903)
+# V1.4.9
+* Bumped up the sidecars version
+* Fixed-AWS EFS CSI Driver crashes if Access Point creation fails and static GID set
+* Update efs-csi-driver to use efs-utils latest release v1.34.5 which Handle invalid mount point name, Avoid redundant get_target_region call, Update man page and Watchdog detect empty private key and regenerate
+# V1.4.8
+* Update efs-csi-driver to use efs-utils latest release v1.34.4 and include stunnel fix ([#125](https://github.com/aws/efs-utils/issues/125))
+# V1.4.7
+* Update the efs-utils to v1.34.3 to reduce possibility of multiple mounts starting from same port range
+# V1.4.6
+* Update efs-utils to stunnel5.
+# V1.4.5
+* upgrade to k8s.io/kubernetes v1.22.3 to mitigate the CVE-2021-25740.
+# V1.4.4
+* Reverting back the efs-utils version from v1.34.1 (latest version) to v1.33.4 (previous version) as in the the new version v1.34.1 stunnel bin is removed in csi-driver.
+# V1.4.3
+* Release-1.4 : post-release files updated ([#782](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/782), [@mskanth972](https://github.com/mskanth972))
+* Mitigated AL2 related CVEs including : CVE-2022-27664, CVE-2018-25032, CVE-2021-4189, CVE-2022-0391, CVE-2021-3999, CVE-2022-30630, CVE-2022-3099, CVE-2022-30631, CVE-2022-2982, CVE-2022-29526, CVE-2022-2287, CVE-2021-3737, CVE-2021-3733, CVE-2019-12900
+* Update deprecated NodeSelector ([#743](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/743), [@dschunack](https://github.com/dschunack))
+# V1.4.2
+* Update golang.org/x/text/language for CVE-2021-38561 ([#738](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/738), [@RomanBednar](https://github.com/RomanBednar))
+* Update uid/gid Readme ([#752](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/752), [@Ashley-wenyizha](https://github.com/Ashley-wenyizha))
+* Should not pass in mount option of awscredsuri ([#755](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/755), [@Ashley-wenyizha](https://github.com/Ashley-wenyizha))
+* Added support for FIPS ([#760](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/760), [@dima618](https://github.com/dima618))
+* Revise awscredsuri validation to prefix check ([#762](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/762), [@Ashley-wenyizha](https://github.com/Ashley-wenyizha))
+# V1.4.1 
+* Latest AL2 base image update
+# V1.4.0
+* Conditionally added AWS_STS_REGIONAL_ENDPOINTS flag ([#585](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/585), [@holmesb](https://github.com/holmesb))
+* Removing Dependency on IMDS, allowing `hostNetwork: true` to be removed ([#681](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/681), [@jonathanrainer](https://github.com/jonathanrainer))
+* Support e2e test EFS create on EKS clusters by finding EKS node subnets ([#707](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/707), [@wongma7](https://github.com/wongma7))
+* Upgrade gopkg.in yaml.v3 ([#717](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/717), [@Ashley-wenyizha](https://github.com/Ashley-wenyizha))
+# V1.3.8
+* From V1.3.8 and forward, efs-csi-driver will stop updating docker Hub for new releases
+* Revise utils tag number ([#666](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/666), [@Ashley-wenyizha](https://github.com/Ashley-wenyizha))
+* Upgrade to k8s.io/kubernetes v1.22.1 ([#671](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/671), [@Ashley-wenyizha](https://github.com/Ashley-wenyizha))
+* Upgrade to k8s.io/kubernetes v1.22.2 ([#680](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/680), [@Ashley-wenyizha](https://github.com/Ashley-wenyizha))
+* Disable getting all secrets from ns by default ([#674](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/674), [@Ashley-wenyizha](https://github.com/Ashley-wenyizha))
+# V1.3.7
+* go.mod: fix non-existing k8s.io/kubernetes version ([#645](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/645), [@bertinatto](https://github.com/bertinatto))
+* New efs-utils version of v1.32.1 (https://github.com/aws/efs-utils/releases/tag/v1.32.1)
+# v1.3.6
+* [release-1.3] Release v1.3.5: release helm chart v2.2.1 and update kustomize ([#600](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/600), [@wongma7](https://github.com/wongma7))
+ [@wongma7](https://github.com/wongma7))
+* Security patch & upgrade of k8s.io/kubernetes, linux and golang ([#619](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/619), [@Ashley-wenyizha](https://github.com/Ashley-wenyizha))
+* Add uid and gid parameters ([#621](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/621), [@Ashley-wenyizha](https://github.com/Ashley-wenyizha))
 # v1.3.5
 
 - Release helm-chart v2.1.6 ([#546](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/546), [@chrishenzie](https://github.com/chrishenzie))

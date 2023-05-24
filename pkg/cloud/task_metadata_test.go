@@ -3,10 +3,12 @@ package cloud
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/golang/mock/gomock"
-	"github.com/kubernetes-sigs/aws-efs-csi-driver/pkg/cloud/mocks"
 	"os"
 	"testing"
+
+	"github.com/golang/mock/gomock"
+
+	"github.com/kubernetes-sigs/aws-efs-csi-driver/pkg/cloud/mocks"
 )
 
 var (
@@ -60,11 +62,12 @@ func TestGetTaskMetadataService(t *testing.T) {
 			jsonData, _ := json.Marshal(tc.returnResponse)
 			mockTaskMetadata.EXPECT().GetTMDSV4Response().Return(jsonData, tc.err)
 
-			m, err := getTaskMetadata(mockTaskMetadata)
+			taskMp := taskMetadataProvider{taskMetadataService: mockTaskMetadata}
+			m, err := taskMp.getMetadata()
 
 			if !tc.wantErr {
 				if err != nil {
-					t.Fatalf("getTaskMetadata failed: expected no error, got %v", err)
+					t.Fatalf("getTaskMetadataService failed: expected no error, got %v", err)
 				}
 
 				if m.GetInstanceID() != taskId {
@@ -80,7 +83,7 @@ func TestGetTaskMetadataService(t *testing.T) {
 				}
 			} else {
 				if err == nil {
-					t.Fatalf("getTaskMetadata() failed: expected error")
+					t.Fatalf("getTaskMetadataService() failed: expected error")
 				}
 			}
 		})

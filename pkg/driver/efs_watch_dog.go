@@ -97,10 +97,16 @@ stunnel_cafile = /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
 [mount-watchdog]
 enabled = true
 poll_interval_sec = 1
+unmount_count_for_consistency = 5
 unmount_grace_period_sec = 30
 
 # Set client auth/access point certificate renewal rate. Minimum value is 1 minute.
 tls_cert_renewal_interval_min = 60
+
+# Periodically check the health of stunnel to make sure the connection is fully established
+stunnel_health_check_enabled = true
+stunnel_health_check_interval_min = 5
+stunnel_health_check_command_timeout_sec = 30
 
 [client-info] 
 source={{.EfsClientSource}}
@@ -181,7 +187,8 @@ func (w *execWatchdog) setup(efsClientSource string) error {
 	return nil
 }
 
-/**
+/*
+*
 At image build time, static files installed by efs-utils in the config directory, i.e. CAs file, need
 to be saved in another place so that the other stateful files created at runtime, i.e. private key for
 client certificate, in the same config directory can be persisted to host with a host path volume.

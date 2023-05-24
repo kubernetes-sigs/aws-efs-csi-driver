@@ -5,7 +5,9 @@
       "Effect": "Allow",
       "Action": [
         "elasticfilesystem:DescribeAccessPoints",
-        "elasticfilesystem:DescribeFileSystems"
+        "elasticfilesystem:DescribeFileSystems",
+        "elasticfilesystem:DescribeMountTargets",
+        "ec2:DescribeAvailabilityZones"
       ],
       "Resource": "*"
     },
@@ -18,6 +20,18 @@
       "Condition": {
         "StringLike": {
           "aws:RequestTag/efs.csi.aws.com/cluster": "true"
+        }
+      }
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "elasticfilesystem:TagResource"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "StringLike": {
+          "aws:ResourceTag/efs.csi.aws.com/cluster": "true"
         }
       }
     },

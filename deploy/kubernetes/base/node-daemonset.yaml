@@ -21,7 +21,7 @@ spec:
         app.kubernetes.io/instance: kustomize
     spec:
       nodeSelector:
-        beta.kubernetes.io/os: linux
+        kubernetes.io/os: linux
       affinity:
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
@@ -37,16 +37,24 @@ spec:
       priorityClassName: system-node-critical
       tolerations:
         - operator: Exists
+      securityContext:
+        fsGroup: 0
+        runAsGroup: 0
+        runAsNonRoot: false
+        runAsUser: 0
       containers:
         - name: efs-plugin
           securityContext:
             privileged: true
-          image: amazon/aws-efs-csi-driver:v1.3.5
+          image: amazon/aws-efs-csi-driver:v1.5.5
           imagePullPolicy: IfNotPresent
           args:
             - --endpoint=$(CSI_ENDPOINT)
             - --logtostderr
             - --v=2
+            - --vol-metrics-opt-in=false
+            - --vol-metrics-refresh-period=240
+            - --vol-metrics-fs-rate-limit=5
           env:
             - name: CSI_ENDPOINT
               value: unix:/csi/csi.sock
@@ -75,7 +83,7 @@ spec:
             periodSeconds: 2
             failureThreshold: 5
         - name: csi-driver-registrar
-          image: public.ecr.aws/eks-distro/kubernetes-csi/node-driver-registrar:v2.1.0-eks-1-18-2
+          image: public.ecr.aws/eks-distro/kubernetes-csi/node-driver-registrar:v2.7.0-eks-1-27-latest
           imagePullPolicy: IfNotPresent
           args:
             - --csi-address=$(ADDRESS)
@@ -95,8 +103,11 @@ spec:
               mountPath: /csi
             - name: registration-dir
               mountPath: /registration
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
         - name: liveness-probe
-          image: public.ecr.aws/eks-distro/kubernetes-csi/livenessprobe:v2.2.0-eks-1-18-2
+          image: public.ecr.aws/eks-distro/kubernetes-csi/livenessprobe:v2.9.0-eks-1-27-latest
           imagePullPolicy: IfNotPresent
           args:
             - --csi-address=/csi/csi.sock
@@ -105,6 +116,9 @@ spec:
           volumeMounts:
             - name: plugin-dir
               mountPath: /csi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
       volumes:
         - name: kubelet-dir
           hostPath:
@@ -120,7 +134,7 @@ spec:
             type: Directory
         - name: efs-state-dir
           hostPath:
-            path: /var/run/efs
+            path: /var/run/efs-csi-driver
             type: DirectoryOrCreate
         - name: efs-utils-config
           hostPath:

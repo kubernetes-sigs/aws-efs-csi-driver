@@ -19,11 +19,12 @@ package cloud
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/kubernetes-sigs/aws-efs-csi-driver/pkg/util"
 	"net/http"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/kubernetes-sigs/aws-efs-csi-driver/pkg/util"
 )
 
 const (
@@ -59,9 +60,13 @@ func (taskMetadata taskMetadata) GetTMDSV4Response() ([]byte, error) {
 	return respBody, nil
 }
 
-// getTaskMetadata return a new ECS MetadataServiceImplementation
-func getTaskMetadata(svc TaskMetadataService) (MetadataService, error) {
-	metadataResp, err := svc.GetTMDSV4Response()
+type taskMetadataProvider struct {
+	taskMetadataService TaskMetadataService
+}
+
+// getTaskMetadataService return a new ECS MetadataServiceImplementation
+func (tmp taskMetadataProvider) getMetadata() (MetadataService, error) {
+	metadataResp, err := tmp.taskMetadataService.GetTMDSV4Response()
 	if err != nil {
 		return nil, fmt.Errorf("unable to get TaskMetadataService %v", err)
 	}

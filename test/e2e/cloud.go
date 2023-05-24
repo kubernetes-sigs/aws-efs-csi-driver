@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awsutil"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/efs"
@@ -90,7 +91,7 @@ func (c *cloud) CreateFileSystem(opts CreateOptions) (string, error) {
 
 	securityGroupIds := aws.StringSlice(opts.SecurityGroupIds)
 	if len(securityGroupIds) == 0 {
-		securityGroupId, err := c.getSecurityGroup(opts.ClusterName)
+		securityGroupId, err := c.getSecurityGroupId(opts.ClusterName)
 		if err != nil {
 			return "", err
 		}
@@ -212,30 +213,45 @@ func (c *cloud) DeleteAccessPoint(accessPointId string) error {
 	return nil
 }
 
-// getSecurityGroup returns the node security group ID given cluster name
-func (c *cloud) getSecurityGroup(clusterName string) (string, error) {
+// getSecurityGroupId returns the node security group ID given cluster name
+func (c *cloud) getSecurityGroupId(clusterName string) (string, error) {
 	// First assume the cluster was installed by kops then fallback to EKS
-	groupId, err := c.getKopsSecurityGroup(clusterName)
+	groupId, err := c.getKopsSecurityGroupId(clusterName)
 	if err != nil {
-		fmt.Printf("error getting kops node security group: %v\n", err)
+		fmt.Printf("error getting kops node security group id: %v\n", err)
 	} else {
 		return groupId, nil
 	}
 
-	groupid, err := c.getEksSecurityGroup(clusterName)
+	groupId, err = c.getEksSecurityGroupId(clusterName)
 	if err != nil {
-		return "", fmt.Errorf("error getting eks node security group: %v", err)
+		return "", fmt.Errorf("error getting eks node security group id: %v", err)
 	}
-	return groupid, nil
+	return groupId, nil
+}
 
+func (c *cloud) getSubnetIds(clusterName string) ([]string, error) {
+	// First assume the cluster was installed by kops then fallback to EKS
+	subnetIds, err := c.getKopsSubnetIds(clusterName)
+	if err != nil {
+		fmt.Printf("error getting kops node subnet ids: %v\n", err)
+	} else {
+		return subnetIds, nil
+	}
+
+	subnetIds, err = c.getEksSubnetIds(clusterName)
+	if err != nil {
+		return nil, fmt.Errorf("error getting eks node subnet ids: %v", err)
+	}
+	return subnetIds, nil
 }
 
 // kops names the node security group nodes.$clustername and tags it
 // Name=nodes.$clustername. As opposed to masters.$clustername and
 // api.$clustername
-func (c *cloud) getKopsSecurityGroup(clusterName string) (string, error) {
-	request := &ec2.DescribeSecurityGroupsInput{
-		Filters: []*ec2.Filter{
+func (c *cloud) getKopsSecurityGroupId(clusterName string) (string, error) {
+	securityGroups, err := c.getFilteredSecurityGroups(
+		[]*ec2.Filter{
 			{
 				Name: aws.String("tag:Name"),
 				Values: []*string{
@@ -243,18 +259,12 @@ func (c *cloud) getKopsSecurityGroup(clusterName string) (string, error) {
 				},
 			},
 		},
-	}
-
-	response, err := c.ec2client.DescribeSecurityGroups(request)
+	)
 	if err != nil {
 		return "", err
 	}
 
-	if len(response.SecurityGroups) == 0 {
-		return "", fmt.Errorf("no security group found for cluster %s", clusterName)
-	}
-
-	return aws.StringValue(response.SecurityGroups[0].GroupId), nil
+	return aws.StringValue(securityGroups[0].GroupId), nil
 }
 
 // EKS unmanaged node groups:
@@ -270,9 +280,9 @@ func (c *cloud) getKopsSecurityGroup(clusterName string) (string, error) {
 // In any case the security group is tagged kubernetes.io/cluster/$clustername
 // so filter using that and try to find a security group with "node" in it. If
 // no such group exists, use the first one in the response
-func (c *cloud) getEksSecurityGroup(clusterName string) (string, error) {
-	request := &ec2.DescribeSecurityGroupsInput{
-		Filters: []*ec2.Filter{
+func (c *cloud) getEksSecurityGroupId(clusterName string) (string, error) {
+	securityGroups, err := c.getFilteredSecurityGroups(
+		[]*ec2.Filter{
 			{
 				Name: aws.String("tag-key"),
 				Values: []*string{
@@ -280,30 +290,24 @@ func (c *cloud) getEksSecurityGroup(clusterName string) (string, error) {
 				},
 			},
 		},
-	}
-
-	response, err := c.ec2client.DescribeSecurityGroups(request)
+	)
 	if err != nil {
 		return "", err
 	}
 
-	if len(response.SecurityGroups) == 0 {
-		return "", fmt.Errorf("no security group found for cluster %s", clusterName)
-	}
-
-	groupId := aws.StringValue(response.SecurityGroups[0].GroupId)
-	for _, sg := range response.SecurityGroups {
-		if strings.Contains(strings.ToLower(*sg.GroupName), "node") {
-			groupId = aws.StringValue(sg.GroupId)
+	securityGroupId := aws.StringValue(securityGroups[0].GroupId)
+	for _, securityGroup := range securityGroups {
+		if strings.Contains(strings.ToLower(*securityGroup.GroupName), "node") {
+			securityGroupId = aws.StringValue(securityGroup.GroupId)
 		}
 	}
 
-	return groupId, nil
+	return securityGroupId, nil
 }
 
-func (c *cloud) getSubnetIds(clusterName string) ([]string, error) {
-	request := &ec2.DescribeSubnetsInput{
-		Filters: []*ec2.Filter{
+func (c *cloud) getKopsSubnetIds(clusterName string) ([]string, error) {
+	return c.getFilteredSubnetIds(
+		[]*ec2.Filter{
 			{
 				Name: aws.String("tag-key"),
 				Values: []*string{
@@ -311,6 +315,69 @@ func (c *cloud) getSubnetIds(clusterName string) ([]string, error) {
 				},
 			},
 		},
+	)
+}
+
+func (c *cloud) getEksSubnetIds(clusterName string) ([]string, error) {
+	subnetIds, err := c.getEksctlSubnetIds(clusterName)
+	if err != nil {
+		return nil, err
+	} else if len(subnetIds) > 0 {
+		return subnetIds, nil
+	}
+	return c.getEksCloudFormationSubnetIds(clusterName)
+}
+
+func (c *cloud) getEksctlSubnetIds(clusterName string) ([]string, error) {
+	return c.getFilteredSubnetIds(
+		[]*ec2.Filter{
+			{
+				Name: aws.String("tag:alpha.eksctl.io/cluster-name"),
+				Values: []*string{
+					aws.String(fmt.Sprintf("%s", clusterName)),
+				},
+			},
+		},
+	)
+}
+
+func (c *cloud) getEksCloudFormationSubnetIds(clusterName string) ([]string, error) {
+	// There are no guarantees about subnets created using the template
+	// https://docs.aws.amazon.com/eks/latest/userguide/creating-a-vpc.html
+	// because the subnet names are derived from the stack name which is
+	// user-supplied. Assume that they are prefixed by cluster name and a dash.
+	return c.getFilteredSubnetIds(
+		[]*ec2.Filter{
+			{
+				Name: aws.String("tag:Name"),
+				Values: []*string{
+					aws.String(fmt.Sprintf("%s-*", clusterName)),
+				},
+			},
+		},
+	)
+}
+
+func (c *cloud) getFilteredSecurityGroups(filters []*ec2.Filter) ([]*ec2.SecurityGroup, error) {
+	request := &ec2.DescribeSecurityGroupsInput{
+		Filters: filters,
+	}
+
+	response, err := c.ec2client.DescribeSecurityGroups(request)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(response.SecurityGroups) == 0 {
+		return nil, fmt.Errorf("no security groups found with filters %s", awsutil.Prettify(filters))
+	}
+
+	return response.SecurityGroups, nil
+}
+
+func (c *cloud) getFilteredSubnetIds(filters []*ec2.Filter) ([]string, error) {
+	request := &ec2.DescribeSubnetsInput{
+		Filters: filters,
 	}
 
 	subnetIds := []string{}
@@ -320,7 +387,7 @@ func (c *cloud) getSubnetIds(clusterName string) ([]string, error) {
 	}
 
 	if len(response.Subnets) == 0 {
-		return []string{}, fmt.Errorf("no subnets found for cluster %s", clusterName)
+		return []string{}, fmt.Errorf("no subnets found with filters %s", awsutil.Prettify(filters))
 	}
 
 	for _, subnet := range response.Subnets {

@@ -36,7 +36,8 @@ var (
 		csi.VolumeCapability_AccessMode_SINGLE_NODE_WRITER,
 		csi.VolumeCapability_AccessMode_MULTI_NODE_MULTI_WRITER,
 	}
-	volumeIdCounter = make(map[string]int)
+	volumeIdCounter  = make(map[string]int)
+	supportedFSTypes = []string{"efs", ""}
 )
 
 func (d *Driver) NodeStageVolume(ctx context.Context, req *csi.NodeStageVolumeRequest) (*csi.NodeStageVolumeResponse, error) {
@@ -77,7 +78,7 @@ func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 		switch strings.ToLower(k) {
 		//Deprecated
 		case "path":
-			klog.Warning("Use of path under volumeAttributes is depracated. This field will be removed in future release")
+			klog.Warning("Use of path under volumeAttributes is deprecated. This field will be removed in future release")
 			if !filepath.IsAbs(v) {
 				return nil, status.Errorf(codes.InvalidArgument, "Volume context property %q must be an absolute path", k)
 			}
@@ -162,6 +163,11 @@ func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 					return nil, status.Errorf(codes.InvalidArgument,
 						"Found tls in mountOptions but encryptInTransit is false")
 				}
+			}
+
+			if strings.HasPrefix(f, "awscredsuri") {
+				klog.Warning("awscredsuri mount option is not supported by efs-csi-driver.")
+				continue
 			}
 
 			if !hasOption(mountOptions, f) {
@@ -312,6 +318,10 @@ func (d *Driver) isValidVolumeCapabilities(volCaps []*csi.VolumeCapability) erro
 	if err := d.validateAccessType(volCaps); err != nil {
 		return err
 	}
+
+	if err := d.validateFStype(volCaps); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -346,13 +356,36 @@ func (d *Driver) validateAccessType(volCaps []*csi.VolumeCapability) error {
 	return nil
 }
 
+func (d *Driver) validateFStype(volCaps []*csi.VolumeCapability) error {
+	isSupportedFStype := func(cap *csi.VolumeCapability) bool {
+		for _, m := range supportedFSTypes {
+			if m == cap.GetMount().FsType {
+				return true
+			}
+		}
+		return false
+	}
+
+	var invalidFStypes []string
+	for _, c := range volCaps {
+		if !isSupportedFStype(c) {
+			invalidFStypes = append(invalidFStypes, c.GetMount().FsType)
+		}
+	}
+	if len(invalidFStypes) != 0 {
+		return fmt.Errorf("invalid fstype: %s", strings.Join(invalidFStypes, ","))
+	}
+	return nil
+}
+
 // parseVolumeId accepts a NodePublishVolumeRequest.VolumeId as a colon-delimited string of the
 // form `{fileSystemID}:{mountPath}:{accessPointID}`.
-// - The `{fileSystemID}` is required, and expected to be of the form `fs-...`.
-// - The other two fields are optional -- they may be empty or omitted entirely. For example,
-//   `fs-abcd1234::`, `fs-abcd1234:`, and `fs-abcd1234` are equivalent.
-// - The `{mountPath}`, if specified, is not required to be absolute.
-// - The `{accessPointID}` is expected to be of the form `fsap-...`.
+//   - The `{fileSystemID}` is required, and expected to be of the form `fs-...`.
+//   - The other two fields are optional -- they may be empty or omitted entirely. For example,
+//     `fs-abcd1234::`, `fs-abcd1234:`, and `fs-abcd1234` are equivalent.
+//   - The `{mountPath}`, if specified, is not required to be absolute.
+//   - The `{accessPointID}` is expected to be of the form `fsap-...`.
+//
 // parseVolumeId returns the parsed values, of which `subpath` and `apid` may be empty; and an
 // error, which will be a `status.Error` with `codes.InvalidArgument`, or `nil` if the `volumeId`
 // was parsed successfully.
@@ -392,6 +425,7 @@ func parseVolumeId(volumeId string) (fsid, subpath, apid string, err error) {
 	return
 }
 
+// Check and avoid adding duplicate mount options
 func hasOption(options []string, opt string) bool {
 	for _, o := range options {
 		if o == opt {

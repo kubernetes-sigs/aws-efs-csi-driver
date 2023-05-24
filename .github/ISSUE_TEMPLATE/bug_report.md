@@ -1,6 +1,6 @@
 ---
 name: Bug report
-about: Create a report to help us improve EBS CSI Driver
+about: Create a report to help us improve EFS CSI Driver
 labels: 
 
 ---
@@ -18,3 +18,7 @@ labels:
 **Environment**
 - Kubernetes version (use `kubectl version`):
 - Driver version:
+
+**Please also attach debug logs to help us better diagnose**
+
+- Instructions to gather debug logs can be found [here](https://github.com/kubernetes-sigs/aws-efs-csi-driver/tree/master/troubleshooting)

@@ -1,10 +1,64 @@
 # Helm chart
 
-# v2.3.0
+# v2.4.4
 * Add optional podDisruptionBudget to controller deployment
+# v2.4.3
+* Add ability to configure daemonset affinity
+# v2.4.2
+* Bump app/driver version to `v1.5.5` 
+# v2.4.1
+* Bump app/driver version to `v1.5.4`
+# v2.4.0
+* Bump app/driver version to `v1.5.3`
+# v2.3.9
+* Bump app/driver version to `v1.5.2`
+# v2.3.8
+* Bump app/driver version to `v1.5.1`
+# v2.3.7
+* Bump app/driver version to `v1.5.0`
+# v2.3.6
+* Bump app/driver version to `v1.4.9`
+# v2.3.5
+* Bump app/driver version to `v1.4.8`
 
-# v2.2.1
+# v2.3.4
+* Bump app/driver version to `v1.4.7`
+
+# v2.3.3
+* Bump app/driver version to `v1.4.6`
+
+# v2.3.2
+* Bump app/driver version to `v1.4.5`
+
+# v2.3.1
+* Bump app/driver version to `v1.4.4`
+
+# v2.3.0
+* Bump app/driver version to `v1.4.3`
+
+# v2.2.9
+* Bump app/driver version to `v1.4.2`
+
+# v2.2.8
+* Bump app/driver version to `v1.4.1`
+
+# v2.2.7
+* Bump app/driver version to `v1.4.0`
+# v2.2.6
+* Bump app/driver version to `v1.3.8`
+
+# v2.2.5
+* Bump app/driver version to `v1.3.7`
+
+# v2.2.4
+* Add STS regional endpoints flag to fix PV creation on private EKS
+
+# v2.2.3
+* Bump app/driver version to `v1.3.6`
+
+# v2.2.2
 * Add controller.volMetricsOptIn for emitting volume metrics
+* Update ECR sidecars to 1-18-13
 
 # v2.2.1
 * Bump app/driver version to `v1.3.5`
