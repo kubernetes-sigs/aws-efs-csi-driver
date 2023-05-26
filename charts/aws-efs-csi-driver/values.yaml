@@ -11,14 +11,14 @@ useFIPS: false
 
 image:
   repository: amazon/aws-efs-csi-driver
-  tag: "v1.5.5"
+  tag: "v1.5.6"
   pullPolicy: IfNotPresent
 
 sidecars:
   livenessProbe:
     image:
       repository: public.ecr.aws/eks-distro/kubernetes-csi/livenessprobe
-      tag: v2.9.0-eks-1-27-latest
+      tag: v2.10.0-eks-1-27-3
       pullPolicy: IfNotPresent
     resources: {}
     securityContext:
@@ -27,7 +27,7 @@ sidecars:
   nodeDriverRegistrar:
     image:
       repository: public.ecr.aws/eks-distro/kubernetes-csi/node-driver-registrar
-      tag: v2.7.0-eks-1-27-latest
+      tag: v2.8.0-eks-1-27-3
       pullPolicy: IfNotPresent
     resources: {}
     securityContext:
@@ -36,7 +36,7 @@ sidecars:
   csiProvisioner:
     image:
       repository: public.ecr.aws/eks-distro/kubernetes-csi/external-provisioner
-      tag: v3.4.0-eks-1-27-latest
+      tag: v3.5.0-eks-1-27-3
       pullPolicy: IfNotPresent
     resources: {}
     securityContext:
