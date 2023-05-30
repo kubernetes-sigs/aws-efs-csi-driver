@@ -47,6 +47,15 @@ The following CSI interfaces are implemented:
  * The uid/gid configured on the access point is either the uid/gid specified in the storage class, a value in the gidRangeStart-gidRangeEnd (used as both uid/gid) specified in the storage class, or is a value selected by the driver is no uid/gid or gidRange is specified.
  * We suggest using [static provisioning](https://github.com/kubernetes-sigs/aws-efs-csi-driver/blob/master/examples/kubernetes/static_provisioning/README.md) if you do not wish to use user identity enforcement.
 
+**Note**
+
+If you want to pass any other mountOptions to EFS CSI driver while mounting, they can be passed in through the Persistent Volume or the Storage Class objects, depending on whether static or dynamic provisioning is used.
+Examples of some mountOptions that can be passed:
+
+**lookupcache**: Specifies how the kernel manages its cache of directory entries for a given mount point. Mode can be one of all, none, pos, or positive. Each mode has different functions and for more information you can refer to this [link](https://linux.die.net/man/5/nfs).
+
+**iam**: Use the CSI Node Pod's IAM identity to authenticate with EFS.
+
 ### Encryption In Transit
 One of the advantages of using EFS is that it provides [encryption in transit](https://aws.amazon.com/blogs/aws/new-encryption-of-data-in-transit-for-amazon-efs/) support using TLS. Using encryption in transit, data will be encrypted during its transition over the network to the EFS service. This provides an extra layer of defence-in-depth for applications that requires strict security compliance.
 
@@ -75,6 +84,11 @@ The following sections are Kubernetes specific. If you are a Kubernetes user, us
 | EFS CSI Driver Version | Image                            |
 |------------------------|----------------------------------|
 | master branch          | amazon/aws-efs-csi-driver:master |
+| v1.5.6                 | amazon/aws-efs-csi-driver:v1.5.6 |
+| v1.5.5                 | amazon/aws-efs-csi-driver:v1.5.5 |
+| v1.5.4                 | amazon/aws-efs-csi-driver:v1.5.4 |                                  
+| v1.5.3                 | amazon/aws-efs-csi-driver:v1.5.3 |
+| v1.5.2                 | amazon/aws-efs-csi-driver:v1.5.2 |
 | v1.5.1                 | amazon/aws-efs-csi-driver:v1.5.1 |
 | v1.5.0                 | amazon/aws-efs-csi-driver:v1.5.0 |
 | v1.4.9                 | amazon/aws-efs-csi-driver:v1.4.9 |
@@ -161,8 +175,12 @@ helm upgrade --install aws-efs-csi-driver --namespace kube-system aws-efs-csi-dr
 | vol-metrics-opt-in          |        | false   | true     | Opt in to emit volume metrics.                                                                                                                                                                                                          |
 | vol-metrics-refresh-period  |        | 240     | true     | Refresh period for volume metrics in minutes.                                                                                                                                                                                           |
 | vol-metrics-fs-rate-limit   |        | 5       | true     | Volume metrics routines rate limiter per file system.                                                                                                                                                                                   |
- | delete-access-point-root-dir|        | false  | true     | Opt in to delete access point root directory by DeleteVolume. By default, DeleteVolume will delete the access point behind Persistent Volume and deleting access point will not delete the access point root directory or its contents. |
 | tags                         |       |         | true     | Space separated key:value pairs which will be added as tags for EFS resources. For example, '--tags=name:efs-tag-test date:Jan24'                                                                                                       |
+
+### Container Arguments for deployment(controller) 
+| Parameters                  | Values | Default | Optional | Description                                                                                                                                                                                                                            |
+|-----------------------------|--------|---------|----------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| delete-access-point-root-dir|        | false  | true     | Opt in to delete access point root directory by DeleteVolume. By default, DeleteVolume will delete the access point behind Persistent Volume and deleting access point will not delete the access point root directory or its contents. |
 ### Upgrading the EFS CSI Driver
 
 
@@ -198,8 +216,17 @@ Before the example, you need to:
 * [Mount subpath](../examples/kubernetes/volume_path/README.md)
 * [Use Access Points](../examples/kubernetes/access_points/README.md)
 
+## Using botocore to retrieve mount target ip address when dns name cannot be resolved
+* EFS CSI driver supports using botocore to retrieve mount target ip address when dns name cannot be resolved, e.g., when user is mounting a file system in another VPC, botocore comes preinstalled on efs-csi-driver which can solve this DNS issue.
+* IAM policy prerequisites to use this feature :  
+  Allow ```elasticfilesystem:DescribeMountTargets``` and ```ec2:DescribeAvailabilityZones``` actions in your policy attached to the EKS service account role, refer to example policy [here](https://github.com/kubernetes-sigs/aws-efs-csi-driver/blob/master/docs/iam-policy-example.json#L9-L10).
+
 ## Development
-Please go through [CSI Spec](https://github.com/container-storage-interface/spec/blob/master/spec.md) and [Kubernetes CSI Developer Documentation](https://kubernetes-csi.github.io/docs) to get some basic understanding of CSI driver before you start.
+* Please go through [CSI Spec](https://github.com/container-storage-interface/spec/blob/master/spec.md) and [Kubernetes CSI Developer Documentation](https://kubernetes-csi.github.io/docs) to get some basic understanding of CSI driver before you start.
+
+* If you are about to update iam policy file, please also update efs policy in weaveworks/eksctl
+https://github.com/weaveworks/eksctl/blob/main/pkg/cfn/builder/statement.go
+*/
 
 ### Requirements
 * Golang 1.13.4+

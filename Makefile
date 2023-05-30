@@ -13,7 +13,7 @@
 # limitations under the License.
 #
 
-VERSION=v1.5.1
+VERSION=v1.5.6
 
 PKG=github.com/kubernetes-sigs/aws-efs-csi-driver
 GIT_COMMIT?=$(shell git rev-parse HEAD)
@@ -128,7 +128,7 @@ test-e2e:
 .PHONY: test-e2e-external-eks
 test-e2e-external-eks:
 	CLUSTER_TYPE=eksctl \
-	K8S_VERSION="1.20" \
+	K8S_VERSION="1.22" \
 	DRIVER_NAME=aws-efs-csi-driver \
 	HELM_VALUES_FILE="./hack/values_eksctl.yaml" \
 	CONTAINER_NAME=efs-plugin \

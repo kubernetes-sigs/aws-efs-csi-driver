@@ -50,14 +50,14 @@ IMAGE_TAG=${IMAGE_TAG:-${TEST_ID}}
 
 # kops: must include patch version (e.g. 1.19.1)
 # eksctl: mustn't include patch version (e.g. 1.19)
-K8S_VERSION=${K8S_VERSION:-1.20.8}
+K8S_VERSION=${K8S_VERSION:-1.22.3}
 
-KOPS_VERSION=${KOPS_VERSION:-1.21.0}
+KOPS_VERSION=${KOPS_VERSION:-1.22.3}
 KOPS_STATE_FILE=${KOPS_STATE_FILE:-s3://k8s-kops-csi-e2e}
 KOPS_PATCH_FILE=${KOPS_PATCH_FILE:-./hack/kops-patch.yaml}
 KOPS_PATCH_NODE_FILE=${KOPS_PATCH_NODE_FILE:-./hack/kops-patch-node.yaml}
 
-EKSCTL_VERSION=${EKSCTL_VERSION:-0.100.0}
+EKSCTL_VERSION=${EKSCTL_VERSION:-0.133.0}
 EKSCTL_PATCH_FILE=${EKSCTL_PATCH_FILE:-./hack/eksctl-patch.yaml}
 EKSCTL_ADMIN_ROLE=${EKSCTL_ADMIN_ROLE:-}
 # Creates a windows node group. The windows ami doesn't (yet) install csi-proxy

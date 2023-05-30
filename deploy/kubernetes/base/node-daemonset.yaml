@@ -37,16 +37,24 @@ spec:
       priorityClassName: system-node-critical
       tolerations:
         - operator: Exists
+      securityContext:
+        fsGroup: 0
+        runAsGroup: 0
+        runAsNonRoot: false
+        runAsUser: 0
       containers:
         - name: efs-plugin
           securityContext:
             privileged: true
-          image: amazon/aws-efs-csi-driver:v1.5.1
+          image: amazon/aws-efs-csi-driver:v1.5.6
           imagePullPolicy: IfNotPresent
           args:
             - --endpoint=$(CSI_ENDPOINT)
             - --logtostderr
             - --v=2
+            - --vol-metrics-opt-in=false
+            - --vol-metrics-refresh-period=240
+            - --vol-metrics-fs-rate-limit=5
           env:
             - name: CSI_ENDPOINT
               value: unix:/csi/csi.sock
@@ -75,7 +83,7 @@ spec:
             periodSeconds: 2
             failureThreshold: 5
         - name: csi-driver-registrar
-          image: public.ecr.aws/eks-distro/kubernetes-csi/node-driver-registrar:v2.6.2-eks-1-25-latest
+          image: public.ecr.aws/eks-distro/kubernetes-csi/node-driver-registrar:v2.8.0-eks-1-27-3
           imagePullPolicy: IfNotPresent
           args:
             - --csi-address=$(ADDRESS)
@@ -95,8 +103,11 @@ spec:
               mountPath: /csi
             - name: registration-dir
               mountPath: /registration
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
         - name: liveness-probe
-          image: public.ecr.aws/eks-distro/kubernetes-csi/livenessprobe:v2.8.0-eks-1-25-latest
+          image: public.ecr.aws/eks-distro/kubernetes-csi/livenessprobe:v2.10.0-eks-1-27-3
           imagePullPolicy: IfNotPresent
           args:
             - --csi-address=/csi/csi.sock
@@ -105,6 +116,9 @@ spec:
           volumeMounts:
             - name: plugin-dir
               mountPath: /csi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
       volumes:
         - name: kubelet-dir
           hostPath:
