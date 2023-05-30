@@ -1,4 +1,6 @@
 # Helm chart
+# v2.4.4
+* Bump helm version to pick the latest side-car images `v2.4.4`
 # V2.4.3
 * Bump app/driver version to `v1.5.6`
 # V2.4.2
