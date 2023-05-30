@@ -63,6 +63,7 @@ controller:
   # path on efs when deleteing an access point
   deleteAccessPointRootDir: false
   podAnnotations: {}
+  podLabels: {}
   resources:
     {}
     # We usually recommend not to specify default resources and to leave this as a conscious
@@ -123,6 +124,7 @@ node:
     #   nameservers:
     #     - 169.254.169.253
   podAnnotations: {}
+  podLabels: {}
   resources:
     {}
     # limits:
