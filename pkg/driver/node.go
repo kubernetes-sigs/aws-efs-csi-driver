@@ -319,9 +319,6 @@ func (d *Driver) isValidVolumeCapabilities(volCaps []*csi.VolumeCapability) erro
 		return err
 	}
 
-	if err := d.validateFStype(volCaps); err != nil {
-		return err
-	}
 	return nil
 }
 

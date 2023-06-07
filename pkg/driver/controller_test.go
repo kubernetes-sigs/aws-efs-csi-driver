@@ -523,6 +523,54 @@ func TestCreateVolume(t *testing.T) {
 			},
 		},
 		{
+			name: "Fail: Volume fsType not supported",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockCloud := mocks.NewMockCloud(mockCtl)
+
+				driver := &Driver{
+					endpoint:     endpoint,
+					cloud:        mockCloud,
+					gidAllocator: NewGidAllocator(),
+					tags:         parseTagsFromStr(""),
+				}
+
+				req := &csi.CreateVolumeRequest{
+					Name: volumeName,
+					VolumeCapabilities: []*csi.VolumeCapability{
+						{
+							AccessType: &csi.VolumeCapability_Mount{
+								Mount: &csi.VolumeCapability_MountVolume{
+									FsType: "abc",
+								},
+							},
+							AccessMode: &csi.VolumeCapability_AccessMode{
+								Mode: csi.VolumeCapability_AccessMode_MULTI_NODE_MULTI_WRITER,
+							},
+						},
+					},
+					CapacityRange: &csi.CapacityRange{
+						RequiredBytes: capacityRange,
+					},
+					Parameters: map[string]string{
+						ProvisioningMode: "efs-ap",
+						FsId:             fsId,
+						GidMin:           "1000",
+						GidMax:           "2000",
+						DirectoryPerms:   "777",
+						AzName:           "us-east-1a",
+					},
+				}
+
+				ctx := context.Background()
+				_, err := driver.CreateVolume(ctx, req)
+				if err == nil {
+					t.Fatal("CreateVolume did not fail")
+				}
+				mockCtl.Finish()
+			},
+		},
+		{
 			name: "Fail: AccessType is block",
 			testFunc: func(t *testing.T) {
 				mockCtl := gomock.NewController(t)
