@@ -168,7 +168,7 @@ spec:
             type: Directory
         - name: efs-state-dir
           hostPath:
-            path: /var/run/efs-csi-driver
+            path: /var/run/efs
             type: DirectoryOrCreate
         - name: efs-utils-config
           hostPath:
