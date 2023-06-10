@@ -47,6 +47,15 @@ The following CSI interfaces are implemented:
  * The uid/gid configured on the access point is either the uid/gid specified in the storage class, a value in the gidRangeStart-gidRangeEnd (used as both uid/gid) specified in the storage class, or is a value selected by the driver is no uid/gid or gidRange is specified.
  * We suggest using [static provisioning](https://github.com/kubernetes-sigs/aws-efs-csi-driver/blob/master/examples/kubernetes/static_provisioning/README.md) if you do not wish to use user identity enforcement.
 
+**Note**
+
+If you want to pass any other mountOptions to EFS CSI driver while mounting, they can be passed in through the Persistent Volume or the Storage Class objects, depending on whether static or dynamic provisioning is used.
+Examples of some mountOptions that can be passed:
+
+**lookupcache**: Specifies how the kernel manages its cache of directory entries for a given mount point. Mode can be one of all, none, pos, or positive. Each mode has different functions and for more information you can refer to this [link](https://linux.die.net/man/5/nfs).
+
+**iam**: Use the CSI Node Pod's IAM identity to authenticate with EFS.
+
 ### Encryption In Transit
 One of the advantages of using EFS is that it provides [encryption in transit](https://aws.amazon.com/blogs/aws/new-encryption-of-data-in-transit-for-amazon-efs/) support using TLS. Using encryption in transit, data will be encrypted during its transition over the network to the EFS service. This provides an extra layer of defence-in-depth for applications that requires strict security compliance.
 
@@ -75,6 +84,7 @@ The following sections are Kubernetes specific. If you are a Kubernetes user, us
 | EFS CSI Driver Version | Image                            |
 |------------------------|----------------------------------|
 | master branch          | amazon/aws-efs-csi-driver:master |
+| v1.5.6                 | amazon/aws-efs-csi-driver:v1.5.6 |
 | v1.5.5                 | amazon/aws-efs-csi-driver:v1.5.5 |
 | v1.5.4                 | amazon/aws-efs-csi-driver:v1.5.4 |                                  
 | v1.5.3                 | amazon/aws-efs-csi-driver:v1.5.3 |

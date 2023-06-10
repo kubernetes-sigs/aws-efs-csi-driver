@@ -70,6 +70,9 @@ spec:
             - --endpoint=$(CSI_ENDPOINT)
             - --logtostderr
             - --v={{ .Values.node.logLevel }}
+            - --vol-metrics-opt-in={{ hasKey .Values.node "volMetricsOptIn" | ternary .Values.node.volMetricsOptIn false }}
+            - --vol-metrics-refresh-period={{ hasKey .Values.node "volMetricsRefreshPeriod" | ternary .Values.node.volMetricsRefreshPeriod 240 }}
+            - --vol-metrics-fs-rate-limit={{ hasKey .Values.node "volMetricsFsRateLimit" | ternary .Values.node.volMetricsFsRateLimit 5 }}
           env:
             - name: CSI_ENDPOINT
               value: unix:/csi/csi.sock
