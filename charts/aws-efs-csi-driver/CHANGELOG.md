@@ -1,4 +1,6 @@
 # Helm chart
+# v2.4.6
+* Bump app/driver version to `v1.5.7`
 # v2.4.5
 * Bump helm version for change of state-dir path to avoid losing track of state files which exists already to `v2.4.5`
 # v2.4.4
