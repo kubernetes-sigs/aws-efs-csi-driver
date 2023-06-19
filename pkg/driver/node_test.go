@@ -436,26 +436,6 @@ func TestNodePublishVolume(t *testing.T) {
 			},
 		},
 		{
-			name: "fail: unsupported volume fstype capability",
-			req: &csi.NodePublishVolumeRequest{
-				VolumeId: volumeId,
-				VolumeCapability: &csi.VolumeCapability{
-					AccessType: &csi.VolumeCapability_Mount{
-						Mount: &csi.VolumeCapability_MountVolume{FsType: "abc"},
-					},
-					AccessMode: &csi.VolumeCapability_AccessMode{
-						Mode: csi.VolumeCapability_AccessMode_MULTI_NODE_MULTI_WRITER,
-					},
-				},
-				TargetPath: targetPath,
-			},
-			expectMakeDir: false,
-			expectError: errtyp{
-				code:    "InvalidArgument",
-				message: "Volume capability not supported: invalid fstype: abc",
-			},
-		},
-		{
 			name: "fail: multiple unsupported volume capabilities",
 			req: &csi.NodePublishVolumeRequest{
 				VolumeId: volumeId,

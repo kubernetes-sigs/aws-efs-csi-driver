@@ -76,6 +76,9 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 	if err := d.isValidVolumeCapabilities(volCaps); err != nil {
 		return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("Volume capabilities not supported: %s", err))
 	}
+	if err := d.validateFStype(volCaps); err != nil {
+		return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("Volume fstype not supported: %s", err))
+	}
 
 	var (
 		azName           string
