@@ -158,6 +158,36 @@ if [[ "${EBS_INSTALL_SNAPSHOT}" == true ]]; then
   kubectl apply --kubeconfig "${KUBECONFIG}" -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/"${EBS_INSTALL_SNAPSHOT_VERSION}"/client/config/crd/snapshot.storage.k8s.io_volumesnapshots.yaml
 fi
 
+if [[ "${CLUSTER_TYPE}" == "kops" ]]; then
+loudecho "Deploying driver from private ecr"
+HELM_ARGS=(upgrade --install "${DRIVER_NAME}"
+  --namespace kube-system
+  --set image.repository="${IMAGE_NAME}"
+  --set image.tag="${IMAGE_TAG}"
+  --set sidecars.livenessProbe.image.repository=602401143452.dkr.ecr.us-west-2.amazonaws.com/eks/livenessprobe
+  --set sidecars.node-driver-registrar.image.repository=602401143452.dkr.ecr.us-west-2.amazonaws.com/eks/csi-node-driver-registrar
+  --set sidecars.csiProvisioner.image.repository=602401143452.dkr.ecr.us-west-2.amazonaws.com/eks/csi-provisioner
+  --wait
+  --kubeconfig "${KUBECONFIG}"
+  ./charts/"${DRIVER_NAME}")
+if [[ -f "$HELM_VALUES_FILE" ]]; then
+  HELM_ARGS+=(-f "${HELM_VALUES_FILE}")
+fi
+eval "EXPANDED_HELM_EXTRA_FLAGS=$HELM_EXTRA_FLAGS"
+if [[ -n "$EXPANDED_HELM_EXTRA_FLAGS" ]]; then
+  HELM_ARGS+=("${EXPANDED_HELM_EXTRA_FLAGS}")
+fi
+set -x
+"${HELM_BIN}" "${HELM_ARGS[@]}"
+set +x
+loudecho "Deploying driver from private ecr is completed"
+
+loudecho "Removing driver installed from privat ecr"
+  ${HELM_BIN} del "${DRIVER_NAME}" \
+    --namespace kube-system \
+    --kubeconfig "${KUBECONFIG}"
+fi
+
 loudecho "Deploying driver"
 startSec=$(date +'%s')
 
