@@ -129,7 +129,7 @@ The following sections are Kubernetes specific. If you are a Kubernetes user, us
 
 ### Features
 * Static provisioning - EFS file system needs to be created manually first, then it could be mounted inside container as a persistent volume (PV) using the driver.
-* Dynamic provisioning - Uses a persistent volume claim (PVC) to dynamically provision a persistent volume (PV). On Creating a PVC, kuberenetes requests EFS to create an Access Point in a file system which will be used to mount the PV.
+* Dynamic provisioning - Uses a persistent volume claim (PVC) to dynamically provision a persistent volume (PV). On Creating a PVC, Kubernetes requests EFS to create an Access Point in a file system which will be used to mount the PV.
 * Mount Options - Mount options can be specified in the persistent volume (PV) or storage class for dynamic provisioning to define how the volume should be mounted.
 * Encryption of data in transit - EFS file systems are mounted with encryption in transit enabled by default in the master branch version of the driver.
 * Cross account mount - EFS file systems from different aws accounts can be mounted from an EKS cluster.
