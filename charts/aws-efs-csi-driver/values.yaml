@@ -162,6 +162,13 @@ node:
     runAsUser: 0
     runAsGroup: 0
     fsGroup: 0
+  initContainers: {}
+    # Add your own init container. Example:
+    # myInitContainer:
+    #   image: "busybox:latest"
+    #   command:
+    #     - "/bin/sh"
+    #   args: ["-c", "echo 'Doing important things here!'"]
 
 storageClasses: []
 # Add StorageClass resources like:
