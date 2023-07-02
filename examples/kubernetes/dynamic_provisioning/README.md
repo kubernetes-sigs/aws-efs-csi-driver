@@ -20,6 +20,7 @@ parameters:
   gidRangeStart: "1000"
   gidRangeEnd: "2000"
   basePath: "/dynamic_provisioning"
+reclaimPolicy: Delete
 ```
 * provisioningMode - The type of volume to be provisioned by efs. Currently, only access point based provisioning is supported `efs-ap`.
 * fileSystemId - The file system under which Access Point is created.
@@ -48,4 +49,15 @@ Also you can verify that data is written onto EFS filesystem:
 >> kubectl exec -ti efs-app -- tail -f /data/out
 ```
 ### Note:
-When you want to delete an access point in a file system when deleting PVC, you should specify `elasticfilesystem:ClientRootAccess` to the file system access policy to provide the root permissions. 
+
+In order for the Access Points created via dynamic provisioning to be deleted automatically when PVC are released the following must be true:
+
+1. The target Elastic File System's policy must allow these actions:
+
+* `"elasticfilesystem:ClientRootAccess"`
+* `"elasticfilesystem:ClientWrite"`
+* `"elasticfilesystem:ClientMount"`
+
+2. The storage class must specify `reclaimPolicy: Delete`.
+
+3. If deploying the EFS CSI Driver with Helm, then the deployment command must contain `--set controller.deleteAccessPointRootDir=true`.
