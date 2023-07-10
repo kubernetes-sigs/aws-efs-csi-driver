@@ -34,7 +34,7 @@ spec:
       containers:
         - name: efs-plugin
           securityContext:
-            privileged: true
+            privileged: false
           image: amazon/aws-efs-csi-driver:v1.5.7
           imagePullPolicy: IfNotPresent
           args:
