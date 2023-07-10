@@ -1,3 +1,6 @@
+# V1.5.8
+* Addressed CVEs (CVE-2023-29491, CVE-2023-32731).
+* Updated the security context parameter of the efs-plugin container. ([#1055](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1055), [@mskanth972](https://github.com/mskanth972))
 # V1.5.7
 * Addressed CVEs (CVE-2023-0464, CVE-2023-0466, CVE-2023-2650, CVE-2023-0465, CVE-2015-8390, CVE-2015-8394)
 * Added a e2e test to make sure that side-car images are located in Private ECR repository. ([#1018](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1018), [@mskanth972](https://github.com/mskanth972))
