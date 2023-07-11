@@ -11,7 +11,7 @@ useFIPS: false
 
 image:
   repository: amazon/aws-efs-csi-driver
-  tag: "v1.5.7"
+  tag: "v1.5.8"
   pullPolicy: IfNotPresent
 
 sidecars:
