@@ -1,3 +1,7 @@
+# V1.5.9
+* Addressed CVEs (CVE-2023-2602, CVE-2019-15167, CVE-2-23-2431, CVE-2023-2727).
+* updated go and k8s packages and removed SSH from CI as it is unnecessary and introduces a potential flake point. ([#1007](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1007), [@mskanth972](https://github.com/mskanth972))
+* Remove usage of 'echo' from log collector script. ([#1071](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1071), [@RyanStan](https://github.com/RyanStan))
 # V1.5.8
 * Addressed CVEs (CVE-2023-29491, CVE-2023-32731).
 * Updated the security context parameter of the efs-plugin container. ([#1055](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1055), [@mskanth972](https://github.com/mskanth972))
