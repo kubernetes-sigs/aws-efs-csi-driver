@@ -45,7 +45,7 @@ with open(results_dir_path + "/driver_logs", "w") as f:
 def collect_driver_files_under_dir(dir_name, file):
     collect_driver_files_under_dir = (
         f"kubectl exec {driver_pod_name} -n kube-system -c efs-plugin -- find {dir_name} "
-        + r"-type f -exec echo {} \; -exec cat {} \; -exec echo \;"
+        + r"-type f -exec ls {} \; -exec cat {} \;"
     )
     execute(command=collect_driver_files_under_dir, file=file)
 
