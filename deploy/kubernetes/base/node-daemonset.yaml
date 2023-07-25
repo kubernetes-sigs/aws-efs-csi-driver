@@ -31,7 +31,6 @@ spec:
                 operator: NotIn
                 values:
                 - fargate
-      hostNetwork: true
       dnsPolicy: ClusterFirst
       serviceAccountName: efs-csi-node-sa
       priorityClassName: system-node-critical

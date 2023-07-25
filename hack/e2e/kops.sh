@@ -53,6 +53,7 @@ function kops_create_cluster() {
     fi
     if test -f "$KOPS_PATCH_NODE_FILE"; then
       kops_patch_cluster_file "$CLUSTER_FILE" "$KOPS_PATCH_NODE_FILE" "InstanceGroup" "Node"
+      kops_patch_cluster_file "$CLUSTER_FILE" "$KOPS_PATCH_NODE_FILE" "InstanceGroup" "Master"
     fi
 
     loudecho "Creating cluster $CLUSTER_NAME with $CLUSTER_FILE"

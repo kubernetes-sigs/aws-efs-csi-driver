@@ -34,7 +34,6 @@ CLUSTER_TYPE=${CLUSTER_TYPE:-kops}
 
 TEST_DIR=${BASE_DIR}/csi-test-artifacts
 BIN_DIR=${TEST_DIR}/bin
-SSH_KEY_PATH=${TEST_DIR}/id_rsa
 CLUSTER_FILE=${TEST_DIR}/${CLUSTER_NAME}.${CLUSTER_TYPE}.yaml
 KUBECONFIG=${KUBECONFIG:-"${TEST_DIR}/${CLUSTER_NAME}.${CLUSTER_TYPE}.kubeconfig"}
 
@@ -50,9 +49,10 @@ IMAGE_TAG=${IMAGE_TAG:-${TEST_ID}}
 
 # kops: must include patch version (e.g. 1.19.1)
 # eksctl: mustn't include patch version (e.g. 1.19)
-K8S_VERSION=${K8S_VERSION:-1.22.3}
+K8S_VERSION_KOPS=${K8S_VERSION_KOPS:-${K8S_VERSION:-1.27.3}}
+K8S_VERSION_EKSCTL=${K8S_VERSION_EKSCTL:-${K8S_VERSION:-1.27}}
 
-KOPS_VERSION=${KOPS_VERSION:-1.22.3}
+KOPS_VERSION=${KOPS_VERSION:-1.27.0-beta.3}
 KOPS_STATE_FILE=${KOPS_STATE_FILE:-s3://k8s-kops-csi-e2e}
 KOPS_PATCH_FILE=${KOPS_PATCH_FILE:-./hack/kops-patch.yaml}
 KOPS_PATCH_NODE_FILE=${KOPS_PATCH_NODE_FILE:-./hack/kops-patch-node.yaml}
@@ -105,7 +105,7 @@ loudecho "Installing ginkgo to ${BIN_DIR}"
 GINKGO_BIN=${BIN_DIR}/ginkgo
 if [[ ! -e ${GINKGO_BIN} ]]; then
   pushd /tmp
-  GOPATH=${TEST_DIR} GOBIN=${BIN_DIR} GO111MODULE=on go install github.com/onsi/ginkgo/ginkgo@v1.12.0
+  GOPATH=${TEST_DIR} GOBIN=${BIN_DIR} GO111MODULE=on go install github.com/onsi/ginkgo/v2/ginkgo@v2.9.0
   popd
 fi
 
@@ -116,13 +116,12 @@ ecr_build_and_push "${REGION}" \
 
 if [[ "${CLUSTER_TYPE}" == "kops" ]]; then
   kops_create_cluster \
-    "$SSH_KEY_PATH" \
     "$CLUSTER_NAME" \
     "$KOPS_BIN" \
     "$ZONES" \
     "$NODE_COUNT" \
     "$INSTANCE_TYPE" \
-    "$K8S_VERSION" \
+    "$K8S_VERSION_KOPS" \
     "$CLUSTER_FILE" \
     "$KUBECONFIG" \
     "$KOPS_PATCH_FILE" \
@@ -133,12 +132,11 @@ if [[ "${CLUSTER_TYPE}" == "kops" ]]; then
   fi
 elif [[ "${CLUSTER_TYPE}" == "eksctl" ]]; then
   eksctl_create_cluster \
-    "$SSH_KEY_PATH" \
     "$CLUSTER_NAME" \
     "$EKSCTL_BIN" \
     "$ZONES" \
     "$INSTANCE_TYPE" \
-    "$K8S_VERSION" \
+    "$K8S_VERSION_EKSCTL" \
     "$CLUSTER_FILE" \
     "$KUBECONFIG" \
     "$EKSCTL_PATCH_FILE" \
@@ -222,7 +220,7 @@ loudecho "Testing focus ${GINKGO_FOCUS}"
 eval "EXPANDED_TEST_EXTRA_FLAGS=$TEST_EXTRA_FLAGS"
 set -x
 set +e
-${GINKGO_BIN} -p -nodes="${GINKGO_NODES}" -v --focus="${GINKGO_FOCUS}" --skip="${GINKGO_SKIP}" "${TEST_PATH}" -- -kubeconfig="${KUBECONFIG}" -report-dir="${ARTIFACTS}" -gce-zone="${FIRST_ZONE}" "${EXPANDED_TEST_EXTRA_FLAGS}"
+${GINKGO_BIN} -p -nodes="${GINKGO_NODES}" -v --focus="${GINKGO_FOCUS}" --skip="${GINKGO_SKIP}" --junit-report=junit.xml "${TEST_PATH}" -- -kubeconfig="${KUBECONFIG}" -report-dir="${ARTIFACTS}" -gce-zone="${FIRST_ZONE}" "${EXPANDED_TEST_EXTRA_FLAGS}"
 TEST_PASSED=$?
 set -e
 set +x

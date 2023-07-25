@@ -212,9 +212,6 @@ This procedure requires Helm V3 or later. To install or upgrade Helm, see [Using
    ```sh
    --set useFips=true
    ```
-**Note**  
-`hostNetwork: true` (should be added under spec/deployment on kubernetes installations where AWS metadata is not reachable from pod network. To fix the following error `NoCredentialProviders: no valid providers in chain` this parameter should be added.)
-
 ------
 ##### [ Manifest \(private registry\) ]
 
