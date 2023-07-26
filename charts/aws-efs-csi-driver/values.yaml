@@ -95,7 +95,6 @@ controller:
     runAsGroup: 0
     fsGroup: 0
 
-
 ## Node daemonset variables
 
 node:
@@ -132,7 +131,8 @@ node:
     #   cpu: 100m
     #   memory: 128Mi
   nodeSelector: {}
-  updateStrategy: {}
+  updateStrategy:
+    {}
     # Override default strategy (RollingUpdate) to speed up deployment.
     # This can be useful if helm timeouts are observed.
     # type: OnDelete
@@ -180,3 +180,6 @@ storageClasses: []
 #     basePath: "/dynamic_provisioning"
 #   reclaimPolicy: Delete
 #   volumeBindingMode: Immediate
+
+# Specifies wether to use helm hooks to apply the CSI driver
+useHelmHooksForCSIDriver: true
