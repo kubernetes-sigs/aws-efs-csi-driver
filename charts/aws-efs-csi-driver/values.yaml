@@ -114,7 +114,6 @@ controller:
   leaderElectionRenewDeadline: 10s
   leaderElectionLeaseDuration: 15s
 
-
 ## Node daemonset variables
 
 node:
@@ -154,7 +153,8 @@ node:
     #   cpu: 100m
     #   memory: 128Mi
   nodeSelector: {}
-  updateStrategy: {}
+  updateStrategy:
+    {}
     # Override default strategy (RollingUpdate) to speed up deployment.
     # This can be useful if helm timeouts are observed.
     # type: OnDelete
@@ -208,3 +208,6 @@ storageClasses: []
 #     ensureUniqueDirectory: true
 #   reclaimPolicy: Delete
 #   volumeBindingMode: Immediate
+
+# Specifies wether to use helm hooks to apply the CSI driver
+useHelmHooksForCSIDriver: true
