@@ -31,6 +31,26 @@ Create PV and persistent volume claim (PVC):
 ```sh
 >> kubectl apply -f examples/kubernetes/static_provisioning/specs/pv.yaml
 >> kubectl apply -f examples/kubernetes/static_provisioning/specs/claim.yaml
+```
+
+List the persistent volumes in the default namespace. Look for a persistent volume with the default/efs-claim claim.
+
+```sh
+kubectl get pv -w
+```
+
+The example output is as follows.
+
+```
+$ kubectl get pv -w
+NAME     CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS   CLAIM               STORAGECLASS   REASON   AGE
+efs-pv   5Gi        RWO            Retain           Bound    default/efs-claim                           3m31s
+```
+
+Don't proceed to the next step until the `STATUS` is `Bound`.
+
+Deploy the `app` sample applications
+```
 >> kubectl apply -f examples/kubernetes/static_provisioning/specs/pod.yaml
 ```
 
