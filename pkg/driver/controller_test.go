@@ -128,7 +128,7 @@ func TestCreateVolume(t *testing.T) {
 						ProvisioningMode: "efs-ap",
 						FsId:             fsId,
 						DirectoryPerms:   "777",
-						BasePath:         "test",
+						BasePath:         "test/",
 						GidMin:           "5000",
 						GidMax:           "10000",
 						Uid:              "1000",
@@ -557,7 +557,7 @@ func TestCreateVolume(t *testing.T) {
 
 				pvcName := "foo"
 				basePath := "bash"
-				directoryCreated := fmt.Sprintf("/%s/%s", basePath, pvcName)
+				directoryCreated := fmt.Sprintf("%s/%s", basePath, pvcName)
 
 				req := &csi.CreateVolumeRequest{
 					Name: volumeName,
@@ -631,7 +631,7 @@ func TestCreateVolume(t *testing.T) {
 
 				pvcName := "foo"
 				basePath := "bash"
-				directoryCreated := fmt.Sprintf("/%s/%s", basePath, pvcName)
+				directoryCreated := fmt.Sprintf("%s/%s", basePath, pvcName)
 
 				req := &csi.CreateVolumeRequest{
 					Name: volumeName,

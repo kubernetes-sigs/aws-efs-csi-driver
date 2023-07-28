@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"os"
-	"path"
 	"sort"
 	"strconv"
 	"strings"
@@ -277,7 +276,11 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 		klog.Infof("Using PV name for access point directory.")
 	}
 
-	rootDir := path.Join("/", basePath, rootDirName)
+	rootDir := basePath
+	if !strings.HasSuffix(basePath, "/") {
+		rootDir += "/"
+	}
+	rootDir += rootDirName
 	if ok, err := validateEfsPathRequirements(rootDir); !ok {
 		return nil, err
 	}
