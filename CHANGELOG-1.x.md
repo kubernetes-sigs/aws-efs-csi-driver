@@ -1,3 +1,8 @@
+# V1.6.0
+* Bump golang.org/x/net/html to fix CVE-2023-3978. ([#1089](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1089), [@jsafrane](https://github.com/jsafrane))
+* Set efs-plugin container security context to `true` which can solve the deleteAccessPointRootDir issues. ([#1096](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1096),
+[@seanzatzdev-amazon](https://github.com/seanzatzdev-amazon))
+* Updated all the necessary components to enable running kOps / EKS e2e CI jobs in the latest version of K8s without `hostNetwork: true`. ([#1088](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1088), [@torredil](https://github.com/torredil))
 # V1.5.9
 * Addressed CVEs (CVE-2023-2602, CVE-2019-15167, CVE-2-23-2431, CVE-2023-2727).
 * updated go and k8s packages and removed SSH from CI as it is unnecessary and introduces a potential flake point. ([#1007](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1007), [@mskanth972](https://github.com/mskanth972))
