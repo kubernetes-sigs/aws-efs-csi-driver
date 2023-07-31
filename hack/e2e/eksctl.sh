@@ -13,19 +13,16 @@ function eksctl_install() {
 }
 
 function eksctl_create_cluster() {
-  SSH_KEY_PATH=${1}
-  CLUSTER_NAME=${2}
-  BIN=${3}
-  ZONES=${4}
-  INSTANCE_TYPE=${5}
-  K8S_VERSION=${6}
-  CLUSTER_FILE=${7}
-  KUBECONFIG=${8}
-  EKSCTL_PATCH_FILE=${9}
-  EKSCTL_ADMIN_ROLE=${10}
-  WINDOWS=${11}
-
-  generate_ssh_key "${SSH_KEY_PATH}"
+  CLUSTER_NAME=${1}
+  BIN=${2}
+  ZONES=${3}
+  INSTANCE_TYPE=${4}
+  K8S_VERSION=${5}
+  CLUSTER_FILE=${6}
+  KUBECONFIG=${7}
+  EKSCTL_PATCH_FILE=${8}
+  EKSCTL_ADMIN_ROLE=${9}
+  WINDOWS=${10}
 
   CLUSTER_NAME="${CLUSTER_NAME//./-}"
 
@@ -36,8 +33,7 @@ function eksctl_create_cluster() {
     loudecho "Creating cluster $CLUSTER_NAME with $CLUSTER_FILE (dry run)"
     ${BIN} create cluster \
       --managed \
-      --ssh-access \
-      --ssh-public-key "${SSH_KEY_PATH}".pub \
+      --ssh-access=false \
       --zones "${ZONES}" \
       --nodes=3 \
       --instance-types="${INSTANCE_TYPE}" \
@@ -55,7 +51,6 @@ function eksctl_create_cluster() {
   fi
 
   loudecho "Cluster ${CLUSTER_NAME} kubecfg written to ${KUBECONFIG}"
-
   loudecho "Getting cluster ${CLUSTER_NAME}"
   ${BIN} get cluster "${CLUSTER_NAME}"
 
@@ -68,14 +63,14 @@ function eksctl_create_cluster() {
 
   if [[ "$WINDOWS" == true ]]; then
     ${BIN} create nodegroup \
-      --managed=false \
+      --managed=true \
+      --ssh-access=false \
       --cluster="${CLUSTER_NAME}" \
-      --node-ami-family=WindowsServer2019FullContainer \
+      --node-ami-family=WindowsServer2022FullContainer \
       -n ng-windows \
-      -m 1 \
-      -M 1 \
-      --ssh-access \
-      --ssh-public-key "${SSH_KEY_PATH}".pub
+      -m 3 \
+      -M 3 \
+
     ${BIN} utils install-vpc-controllers --cluster="${CLUSTER_NAME}" --approve
   fi
 
