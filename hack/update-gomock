@@ -17,6 +17,12 @@
 set -euo pipefail
 
 IMPORT_PATH=github.com/kubernetes-sigs/aws-efs-csi-driver
-mockgen -package=mocks -destination=./pkg/driver/mocks/mock_mount.go ${IMPORT_PATH}/pkg/driver Mounter 
-mockgen -package=mocks -destination=./pkg/cloud/mocks/mock_ec2metadata.go ${IMPORT_PATH}/pkg/cloud EC2Metadata
-mockgen -package=mocks -destination=./pkg/cloud/mocks/mock_taskmetadata.go ${IMPORT_PATH}/pkg/cloud TaskMetadataService
+mockgen -build_flags=--mod=mod -package=mocks -destination=./pkg/driver/mocks/mock_mount.go ${IMPORT_PATH}/pkg/driver Mounter
+mockgen -build_flags=--mod=mod -package=mocks -destination=./pkg/cloud/mocks/mock_ec2metadata.go ${IMPORT_PATH}/pkg/cloud EC2Metadata
+mockgen -build_flags=--mod=mod -package=mocks -destination=./pkg/cloud/mocks/mock_taskmetadata.go ${IMPORT_PATH}/pkg/cloud TaskMetadataService
+
+# Fixes "Mounter Type cannot implement 'Mounter' as it has a non-exported method and is defined in a different package"
+# See https://github.com/kubernetes/mount-utils/commit/a20fcfb15a701977d086330b47b7efad51eb608e for context.
+sed -i 's/mount /mount_utils /g' pkg/driver/mocks/mock_mount.go
+sed -i 's/mount\./mount_utils\./g' pkg/driver/mocks/mock_mount.go
+sed -i '/type MockMounter struct {/a \\tmount_utils.Interface' pkg/driver/mocks/mock_mount.go
