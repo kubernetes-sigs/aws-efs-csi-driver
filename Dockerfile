@@ -36,7 +36,7 @@ ARG EFSUTILSSOURCE=github
 RUN mkdir -p /tmp/rpms && \
     if [ "$EFSUTILSSOURCE" = "yum" ]; \
     then echo "Installing efs-utils from Amazon Linux 2 yum repo" && \
-         yum -y install --downloadonly --downloaddir=/tmp/rpms amazon-efs-utils-1.34.4-1.amzn2.noarch; \
+         yum -y install --downloadonly --downloaddir=/tmp/rpms amazon-efs-utils-1.35.0-1.amzn2.noarch; \
     else echo "Installing efs-utils from github using the latest git tag" && \
          yum -y install git rpm-build make && \
          git clone https://github.com/aws/efs-utils && \
