@@ -3,6 +3,11 @@ iam:
   withOIDC: true
   serviceAccounts:
     - metadata:
+        name: efs-csi-node-sa
+        namespace: kube-system
+      wellKnownPolicies:
+        efsCSIController: true
+    - metadata:
         name: efs-csi-controller-sa
         namespace: kube-system
       wellKnownPolicies:

@@ -44,16 +44,9 @@ spec:
         {{- with .Values.node.nodeSelector }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
-      affinity:
-        nodeAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            nodeSelectorTerms:
-            - matchExpressions:
-              - key: eks.amazonaws.com/compute-type
-                operator: NotIn
-                values:
-                - fargate
-      hostNetwork: true
+      {{- with .Values.node.affinity }}
+      affinity: {{- toYaml . | nindent 8 }}
+      {{- end }}
       dnsPolicy: {{ .Values.node.dnsPolicy }}
       {{- with .Values.node.dnsConfig }}
       dnsConfig: {{- toYaml . | nindent 8 }}
@@ -77,9 +70,16 @@ spec:
             - --endpoint=$(CSI_ENDPOINT)
             - --logtostderr
             - --v={{ .Values.node.logLevel }}
+            - --vol-metrics-opt-in={{ hasKey .Values.node "volMetricsOptIn" | ternary .Values.node.volMetricsOptIn false }}
+            - --vol-metrics-refresh-period={{ hasKey .Values.node "volMetricsRefreshPeriod" | ternary .Values.node.volMetricsRefreshPeriod 240 }}
+            - --vol-metrics-fs-rate-limit={{ hasKey .Values.node "volMetricsFsRateLimit" | ternary .Values.node.volMetricsFsRateLimit 5 }}
           env:
             - name: CSI_ENDPOINT
               value: unix:/csi/csi.sock
+            - name: CSI_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
             {{- if .Values.useFIPS }}
             - name: AWS_USE_FIPS_ENDPOINT
               value: "true"
