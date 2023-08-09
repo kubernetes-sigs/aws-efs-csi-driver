@@ -51,7 +51,7 @@ spec:
       containers:
         - name: efs-plugin
           securityContext:
-            privileged: false
+            privileged: true
           image: {{ printf "%s:%s" .Values.image.repository (default (printf "v%s" .Chart.AppVersion) (toString .Values.image.tag)) }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           args:
