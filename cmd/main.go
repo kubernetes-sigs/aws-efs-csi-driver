@@ -41,6 +41,8 @@ func main() {
 		volMetricsFsRateLimit    = flag.Int("vol-metrics-fs-rate-limit", 5, "Volume metrics routines rate limiter per file system")
 		deleteAccessPointRootDir = flag.Bool("delete-access-point-root-dir", false,
 			"Opt in to delete access point root directory by DeleteVolume. By default, DeleteVolume will delete the access point behind Persistent Volume and deleting access point will not delete the access point root directory or its contents.")
+		deleteProvisionedDir = flag.Bool("delete-provisioned-dir", false,
+			"Opt in to delete any provisioned directories and their contents. By default, DeleteVolume will not delete the directory behind Persistent Volume. Note: If root squash is enabled on your EFS it's possible this option will not work.")
 		tags = flag.String("tags", "", "Space separated key:value pairs which will be added as tags for EFS resources. For example, 'environment:prod region:us-east-1'")
 	)
 	klog.InitFlags(nil)
@@ -60,7 +62,7 @@ func main() {
 	if err != nil {
 		klog.Fatalln(err)
 	}
-	drv := driver.NewDriver(*endpoint, etcAmazonEfs, *efsUtilsStaticFilesPath, *tags, *volMetricsOptIn, *volMetricsRefreshPeriod, *volMetricsFsRateLimit, *deleteAccessPointRootDir)
+	drv := driver.NewDriver(*endpoint, etcAmazonEfs, *efsUtilsStaticFilesPath, *tags, *volMetricsOptIn, *volMetricsRefreshPeriod, *volMetricsFsRateLimit, *deleteAccessPointRootDir, *deleteProvisionedDir)
 	if err := drv.Run(); err != nil {
 		klog.Fatalln(err)
 	}

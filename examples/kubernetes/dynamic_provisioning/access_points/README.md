@@ -51,7 +51,7 @@ This example requires Kubernetes 1.17 or later and a driver version of 1.2.0 or 
    1. Download a manifest that deploys a Pod and a PVC.
 
       ```sh
-      curl -O https://raw.githubusercontent.com/kubernetes-sigs/aws-efs-csi-driver/master/examples/kubernetes/dynamic_provisioning/specs/pod.yaml
+      curl -O https://raw.githubusercontent.com/kubernetes-sigs/aws-efs-csi-driver/master/examples/kubernetes/dynamic_provisioning/access_points/specs/pod.yaml
       ```
 
    1. Deploy the Pod with a sample app and the PVC used by the Pod.
