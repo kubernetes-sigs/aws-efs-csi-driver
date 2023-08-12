@@ -19,11 +19,9 @@ package driver
 import (
 	"context"
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
-	"github.com/kubernetes-sigs/aws-efs-csi-driver/pkg/cloud"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"k8s.io/klog/v2"
@@ -64,10 +62,6 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 		return nil, status.Error(codes.InvalidArgument, "Volume name not provided")
 	}
 
-	// Volume size is required to match PV to PVC by k8s.
-	// Volume size is not consumed by EFS for any purposes.
-	volSize := req.GetCapacityRange().GetRequiredBytes()
-
 	volCaps := req.GetVolumeCapabilities()
 	if len(volCaps) == 0 {
 		return nil, status.Error(codes.InvalidArgument, "Volume capabilities not provided")
@@ -103,7 +97,7 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 
 	if err != nil {
 		d.fsIdentityManager.ReleaseGid(volumeParams[FsId], gid)
-		return nil, status.Errorf(codes.Internal, "Could not provision underlying storage: %v", err)
+		return nil, err
 	}
 
 	return &csi.CreateVolumeResponse{
