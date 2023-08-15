@@ -56,6 +56,7 @@ func TestSanityEFSCSI(t *testing.T) {
 	parameters[FsId] = "fs-1234abcd"
 	parameters[ProvisioningMode] = "efs-ap"
 	parameters[DirectoryPerms] = "777"
+	parameters[SubPathPattern] = "/foo"
 
 	config := sanity.NewTestConfig()
 	config.TargetPath = targetPath
