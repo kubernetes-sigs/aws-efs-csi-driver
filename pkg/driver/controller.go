@@ -502,15 +502,15 @@ func getCloud(secrets map[string]string, driver *Driver) (cloud.Cloud, string, e
 	var localCloud cloud.Cloud
 	var roleArn string
 	var err error
+	var efsClientMaxRetries = driver.efsClientMaxRetries
 
 	// Fetch aws role ARN for cross account mount from CSI secrets. Link to CSI secrets below
 	// https://kubernetes-csi.github.io/docs/secrets-and-credentials.html#csi-operation-secrets
 	if value, ok := secrets[RoleArn]; ok {
 		roleArn = value
 	}
-
 	if roleArn != "" {
-		localCloud, err = cloud.NewCloudWithRole(roleArn)
+		localCloud, err = cloud.NewCloudWithRole(roleArn, efsClientMaxRetries)
 		if err != nil {
 			return nil, "", status.Errorf(codes.Unauthenticated, "Unable to initialize aws cloud: %v. Please verify role has the correct AWS permissions for cross account mount", err)
 		}

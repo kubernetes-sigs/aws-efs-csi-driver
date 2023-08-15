@@ -20,6 +20,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/aws/aws-sdk-go/aws/client"
 	"math/rand"
 	"os"
 	"time"
@@ -102,17 +103,17 @@ type cloud struct {
 
 // NewCloud returns a new instance of AWS cloud
 // It panics if session is invalid
-func NewCloud() (Cloud, error) {
-	return createCloud("")
+func NewCloud(efsClientMaxRetries int) (Cloud, error) {
+	return createCloud("", efsClientMaxRetries)
 }
 
 // NewCloudWithRole returns a new instance of AWS cloud after assuming an aws role
 // It panics if driver does not have permissions to assume role.
-func NewCloudWithRole(awsRoleArn string) (Cloud, error) {
-	return createCloud(awsRoleArn)
+func NewCloudWithRole(awsRoleArn string, efsClientMaxRetries int) (Cloud, error) {
+	return createCloud(awsRoleArn, efsClientMaxRetries)
 }
 
-func createCloud(awsRoleArn string) (Cloud, error) {
+func createCloud(awsRoleArn string, efsClientMaxRetries int) (Cloud, error) {
 	sess := session.Must(session.NewSession(&aws.Config{}))
 	svc := ec2metadata.New(sess)
 	api, err := DefaultKubernetesAPIClient()
@@ -133,7 +134,7 @@ func createCloud(awsRoleArn string) (Cloud, error) {
 		return nil, fmt.Errorf("could not get metadata: %v", err)
 	}
 
-	efs_client := createEfsClient(awsRoleArn, metadata, sess)
+	efs_client := createEfsClient(awsRoleArn, metadata, sess, efsClientMaxRetries)
 	klog.V(5).Infof("EFS Client created using the following endpoint: %+v", efs_client.(*efs.EFS).Client.ClientInfo.Endpoint)
 
 	return &cloud{
@@ -142,11 +143,14 @@ func createCloud(awsRoleArn string) (Cloud, error) {
 	}, nil
 }
 
-func createEfsClient(awsRoleArn string, metadata MetadataService, sess *session.Session) Efs {
+func createEfsClient(awsRoleArn string, metadata MetadataService, sess *session.Session, efsClientMaxRetries int) Efs {
 	config := aws.NewConfig().WithRegion(metadata.GetRegion())
 	if awsRoleArn != "" {
 		config = config.WithCredentials(stscreds.NewCredentials(sess, awsRoleArn))
 	}
+	config = request.WithRetryer(config, client.DefaultRetryer{
+		NumMaxRetries: efsClientMaxRetries,
+	})
 	return efs.New(session.Must(session.NewSession(config)))
 }
 

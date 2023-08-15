@@ -48,10 +48,11 @@ type Driver struct {
 	gidAllocator             GidAllocator
 	deleteAccessPointRootDir bool
 	tags                     map[string]string
+	efsClientMaxRetries      int
 }
 
-func NewDriver(endpoint, efsUtilsCfgPath, efsUtilsStaticFilesPath, tags string, volMetricsOptIn bool, volMetricsRefreshPeriod float64, volMetricsFsRateLimit int, deleteAccessPointRootDir bool) *Driver {
-	cloud, err := cloud.NewCloud()
+func NewDriver(endpoint, efsUtilsCfgPath, efsUtilsStaticFilesPath, tags string, volMetricsOptIn bool, volMetricsRefreshPeriod float64, volMetricsFsRateLimit int, deleteAccessPointRootDir bool, efsClientMaxRetries int) *Driver {
+	cloud, err := cloud.NewCloud(efsClientMaxRetries)
 	if err != nil {
 		klog.Fatalln(err)
 	}
@@ -72,6 +73,7 @@ func NewDriver(endpoint, efsUtilsCfgPath, efsUtilsStaticFilesPath, tags string, 
 		gidAllocator:             NewGidAllocator(),
 		deleteAccessPointRootDir: deleteAccessPointRootDir,
 		tags:                     parseTagsFromStr(strings.TrimSpace(tags)),
+		efsClientMaxRetries:      efsClientMaxRetries,
 	}
 }
 
