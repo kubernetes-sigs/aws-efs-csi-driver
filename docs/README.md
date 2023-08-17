@@ -68,22 +68,24 @@ The following sections are Kubernetes specific. If you are a Kubernetes user, us
 
 ### Kubernetes Version Compability Matrix
 | AWS EFS CSI Driver \ Kubernetes Version | maturity | v1.11 | v1.12 | v1.13 | v1.14 | v1.15 | v1.16 | v1.17+ |
-|-----------------------------------------|----------|-------|-------|-------|-------|-------|-------|-------|
-| master branch                           | GA       | no    | no    | no    | no    | no    | no    | yes   |
-| v1.5.x                                  | GA       | no    | no    | no    | no    | no    | no    | yes   |                                        |          |       |       |       |       |       |       |        |
-| v1.4.x                                  | GA       | no    | no    | no    | no    | no    | no    | yes   |
-| v1.3.x                                  | GA       | no    | no    | no    | no    | no    | no    | yes   |
-| v1.2.x                                  | GA       | no    | no    | no    | no    | no    | no    | yes   |
-| v1.1.x                                  | GA       | no    | no    | no    | yes   | yes   | yes   | yes   |
-| v1.0.x                                  | GA       | no    | no    | no    | yes   | yes   | yes   | yes   |
-| v0.3.0                                  | beta     | no    | no    | no    | yes   | yes   | yes   | yes   |
-| v0.2.0                                  | beta     | no    | no    | no    | yes   | yes   | yes   | yes   |
-| v0.1.0                                  | alpha    | yes   | yes   | yes   | no    | no    | no    | no    |
+|-----------------------------------------|----------|-------|-------|-------|-------|-------|-------|--------|
+| master branch                           | GA       | no    | no    | no    | no    | no    | no    | yes    |
+| v1.6.x                                  | GA       | no    | no    | no    | no    | no    | no    | yes    |
+| v1.5.x                                  | GA       | no    | no    | no    | no    | no    | no    | yes    |
+| v1.4.x                                  | GA       | no    | no    | no    | no    | no    | no    | yes    |
+| v1.3.x                                  | GA       | no    | no    | no    | no    | no    | no    | yes    |
+| v1.2.x                                  | GA       | no    | no    | no    | no    | no    | no    | yes    |
+| v1.1.x                                  | GA       | no    | no    | no    | yes   | yes   | yes   | yes    |
+| v1.0.x                                  | GA       | no    | no    | no    | yes   | yes   | yes   | yes    |
+| v0.3.0                                  | beta     | no    | no    | no    | yes   | yes   | yes   | yes    |
+| v0.2.0                                  | beta     | no    | no    | no    | yes   | yes   | yes   | yes    |
+| v0.1.0                                  | alpha    | yes   | yes   | yes   | no    | no    | no    | no     |
 
 ### Container Images
 | EFS CSI Driver Version | Image                            |
 |------------------------|----------------------------------|
 | master branch          | amazon/aws-efs-csi-driver:master |
+| v1.6.0                 | amazon/aws-efs-csi-driver:v1.6.0 |
 | v1.5.9                 | amazon/aws-efs-csi-driver:v1.5.9 |
 | v1.5.8                 | amazon/aws-efs-csi-driver:v1.5.8 |
 | v1.5.7                 | amazon/aws-efs-csi-driver:v1.5.7 |                                  
@@ -125,7 +127,7 @@ The following sections are Kubernetes specific. If you are a Kubernetes user, us
 ### ECR Image
 | Driver Version | [ECR](https://gallery.ecr.aws/efs-csi-driver/amazon/aws-efs-csi-driver) Image |
 |----------------|-------------------------------------------------------------------------------|
-| v1.5.0         | public.ecr.aws/efs-csi-driver/amazon/aws-efs-csi-driver:v1.5.0                |
+| v1.6.0         | public.ecr.aws/efs-csi-driver/amazon/aws-efs-csi-driver:v1.6.0                |
 
 #### Note : You can find previous efs-csi-driver versions' images from [here](https://gallery.ecr.aws/efs-csi-driver/amazon/aws-efs-csi-driver)
 
@@ -150,7 +152,7 @@ The driver requires IAM permission to talk to Amazon EFS to manage the volume on
 
 If you want to deploy the stable driver:
 ```sh
-kubectl apply -k "github.com/kubernetes-sigs/aws-efs-csi-driver/deploy/kubernetes/overlays/stable/?ref=release-1.5"
+kubectl apply -k "github.com/kubernetes-sigs/aws-efs-csi-driver/deploy/kubernetes/overlays/stable/?ref=release-1.6"
 ```
 
 If you want to deploy the development driver:
@@ -190,16 +192,16 @@ helm upgrade --install aws-efs-csi-driver --namespace kube-system aws-efs-csi-dr
 #### Upgrade to the latest version:
 If you want to update to latest released version:
 ```sh
-kubectl apply -k "github.com/kubernetes-sigs/aws-efs-csi-driver/deploy/kubernetes/overlays/stable/?ref=release-1.5"
+kubectl apply -k "github.com/kubernetes-sigs/aws-efs-csi-driver/deploy/kubernetes/overlays/stable/?ref=release-1.6"
 ```
 
 #### Upgrade to a specific version:
 If you want to update to a specific version, first customize the driver yaml file locally:
 ```sh
-kubectl kustomize "github.com/kubernetes-sigs/aws-efs-csi-driver/deploy/kubernetes/overlays/stable/?ref=release-1.5" > driver.yaml
+kubectl kustomize "github.com/kubernetes-sigs/aws-efs-csi-driver/deploy/kubernetes/overlays/stable/?ref=release-1.6" > driver.yaml
 ```
 
-Then, update all lines referencing `image: amazon/aws-efs-csi-driver` to the desired version (e.g., to `image: amazon/aws-efs-csi-driver:v1.5.0`) in the yaml file, and deploy driver yaml again:
+Then, update all lines referencing `image: amazon/aws-efs-csi-driver` to the desired version (e.g., to `image: amazon/aws-efs-csi-driver:v1.6.0`) in the yaml file, and deploy driver yaml again:
 ```sh
 kubectl apply -f driver.yaml
 ```
