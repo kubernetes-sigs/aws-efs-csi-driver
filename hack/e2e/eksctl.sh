@@ -22,7 +22,6 @@ function eksctl_create_cluster() {
   KUBECONFIG=${7}
   EKSCTL_PATCH_FILE=${8}
   EKSCTL_ADMIN_ROLE=${9}
-  WINDOWS=${10}
 
   CLUSTER_NAME="${CLUSTER_NAME//./-}"
 
@@ -59,19 +58,6 @@ function eksctl_create_cluster() {
     ADMIN_ARN="arn:aws:iam::${AWS_ACCOUNT_ID}:role/${EKSCTL_ADMIN_ROLE}"
     loudecho "Granting ${ADMIN_ARN} admin access to the cluster"
     ${BIN} create iamidentitymapping --cluster "${CLUSTER_NAME}" --arn "${ADMIN_ARN}" --group system:masters --username admin
-  fi
-
-  if [[ "$WINDOWS" == true ]]; then
-    ${BIN} create nodegroup \
-      --managed=true \
-      --ssh-access=false \
-      --cluster="${CLUSTER_NAME}" \
-      --node-ami-family=WindowsServer2022FullContainer \
-      -n ng-windows \
-      -m 3 \
-      -M 3 \
-
-    ${BIN} utils install-vpc-controllers --cluster="${CLUSTER_NAME}" --approve
   fi
 
   return $?
