@@ -394,9 +394,10 @@ var _ = ginkgo.Describe("[efs-csi] EFS CSI", func() {
 			framework.ExpectNoError(err, "Fetching efs-csi-driver node pods")
 			framework.ExpectNotEqual(len(nodePods.Items), 0, "Get node pods count")
 			nodePodName := nodePods.Items[0].Name
-			cmd := fmt.Sprintf("[ -d \"/efs/dynamic/%s/foo\" ] && echo \"/efs/dynamic/%s/foo\"", pvc.Name, pvc.Name)
-
-			actualDir := framework.RunKubectlOrDie(f.Namespace.Name, "exec", nodePodName, "--", "/bin/sh", "-c", cmd)
+			//cmd := fmt.Sprintf("[ -d \"/efs/dynamic/%s/foo\" ] && echo \"/efs/dynamic/%s/foo\"", pvc.Name, pvc.Name)
+			cmd := "ls -la"
+			actualDir := framework.RunKubectlOrDie("kube-system", "exec", nodePodName, "--", "/bin/sh", "-c", cmd)
+			framework.Logf("%s", actualDir)
 
 			expectedDir := fmt.Sprintf("/efs/dynamic/%s/foo", pvc.Name)
 			if actualDir != expectedDir {
