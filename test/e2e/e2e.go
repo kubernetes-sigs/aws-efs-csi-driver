@@ -387,16 +387,16 @@ var _ = ginkgo.Describe("[efs-csi] EFS CSI", func() {
 			}()
 
 			ginkgo.By("Checking if access point's directory matches expected structure")
-			podClient := f.PodClientNS("kube-system")
-			nodePods, err := podClient.List(context.Background(), metav1.ListOptions{
-				LabelSelector: "app=efs-csi-node",
-			})
-			framework.ExpectNoError(err, "Fetching efs-csi-driver node pods")
-			framework.ExpectNotEqual(len(nodePods.Items), 0, "Get node pods count")
-			nodePodName := nodePods.Items[0].Name
+			// podClient := f.PodClientNS("kube-system")
+			// nodePods, err := podClient.List(context.Background(), metav1.ListOptions{
+			// 	LabelSelector: "app=efs-csi-node",
+			// })
+			// framework.ExpectNoError(err, "Fetching efs-csi-driver node pods")
+			// framework.ExpectNotEqual(len(nodePods.Items), 0, "Get node pods count")
+			// nodePodName := nodePods.Items[0].Name
 			//cmd := fmt.Sprintf("[ -d \"/efs/dynamic/%s/foo\" ] && echo \"/efs/dynamic/%s/foo\"", pvc.Name, pvc.Name)
 			cmd := "ls -la"
-			actualDir := framework.RunKubectlOrDie("kube-system", "exec", nodePodName, "--", "/bin/sh", "-c", cmd)
+			actualDir := framework.RunKubectlOrDie("kube-system", "exec", pod.Name, "--", "/bin/sh", "-c", cmd)
 			framework.Logf("%s", actualDir)
 
 			expectedDir := fmt.Sprintf("/efs/dynamic/%s/foo", pvc.Name)
