@@ -1261,7 +1261,7 @@ func TestCreateVolume(t *testing.T) {
 				}
 
 				pvcName := "foo"
-				directoryCreated := fmt.Sprintf("/%%s/%s", pvcName)
+				directoryCreated := fmt.Sprintf("/%s/%s", pvcName, pvcName)
 
 				req := &csi.CreateVolumeRequest{
 					Name: volumeName,
