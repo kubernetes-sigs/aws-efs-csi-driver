@@ -1248,6 +1248,78 @@ func TestCreateVolume(t *testing.T) {
 			},
 		},
 		{
+			name: "Success: Normal flow with a valid directory structure set, using a repeated elements",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockCloud := mocks.NewMockCloud(mockCtl)
+
+				driver := &Driver{
+					endpoint:     endpoint,
+					cloud:        mockCloud,
+					gidAllocator: NewGidAllocator(mockCloud),
+					tags:         parseTagsFromStr(""),
+				}
+
+				pvcName := "foo"
+				directoryCreated := fmt.Sprintf("/%%s/%s", pvcName)
+
+				req := &csi.CreateVolumeRequest{
+					Name: volumeName,
+					VolumeCapabilities: []*csi.VolumeCapability{
+						stdVolCap,
+					},
+					CapacityRange: &csi.CapacityRange{
+						RequiredBytes: capacityRange,
+					},
+					Parameters: map[string]string{
+						ProvisioningMode: "efs-ap",
+						FsId:             fsId,
+						GidMin:           "1000",
+						GidMax:           "2000",
+						DirectoryPerms:   "777",
+						SubPathPattern:   "${.PVC.name}/${.PVC.name}",
+						PvcName:          pvcName,
+					},
+				}
+
+				ctx := context.Background()
+				fileSystem := &cloud.FileSystem{
+					FileSystemId: fsId,
+				}
+				accessPoint := &cloud.AccessPoint{
+					AccessPointId: apId,
+					FileSystemId:  fsId,
+				}
+				mockCloud.EXPECT().DescribeFileSystem(gomock.Eq(ctx), gomock.Any()).Return(fileSystem, nil)
+				mockCloud.EXPECT().ListAccessPoints(gomock.Eq(ctx), gomock.Any()).Return(nil, nil)
+
+				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(accessPoint, nil).
+					Do(func(ctx context.Context, volumeName string, accessPointOpts *cloud.AccessPointOptions) {
+						if !verifyPathWhenUUIDIncluded(accessPointOpts.DirectoryPath, directoryCreated) {
+							t.Fatalf("Root directory mismatch. Expected: %v (with UID appended), actual: %v",
+								directoryCreated,
+								accessPointOpts.DirectoryPath)
+						}
+					})
+
+				res, err := driver.CreateVolume(ctx, req)
+
+				if err != nil {
+					t.Fatalf("CreateVolume failed: %v", err)
+				}
+
+				if res.Volume == nil {
+					t.Fatal("Volume is nil")
+				}
+
+				if res.Volume.VolumeId != volumeId {
+					t.Fatalf("Volume Id mismatched. Expected: %v, Actual: %v", volumeId, res.Volume.VolumeId)
+				}
+
+				mockCtl.Finish()
+			},
+		},
+		{
 			name: "Fail: Volume name missing",
 			testFunc: func(t *testing.T) {
 				mockCtl := gomock.NewController(t)
