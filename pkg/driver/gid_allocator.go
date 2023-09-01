@@ -11,7 +11,7 @@ import (
 	"sync"
 )
 
-var ACCESS_POINT_PER_FS_LIMIT int = 120
+var ACCESS_POINT_PER_FS_LIMIT int = 1000
 
 type FilesystemID struct {
 	gidMin int
