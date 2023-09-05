@@ -443,6 +443,125 @@ func TestDescribeAccessPoint(t *testing.T) {
 	}
 }
 
+func TestListAccessPoints(t *testing.T) {
+	var (
+		fsId                = "fs-abcd1234"
+		accessPointId       = "ap-abc123"
+		Gid           int64 = 1000
+		Uid           int64 = 1000
+	)
+	testCases := []struct {
+		name     string
+		testFunc func(t *testing.T)
+	}{
+		{
+			name: "Success",
+			testFunc: func(t *testing.T) {
+				mockctl := gomock.NewController(t)
+				mockEfs := mocks.NewMockEfs(mockctl)
+				c := &cloud{efs: mockEfs}
+
+				output := &efs.DescribeAccessPointsOutput{
+					AccessPoints: []*efs.AccessPointDescription{
+						{
+							AccessPointId: aws.String(accessPointId),
+							FileSystemId:  aws.String(fsId),
+							PosixUser: &efs.PosixUser{
+								Gid: aws.Int64(Gid),
+								Uid: aws.Int64(Uid),
+							},
+						},
+					},
+					NextToken: nil,
+				}
+
+				ctx := context.Background()
+				mockEfs.EXPECT().DescribeAccessPointsWithContext(gomock.Eq(ctx), gomock.Any()).Return(output, nil)
+				res, err := c.ListAccessPoints(ctx, fsId)
+				if err != nil {
+					t.Fatalf("List Access Points failed: %v", err)
+				}
+
+				if res == nil {
+					t.Fatal("Result is nil")
+				}
+
+				if len(res) != 1 {
+					t.Fatalf("Expected only one AccessPoint in response but got: %v", res)
+				}
+
+				mockctl.Finish()
+			},
+		},
+		{
+			name: "Success - multiple access points",
+			testFunc: func(t *testing.T) {
+				mockctl := gomock.NewController(t)
+				mockEfs := mocks.NewMockEfs(mockctl)
+				c := &cloud{efs: mockEfs}
+
+				output := &efs.DescribeAccessPointsOutput{
+					AccessPoints: []*efs.AccessPointDescription{
+						{
+							AccessPointId: aws.String(accessPointId),
+							FileSystemId:  aws.String(fsId),
+							PosixUser: &efs.PosixUser{
+								Gid: aws.Int64(Gid),
+								Uid: aws.Int64(Uid),
+							},
+						},
+						{
+							AccessPointId: aws.String(accessPointId),
+							FileSystemId:  aws.String(fsId),
+							PosixUser: &efs.PosixUser{
+								Gid: aws.Int64(1001),
+								Uid: aws.Int64(1001),
+							},
+						},
+					},
+					NextToken: nil,
+				}
+
+				ctx := context.Background()
+				mockEfs.EXPECT().DescribeAccessPointsWithContext(gomock.Eq(ctx), gomock.Any()).Return(output, nil)
+				res, err := c.ListAccessPoints(ctx, fsId)
+				if err != nil {
+					t.Fatalf("List Access Points failed: %v", err)
+				}
+
+				if res == nil {
+					t.Fatal("Result is nil")
+				}
+
+				if len(res) != 2 {
+					t.Fatalf("Expected two AccessPoints in response but got: %v", res)
+				}
+
+				mockctl.Finish()
+			},
+		},
+		{
+			name: "Fail - Access Denied",
+			testFunc: func(t *testing.T) {
+				mockctl := gomock.NewController(t)
+				mockEfs := mocks.NewMockEfs(mockctl)
+				c := &cloud{efs: mockEfs}
+				ctx := context.Background()
+				mockEfs.EXPECT().DescribeAccessPointsWithContext(gomock.Eq(ctx), gomock.Any()).Return(nil, awserr.New(AccessDeniedException, "Access Denied", errors.New("Access Denied")))
+				_, err := c.ListAccessPoints(ctx, fsId)
+				if err == nil {
+					t.Fatalf("List Access Points should have failed: %v", err)
+				}
+
+				mockctl.Finish()
+			},
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, tc.testFunc)
+	}
+}
+
 func TestDescribeFileSystem(t *testing.T) {
 	var (
 		fsId = "fs-abcd1234"

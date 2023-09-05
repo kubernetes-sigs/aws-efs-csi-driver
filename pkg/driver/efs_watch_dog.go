@@ -23,7 +23,7 @@ import (
 	"sync"
 	"text/template"
 
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 )
 
 // https://github.com/aws/efs-utils/blob/v1.30.2/dist/efs-utils.conf

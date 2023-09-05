@@ -28,11 +28,6 @@ import (
 	imageutils "k8s.io/kubernetes/test/utils/image"
 )
 
-var (
-	// BusyBoxImage is the image URI of BusyBox.
-	BusyBoxImage = imageutils.GetE2EImage(imageutils.BusyBox)
-)
-
 // Config is a struct containing all arguments for creating a pod.
 // SELinux testing requires to pass HostIPC and HostPID as boolean arguments.
 type Config struct {
@@ -47,7 +42,7 @@ type Config struct {
 	SeLinuxLabel           *v1.SELinuxOptions
 	FsGroup                *int64
 	NodeSelection          NodeSelection
-	ImageID                int
+	ImageID                imageutils.ImageID
 	PodFSGroupChangePolicy *v1.PodFSGroupChangePolicy
 }
 
@@ -166,7 +161,7 @@ func MakeSecPod(podConfig *Config) (*v1.Pod, error) {
 	if podConfig.NS == "" {
 		return nil, fmt.Errorf("Cannot create pod with empty namespace")
 	}
-	if len(podConfig.Command) == 0 && !NodeOSDistroIs("windows") {
+	if len(podConfig.Command) == 0 {
 		podConfig.Command = "trap exit TERM; while true; do sleep 1; done"
 	}
 

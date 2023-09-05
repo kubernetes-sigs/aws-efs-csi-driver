@@ -18,7 +18,7 @@ package driver
 
 import (
 	"fmt"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 	"os"
 	"path"
 )

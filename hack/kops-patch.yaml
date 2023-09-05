@@ -8,8 +8,14 @@ spec:
             "elasticfilesystem:CreateAccessPoint",
             "elasticfilesystem:DeleteAccessPoint",
             "elasticfilesystem:DescribeFileSystems",
-            "elasticfilesystem:DescribeAccessPoints"
+            "elasticfilesystem:DescribeAccessPoints",
+            "elasticfilesystem:DescribeMountTargets",
+            "ec2:DescribeAvailabilityZones"
           ],
           "Resource": "*"
         }
       ]
+
+  cloudConfig:
+    awsEBSCSIDriver:
+      managed: true
