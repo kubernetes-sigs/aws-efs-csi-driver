@@ -360,8 +360,107 @@ var _ = ginkgo.Describe("[efs-csi] EFS CSI", func() {
 			encryptInTransit := false
 			testEncryptInTransit(f, &encryptInTransit)
 		})
+
+		ginkgo.It("should successfully perform dynamic provisioning", func() {
+
+			ginkgo.By("Creating EFS Storage Class, PVC and associated PV")
+			params := map[string]string{
+				"provisioningMode":      "efs-ap",
+				"fileSystemId":          FileSystemId,
+				"subPathPattern":        "${.PVC.name}",
+				"directoryPerms":        "700",
+				"gidRangeStart":         "1000",
+				"gidRangeEnd":           "2000",
+				"basePath":              "/dynamic_provisioning",
+				"ensureUniqueDirectory": "true",
+			}
+
+			sc := GetStorageClass(params)
+			sc, err := f.ClientSet.StorageV1().StorageClasses().Create(context.TODO(), sc, metav1.CreateOptions{})
+			framework.ExpectNoError(err, "creating storage class")
+			pvc, err := createEFSPVCPVDynamicProvisioning(f.ClientSet, f.Namespace.Name, f.Namespace.Name, sc.Name)
+			framework.ExpectNoError(err, "creating pvc")
+
+			ginkgo.By("Deploying a pod that applies the PVC and writes data")
+			testData := "DP TEST"
+			writePath := "/mnt/volume1/out"
+			writeCommand := fmt.Sprintf("echo \"%s\" >> %s", testData, writePath)
+			pod := e2epod.MakePod(f.Namespace.Name, nil, []*v1.PersistentVolumeClaim{pvc}, false, writeCommand)
+			pod, err = f.ClientSet.CoreV1().Pods(f.Namespace.Name).Create(context.TODO(), pod, metav1.CreateOptions{})
+			framework.ExpectNoError(err, "creating pod")
+			framework.ExpectNoError(e2epod.WaitForPodSuccessInNamespace(f.ClientSet, pod.Name, f.Namespace.Name), "waiting for pod success")
+			_ = f.ClientSet.CoreV1().Pods(f.Namespace.Name).Delete(context.TODO(), pod.Name, metav1.DeleteOptions{})
+
+			ginkgo.By("Deploying a second pod that reads the data")
+			pod = e2epod.MakePod(f.Namespace.Name, nil, []*v1.PersistentVolumeClaim{pvc}, false, "while true; do echo $(date -u); sleep 5; done")
+			pod, err = f.ClientSet.CoreV1().Pods(f.Namespace.Name).Create(context.TODO(), pod, metav1.CreateOptions{})
+			framework.ExpectNoError(err, "creating pod")
+			framework.ExpectNoError(e2epod.WaitForPodNameRunningInNamespace(f.ClientSet, pod.Name, f.Namespace.Name), "waiting for pod running")
+
+			readCommand := fmt.Sprintf("cat %s", writePath)
+			output := framework.RunKubectlOrDie(f.Namespace.Name, "exec", pod.Name, "--", "/bin/sh", "-c", readCommand)
+			output = strings.TrimSuffix(output, "\n")
+			framework.Logf("The output is: %s", output)
+
+			defer func() {
+				_ = f.ClientSet.CoreV1().Pods(f.Namespace.Name).Delete(context.TODO(), pod.Name, metav1.DeleteOptions{})
+				_ = f.ClientSet.CoreV1().PersistentVolumeClaims(f.Namespace.Name).Delete(context.TODO(), pvc.Name, metav1.DeleteOptions{})
+				_ = f.ClientSet.StorageV1().StorageClasses().Delete(context.TODO(), sc.Name, metav1.DeleteOptions{})
+			}()
+
+			if output == "" {
+				ginkgo.Fail("Read data is empty.")
+			}
+			if output != testData {
+				ginkgo.Fail("Read data does not match write data.")
+			}
+		})
+
 	})
 })
+
+func createEFSPVCPVDynamicProvisioning(c clientset.Interface, namespace, name, storageClassName string) (*v1.PersistentVolumeClaim, error) {
+	pvc := makeEFSPVCDynamicProvisioning(namespace, name, storageClassName)
+	pvc, err := c.CoreV1().PersistentVolumeClaims(namespace).Create(context.TODO(), pvc, metav1.CreateOptions{})
+	if err != nil {
+		return nil, err
+	}
+	return pvc, nil
+}
+
+func makeEFSPVCDynamicProvisioning(namespace, name string, storageClassName string) *v1.PersistentVolumeClaim {
+	return &v1.PersistentVolumeClaim{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Spec: v1.PersistentVolumeClaimSpec{
+			AccessModes: []v1.PersistentVolumeAccessMode{v1.ReadWriteMany},
+			Resources: v1.ResourceRequirements{
+				Requests: v1.ResourceList{
+					v1.ResourceStorage: resource.MustParse("1Gi"),
+				},
+			},
+			StorageClassName: &storageClassName,
+		},
+	}
+}
+
+func GetStorageClass(params map[string]string) *storagev1.StorageClass {
+	parameters := params
+
+	generateName := fmt.Sprintf("efs-csi-dynamic-sc-test1234-")
+
+	defaultBindingMode := storagev1.VolumeBindingImmediate
+	return &storagev1.StorageClass{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: generateName + generateRandomString(4),
+		},
+		Provisioner:       "efs.csi.aws.com",
+		Parameters:        parameters,
+		VolumeBindingMode: &defaultBindingMode,
+	}
+}
 
 func createEFSPVCPV(c clientset.Interface, namespace, name, path string, volumeAttributes map[string]string) (*v1.PersistentVolumeClaim, *v1.PersistentVolume, error) {
 	pvc, pv := makeEFSPVCPV(namespace, name, path, volumeAttributes)
