@@ -97,3 +97,10 @@ func (c *FakeCloudProvider) DescribeMountTargets(ctx context.Context, fileSystem
 
 	return nil, ErrNotFound
 }
+
+func (c *FakeCloudProvider) ListAccessPoints(ctx context.Context, fileSystemId string) ([]*AccessPoint, error) {
+	accessPoints := []*AccessPoint{
+		c.accessPoints[fileSystemId],
+	}
+	return accessPoints, nil
+}

@@ -4,3 +4,5 @@ controller:
     create: false # let eksctl create it
 node:
   logLevel: 5
+  serviceAccount:
+    create: false

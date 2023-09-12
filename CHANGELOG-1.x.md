@@ -1,3 +1,20 @@
+# V1.6.0
+* Bump golang.org/x/net/html to fix CVE-2023-3978. ([#1089](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1089), [@jsafrane](https://github.com/jsafrane))
+* Set efs-plugin container security context to `true` which can solve the deleteAccessPointRootDir issues. ([#1096](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1096),
+[@seanzatzdev-amazon](https://github.com/seanzatzdev-amazon))
+* Updated all the necessary components to enable running kOps / EKS e2e CI jobs in the latest version of K8s without `hostNetwork: true`. ([#1088](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1088), [@torredil](https://github.com/torredil))
+# V1.5.9
+* Addressed CVEs (CVE-2023-2602, CVE-2019-15167, CVE-2-23-2431, CVE-2023-2727).
+* updated go and k8s packages and removed SSH from CI as it is unnecessary and introduces a potential flake point. ([#1007](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1007), [@mskanth972](https://github.com/mskanth972))
+* Remove usage of 'echo' from log collector script. ([#1071](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1071), [@RyanStan](https://github.com/RyanStan))
+# V1.5.8
+* Addressed CVEs (CVE-2023-29491, CVE-2023-32731).
+* Updated the security context parameter of the efs-plugin container. ([#1055](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1055), [@mskanth972](https://github.com/mskanth972))
+# V1.5.7
+* Addressed CVEs (CVE-2023-0464, CVE-2023-0466, CVE-2023-2650, CVE-2023-0465, CVE-2015-8390, CVE-2015-8394)
+* Added a e2e test to make sure that side-car images are located in Private ECR repository. ([#1018](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1018), [@mskanth972](https://github.com/mskanth972))
+* Upgraded golang to v1.20. ([#992](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/992), [@kalpanathanneeru21](https://github.com/kalpanathanneeru21))
+* Validate fstype on CreateVolume rather than NodePublishVolume. ([#1027](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1027), [@jingxu97](https://github.com/jingxu97))
 # V1.5.6
 * Added the SecurityContext for Driver ([#1001](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1001), [@mskanth972](https://github.com/mskanth972))
 * Updated Side-cars to address pull back error in private manifest ([#1009](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1009), [@mskanth972](https://github.com/mskanth972))
