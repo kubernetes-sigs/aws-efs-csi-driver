@@ -428,7 +428,8 @@ func TestCreateVolume(t *testing.T) {
 				}
 
 				accessPoints := []*cloud.AccessPoint{}
-				for i := 0; i < 119; i++ {
+				accessPointLimit := 1000
+				for i := 0; i < accessPointLimit-1; i++ {
 					gidMax, err := strconv.Atoi(req.Parameters[GidMax])
 					if err != nil {
 						t.Fatalf("Failed to convert GidMax Parameter to int.")
@@ -480,7 +481,7 @@ func TestCreateVolume(t *testing.T) {
 				mockCloud.EXPECT().ListAccessPoints(gomock.Eq(ctx), gomock.Any()).Return(accessPoints, nil)
 				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(lastAccessPoint, nil).AnyTimes()
 
-				// All 120 GIDs are taken now, internal limit should take effect causing CreateVolume to fail.
+				// All 1000 GIDs are taken now, internal limit should take effect causing CreateVolume to fail.
 				_, err = driver.CreateVolume(ctx, req)
 				if err == nil {
 					t.Fatalf("CreateVolume should have failed.")
