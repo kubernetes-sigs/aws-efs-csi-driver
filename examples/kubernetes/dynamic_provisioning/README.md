@@ -64,7 +64,7 @@ Also you can verify that data is written onto EFS filesystem:
       * `basePath` (Optional) - The path on the file system under which the access point root directory is created. If the path isn't provided, the access points root directory is created under the root of the file system.
       * `subPathPattern` (Optional) - A pattern that describes the subPath under which an access point should be created. So if the pattern were `${.PVC.namespace}/${PVC.name}`, the PVC namespace is `foo` and the PVC name is `pvc-123-456`, and the `basePath` is `/dynamic_provisioner` the access point would be
         created at `/dynamic_provisioner/foo/pvc-123-456`.
-      * `ensureUniqueDirectories` (Optional) - A boolean that ensures that, if set, a UUID is appended to the final element of
+      * `ensureUniqueDirectory` (Optional) - A boolean that ensures that, if set, a UUID is appended to the final element of
         any dynamically provisioned path, as in the above example. This can be turned off but this requires you as the
         administrator to ensure that your storage classes are set up correctly. Otherwise, it's possible that 2 pods could
         end up writing to the same directory by accident. **Please think very carefully before setting this to false!**
