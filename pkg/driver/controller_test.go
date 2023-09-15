@@ -418,7 +418,7 @@ func TestCreateVolume(t *testing.T) {
 						DirectoryPerms:   "777",
 						BasePath:         "test",
 						GidMin:           "1000",
-						GidMax:           "1200",
+						GidMax:           "2000",
 					},
 				}
 
@@ -428,7 +428,7 @@ func TestCreateVolume(t *testing.T) {
 				}
 
 				accessPoints := []*cloud.AccessPoint{}
-				for i := 0; i < 119; i++ {
+				for i := 0; i < ACCESS_POINT_PER_FS_LIMIT-1; i++ {
 					gidMax, err := strconv.Atoi(req.Parameters[GidMax])
 					if err != nil {
 						t.Fatalf("Failed to convert GidMax Parameter to int.")
@@ -449,12 +449,12 @@ func TestCreateVolume(t *testing.T) {
 					AccessPointId: apId,
 					FileSystemId:  fsId,
 					PosixUser: &cloud.PosixUser{
-						Gid: 1081,
-						Uid: 1081,
+						Gid: 1001,
+						Uid: 1001,
 					},
 				}
 
-				expectedGid := 1081
+				expectedGid := 1001
 				mockCloud.EXPECT().DescribeFileSystem(gomock.Eq(ctx), gomock.Any()).Return(fileSystem, nil)
 				mockCloud.EXPECT().ListAccessPoints(gomock.Eq(ctx), gomock.Any()).Return(accessPoints, nil)
 				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(lastAccessPoint, nil).
@@ -478,9 +478,8 @@ func TestCreateVolume(t *testing.T) {
 				accessPoints = append(accessPoints, lastAccessPoint)
 				mockCloud.EXPECT().DescribeFileSystem(gomock.Eq(ctx), gomock.Any()).Return(fileSystem, nil)
 				mockCloud.EXPECT().ListAccessPoints(gomock.Eq(ctx), gomock.Any()).Return(accessPoints, nil)
-				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(lastAccessPoint, nil).AnyTimes()
 
-				// All 120 GIDs are taken now, internal limit should take effect causing CreateVolume to fail.
+				// All 1000 GIDs are taken now, internal limit should take effect causing CreateVolume to fail.
 				_, err = driver.CreateVolume(ctx, req)
 				if err == nil {
 					t.Fatalf("CreateVolume should have failed.")

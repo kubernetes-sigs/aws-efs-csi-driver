@@ -3,15 +3,16 @@ package driver
 import (
 	"context"
 	"fmt"
+	"sync"
+
 	"github.com/kubernetes-sigs/aws-efs-csi-driver/pkg/cloud"
 	"golang.org/x/exp/slices"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"k8s.io/klog/v2"
-	"sync"
 )
 
-var ACCESS_POINT_PER_FS_LIMIT int = 120
+var ACCESS_POINT_PER_FS_LIMIT int = 1000
 
 type FilesystemID struct {
 	gidMin int
