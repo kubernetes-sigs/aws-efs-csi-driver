@@ -18,6 +18,7 @@ package driver
 
 import (
 	"context"
+	"crypto/sha256"
 	"fmt"
 	"github.com/google/uuid"
 	"os"
@@ -56,6 +57,8 @@ const (
 	SubPathPattern        = "subPathPattern"
 	TempMountPathPrefix   = "/var/lib/csi/pv"
 	Uid                   = "uid"
+	ReuseAccessPointKey   = "reuseAccessPoint"
+	PvcNameKey            = "csi.storage.k8s.io/pvc/name"
 )
 
 var (
@@ -74,7 +77,25 @@ var (
 
 func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest) (*csi.CreateVolumeResponse, error) {
 	klog.V(4).Infof("CreateVolume: called with args %+v", *req)
+
+	var reuseAccessPoint bool
+	var err error
+	volumeParams := req.GetParameters()
 	volName := req.GetName()
+	clientToken := volName
+
+	// if true, then use sha256 hash of pvcName as clientToken instead of PVC Id
+	// This allows users to reconnect to the same AP from different k8s cluster
+	if reuseAccessPointStr, ok := volumeParams[ReuseAccessPointKey]; ok {
+		reuseAccessPoint, err = strconv.ParseBool(reuseAccessPointStr)
+		if err != nil {
+			return nil, status.Error(codes.InvalidArgument, "Invalid value for reuseAccessPoint parameter")
+		}
+		if reuseAccessPoint {
+			clientToken = get64LenHash(volumeParams[PvcNameKey])
+			klog.V(5).Infof("Client token : %s", clientToken)
+		}
+	}
 	if volName == "" {
 		return nil, status.Error(codes.InvalidArgument, "Volume name not provided")
 	}
@@ -98,7 +119,6 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 	var (
 		azName           string
 		basePath         string
-		err              error
 		gid              int64
 		gidMin           int
 		gidMax           int
@@ -109,7 +129,6 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 	)
 
 	//Parse parameters
-	volumeParams := req.GetParameters()
 	if value, ok := volumeParams[ProvisioningMode]; ok {
 		provisioningMode = value
 		//TODO: Add FS provisioning mode check when implemented
@@ -287,7 +306,7 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 	accessPointsOptions.Gid = gid
 	accessPointsOptions.DirectoryPath = rootDir
 
-	accessPointId, err := localCloud.CreateAccessPoint(ctx, volName, accessPointsOptions)
+	accessPointId, err := localCloud.CreateAccessPoint(ctx, clientToken, accessPointsOptions, reuseAccessPoint)
 	if err != nil {
 		if err == cloud.ErrAccessDenied {
 			return nil, status.Errorf(codes.Unauthenticated, "Access Denied. Please ensure you have the right AWS permissions: %v", err)
@@ -564,4 +583,10 @@ func validateEfsPathRequirements(proposedPath string) (bool, error) {
 	} else {
 		return true, nil
 	}
+}
+
+func get64LenHash(text string) string {
+	h := sha256.New()
+	h.Write([]byte(text))
+	return fmt.Sprintf("%x", h.Sum(nil))
 }

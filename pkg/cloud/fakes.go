@@ -27,8 +27,8 @@ func (c *FakeCloudProvider) GetMetadata() MetadataService {
 	return c.m
 }
 
-func (c *FakeCloudProvider) CreateAccessPoint(ctx context.Context, volumeName string, accessPointOpts *AccessPointOptions) (accessPoint *AccessPoint, err error) {
-	ap, exists := c.accessPoints[volumeName]
+func (c *FakeCloudProvider) CreateAccessPoint(ctx context.Context, clientToken string, accessPointOpts *AccessPointOptions, usePvcName bool) (accessPoint *AccessPoint, err error) {
+	ap, exists := c.accessPoints[clientToken]
 	if exists {
 		if accessPointOpts.CapacityGiB == ap.CapacityGiB {
 			return ap, nil
@@ -45,7 +45,7 @@ func (c *FakeCloudProvider) CreateAccessPoint(ctx context.Context, volumeName st
 		CapacityGiB:   accessPointOpts.CapacityGiB,
 	}
 
-	c.accessPoints[volumeName] = ap
+	c.accessPoints[clientToken] = ap
 	return ap, nil
 }
 
