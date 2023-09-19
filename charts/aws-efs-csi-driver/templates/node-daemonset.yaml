@@ -47,6 +47,7 @@ spec:
       {{- with .Values.node.affinity }}
       affinity: {{- toYaml . | nindent 8 }}
       {{- end }}
+      hostNetwork: true
       dnsPolicy: {{ .Values.node.dnsPolicy }}
       {{- with .Values.node.dnsConfig }}
       dnsConfig: {{- toYaml . | nindent 8 }}

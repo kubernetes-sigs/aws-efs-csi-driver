@@ -18,8 +18,12 @@ package driver
 
 import (
 	"context"
+	"crypto/sha256"
 	"fmt"
+	"github.com/google/uuid"
 	"os"
+	"path"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -31,23 +35,30 @@ import (
 )
 
 const (
-	AccessPointMode     = "efs-ap"
-	AzName              = "az"
-	BasePath            = "basePath"
-	DefaultGidMin       = 50000
-	DefaultGidMax       = 7000000
-	DefaultTagKey       = "efs.csi.aws.com/cluster"
-	DefaultTagValue     = "true"
-	DirectoryPerms      = "directoryPerms"
-	FsId                = "fileSystemId"
-	Gid                 = "gid"
-	GidMin              = "gidRangeStart"
-	GidMax              = "gidRangeEnd"
-	MountTargetIp       = "mounttargetip"
-	ProvisioningMode    = "provisioningMode"
-	RoleArn             = "awsRoleArn"
-	TempMountPathPrefix = "/var/lib/csi/pv"
-	Uid                 = "uid"
+	AccessPointMode       = "efs-ap"
+	AzName                = "az"
+	BasePath              = "basePath"
+	DefaultGidMin         = 50000
+	DefaultGidMax         = 7000000
+	DefaultTagKey         = "efs.csi.aws.com/cluster"
+	DefaultTagValue       = "true"
+	DirectoryPerms        = "directoryPerms"
+	EnsureUniqueDirectory = "ensureUniqueDirectory"
+	FsId                  = "fileSystemId"
+	Gid                   = "gid"
+	GidMin                = "gidRangeStart"
+	GidMax                = "gidRangeEnd"
+	MountTargetIp         = "mounttargetip"
+	ProvisioningMode      = "provisioningMode"
+	PvName                = "csi.storage.k8s.io/pv/name"
+	PvcName               = "csi.storage.k8s.io/pvc/name"
+	PvcNamespace          = "csi.storage.k8s.io/pvc/namespace"
+	RoleArn               = "awsRoleArn"
+	SubPathPattern        = "subPathPattern"
+	TempMountPathPrefix   = "/var/lib/csi/pv"
+	Uid                   = "uid"
+	ReuseAccessPointKey   = "reuseAccessPoint"
+	PvcNameKey            = "csi.storage.k8s.io/pvc/name"
 )
 
 var (
@@ -55,11 +66,36 @@ var (
 	controllerCaps = []csi.ControllerServiceCapability_RPC_Type{
 		csi.ControllerServiceCapability_RPC_CREATE_DELETE_VOLUME,
 	}
+	// subPathPatternComponents shows the elements that we allow to be in the construction of the root directory
+	// of the access point, as well as the values we need to extract them from the Volume Parameters.
+	subPathPatternComponents = map[string]string{
+		".PVC.name":      PvcName,
+		".PVC.namespace": PvcNamespace,
+		".PV.name":       PvName,
+	}
 )
 
 func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest) (*csi.CreateVolumeResponse, error) {
 	klog.V(4).Infof("CreateVolume: called with args %+v", *req)
+
+	var reuseAccessPoint bool
+	var err error
+	volumeParams := req.GetParameters()
 	volName := req.GetName()
+	clientToken := volName
+
+	// if true, then use sha256 hash of pvcName as clientToken instead of PVC Id
+	// This allows users to reconnect to the same AP from different k8s cluster
+	if reuseAccessPointStr, ok := volumeParams[ReuseAccessPointKey]; ok {
+		reuseAccessPoint, err = strconv.ParseBool(reuseAccessPointStr)
+		if err != nil {
+			return nil, status.Error(codes.InvalidArgument, "Invalid value for reuseAccessPoint parameter")
+		}
+		if reuseAccessPoint {
+			clientToken = get64LenHash(volumeParams[PvcNameKey])
+			klog.V(5).Infof("Client token : %s", clientToken)
+		}
+	}
 	if volName == "" {
 		return nil, status.Error(codes.InvalidArgument, "Volume name not provided")
 	}
@@ -83,18 +119,16 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 	var (
 		azName           string
 		basePath         string
-		err              error
-		gid              int
+		gid              int64
 		gidMin           int
 		gidMax           int
 		localCloud       cloud.Cloud
 		provisioningMode string
 		roleArn          string
-		uid              int
+		uid              int64
 	)
 
 	//Parse parameters
-	volumeParams := req.GetParameters()
 	if value, ok := volumeParams[ProvisioningMode]; ok {
 		provisioningMode = value
 		//TODO: Add FS provisioning mode check when implemented
@@ -134,7 +168,7 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 
 	uid = -1
 	if value, ok := volumeParams[Uid]; ok {
-		uid, err = strconv.Atoi(value)
+		uid, err = strconv.ParseInt(value, 10, 64)
 		if err != nil {
 			return nil, status.Errorf(codes.InvalidArgument, "Failed to parse invalid %v: %v", Uid, err)
 		}
@@ -145,7 +179,7 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 
 	gid = -1
 	if value, ok := volumeParams[Gid]; ok {
-		gid, err = strconv.Atoi(value)
+		gid, err = strconv.ParseInt(value, 10, 64)
 		if err != nil {
 			return nil, status.Errorf(codes.InvalidArgument, "Failed to parse invalid %v: %v", Gid, err)
 		}
@@ -193,10 +227,6 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 		accessPointsOptions.DirectoryPerms = value
 	}
 
-	if value, ok := volumeParams[BasePath]; ok {
-		basePath = value
-	}
-
 	// Storage class parameter `az` will be used to fetch preferred mount target for cross account mount.
 	// If the `az` storage class parameter is not provided, a random mount target will be picked for mounting.
 	// This storage class parameter different from `az` mount option provided by efs-utils https://github.com/aws/efs-utils/blob/v1.31.1/src/mount_efs/__init__.py#L195
@@ -222,9 +252,9 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 		return nil, status.Errorf(codes.Internal, "Failed to fetch File System info: %v", err)
 	}
 
-	var allocatedGid int
+	var allocatedGid int64
 	if uid == -1 || gid == -1 {
-		allocatedGid, err = d.gidAllocator.getNextGid(accessPointsOptions.FileSystemId, gidMin, gidMax)
+		allocatedGid, err = d.gidAllocator.getNextGid(ctx, accessPointsOptions.FileSystemId, gidMin, gidMax)
 		if err != nil {
 			return nil, err
 		}
@@ -236,18 +266,48 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 		gid = allocatedGid
 	}
 
-	rootDirName := volName
-	rootDir := basePath + "/" + rootDirName
+	if value, ok := volumeParams[BasePath]; ok {
+		basePath = value
+	}
 
-	accessPointsOptions.Uid = int64(uid)
-	accessPointsOptions.Gid = int64(gid)
+	rootDirName := volName
+	// Check if a custom structure should be imposed on the access point directory
+	if value, ok := volumeParams[SubPathPattern]; ok {
+		// Try and construct the root directory and check it only contains supported components
+		val, err := interpolateRootDirectoryName(value, volumeParams)
+		if err == nil {
+			klog.Infof("Using user-specified structure for access point directory.")
+			rootDirName = val
+			if value, ok := volumeParams[EnsureUniqueDirectory]; ok {
+				if ensureUniqueDirectory, err := strconv.ParseBool(value); !ensureUniqueDirectory && err == nil {
+					klog.Infof("Not appending PVC UID to path.")
+				} else {
+					klog.Infof("Appending PVC UID to path.")
+					rootDirName = fmt.Sprintf("%s-%s", val, uuid.New().String())
+				}
+			} else {
+				klog.Infof("Appending PVC UID to path.")
+				rootDirName = fmt.Sprintf("%s-%s", val, uuid.New().String())
+			}
+		} else {
+			return nil, err
+		}
+	} else {
+		klog.Infof("Using PV name for access point directory.")
+	}
+
+	rootDir := path.Join("/", basePath, rootDirName)
+	if ok, err := validateEfsPathRequirements(rootDir); !ok {
+		return nil, err
+	}
+	klog.Infof("Using %v as the access point directory.", rootDir)
+
+	accessPointsOptions.Uid = uid
+	accessPointsOptions.Gid = gid
 	accessPointsOptions.DirectoryPath = rootDir
 
-	accessPointId, err := localCloud.CreateAccessPoint(ctx, volName, accessPointsOptions)
+	accessPointId, err := localCloud.CreateAccessPoint(ctx, clientToken, accessPointsOptions, reuseAccessPoint)
 	if err != nil {
-		if allocatedGid != 0 {
-			d.gidAllocator.releaseGid(accessPointsOptions.FileSystemId, gid)
-		}
 		if err == cloud.ErrAccessDenied {
 			return nil, status.Errorf(codes.Unauthenticated, "Access Denied. Please ensure you have the right AWS permissions: %v", err)
 		}
@@ -475,4 +535,58 @@ func getCloud(secrets map[string]string, driver *Driver) (cloud.Cloud, string, e
 	}
 
 	return localCloud, roleArn, nil
+}
+
+func interpolateRootDirectoryName(rootDirectoryPath string, volumeParams map[string]string) (string, error) {
+	r := strings.NewReplacer(createListOfVariableSubstitutions(volumeParams)...)
+	result := r.Replace(rootDirectoryPath)
+
+	// Check if any templating characters still exist
+	if strings.Contains(result, "${") || strings.Contains(result, "}") {
+		return "", status.Errorf(codes.InvalidArgument,
+			"Path specified \"%v\" contains invalid elements. Can only contain %v", rootDirectoryPath,
+			getSupportedComponentNames())
+	}
+	return result, nil
+}
+
+func createListOfVariableSubstitutions(volumeParams map[string]string) []string {
+	variableSubstitutions := make([]string, 2*len(subPathPatternComponents))
+	i := 0
+	for key, volumeParamsKey := range subPathPatternComponents {
+		variableSubstitutions[i] = "${" + key + "}"
+		variableSubstitutions[i+1] = volumeParams[volumeParamsKey]
+		i += 2
+	}
+	return variableSubstitutions
+}
+
+func getSupportedComponentNames() []string {
+	keys := make([]string, len(subPathPatternComponents))
+
+	i := 0
+	for key := range subPathPatternComponents {
+		keys[i] = key
+		i++
+	}
+	sort.Strings(keys)
+	return keys
+}
+
+func validateEfsPathRequirements(proposedPath string) (bool, error) {
+	if len(proposedPath) > 100 {
+		// Check the proposed path is 100 characters or fewer
+		return false, status.Errorf(codes.InvalidArgument, "Proposed path '%s' exceeds EFS limit of 100 characters", proposedPath)
+	} else if strings.Count(proposedPath, "/") > 5 {
+		// Check the proposed path contains at most 4 subdirectories
+		return false, status.Errorf(codes.InvalidArgument, "Proposed path '%s' EFS limit of 4 subdirectories", proposedPath)
+	} else {
+		return true, nil
+	}
+}
+
+func get64LenHash(text string) string {
+	h := sha256.New()
+	h.Write([]byte(text))
+	return fmt.Sprintf("%x", h.Sum(nil))
 }

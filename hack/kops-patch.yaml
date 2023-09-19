@@ -7,10 +7,19 @@ spec:
           "Action": [
             "elasticfilesystem:CreateAccessPoint",
             "elasticfilesystem:DeleteAccessPoint",
-            "elasticfilesystem:DescribeFileSystems",
-            "elasticfilesystem:DescribeAccessPoints",
             "elasticfilesystem:DescribeMountTargets",
-            "ec2:DescribeAvailabilityZones"
+            "ec2:DescribeAvailabilityZones",
+            "elasticfilesystem:DescribeMountTargets",
+            "elasticfilesystem:DescribeAccessPoints",
+            "elasticfilesystem:DescribeFileSystems",
+            "elasticfilesystem:ClientMount",
+            "elasticfilesystem:ClientWrite",
+            "elasticfilesystem:CreateTags",
+            "elasticfilesystem:CreateMountTarget",
+            "elasticfilesystem:DeleteMountTarget",
+            "elasticfilesystem:DeleteTags",
+            "elasticfilesystem:TagResource",
+            "elasticfilesystem:UntagResource"
           ],
           "Resource": "*"
         }

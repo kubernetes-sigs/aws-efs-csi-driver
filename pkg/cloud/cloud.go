@@ -35,7 +35,9 @@ import (
 )
 
 const (
-	AccessDeniedException = "AccessDeniedException"
+	AccessDeniedException    = "AccessDeniedException"
+	AccessPointAlreadyExists = "AccessPointAlreadyExists"
+	PvcNameTagKey            = "pvcName"
 )
 
 var (
@@ -55,6 +57,12 @@ type AccessPoint struct {
 	// Capacity is used for testing purpose only
 	// EFS does not consider capacity while provisioning new file systems or access points
 	CapacityGiB int64
+	PosixUser   *PosixUser
+}
+
+type PosixUser struct {
+	Gid int64
+	Uid int64
 }
 
 type AccessPointOptions struct {
@@ -88,9 +96,10 @@ type Efs interface {
 
 type Cloud interface {
 	GetMetadata() MetadataService
-	CreateAccessPoint(ctx context.Context, volumeName string, accessPointOpts *AccessPointOptions) (accessPoint *AccessPoint, err error)
+	CreateAccessPoint(ctx context.Context, clientToken string, accessPointOpts *AccessPointOptions, reuseAccessPoint bool) (accessPoint *AccessPoint, err error)
 	DeleteAccessPoint(ctx context.Context, accessPointId string) (err error)
 	DescribeAccessPoint(ctx context.Context, accessPointId string) (accessPoint *AccessPoint, err error)
+	ListAccessPoints(ctx context.Context, fileSystemId string) (accessPoints []*AccessPoint, err error)
 	DescribeFileSystem(ctx context.Context, fileSystemId string) (fs *FileSystem, err error)
 	DescribeMountTargets(ctx context.Context, fileSystemId, az string) (fs *MountTarget, err error)
 }
@@ -154,10 +163,28 @@ func (c *cloud) GetMetadata() MetadataService {
 	return c.metadata
 }
 
-func (c *cloud) CreateAccessPoint(ctx context.Context, volumeName string, accessPointOpts *AccessPointOptions) (accessPoint *AccessPoint, err error) {
+func (c *cloud) CreateAccessPoint(ctx context.Context, clientToken string, accessPointOpts *AccessPointOptions, reuseAccessPoint bool) (accessPoint *AccessPoint, err error) {
 	efsTags := parseEfsTags(accessPointOpts.Tags)
+
+	//if reuseAccessPoint is true, check for AP with same Root Directory exists in efs
+	// if found reuse that AP
+	if reuseAccessPoint {
+		existingAP, err := c.findAccessPointByClientToken(ctx, clientToken, accessPointOpts)
+		if err != nil {
+			return nil, fmt.Errorf("failed to find access point: %v", err)
+		}
+		if existingAP != nil {
+			//AP path already exists
+			klog.V(2).Infof("Existing AccessPoint found : %+v", existingAP)
+			return &AccessPoint{
+				AccessPointId: existingAP.AccessPointId,
+				FileSystemId:  existingAP.FileSystemId,
+				CapacityGiB:   accessPointOpts.CapacityGiB,
+			}, nil
+		}
+	}
 	createAPInput := &efs.CreateAccessPointInput{
-		ClientToken:  &volumeName,
+		ClientToken:  &clientToken,
 		FileSystemId: &accessPointOpts.FileSystemId,
 		PosixUser: &efs.PosixUser{
 			Gid: &accessPointOpts.Gid,
@@ -182,6 +209,7 @@ func (c *cloud) CreateAccessPoint(ctx context.Context, volumeName string, access
 		}
 		return nil, fmt.Errorf("Failed to create access point: %v", err)
 	}
+	klog.V(5).Infof("Create AP response : %+v", res)
 
 	return &AccessPoint{
 		AccessPointId: *res.AccessPointId,
@@ -231,6 +259,69 @@ func (c *cloud) DescribeAccessPoint(ctx context.Context, accessPointId string) (
 		FileSystemId:       *accessPoints[0].FileSystemId,
 		AccessPointRootDir: *accessPoints[0].RootDirectory.Path,
 	}, nil
+}
+
+func (c *cloud) findAccessPointByClientToken(ctx context.Context, clientToken string, accessPointOpts *AccessPointOptions) (accessPoint *AccessPoint, err error) {
+	klog.V(5).Infof("AccessPointOptions to find AP : %+v", accessPointOpts)
+	klog.V(2).Infof("ClientToken to find AP : %s", clientToken)
+	describeAPInput := &efs.DescribeAccessPointsInput{
+		FileSystemId: &accessPointOpts.FileSystemId,
+		MaxResults:   aws.Int64(1000),
+	}
+	res, err := c.efs.DescribeAccessPointsWithContext(ctx, describeAPInput)
+	if err != nil {
+		if isAccessDenied(err) {
+			return
+		}
+		if isFileSystemNotFound(err) {
+			return
+		}
+		err = fmt.Errorf("failed to list Access Points of efs = %s : %v", accessPointOpts.FileSystemId, err)
+		return
+	}
+	for _, ap := range res.AccessPoints {
+		// check if AP exists with same client token
+		if aws.StringValue(ap.ClientToken) == clientToken {
+			return &AccessPoint{
+				AccessPointId:      *ap.AccessPointId,
+				FileSystemId:       *ap.FileSystemId,
+				AccessPointRootDir: *ap.RootDirectory.Path,
+			}, nil
+		}
+	}
+	klog.V(2).Infof("Access point does not exist")
+	return nil, nil
+}
+
+func (c *cloud) ListAccessPoints(ctx context.Context, fileSystemId string) (accessPoints []*AccessPoint, err error) {
+	describeAPInput := &efs.DescribeAccessPointsInput{
+		FileSystemId: &fileSystemId,
+	}
+	res, err := c.efs.DescribeAccessPointsWithContext(ctx, describeAPInput)
+	if err != nil {
+		if isAccessDenied(err) {
+			return
+		}
+		if isFileSystemNotFound(err) {
+			return
+		}
+		err = fmt.Errorf("List Access Points failed: %v", err)
+		return
+	}
+
+	for _, accessPointDescription := range res.AccessPoints {
+		accessPoint := &AccessPoint{
+			AccessPointId: *accessPointDescription.AccessPointId,
+			FileSystemId:  *accessPointDescription.FileSystemId,
+			PosixUser: &PosixUser{
+				Gid: *accessPointDescription.PosixUser.Gid,
+				Uid: *accessPointDescription.PosixUser.Gid,
+			},
+		}
+		accessPoints = append(accessPoints, accessPoint)
+	}
+
+	return
 }
 
 func (c *cloud) DescribeFileSystem(ctx context.Context, fileSystemId string) (fs *FileSystem, err error) {

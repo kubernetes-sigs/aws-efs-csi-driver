@@ -3,10 +3,18 @@ package driver
 import (
 	"context"
 	"errors"
+	"fmt"
+	"regexp"
+	"strconv"
 	"testing"
+
+	"github.com/google/uuid"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
 	"github.com/golang/mock/gomock"
+
 	"github.com/kubernetes-sigs/aws-efs-csi-driver/pkg/cloud"
 	"github.com/kubernetes-sigs/aws-efs-csi-driver/pkg/driver/mocks"
 )
@@ -41,7 +49,7 @@ func TestCreateVolume(t *testing.T) {
 				driver := &Driver{
 					endpoint:     endpoint,
 					cloud:        mockCloud,
-					gidAllocator: NewGidAllocator(),
+					gidAllocator: NewGidAllocator(mockCloud),
 				}
 
 				req := &csi.CreateVolumeRequest{
@@ -71,8 +79,8 @@ func TestCreateVolume(t *testing.T) {
 					FileSystemId:  fsId,
 				}
 				mockCloud.EXPECT().DescribeFileSystem(gomock.Eq(ctx), gomock.Any()).Return(fileSystem, nil)
-				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(accessPoint, nil).
-					Do(func(ctx context.Context, volumeName string, accessPointOpts *cloud.AccessPointOptions) {
+				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Eq(volumeName), gomock.Any(), gomock.Eq(false)).Return(accessPoint, nil).
+					Do(func(ctx context.Context, clientToken string, accessPointOpts *cloud.AccessPointOptions, reuseAccessPointName bool) {
 						if accessPointOpts.Uid != 1000 {
 							t.Fatalf("Uid mimatched. Expected: %v, actual: %v", accessPointOpts.Uid, 1000)
 						}
@@ -106,7 +114,7 @@ func TestCreateVolume(t *testing.T) {
 				driver := &Driver{
 					endpoint:     endpoint,
 					cloud:        mockCloud,
-					gidAllocator: NewGidAllocator(),
+					gidAllocator: NewGidAllocator(mockCloud),
 				}
 
 				req := &csi.CreateVolumeRequest{
@@ -138,8 +146,8 @@ func TestCreateVolume(t *testing.T) {
 					FileSystemId:  fsId,
 				}
 				mockCloud.EXPECT().DescribeFileSystem(gomock.Eq(ctx), gomock.Any()).Return(fileSystem, nil)
-				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(accessPoint, nil).
-					Do(func(ctx context.Context, volumeName string, accessPointOpts *cloud.AccessPointOptions) {
+				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any(), gomock.Any()).Return(accessPoint, nil).
+					Do(func(ctx context.Context, clientToken string, accessPointOpts *cloud.AccessPointOptions, reuseAccessPointName bool) {
 						if accessPointOpts.Uid != 1000 {
 							t.Fatalf("Uid mimatched. Expected: %v, actual: %v", accessPointOpts.Uid, 1000)
 						}
@@ -165,6 +173,321 @@ func TestCreateVolume(t *testing.T) {
 			},
 		},
 		{
+			name: "Success: avoiding GID collision",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockCloud := mocks.NewMockCloud(mockCtl)
+
+				driver := &Driver{
+					endpoint:     endpoint,
+					cloud:        mockCloud,
+					gidAllocator: NewGidAllocator(mockCloud),
+				}
+
+				req := &csi.CreateVolumeRequest{
+					Name: volumeName,
+					VolumeCapabilities: []*csi.VolumeCapability{
+						stdVolCap,
+					},
+					CapacityRange: &csi.CapacityRange{
+						RequiredBytes: capacityRange,
+					},
+					Parameters: map[string]string{
+						ProvisioningMode: "efs-ap",
+						FsId:             fsId,
+						DirectoryPerms:   "777",
+						BasePath:         "test",
+						GidMin:           "1000",
+						GidMax:           "1003",
+					},
+				}
+
+				ctx := context.Background()
+				fileSystem := &cloud.FileSystem{
+					FileSystemId: fsId,
+				}
+				accessPoint := &cloud.AccessPoint{
+					AccessPointId: apId,
+					FileSystemId:  fsId,
+				}
+				accessPoints := []*cloud.AccessPoint{
+					{
+						AccessPointId: apId,
+						FileSystemId:  fsId,
+						PosixUser: &cloud.PosixUser{
+							Gid: 1003,
+							Uid: 1003,
+						},
+					},
+					{
+						AccessPointId: apId,
+						FileSystemId:  fsId,
+						PosixUser: &cloud.PosixUser{
+							Gid: 1002,
+							Uid: 1002,
+						},
+					},
+				}
+
+				var expectedGid int64 = 1001 //1003 and 1002 are taken, next available is 1001
+				mockCloud.EXPECT().DescribeFileSystem(gomock.Eq(ctx), gomock.Any()).Return(fileSystem, nil)
+				mockCloud.EXPECT().ListAccessPoints(gomock.Eq(ctx), gomock.Any()).Return(accessPoints, nil)
+				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any(), false).Return(accessPoint, nil).
+					Do(func(ctx context.Context, clientToken string, accessPointOpts *cloud.AccessPointOptions, reuseAccessPointName bool) {
+						if accessPointOpts.Uid != expectedGid {
+							t.Fatalf("Uid mismatched. Expected: %v, actual: %v", expectedGid, accessPointOpts.Uid)
+						}
+						if accessPointOpts.Gid != expectedGid {
+							t.Fatalf("Gid mismatched. Expected: %v, actual: %v", expectedGid, accessPointOpts.Gid)
+						}
+					})
+
+				res, err := driver.CreateVolume(ctx, req)
+
+				if err != nil {
+					t.Fatalf("CreateVolume failed: %v", err)
+				}
+
+				if res.Volume == nil {
+					t.Fatal("Volume is nil")
+				}
+
+				if res.Volume.VolumeId != volumeId {
+					t.Fatalf("Volume Id mismatched. Expected: %v, Actual: %v", volumeId, res.Volume.VolumeId)
+				}
+				mockCtl.Finish()
+			},
+		},
+		{
+			name: "Success: reuse released GID",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockCloud := mocks.NewMockCloud(mockCtl)
+
+				driver := &Driver{
+					endpoint:     endpoint,
+					cloud:        mockCloud,
+					gidAllocator: NewGidAllocator(mockCloud),
+				}
+
+				req := &csi.CreateVolumeRequest{
+					Name: volumeName,
+					VolumeCapabilities: []*csi.VolumeCapability{
+						stdVolCap,
+					},
+					CapacityRange: &csi.CapacityRange{
+						RequiredBytes: capacityRange,
+					},
+					Parameters: map[string]string{
+						ProvisioningMode: "efs-ap",
+						FsId:             fsId,
+						DirectoryPerms:   "777",
+						BasePath:         "test",
+						GidMin:           "1000",
+						GidMax:           "1004",
+					},
+				}
+
+				ctx := context.Background()
+				fileSystem := &cloud.FileSystem{
+					FileSystemId: fsId,
+				}
+				ap1 := &cloud.AccessPoint{
+					AccessPointId: apId,
+					FileSystemId:  fsId,
+					PosixUser: &cloud.PosixUser{
+						Gid: 1001,
+						Uid: 1001,
+					},
+				}
+				ap2 := &cloud.AccessPoint{
+					AccessPointId: apId,
+					FileSystemId:  fsId,
+					PosixUser: &cloud.PosixUser{
+						Gid: 1002,
+						Uid: 1002,
+					},
+				}
+				ap3 := &cloud.AccessPoint{
+					AccessPointId: apId,
+					FileSystemId:  fsId,
+					PosixUser: &cloud.PosixUser{
+						Gid: 1003,
+						Uid: 1003,
+					},
+				}
+				ap4 := &cloud.AccessPoint{
+					AccessPointId: apId,
+					FileSystemId:  fsId,
+					PosixUser: &cloud.PosixUser{
+						Gid: 1004,
+						Uid: 1004,
+					},
+				}
+
+				// Let allocator jump over some GIDS.
+				accessPoints := []*cloud.AccessPoint{ap3, ap4}
+				var expectedGid int64 = 1002 // 1003 and 1004 is taken.
+
+				mockCloud.EXPECT().DescribeFileSystem(gomock.Eq(ctx), gomock.Any()).Return(fileSystem, nil)
+				mockCloud.EXPECT().ListAccessPoints(gomock.Eq(ctx), gomock.Any()).Return(accessPoints, nil)
+				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any(), false).Return(ap2, nil).
+					Do(func(ctx context.Context, clientToken string, accessPointOpts *cloud.AccessPointOptions, reuseAccessPointName bool) {
+						if accessPointOpts.Uid != expectedGid {
+							t.Fatalf("Uid mismatched. Expected: %v, actual: %v", expectedGid, accessPointOpts.Uid)
+						}
+						if accessPointOpts.Gid != expectedGid {
+							t.Fatalf("Gid mismatched. Expected: %v, actual: %v", expectedGid, accessPointOpts.Gid)
+						}
+					})
+
+				res, err := driver.CreateVolume(ctx, req)
+
+				// 2. Simulate access point removal and verify their GIDs returned to allocator.
+				accessPoints = []*cloud.AccessPoint{}
+				expectedGid = 1004 // 1003 and 1004 are now free, if no GID return would happen allocator would pick 1001.
+
+				mockCloud.EXPECT().DescribeFileSystem(gomock.Eq(ctx), gomock.Any()).Return(fileSystem, nil)
+				mockCloud.EXPECT().ListAccessPoints(gomock.Eq(ctx), gomock.Any()).Return(accessPoints, nil)
+				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any(), false).Return(ap3, nil).
+					Do(func(ctx context.Context, clientToken string, accessPointOpts *cloud.AccessPointOptions, reuseAccessPointName bool) {
+						if accessPointOpts.Uid != expectedGid {
+							t.Fatalf("Uid mismatched. Expected: %v, actual: %v", expectedGid, accessPointOpts.Uid)
+						}
+						if accessPointOpts.Gid != expectedGid {
+							t.Fatalf("Gid mismatched. Expected: %v, actual: %v", expectedGid, accessPointOpts.Gid)
+						}
+					})
+
+				res, err = driver.CreateVolume(ctx, req)
+				////
+				accessPoints = []*cloud.AccessPoint{ap1, ap4}
+
+				expectedGid = 1003
+				mockCloud.EXPECT().DescribeFileSystem(gomock.Eq(ctx), gomock.Any()).Return(fileSystem, nil)
+				mockCloud.EXPECT().ListAccessPoints(gomock.Eq(ctx), gomock.Any()).Return(accessPoints, nil)
+				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any(), false).Return(ap2, nil).
+					Do(func(ctx context.Context, clientToken string, accessPointOpts *cloud.AccessPointOptions, reuseAccessPointName bool) {
+						if accessPointOpts.Uid != expectedGid {
+							t.Fatalf("Uid mismatched. Expected: %v, actual: %v", expectedGid, accessPointOpts.Uid)
+						}
+						if accessPointOpts.Gid != expectedGid {
+							t.Fatalf("Gid mismatched. Expected: %v, actual: %v", expectedGid, accessPointOpts.Gid)
+						}
+					})
+
+				res, err = driver.CreateVolume(ctx, req)
+
+				if err != nil {
+					t.Fatalf("CreateVolume failed: %v", err)
+				}
+
+				if res.Volume == nil {
+					t.Fatal("Volume is nil")
+				}
+
+				if res.Volume.VolumeId != volumeId {
+					t.Fatalf("Volume Id mismatched. Expected: %v, Actual: %v", volumeId, res.Volume.VolumeId)
+				}
+				mockCtl.Finish()
+			},
+		},
+		{
+			name: "Success: EFS access point limit",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockCloud := mocks.NewMockCloud(mockCtl)
+
+				driver := &Driver{
+					endpoint:     endpoint,
+					cloud:        mockCloud,
+					gidAllocator: NewGidAllocator(mockCloud),
+				}
+
+				req := &csi.CreateVolumeRequest{
+					Name: volumeName,
+					VolumeCapabilities: []*csi.VolumeCapability{
+						stdVolCap,
+					},
+					CapacityRange: &csi.CapacityRange{
+						RequiredBytes: capacityRange,
+					},
+					Parameters: map[string]string{
+						ProvisioningMode: "efs-ap",
+						FsId:             fsId,
+						DirectoryPerms:   "777",
+						BasePath:         "test",
+						GidMin:           "1000",
+						GidMax:           "2000",
+					},
+				}
+
+				ctx := context.Background()
+				fileSystem := &cloud.FileSystem{
+					FileSystemId: fsId,
+				}
+
+				accessPoints := []*cloud.AccessPoint{}
+				for i := 0; i < ACCESS_POINT_PER_FS_LIMIT-1; i++ {
+					gidMax, err := strconv.Atoi(req.Parameters[GidMax])
+					if err != nil {
+						t.Fatalf("Failed to convert GidMax Parameter to int.")
+					}
+					userGid := gidMax - i
+					ap := &cloud.AccessPoint{
+						AccessPointId: apId,
+						FileSystemId:  fsId,
+						PosixUser: &cloud.PosixUser{
+							Gid: int64(userGid),
+							Uid: int64(userGid),
+						},
+					}
+					accessPoints = append(accessPoints, ap)
+				}
+
+				lastAccessPoint := &cloud.AccessPoint{
+					AccessPointId: apId,
+					FileSystemId:  fsId,
+					PosixUser: &cloud.PosixUser{
+						Gid: 1001,
+						Uid: 1001,
+					},
+				}
+
+				expectedGid := 1001
+				mockCloud.EXPECT().DescribeFileSystem(gomock.Eq(ctx), gomock.Any()).Return(fileSystem, nil)
+				mockCloud.EXPECT().ListAccessPoints(gomock.Eq(ctx), gomock.Any()).Return(accessPoints, nil)
+				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any(), false).Return(lastAccessPoint, nil).
+					Do(func(ctx context.Context, clientToken string, accessPointOpts *cloud.AccessPointOptions, reuseAccessPointName bool) {
+						if accessPointOpts.Uid != int64(expectedGid) {
+							t.Fatalf("Uid mismatched. Expected: %v, actual: %v", expectedGid, accessPointOpts.Uid)
+						}
+						if accessPointOpts.Gid != int64(expectedGid) {
+							t.Fatalf("Gid mismatched. Expected: %v, actual: %v", expectedGid, accessPointOpts.Gid)
+						}
+					})
+
+				var err error
+
+				// Allocate last available GID
+				_, err = driver.CreateVolume(ctx, req)
+				if err != nil {
+					t.Fatalf("CreateVolume failed.")
+				}
+
+				accessPoints = append(accessPoints, lastAccessPoint)
+				mockCloud.EXPECT().DescribeFileSystem(gomock.Eq(ctx), gomock.Any()).Return(fileSystem, nil)
+				mockCloud.EXPECT().ListAccessPoints(gomock.Eq(ctx), gomock.Any()).Return(accessPoints, nil)
+
+				// All 1000 GIDs are taken now, internal limit should take effect causing CreateVolume to fail.
+				_, err = driver.CreateVolume(ctx, req)
+				if err == nil {
+					t.Fatalf("CreateVolume should have failed.")
+				}
+				mockCtl.Finish()
+			},
+		},
+		{
 			name: "Success: Normal flow",
 			testFunc: func(t *testing.T) {
 				mockCtl := gomock.NewController(t)
@@ -173,7 +496,7 @@ func TestCreateVolume(t *testing.T) {
 				driver := &Driver{
 					endpoint:     endpoint,
 					cloud:        mockCloud,
-					gidAllocator: NewGidAllocator(),
+					gidAllocator: NewGidAllocator(mockCloud),
 					tags:         parseTagsFromStr(""),
 				}
 
@@ -202,9 +525,15 @@ func TestCreateVolume(t *testing.T) {
 				accessPoint := &cloud.AccessPoint{
 					AccessPointId: apId,
 					FileSystemId:  fsId,
+					PosixUser: &cloud.PosixUser{
+						Gid: 1000,
+						Uid: 1000,
+					},
 				}
+				accessPoints := []*cloud.AccessPoint{accessPoint}
 				mockCloud.EXPECT().DescribeFileSystem(gomock.Eq(ctx), gomock.Any()).Return(fileSystem, nil)
-				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(accessPoint, nil)
+				mockCloud.EXPECT().ListAccessPoints(gomock.Eq(ctx), gomock.Any()).Return(accessPoints, nil)
+				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Eq(volumeName), gomock.Any(), gomock.Any()).Return(accessPoint, nil)
 
 				res, err := driver.CreateVolume(ctx, req)
 
@@ -231,7 +560,7 @@ func TestCreateVolume(t *testing.T) {
 				driver := &Driver{
 					endpoint:     endpoint,
 					cloud:        mockCloud,
-					gidAllocator: NewGidAllocator(),
+					gidAllocator: NewGidAllocator(mockCloud),
 				}
 
 				req := &csi.CreateVolumeRequest{
@@ -257,9 +586,14 @@ func TestCreateVolume(t *testing.T) {
 				accessPoint := &cloud.AccessPoint{
 					AccessPointId: apId,
 					FileSystemId:  fsId,
+					PosixUser: &cloud.PosixUser{
+						Gid: DefaultGidMin - 1, //use GID that is not in default range
+					},
 				}
+				accessPoints := []*cloud.AccessPoint{accessPoint}
 				mockCloud.EXPECT().DescribeFileSystem(gomock.Eq(ctx), gomock.Any()).Return(fileSystem, nil)
-				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(accessPoint, nil)
+				mockCloud.EXPECT().ListAccessPoints(gomock.Eq(ctx), gomock.Any()).Return(accessPoints, nil)
+				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any(), gomock.Any()).Return(accessPoint, nil)
 
 				res, err := driver.CreateVolume(ctx, req)
 
@@ -286,7 +620,7 @@ func TestCreateVolume(t *testing.T) {
 				driver := &Driver{
 					endpoint:     endpoint,
 					cloud:        mockCloud,
-					gidAllocator: NewGidAllocator(),
+					gidAllocator: NewGidAllocator(mockCloud),
 					tags:         parseTagsFromStr("cluster:efs"),
 				}
 
@@ -314,9 +648,15 @@ func TestCreateVolume(t *testing.T) {
 				accessPoint := &cloud.AccessPoint{
 					AccessPointId: apId,
 					FileSystemId:  fsId,
+					PosixUser: &cloud.PosixUser{
+						Gid: 1000,
+						Uid: 1000,
+					},
 				}
+				accessPoints := []*cloud.AccessPoint{accessPoint}
 				mockCloud.EXPECT().DescribeFileSystem(gomock.Eq(ctx), gomock.Any()).Return(fileSystem, nil)
-				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(accessPoint, nil)
+				mockCloud.EXPECT().ListAccessPoints(gomock.Eq(ctx), gomock.Any()).Return(accessPoints, nil)
+				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any(), gomock.Any()).Return(accessPoint, nil)
 
 				res, err := driver.CreateVolume(ctx, req)
 
@@ -343,7 +683,7 @@ func TestCreateVolume(t *testing.T) {
 				driver := &Driver{
 					endpoint:     endpoint,
 					cloud:        mockCloud,
-					gidAllocator: NewGidAllocator(),
+					gidAllocator: NewGidAllocator(mockCloud),
 					tags:         parseTagsFromStr("cluster-efs"),
 				}
 
@@ -371,9 +711,15 @@ func TestCreateVolume(t *testing.T) {
 				accessPoint := &cloud.AccessPoint{
 					AccessPointId: apId,
 					FileSystemId:  fsId,
+					PosixUser: &cloud.PosixUser{
+						Gid: 1000,
+						Uid: 1000,
+					},
 				}
+				accessPoints := []*cloud.AccessPoint{accessPoint}
 				mockCloud.EXPECT().DescribeFileSystem(gomock.Eq(ctx), gomock.Any()).Return(fileSystem, nil)
-				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(accessPoint, nil)
+				mockCloud.EXPECT().ListAccessPoints(gomock.Eq(ctx), gomock.Any()).Return(accessPoints, nil)
+				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any(), gomock.Any()).Return(accessPoint, nil)
 
 				res, err := driver.CreateVolume(ctx, req)
 
@@ -392,6 +738,656 @@ func TestCreateVolume(t *testing.T) {
 			},
 		},
 		{
+			name: "Success: reuseAccessPointName is true",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockCloud := mocks.NewMockCloud(mockCtl)
+
+				driver := &Driver{
+					endpoint:     endpoint,
+					cloud:        mockCloud,
+					gidAllocator: NewGidAllocator(mockCloud),
+					tags:         parseTagsFromStr(""),
+				}
+				pvcNameVal := "test-pvc"
+
+				req := &csi.CreateVolumeRequest{
+					Name: volumeName,
+					VolumeCapabilities: []*csi.VolumeCapability{
+						stdVolCap,
+					},
+					CapacityRange: &csi.CapacityRange{
+						RequiredBytes: capacityRange,
+					},
+					Parameters: map[string]string{
+						ProvisioningMode:    "efs-ap",
+						FsId:                fsId,
+						GidMin:              "1000",
+						GidMax:              "2000",
+						DirectoryPerms:      "777",
+						AzName:              "us-east-1a",
+						ReuseAccessPointKey: "true",
+						PvcNameKey:          pvcNameVal,
+					},
+				}
+
+				ctx := context.Background()
+				fileSystem := &cloud.FileSystem{
+					FileSystemId: fsId,
+				}
+
+				accessPoint := &cloud.AccessPoint{
+					AccessPointId: apId,
+					FileSystemId:  fsId,
+					PosixUser: &cloud.PosixUser{
+						Gid: 1000,
+						Uid: 1000,
+					},
+				}
+				accessPoints := []*cloud.AccessPoint{accessPoint}
+				mockCloud.EXPECT().DescribeFileSystem(gomock.Eq(ctx), gomock.Any()).Return(fileSystem, nil)
+				mockCloud.EXPECT().ListAccessPoints(gomock.Eq(ctx), gomock.Any()).Return(accessPoints, nil)
+				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Eq(get64LenHash(pvcNameVal)), gomock.Any(), gomock.Any()).Return(accessPoint, nil)
+
+				res, err := driver.CreateVolume(ctx, req)
+
+				if err != nil {
+					t.Fatalf("CreateVolume failed: %v", err)
+				}
+
+				if res.Volume == nil {
+					t.Fatal("Volume is nil")
+				}
+
+				if res.Volume.VolumeId != volumeId {
+					t.Fatalf("Volume Id mismatched. Expected: %v, Actual: %v", volumeId, res.Volume.VolumeId)
+				}
+
+				mockCtl.Finish()
+			},
+		},
+		{
+			name: "Success: Normal flow with a valid directory structure set",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockCloud := mocks.NewMockCloud(mockCtl)
+
+				driver := &Driver{
+					endpoint:     endpoint,
+					cloud:        mockCloud,
+					gidAllocator: NewGidAllocator(mockCloud),
+					tags:         parseTagsFromStr(""),
+				}
+
+				pvName := "foo"
+				pvcName := "bar"
+				directoryCreated := fmt.Sprintf("/%s/%s", pvName, pvcName)
+
+				req := &csi.CreateVolumeRequest{
+					Name: volumeName,
+					VolumeCapabilities: []*csi.VolumeCapability{
+						stdVolCap,
+					},
+					CapacityRange: &csi.CapacityRange{
+						RequiredBytes: capacityRange,
+					},
+					Parameters: map[string]string{
+						ProvisioningMode: "efs-ap",
+						FsId:             fsId,
+						GidMin:           "1000",
+						GidMax:           "2000",
+						DirectoryPerms:   "777",
+						SubPathPattern:   "${.PV.name}/${.PVC.name}",
+						PvName:           pvName,
+						PvcName:          pvcName,
+					},
+				}
+
+				ctx := context.Background()
+				fileSystem := &cloud.FileSystem{
+					FileSystemId: fsId,
+				}
+				accessPoint := &cloud.AccessPoint{
+					AccessPointId: apId,
+					FileSystemId:  fsId,
+				}
+				mockCloud.EXPECT().DescribeFileSystem(gomock.Eq(ctx), gomock.Any()).Return(fileSystem, nil)
+				mockCloud.EXPECT().ListAccessPoints(gomock.Eq(ctx), gomock.Any()).Return(nil, nil)
+
+				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any(), gomock.Any()).Return(accessPoint, nil).
+					Do(func(ctx context.Context, clientToken string, accessPointOpts *cloud.AccessPointOptions, reuseAccessPoint bool) {
+						if !verifyPathWhenUUIDIncluded(accessPointOpts.DirectoryPath, directoryCreated) {
+							t.Fatalf("Root directory mismatch. Expected: %v (with UID appended), actual: %v",
+								directoryCreated,
+								accessPointOpts.DirectoryPath)
+						}
+					})
+
+				res, err := driver.CreateVolume(ctx, req)
+
+				if err != nil {
+					t.Fatalf("CreateVolume failed: %v", err)
+				}
+
+				if res.Volume == nil {
+					t.Fatal("Volume is nil")
+				}
+
+				if res.Volume.VolumeId != volumeId {
+					t.Fatalf("Volume Id mismatched. Expected: %v, Actual: %v", volumeId, res.Volume.VolumeId)
+				}
+
+				mockCtl.Finish()
+			},
+		},
+		{
+			name: "Success: Normal flow with a valid directory structure set, using a single element",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockCloud := mocks.NewMockCloud(mockCtl)
+
+				driver := &Driver{
+					endpoint:     endpoint,
+					cloud:        mockCloud,
+					gidAllocator: NewGidAllocator(mockCloud),
+					tags:         parseTagsFromStr(""),
+				}
+
+				pvcName := "foo"
+				directoryCreated := fmt.Sprintf("/%s", pvcName)
+
+				req := &csi.CreateVolumeRequest{
+					Name: volumeName,
+					VolumeCapabilities: []*csi.VolumeCapability{
+						stdVolCap,
+					},
+					CapacityRange: &csi.CapacityRange{
+						RequiredBytes: capacityRange,
+					},
+					Parameters: map[string]string{
+						ProvisioningMode: "efs-ap",
+						FsId:             fsId,
+						GidMin:           "1000",
+						GidMax:           "2000",
+						DirectoryPerms:   "777",
+						SubPathPattern:   "${.PVC.name}",
+						PvcName:          pvcName,
+					},
+				}
+
+				ctx := context.Background()
+				fileSystem := &cloud.FileSystem{
+					FileSystemId: fsId,
+				}
+				accessPoint := &cloud.AccessPoint{
+					AccessPointId: apId,
+					FileSystemId:  fsId,
+				}
+				mockCloud.EXPECT().DescribeFileSystem(gomock.Eq(ctx), gomock.Any()).Return(fileSystem, nil)
+				mockCloud.EXPECT().ListAccessPoints(gomock.Eq(ctx), gomock.Any()).Return(nil, nil)
+
+				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any(), gomock.Any()).Return(accessPoint, nil).
+					Do(func(ctx context.Context, clientToken string, accessPointOpts *cloud.AccessPointOptions, reuseAccessPointName bool) {
+						if !verifyPathWhenUUIDIncluded(accessPointOpts.DirectoryPath, directoryCreated) {
+							t.Fatalf("Root directory mismatch. Expected: %v (with UID appended), actual: %v",
+								directoryCreated,
+								accessPointOpts.DirectoryPath)
+						}
+					})
+
+				res, err := driver.CreateVolume(ctx, req)
+
+				if err != nil {
+					t.Fatalf("CreateVolume failed: %v", err)
+				}
+
+				if res.Volume == nil {
+					t.Fatal("Volume is nil")
+				}
+
+				if res.Volume.VolumeId != volumeId {
+					t.Fatalf("Volume Id mismatched. Expected: %v, Actual: %v", volumeId, res.Volume.VolumeId)
+				}
+
+				mockCtl.Finish()
+			},
+		},
+		{
+			name: "Success: Normal flow with a valid directory structure set, and a basePath",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockCloud := mocks.NewMockCloud(mockCtl)
+
+				driver := &Driver{
+					endpoint:     endpoint,
+					cloud:        mockCloud,
+					gidAllocator: NewGidAllocator(mockCloud),
+					tags:         parseTagsFromStr(""),
+				}
+
+				pvcName := "foo"
+				basePath := "bash"
+				directoryCreated := fmt.Sprintf("/%s/%s", basePath, pvcName)
+
+				req := &csi.CreateVolumeRequest{
+					Name: volumeName,
+					VolumeCapabilities: []*csi.VolumeCapability{
+						stdVolCap,
+					},
+					CapacityRange: &csi.CapacityRange{
+						RequiredBytes: capacityRange,
+					},
+					Parameters: map[string]string{
+						ProvisioningMode:      "efs-ap",
+						FsId:                  fsId,
+						GidMin:                "1000",
+						GidMax:                "2000",
+						DirectoryPerms:        "777",
+						SubPathPattern:        "${.PVC.name}",
+						BasePath:              basePath,
+						EnsureUniqueDirectory: "true",
+						PvcName:               pvcName,
+					},
+				}
+
+				ctx := context.Background()
+				fileSystem := &cloud.FileSystem{
+					FileSystemId: fsId,
+				}
+				accessPoint := &cloud.AccessPoint{
+					AccessPointId: apId,
+					FileSystemId:  fsId,
+				}
+				mockCloud.EXPECT().DescribeFileSystem(gomock.Eq(ctx), gomock.Any()).Return(fileSystem, nil)
+				mockCloud.EXPECT().ListAccessPoints(gomock.Eq(ctx), gomock.Any()).Return(nil, nil)
+
+				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any(), gomock.Any()).Return(accessPoint, nil).
+					Do(func(ctx context.Context, clientToken string, accessPointOpts *cloud.AccessPointOptions, reuseAccessPointName bool) {
+						if !verifyPathWhenUUIDIncluded(accessPointOpts.DirectoryPath, directoryCreated) {
+							t.Fatalf("Root directory mismatch. Expected: %v (with UID appended), actual: %v",
+								directoryCreated,
+								accessPointOpts.DirectoryPath)
+						}
+					})
+
+				res, err := driver.CreateVolume(ctx, req)
+
+				if err != nil {
+					t.Fatalf("CreateVolume failed: %v", err)
+				}
+
+				if res.Volume == nil {
+					t.Fatal("Volume is nil")
+				}
+
+				if res.Volume.VolumeId != volumeId {
+					t.Fatalf("Volume Id mismatched. Expected: %v, Actual: %v", volumeId, res.Volume.VolumeId)
+				}
+
+				mockCtl.Finish()
+			},
+		},
+		{
+			name: "Success: Normal flow with a valid directory structure set, and a basePath, and uniqueness guarantees turned off",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockCloud := mocks.NewMockCloud(mockCtl)
+
+				driver := &Driver{
+					endpoint:     endpoint,
+					cloud:        mockCloud,
+					gidAllocator: NewGidAllocator(mockCloud),
+					tags:         parseTagsFromStr(""),
+				}
+
+				pvcName := "foo"
+				basePath := "bash"
+				directoryCreated := fmt.Sprintf("/%s/%s", basePath, pvcName)
+
+				req := &csi.CreateVolumeRequest{
+					Name: volumeName,
+					VolumeCapabilities: []*csi.VolumeCapability{
+						stdVolCap,
+					},
+					CapacityRange: &csi.CapacityRange{
+						RequiredBytes: capacityRange,
+					},
+					Parameters: map[string]string{
+						ProvisioningMode:      "efs-ap",
+						FsId:                  fsId,
+						GidMin:                "1000",
+						GidMax:                "2000",
+						DirectoryPerms:        "777",
+						SubPathPattern:        "${.PVC.name}",
+						BasePath:              basePath,
+						EnsureUniqueDirectory: "false",
+						PvcName:               pvcName,
+					},
+				}
+
+				ctx := context.Background()
+				fileSystem := &cloud.FileSystem{
+					FileSystemId: fsId,
+				}
+				accessPoint := &cloud.AccessPoint{
+					AccessPointId: apId,
+					FileSystemId:  fsId,
+				}
+				mockCloud.EXPECT().DescribeFileSystem(gomock.Eq(ctx), gomock.Any()).Return(fileSystem, nil)
+				mockCloud.EXPECT().ListAccessPoints(gomock.Eq(ctx), gomock.Any()).Return(nil, nil)
+
+				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any(), gomock.Any()).Return(accessPoint, nil).
+					Do(func(ctx context.Context, clientToken string, accessPointOpts *cloud.AccessPointOptions, reuseAccessPointName bool) {
+						if accessPointOpts.DirectoryPath != directoryCreated {
+							t.Fatalf("Root directory mismatch. Expected: %v, actual: %v",
+								directoryCreated,
+								accessPointOpts.DirectoryPath)
+						}
+					})
+
+				res, err := driver.CreateVolume(ctx, req)
+
+				if err != nil {
+					t.Fatalf("CreateVolume failed: %v", err)
+				}
+
+				if res.Volume == nil {
+					t.Fatal("Volume is nil")
+				}
+
+				if res.Volume.VolumeId != volumeId {
+					t.Fatalf("Volume Id mismatched. Expected: %v, Actual: %v", volumeId, res.Volume.VolumeId)
+				}
+
+				mockCtl.Finish()
+			},
+		},
+		{
+			name: "Success: Normal flow with a valid directory structure set, but ensuring uniqueness is set incorrectly, so default of true is used." +
+				"",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockCloud := mocks.NewMockCloud(mockCtl)
+
+				driver := &Driver{
+					endpoint:     endpoint,
+					cloud:        mockCloud,
+					gidAllocator: NewGidAllocator(mockCloud),
+					tags:         parseTagsFromStr(""),
+				}
+
+				pvcName := "foo"
+				directoryCreated := fmt.Sprintf("/%s", pvcName)
+
+				req := &csi.CreateVolumeRequest{
+					Name: volumeName,
+					VolumeCapabilities: []*csi.VolumeCapability{
+						stdVolCap,
+					},
+					CapacityRange: &csi.CapacityRange{
+						RequiredBytes: capacityRange,
+					},
+					Parameters: map[string]string{
+						ProvisioningMode:      "efs-ap",
+						FsId:                  fsId,
+						GidMin:                "1000",
+						GidMax:                "2000",
+						DirectoryPerms:        "777",
+						SubPathPattern:        "${.PVC.name}",
+						EnsureUniqueDirectory: "banana",
+						PvcName:               pvcName,
+					},
+				}
+
+				ctx := context.Background()
+				fileSystem := &cloud.FileSystem{
+					FileSystemId: fsId,
+				}
+				accessPoint := &cloud.AccessPoint{
+					AccessPointId: apId,
+					FileSystemId:  fsId,
+				}
+				mockCloud.EXPECT().DescribeFileSystem(gomock.Eq(ctx), gomock.Any()).Return(fileSystem, nil)
+				mockCloud.EXPECT().ListAccessPoints(gomock.Eq(ctx), gomock.Any()).Return(nil, nil)
+
+				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any(), gomock.Any()).Return(accessPoint, nil).
+					Do(func(ctx context.Context, clientToken string, accessPointOpts *cloud.AccessPointOptions, reuseAccessPointName bool) {
+						if !verifyPathWhenUUIDIncluded(accessPointOpts.DirectoryPath, directoryCreated) {
+							t.Fatalf("Root directory mismatch. Expected: %v (with UID appended), actual: %v",
+								directoryCreated,
+								accessPointOpts.DirectoryPath)
+						}
+					})
+
+				res, err := driver.CreateVolume(ctx, req)
+
+				if err != nil {
+					t.Fatalf("CreateVolume failed: %v", err)
+				}
+
+				if res.Volume == nil {
+					t.Fatal("Volume is nil")
+				}
+
+				if res.Volume.VolumeId != volumeId {
+					t.Fatalf("Volume Id mismatched. Expected: %v, Actual: %v", volumeId, res.Volume.VolumeId)
+				}
+
+				mockCtl.Finish()
+			},
+		},
+		{
+			name: "Success: Normal flow with an empty subPath Pattern, no basePath and uniqueness guarantees turned off",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockCloud := mocks.NewMockCloud(mockCtl)
+
+				driver := &Driver{
+					endpoint:     endpoint,
+					cloud:        mockCloud,
+					gidAllocator: NewGidAllocator(mockCloud),
+					tags:         parseTagsFromStr(""),
+				}
+
+				req := &csi.CreateVolumeRequest{
+					Name: volumeName,
+					VolumeCapabilities: []*csi.VolumeCapability{
+						stdVolCap,
+					},
+					CapacityRange: &csi.CapacityRange{
+						RequiredBytes: capacityRange,
+					},
+					Parameters: map[string]string{
+						ProvisioningMode:      "efs-ap",
+						FsId:                  fsId,
+						GidMin:                "1000",
+						GidMax:                "2000",
+						DirectoryPerms:        "777",
+						SubPathPattern:        "",
+						EnsureUniqueDirectory: "false",
+					},
+				}
+
+				ctx := context.Background()
+				fileSystem := &cloud.FileSystem{
+					FileSystemId: fsId,
+				}
+				accessPoint := &cloud.AccessPoint{
+					AccessPointId: apId,
+					FileSystemId:  fsId,
+				}
+				mockCloud.EXPECT().DescribeFileSystem(gomock.Eq(ctx), gomock.Any()).Return(fileSystem, nil)
+				mockCloud.EXPECT().ListAccessPoints(gomock.Eq(ctx), gomock.Any()).Return(nil, nil)
+
+				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any(), gomock.Any()).Return(accessPoint, nil).
+					Do(func(ctx context.Context, clientToken string, accessPointOpts *cloud.AccessPointOptions, reuseAccessPointName bool) {
+						if accessPointOpts.DirectoryPath != "/" {
+							t.Fatalf("Root directory mismatch. Expected: %v, actual: %v",
+								"/",
+								accessPointOpts.DirectoryPath)
+						}
+					})
+
+				res, err := driver.CreateVolume(ctx, req)
+
+				if err != nil {
+					t.Fatalf("CreateVolume failed: %v", err)
+				}
+
+				if res.Volume == nil {
+					t.Fatal("Volume is nil")
+				}
+
+				if res.Volume.VolumeId != volumeId {
+					t.Fatalf("Volume Id mismatched. Expected: %v, Actual: %v", volumeId, res.Volume.VolumeId)
+				}
+
+				mockCtl.Finish()
+			},
+		},
+		{
+			name: "Success: Normal flow with an empty subPath Pattern, and basePath set to /",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockCloud := mocks.NewMockCloud(mockCtl)
+
+				driver := &Driver{
+					endpoint:     endpoint,
+					cloud:        mockCloud,
+					gidAllocator: NewGidAllocator(mockCloud),
+					tags:         parseTagsFromStr(""),
+				}
+
+				req := &csi.CreateVolumeRequest{
+					Name: volumeName,
+					VolumeCapabilities: []*csi.VolumeCapability{
+						stdVolCap,
+					},
+					CapacityRange: &csi.CapacityRange{
+						RequiredBytes: capacityRange,
+					},
+					Parameters: map[string]string{
+						ProvisioningMode:      "efs-ap",
+						FsId:                  fsId,
+						GidMin:                "1000",
+						GidMax:                "2000",
+						DirectoryPerms:        "777",
+						SubPathPattern:        "",
+						BasePath:              "/",
+						EnsureUniqueDirectory: "false",
+					},
+				}
+
+				ctx := context.Background()
+				fileSystem := &cloud.FileSystem{
+					FileSystemId: fsId,
+				}
+				accessPoint := &cloud.AccessPoint{
+					AccessPointId: apId,
+					FileSystemId:  fsId,
+				}
+				mockCloud.EXPECT().DescribeFileSystem(gomock.Eq(ctx), gomock.Any()).Return(fileSystem, nil)
+				mockCloud.EXPECT().ListAccessPoints(gomock.Eq(ctx), gomock.Any()).Return(nil, nil)
+
+				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any(), gomock.Any()).Return(accessPoint, nil).
+					Do(func(ctx context.Context, clientToken string, accessPointOpts *cloud.AccessPointOptions, reuseAccessPointName bool) {
+						if accessPointOpts.DirectoryPath != "/" {
+							t.Fatalf("Root directory mismatch. Expected: %v, actual: %v",
+								"/",
+								accessPointOpts.DirectoryPath)
+						}
+					})
+
+				res, err := driver.CreateVolume(ctx, req)
+
+				if err != nil {
+					t.Fatalf("CreateVolume failed: %v", err)
+				}
+
+				if res.Volume == nil {
+					t.Fatal("Volume is nil")
+				}
+
+				if res.Volume.VolumeId != volumeId {
+					t.Fatalf("Volume Id mismatched. Expected: %v, Actual: %v", volumeId, res.Volume.VolumeId)
+				}
+
+				mockCtl.Finish()
+			},
+		},
+		{
+			name: "Success: Normal flow with a valid directory structure set, using repeated elements (uses PVC Name in subpath pattern multiple times)",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockCloud := mocks.NewMockCloud(mockCtl)
+
+				driver := &Driver{
+					endpoint:     endpoint,
+					cloud:        mockCloud,
+					gidAllocator: NewGidAllocator(mockCloud),
+					tags:         parseTagsFromStr(""),
+				}
+
+				pvcName := "foo"
+				directoryCreated := fmt.Sprintf("/%s/%s", pvcName, pvcName)
+
+				req := &csi.CreateVolumeRequest{
+					Name: volumeName,
+					VolumeCapabilities: []*csi.VolumeCapability{
+						stdVolCap,
+					},
+					CapacityRange: &csi.CapacityRange{
+						RequiredBytes: capacityRange,
+					},
+					Parameters: map[string]string{
+						ProvisioningMode: "efs-ap",
+						FsId:             fsId,
+						GidMin:           "1000",
+						GidMax:           "2000",
+						DirectoryPerms:   "777",
+						SubPathPattern:   "${.PVC.name}/${.PVC.name}",
+						PvcName:          pvcName,
+					},
+				}
+
+				ctx := context.Background()
+				fileSystem := &cloud.FileSystem{
+					FileSystemId: fsId,
+				}
+				accessPoint := &cloud.AccessPoint{
+					AccessPointId: apId,
+					FileSystemId:  fsId,
+				}
+				mockCloud.EXPECT().DescribeFileSystem(gomock.Eq(ctx), gomock.Any()).Return(fileSystem, nil)
+				mockCloud.EXPECT().ListAccessPoints(gomock.Eq(ctx), gomock.Any()).Return(nil, nil)
+
+				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any(), gomock.Any()).Return(accessPoint, nil).
+					Do(func(ctx context.Context, clientToken string, accessPointOpts *cloud.AccessPointOptions, reuseAccessPointName bool) {
+						if !verifyPathWhenUUIDIncluded(accessPointOpts.DirectoryPath, directoryCreated) {
+							t.Fatalf("Root directory mismatch. Expected: %v (with UID appended), actual: %v",
+								directoryCreated,
+								accessPointOpts.DirectoryPath)
+						}
+					})
+
+				res, err := driver.CreateVolume(ctx, req)
+
+				if err != nil {
+					t.Fatalf("CreateVolume failed: %v", err)
+				}
+
+				if res.Volume == nil {
+					t.Fatal("Volume is nil")
+				}
+
+				if res.Volume.VolumeId != volumeId {
+					t.Fatalf("Volume Id mismatched. Expected: %v, Actual: %v", volumeId, res.Volume.VolumeId)
+				}
+
+				mockCtl.Finish()
+			},
+		},
+		{
 			name: "Fail: Volume name missing",
 			testFunc: func(t *testing.T) {
 				mockCtl := gomock.NewController(t)
@@ -400,7 +1396,7 @@ func TestCreateVolume(t *testing.T) {
 				driver := &Driver{
 					endpoint:     endpoint,
 					cloud:        mockCloud,
-					gidAllocator: NewGidAllocator(),
+					gidAllocator: NewGidAllocator(mockCloud),
 				}
 
 				req := &csi.CreateVolumeRequest{
@@ -428,7 +1424,7 @@ func TestCreateVolume(t *testing.T) {
 				driver := &Driver{
 					endpoint:     endpoint,
 					cloud:        mockCloud,
-					gidAllocator: NewGidAllocator(),
+					gidAllocator: NewGidAllocator(mockCloud),
 				}
 
 				req := &csi.CreateVolumeRequest{
@@ -457,7 +1453,7 @@ func TestCreateVolume(t *testing.T) {
 				driver := &Driver{
 					endpoint:     endpoint,
 					cloud:        mockCloud,
-					gidAllocator: NewGidAllocator(),
+					gidAllocator: NewGidAllocator(mockCloud),
 				}
 
 				req := &csi.CreateVolumeRequest{
@@ -489,7 +1485,7 @@ func TestCreateVolume(t *testing.T) {
 				driver := &Driver{
 					endpoint:     endpoint,
 					cloud:        mockCloud,
-					gidAllocator: NewGidAllocator(),
+					gidAllocator: NewGidAllocator(mockCloud),
 				}
 
 				req := &csi.CreateVolumeRequest{
@@ -531,7 +1527,7 @@ func TestCreateVolume(t *testing.T) {
 				driver := &Driver{
 					endpoint:     endpoint,
 					cloud:        mockCloud,
-					gidAllocator: NewGidAllocator(),
+					gidAllocator: NewGidAllocator(mockCloud),
 					tags:         parseTagsFromStr(""),
 				}
 
@@ -579,7 +1575,7 @@ func TestCreateVolume(t *testing.T) {
 				driver := &Driver{
 					endpoint:     endpoint,
 					cloud:        mockCloud,
-					gidAllocator: NewGidAllocator(),
+					gidAllocator: NewGidAllocator(mockCloud),
 				}
 
 				req := &csi.CreateVolumeRequest{
@@ -621,7 +1617,7 @@ func TestCreateVolume(t *testing.T) {
 				driver := &Driver{
 					endpoint:     endpoint,
 					cloud:        mockCloud,
-					gidAllocator: NewGidAllocator(),
+					gidAllocator: NewGidAllocator(mockCloud),
 				}
 
 				req := &csi.CreateVolumeRequest{
@@ -656,7 +1652,7 @@ func TestCreateVolume(t *testing.T) {
 				driver := &Driver{
 					endpoint:     endpoint,
 					cloud:        mockCloud,
-					gidAllocator: NewGidAllocator(),
+					gidAllocator: NewGidAllocator(mockCloud),
 				}
 
 				req := &csi.CreateVolumeRequest{
@@ -690,7 +1686,7 @@ func TestCreateVolume(t *testing.T) {
 				driver := &Driver{
 					endpoint:     endpoint,
 					cloud:        mockCloud,
-					gidAllocator: NewGidAllocator(),
+					gidAllocator: NewGidAllocator(mockCloud),
 				}
 
 				req := &csi.CreateVolumeRequest{
@@ -724,7 +1720,7 @@ func TestCreateVolume(t *testing.T) {
 				driver := &Driver{
 					endpoint:     endpoint,
 					cloud:        mockCloud,
-					gidAllocator: NewGidAllocator(),
+					gidAllocator: NewGidAllocator(mockCloud),
 				}
 
 				req := &csi.CreateVolumeRequest{
@@ -759,7 +1755,7 @@ func TestCreateVolume(t *testing.T) {
 				driver := &Driver{
 					endpoint:     endpoint,
 					cloud:        mockCloud,
-					gidAllocator: NewGidAllocator(),
+					gidAllocator: NewGidAllocator(mockCloud),
 				}
 
 				req := &csi.CreateVolumeRequest{
@@ -795,7 +1791,7 @@ func TestCreateVolume(t *testing.T) {
 				driver := &Driver{
 					endpoint:     endpoint,
 					cloud:        mockCloud,
-					gidAllocator: NewGidAllocator(),
+					gidAllocator: NewGidAllocator(mockCloud),
 				}
 
 				req := &csi.CreateVolumeRequest{
@@ -831,7 +1827,7 @@ func TestCreateVolume(t *testing.T) {
 				driver := &Driver{
 					endpoint:     endpoint,
 					cloud:        mockCloud,
-					gidAllocator: NewGidAllocator(),
+					gidAllocator: NewGidAllocator(mockCloud),
 				}
 
 				req := &csi.CreateVolumeRequest{
@@ -867,7 +1863,7 @@ func TestCreateVolume(t *testing.T) {
 				driver := &Driver{
 					endpoint:     endpoint,
 					cloud:        mockCloud,
-					gidAllocator: NewGidAllocator(),
+					gidAllocator: NewGidAllocator(mockCloud),
 				}
 
 				req := &csi.CreateVolumeRequest{
@@ -903,7 +1899,7 @@ func TestCreateVolume(t *testing.T) {
 				driver := &Driver{
 					endpoint:     endpoint,
 					cloud:        mockCloud,
-					gidAllocator: NewGidAllocator(),
+					gidAllocator: NewGidAllocator(mockCloud),
 				}
 
 				req := &csi.CreateVolumeRequest{
@@ -939,7 +1935,7 @@ func TestCreateVolume(t *testing.T) {
 				driver := &Driver{
 					endpoint:     endpoint,
 					cloud:        mockCloud,
-					gidAllocator: NewGidAllocator(),
+					gidAllocator: NewGidAllocator(mockCloud),
 				}
 
 				req := &csi.CreateVolumeRequest{
@@ -975,7 +1971,7 @@ func TestCreateVolume(t *testing.T) {
 				driver := &Driver{
 					endpoint:     endpoint,
 					cloud:        mockCloud,
-					gidAllocator: NewGidAllocator(),
+					gidAllocator: NewGidAllocator(mockCloud),
 				}
 
 				req := &csi.CreateVolumeRequest{
@@ -1012,7 +2008,7 @@ func TestCreateVolume(t *testing.T) {
 				driver := &Driver{
 					endpoint:     endpoint,
 					cloud:        mockCloud,
-					gidAllocator: NewGidAllocator(),
+					gidAllocator: NewGidAllocator(mockCloud),
 				}
 
 				req := &csi.CreateVolumeRequest{
@@ -1049,7 +2045,7 @@ func TestCreateVolume(t *testing.T) {
 				driver := &Driver{
 					endpoint:     endpoint,
 					cloud:        mockCloud,
-					gidAllocator: NewGidAllocator(),
+					gidAllocator: NewGidAllocator(mockCloud),
 				}
 
 				req := &csi.CreateVolumeRequest{
@@ -1085,7 +2081,7 @@ func TestCreateVolume(t *testing.T) {
 				driver := &Driver{
 					endpoint:     endpoint,
 					cloud:        mockCloud,
-					gidAllocator: NewGidAllocator(),
+					gidAllocator: NewGidAllocator(mockCloud),
 				}
 
 				req := &csi.CreateVolumeRequest{
@@ -1121,7 +2117,7 @@ func TestCreateVolume(t *testing.T) {
 				driver := &Driver{
 					endpoint:     endpoint,
 					cloud:        mockCloud,
-					gidAllocator: NewGidAllocator(),
+					gidAllocator: NewGidAllocator(mockCloud),
 				}
 
 				req := &csi.CreateVolumeRequest{
@@ -1159,7 +2155,7 @@ func TestCreateVolume(t *testing.T) {
 				driver := &Driver{
 					endpoint:     endpoint,
 					cloud:        mockCloud,
-					gidAllocator: NewGidAllocator(),
+					gidAllocator: NewGidAllocator(mockCloud),
 				}
 
 				req := &csi.CreateVolumeRequest{
@@ -1197,7 +2193,7 @@ func TestCreateVolume(t *testing.T) {
 				driver := &Driver{
 					endpoint:     endpoint,
 					cloud:        mockCloud,
-					gidAllocator: NewGidAllocator(),
+					gidAllocator: NewGidAllocator(mockCloud),
 				}
 
 				req := &csi.CreateVolumeRequest{
@@ -1235,7 +2231,7 @@ func TestCreateVolume(t *testing.T) {
 				driver := &Driver{
 					endpoint:     endpoint,
 					cloud:        mockCloud,
-					gidAllocator: NewGidAllocator(),
+					gidAllocator: NewGidAllocator(mockCloud),
 				}
 
 				req := &csi.CreateVolumeRequest{
@@ -1260,7 +2256,8 @@ func TestCreateVolume(t *testing.T) {
 					FileSystemId: fsId,
 				}
 				mockCloud.EXPECT().DescribeFileSystem(gomock.Eq(ctx), gomock.Any()).Return(fileSystem, nil)
-				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(nil, errors.New("CreateAccessPoint call failed"))
+				mockCloud.EXPECT().ListAccessPoints(gomock.Eq(ctx), gomock.Any()).Return([]*cloud.AccessPoint{}, nil)
+				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("CreateAccessPoint call failed"))
 				_, err := driver.CreateVolume(ctx, req)
 				if err == nil {
 					t.Fatal("CreateVolume did not fail")
@@ -1277,7 +2274,7 @@ func TestCreateVolume(t *testing.T) {
 				driver := &Driver{
 					endpoint:     endpoint,
 					cloud:        mockCloud,
-					gidAllocator: NewGidAllocator(),
+					gidAllocator: NewGidAllocator(mockCloud),
 				}
 
 				req := &csi.CreateVolumeRequest{
@@ -1302,7 +2299,8 @@ func TestCreateVolume(t *testing.T) {
 					FileSystemId: fsId,
 				}
 				mockCloud.EXPECT().DescribeFileSystem(gomock.Eq(ctx), gomock.Any()).Return(fileSystem, nil)
-				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(nil, cloud.ErrAccessDenied)
+				mockCloud.EXPECT().ListAccessPoints(gomock.Eq(ctx), gomock.Any()).Return([]*cloud.AccessPoint{}, nil)
+				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, cloud.ErrAccessDenied)
 				_, err := driver.CreateVolume(ctx, req)
 				if err == nil {
 					t.Fatal("CreateVolume did not fail")
@@ -1319,7 +2317,7 @@ func TestCreateVolume(t *testing.T) {
 				driver := &Driver{
 					endpoint:     endpoint,
 					cloud:        mockCloud,
-					gidAllocator: NewGidAllocator(),
+					gidAllocator: NewGidAllocator(mockCloud),
 				}
 
 				req := &csi.CreateVolumeRequest{
@@ -1343,18 +2341,29 @@ func TestCreateVolume(t *testing.T) {
 				fileSystem := &cloud.FileSystem{
 					FileSystemId: fsId,
 				}
-				accessPoint := &cloud.AccessPoint{
+				ap1 := &cloud.AccessPoint{
 					AccessPointId: apId,
 					FileSystemId:  fsId,
+					PosixUser: &cloud.PosixUser{
+						Gid: 1000,
+						Uid: 1000,
+					},
+				}
+				ap2 := &cloud.AccessPoint{
+					AccessPointId: apId,
+					FileSystemId:  fsId,
+					PosixUser: &cloud.PosixUser{
+						Gid: 1001,
+						Uid: 1001,
+					},
 				}
 				mockCloud.EXPECT().DescribeFileSystem(gomock.Eq(ctx), gomock.Any()).Return(fileSystem, nil).AnyTimes()
-				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(accessPoint, nil).AnyTimes()
+				mockCloud.EXPECT().ListAccessPoints(gomock.Eq(ctx), gomock.Any()).Return([]*cloud.AccessPoint{ap1, ap2}, nil).AnyTimes()
+				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any(), gomock.Any()).Return(ap2, nil).AnyTimes()
 
 				var err error
-				// Input grants 2 GIDS, third CreateVolume call should result in error
-				for i := 0; i < 3; i++ {
-					_, err = driver.CreateVolume(ctx, req)
-				}
+				// All GIDs from available range are taken, CreateVolume should fail.
+				_, err = driver.CreateVolume(ctx, req)
 
 				if err == nil {
 					t.Fatalf("CreateVolume did not fail")
@@ -1371,7 +2380,7 @@ func TestCreateVolume(t *testing.T) {
 				driver := &Driver{
 					endpoint:     endpoint,
 					cloud:        mockCloud,
-					gidAllocator: NewGidAllocator(),
+					gidAllocator: NewGidAllocator(mockCloud),
 					tags:         parseTagsFromStr(""),
 				}
 
@@ -1408,6 +2417,153 @@ func TestCreateVolume(t *testing.T) {
 				mockCtl.Finish()
 			},
 		},
+		{
+			name: "Fail: subPathPattern is specified but uses unsupported attributes",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockCloud := mocks.NewMockCloud(mockCtl)
+
+				subPathPattern := "${.PVC.name}/${foo}"
+
+				driver := &Driver{
+					endpoint:     endpoint,
+					cloud:        mockCloud,
+					gidAllocator: NewGidAllocator(mockCloud),
+				}
+
+				req := &csi.CreateVolumeRequest{
+					Name: volumeName,
+					VolumeCapabilities: []*csi.VolumeCapability{
+						stdVolCap,
+					},
+					CapacityRange: &csi.CapacityRange{
+						RequiredBytes: capacityRange,
+					},
+					Parameters: map[string]string{
+						ProvisioningMode: "efs-ap",
+						FsId:             fsId,
+						DirectoryPerms:   "777",
+						SubPathPattern:   subPathPattern,
+					},
+				}
+
+				ctx := context.Background()
+
+				fileSystem := &cloud.FileSystem{
+					FileSystemId: fsId,
+				}
+
+				mockCloud.EXPECT().DescribeFileSystem(gomock.Eq(ctx), gomock.Any()).Return(fileSystem, nil)
+				mockCloud.EXPECT().ListAccessPoints(gomock.Eq(ctx), gomock.Any()).Return(nil, nil)
+
+				_, err := driver.CreateVolume(ctx, req)
+				if err == nil {
+					t.Fatal("CreateVolume did not fail")
+				}
+				if status.Code(err) != codes.InvalidArgument {
+					t.Fatalf("Did not throw InvalidArgument error, instead threw %v", err)
+				}
+				mockCtl.Finish()
+			},
+		},
+		{
+			name: "Fail: resulting accessPointDirectory is too over 100 characters",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockCloud := mocks.NewMockCloud(mockCtl)
+
+				subPathPattern := "this-directory-name-is-far-too-long-for-any-practical-purposes-and-only-serves-to-prove-a-point"
+
+				driver := &Driver{
+					endpoint:     endpoint,
+					cloud:        mockCloud,
+					gidAllocator: NewGidAllocator(mockCloud),
+				}
+
+				req := &csi.CreateVolumeRequest{
+					Name: volumeName,
+					VolumeCapabilities: []*csi.VolumeCapability{
+						stdVolCap,
+					},
+					CapacityRange: &csi.CapacityRange{
+						RequiredBytes: capacityRange,
+					},
+					Parameters: map[string]string{
+						ProvisioningMode: "efs-ap",
+						FsId:             fsId,
+						DirectoryPerms:   "777",
+						SubPathPattern:   subPathPattern,
+					},
+				}
+
+				ctx := context.Background()
+
+				fileSystem := &cloud.FileSystem{
+					FileSystemId: fsId,
+				}
+
+				mockCloud.EXPECT().DescribeFileSystem(gomock.Eq(ctx), gomock.Any()).Return(fileSystem, nil)
+				mockCloud.EXPECT().ListAccessPoints(gomock.Eq(ctx), gomock.Any()).Return(nil, nil)
+
+				_, err := driver.CreateVolume(ctx, req)
+				if err == nil {
+					t.Fatal("CreateVolume did not fail")
+				}
+				if status.Code(err) != codes.InvalidArgument {
+					t.Fatalf("Did not throw InvalidArgument error, instead threw %v", err)
+				}
+				mockCtl.Finish()
+			},
+		},
+		{
+			name: "Fail:  resulting accessPointDirectory contains over 4 subdirectories",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockCloud := mocks.NewMockCloud(mockCtl)
+
+				subPathPattern := "a/b/c/d/e/f"
+
+				driver := &Driver{
+					endpoint:     endpoint,
+					cloud:        mockCloud,
+					gidAllocator: NewGidAllocator(mockCloud),
+				}
+
+				req := &csi.CreateVolumeRequest{
+					Name: volumeName,
+					VolumeCapabilities: []*csi.VolumeCapability{
+						stdVolCap,
+					},
+					CapacityRange: &csi.CapacityRange{
+						RequiredBytes: capacityRange,
+					},
+					Parameters: map[string]string{
+						ProvisioningMode: "efs-ap",
+						FsId:             fsId,
+						DirectoryPerms:   "777",
+						SubPathPattern:   subPathPattern,
+					},
+				}
+
+				ctx := context.Background()
+
+				fileSystem := &cloud.FileSystem{
+					FileSystemId: fsId,
+				}
+
+				mockCloud.EXPECT().DescribeFileSystem(gomock.Eq(ctx), gomock.Any()).Return(fileSystem, nil)
+				mockCloud.EXPECT().ListAccessPoints(gomock.Eq(ctx), gomock.Any()).Return(nil, nil)
+
+				_, err := driver.CreateVolume(ctx, req)
+				if err == nil {
+					t.Fatal("CreateVolume did not fail")
+				}
+				if status.Code(err) != codes.InvalidArgument {
+					t.Fatalf("Did not throw InvalidArgument error, instead threw %v", err)
+				}
+				mockCtl.Finish()
+			},
+		},
 	}
 
 	for _, tc := range testCases {
@@ -1436,7 +2592,7 @@ func TestDeleteVolume(t *testing.T) {
 				driver := &Driver{
 					endpoint:     endpoint,
 					cloud:        mockCloud,
-					gidAllocator: NewGidAllocator(),
+					gidAllocator: NewGidAllocator(mockCloud),
 				}
 
 				req := &csi.DeleteVolumeRequest{
@@ -1463,7 +2619,7 @@ func TestDeleteVolume(t *testing.T) {
 					endpoint:                 endpoint,
 					cloud:                    mockCloud,
 					mounter:                  mockMounter,
-					gidAllocator:             NewGidAllocator(),
+					gidAllocator:             NewGidAllocator(mockCloud),
 					deleteAccessPointRootDir: true,
 				}
 
@@ -1502,7 +2658,7 @@ func TestDeleteVolume(t *testing.T) {
 					endpoint:                 endpoint,
 					cloud:                    mockCloud,
 					mounter:                  mockMounter,
-					gidAllocator:             NewGidAllocator(),
+					gidAllocator:             NewGidAllocator(mockCloud),
 					deleteAccessPointRootDir: true,
 				}
 
@@ -1530,7 +2686,7 @@ func TestDeleteVolume(t *testing.T) {
 					endpoint:                 endpoint,
 					cloud:                    mockCloud,
 					mounter:                  mockMounter,
-					gidAllocator:             NewGidAllocator(),
+					gidAllocator:             NewGidAllocator(mockCloud),
 					deleteAccessPointRootDir: true,
 				}
 
@@ -1558,7 +2714,7 @@ func TestDeleteVolume(t *testing.T) {
 					endpoint:                 endpoint,
 					cloud:                    mockCloud,
 					mounter:                  mockMounter,
-					gidAllocator:             NewGidAllocator(),
+					gidAllocator:             NewGidAllocator(mockCloud),
 					deleteAccessPointRootDir: true,
 				}
 
@@ -1586,7 +2742,7 @@ func TestDeleteVolume(t *testing.T) {
 					endpoint:                 endpoint,
 					cloud:                    mockCloud,
 					mounter:                  mockMounter,
-					gidAllocator:             NewGidAllocator(),
+					gidAllocator:             NewGidAllocator(mockCloud),
 					deleteAccessPointRootDir: true,
 				}
 
@@ -1622,7 +2778,7 @@ func TestDeleteVolume(t *testing.T) {
 					endpoint:                 endpoint,
 					cloud:                    mockCloud,
 					mounter:                  mockMounter,
-					gidAllocator:             NewGidAllocator(),
+					gidAllocator:             NewGidAllocator(mockCloud),
 					deleteAccessPointRootDir: true,
 				}
 
@@ -1659,7 +2815,7 @@ func TestDeleteVolume(t *testing.T) {
 					endpoint:                 endpoint,
 					cloud:                    mockCloud,
 					mounter:                  mockMounter,
-					gidAllocator:             NewGidAllocator(),
+					gidAllocator:             NewGidAllocator(mockCloud),
 					deleteAccessPointRootDir: true,
 				}
 
@@ -1695,7 +2851,7 @@ func TestDeleteVolume(t *testing.T) {
 				driver := &Driver{
 					endpoint:     endpoint,
 					cloud:        mockCloud,
-					gidAllocator: NewGidAllocator(),
+					gidAllocator: NewGidAllocator(mockCloud),
 				}
 
 				req := &csi.DeleteVolumeRequest{
@@ -1720,7 +2876,7 @@ func TestDeleteVolume(t *testing.T) {
 				driver := &Driver{
 					endpoint:     endpoint,
 					cloud:        mockCloud,
-					gidAllocator: NewGidAllocator(),
+					gidAllocator: NewGidAllocator(mockCloud),
 				}
 
 				req := &csi.DeleteVolumeRequest{
@@ -1745,7 +2901,7 @@ func TestDeleteVolume(t *testing.T) {
 				driver := &Driver{
 					endpoint:     endpoint,
 					cloud:        mockCloud,
-					gidAllocator: NewGidAllocator(),
+					gidAllocator: NewGidAllocator(mockCloud),
 				}
 
 				req := &csi.DeleteVolumeRequest{
@@ -1770,7 +2926,7 @@ func TestDeleteVolume(t *testing.T) {
 				driver := &Driver{
 					endpoint:     endpoint,
 					cloud:        mockCloud,
-					gidAllocator: NewGidAllocator(),
+					gidAllocator: NewGidAllocator(mockCloud),
 				}
 
 				req := &csi.DeleteVolumeRequest{
@@ -1794,7 +2950,7 @@ func TestDeleteVolume(t *testing.T) {
 				driver := &Driver{
 					endpoint:     endpoint,
 					cloud:        mockCloud,
-					gidAllocator: NewGidAllocator(),
+					gidAllocator: NewGidAllocator(mockCloud),
 					tags:         parseTagsFromStr(""),
 				}
 
@@ -1979,4 +3135,12 @@ func TestControllerGetCapabilities(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ControllerGetCapabilities failed: %v", err)
 	}
+}
+
+func verifyPathWhenUUIDIncluded(pathToVerify string, expectedPathWithoutUUID string) bool {
+	r := regexp.MustCompile("(.*)-([0-9A-fA-F]+-[0-9A-fA-F]+-[0-9A-fA-F]+-[0-9A-fA-F]+-[0-9A-fA-F]+$)")
+	matches := r.FindStringSubmatch(pathToVerify)
+	doesPathMatchWithUuid := matches[1] == expectedPathWithoutUUID
+	_, err := uuid.Parse(matches[2])
+	return err == nil && doesPathMatchWithUuid
 }

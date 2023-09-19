@@ -1,5 +1,3 @@
-[![Build Status](https://travis-ci.org/kubernetes-sigs/aws-efs-csi-driver.svg?branch=master)](https://travis-ci.org/kubernetes-sigs/aws-efs-csi-driver)
-[![Coverage Status](https://coveralls.io/repos/github/kubernetes-sigs/aws-efs-csi-driver/badge.svg?branch=master)](https://coveralls.io/github/kubernetes-sigs/aws-efs-csi-driver?branch=master)
 [![Go Report Card](https://goreportcard.com/badge/github.com/kubernetes-sigs/aws-efs-csi-driver)](https://goreportcard.com/report/github.com/kubernetes-sigs/aws-efs-csi-driver)
 
 ## Amazon EFS CSI Driver
@@ -26,19 +24,22 @@ The following CSI interfaces are implemented:
 * Identity Service: GetPluginInfo, GetPluginCapabilities, Probe
 
 ### Storage Class Parameters for Dynamic Provisioning
-| Parameters          | Values | Default | Optional  | Description |
-|---------------------|--------|---------|-----------|-------------|
-| provisioningMode    | efs-ap |         | false     | Type of volume provisioned by efs. Currently, Access Points are supported. |
-| fileSystemId        |        |         | false     | File System under which access points are created. | 
-| directoryPerms      |        |         | false     | Directory permissions for [Access Point root directory](https://docs.aws.amazon.com/efs/latest/ug/efs-access-points.html#enforce-root-directory-access-point) creation. |
-| uid                 |        |         | true      | POSIX user Id to be applied for [Access Point root directory](https://docs.aws.amazon.com/efs/latest/ug/efs-access-points.html#enforce-root-directory-access-point) creation and for [user identity enforcement](https://docs.aws.amazon.com/efs/latest/ug/efs-access-points.html#enforce-identity-access-points). |
-| gid                 |        |         | true      | POSIX group Id to be applied for [Access Point root directory](https://docs.aws.amazon.com/efs/latest/ug/efs-access-points.html#enforce-root-directory-access-point) creation and for [user identity enforcement](https://docs.aws.amazon.com/efs/latest/ug/efs-access-points.html#enforce-identity-access-points). |
-| gidRangeStart       |        | 50000   | true      | Start range of the POSIX group Id to be applied for [Access Point root directory](https://docs.aws.amazon.com/efs/latest/ug/efs-access-points.html#enforce-root-directory-access-point) creation and for [user identity enforcement](https://docs.aws.amazon.com/efs/latest/ug/efs-access-points.html#enforce-identity-access-points). Not used if uid/gid is set. For user identity enforcement, this value will be applied as both the uid and the gid. |
-| gidRangeEnd         |        | 7000000 | true      | End range of the POSIX group Id. Not used if uid/gid is set. |
-| basePath            |        |         | true      | Path under which access points for dynamic provisioning is created. If this parameter is not specified, access points are created under the root directory of the file system |
-| az                  |        |   ""    | true      | Used for cross-account mount. `az` under storage class parameter is optional. If specified, mount target associated with the az will be used for cross-account mount. If not specified, a random mount target will be picked for cross account mount |
+| Parameters            | Values | Default         | Optional | Description                                                                                                                                                                                                                                                                                                                                                                                   |
+|-----------------------|--------|-----------------|----------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| provisioningMode      | efs-ap |                 | false    | Type of volume provisioned by efs. Currently, Access Points are supported.                                                                                                                                                                                                                                                                                                                    |
+| fileSystemId          |        |                 | false    | File System under which access points are created.                                                                                                                                                                                                                                                                                                                                            | 
+| directoryPerms        |        |                 | false    | Directory permissions for [Access Point root directory](https://docs.aws.amazon.com/efs/latest/ug/efs-access-points.html#enforce-root-directory-access-point) creation.                                                                                                                                                                                                                       |
+| uid                   |        |                 | true     | POSIX user Id to be applied for [Access Point root directory](https://docs.aws.amazon.com/efs/latest/ug/efs-access-points.html#enforce-root-directory-access-point) creation.                                                                                                                                                                                                                 |
+| gid                   |        |                 | true     | POSIX group Id to be applied for [Access Point root directory](https://docs.aws.amazon.com/efs/latest/ug/efs-access-points.html#enforce-root-directory-access-point) creation.                                                                                                                                                                                                                |
+| gidRangeStart         |        | 50000           | true     | Start range of the POSIX group Id to be applied for [Access Point root directory](https://docs.aws.amazon.com/efs/latest/ug/efs-access-points.html#enforce-root-directory-access-point) creation. Not used if uid/gid is set.                                                                                                                                                                 |
+| gidRangeEnd           |        | 7000000         | true     | End range of the POSIX group Id. Not used if uid/gid is set.                                                                                                                                                                                                                                                                                                                                  |
+| basePath              |        |                 | true     | Path under which access points for dynamic provisioning is created. If this parameter is not specified, access points are created under the root directory of the file system                                                                                                                                                                                                                 |
+| subPathPattern        |        | `/${.PV.name}`  | true     | The template used to construct the subPath under which each of the access points created under Dynamic Provisioning. Can be made up of fixed strings and limited variables, is akin to the 'subPathPattern' variable on the [nfs-subdir-external-provisioner](https://github.com/kubernetes-sigs/nfs-subdir-external-provisioner) chart. Supports `.PVC.name`,`.PVC.namespace` and `.PV.name` |
+| ensureUniqueDirectory |        | true            | true     | **NOTE: Only set this to false if you're sure this is the behaviour you want**.<br/> Used when dynamic provisioning is enabled, if set to true, appends the a UID to the pattern specified in `subPathPattern` to ensure that access points will not accidentally point at the same directory.                                                                                                |
+| az                    |        | ""              | true     | Used for cross-account mount. `az` under storage class parameter is optional. If specified, mount target associated with the az will be used for cross-account mount. If not specified, a random mount target will be picked for cross account mount                                                                                                                                          |
+| reuseAccessPoint      |        | false           | true     | When set to true, it creates Accesspoint client-token from the provided PVC name. So that the AccessPoint can be re-used from a differen cluster if same PVC name and storageclass configuration are used.                                                                                                                                                                                    |
 
-**Notes**:
+**Note**
 * Custom Posix group Id range for Access Point root directory must include both `gidRangeStart` and `gidRangeEnd` parameters. These parameters are optional only if both are omitted. If you specify one, the other becomes mandatory.
 * When using a custom Posix group ID range, there is a possibility for the driver to run out of available POSIX group Ids. We suggest ensuring custom group ID range is large enough or create a new storage class with a new file system to provision additional volumes. 
 * `az` under storage class parameter is not be confused with efs-utils mount option `az`. The `az` mount option is used for cross-az mount or efs one zone file system mount within the same aws account as the cluster.
@@ -167,12 +168,137 @@ helm repo update
 helm upgrade --install aws-efs-csi-driver --namespace kube-system aws-efs-csi-driver/aws-efs-csi-driver
 ```
 
-To force the efs-csi-driver to use FIPS, you can add an argument to the helm upgrade command:
-```
-helm upgrade --install aws-efs-csi-driver --namespace kube-system aws-efs-csi-driver/aws-efs-csi-driver --set useFips=true
-```
-**Notes**: 
-* `hostNetwork: true` (should be added under spec/deployment on kubernetes installations where AWS metadata is not reachable from pod network. To fix the following error `NoCredentialProviders: no valid providers in chain` this parameter should be added.)
+This procedure requires Helm V3 or later. To install or upgrade Helm, see [Using Helm with Amazon EKS](https://docs.aws.amazon.com/eks/latest/userguide/helm.html).
+
+**To install the driver using Helm**
+
+1. Add the Helm repo.
+
+   ```sh
+   helm repo add aws-efs-csi-driver https://kubernetes-sigs.github.io/aws-efs-csi-driver/
+   ```
+
+2. Update the repo.
+
+   ```sh
+   helm repo update aws-efs-csi-driver
+   ```
+
+3. Install a release of the driver using the Helm chart.
+
+   ```sh
+   helm upgrade --install aws-efs-csi-driver --namespace kube-system aws-efs-csi-driver/aws-efs-csi-driver
+   ```
+
+   To specify an image repository, add the following argument. Replace the repository address with the cluster's [container image address](https://docs.aws.amazon.com/eks/latest/userguide/add-ons-images.html).
+   ```sh
+   --set image.repository=602401143452.dkr.ecr.region-code.amazonaws.com/eks/aws-efs-csi-driver
+   ```
+
+   If you already created a service account by following [Create an IAM policy and role for Amazon EKS](./iam-policy-create.md), then add the following arguments.
+   ```sh
+   --set controller.serviceAccount.create=false \
+   --set controller.serviceAccount.name=efs-csi-controller-sa
+   ```
+   
+   If you don't have outbound access to the Internet, add the following arguments.
+   ```sh
+   --set sidecars.livenessProbe.image.repository=602401143452.dkr.ecr.region-code.amazonaws.com/eks/livenessprobe \
+   --set sidecars.node-driver-registrar.image.repository=602401143452.dkr.ecr.region-code.amazonaws.com/eks/csi-node-driver-registrar \
+   --set sidecars.csiProvisioner.image.repository=602401143452.dkr.ecr.region-code.amazonaws.com/eks/csi-provisioner
+   ```
+
+   To force the Amazon EFS CSI driver to use FIPS for mounting the file system, add the following argument.
+   ```sh
+   --set useFips=true
+   ```
+**Note**  
+`hostNetwork: true` (should be added under spec/deployment on kubernetes installations where AWS metadata is not reachable from pod network. To fix the following error `NoCredentialProviders: no valid providers in chain` this parameter should be added.)
+
+------
+##### [ Manifest \(private registry\) ]
+
+If you want to download the image with a manifest, we recommend first trying these steps to pull secured images from the private Amazon ECR registry.
+
+**To install the driver using images stored in the private Amazon ECR registry**
+
+1. Download the manifest. Replace `release-X.X` with your desired branch. We recommend using the latest released version. For a list of active branches, see [Branches](../../../branches/active).
+
+   ```sh
+   kubectl kustomize \
+       "github.com/kubernetes-sigs/aws-efs-csi-driver/deploy/kubernetes/overlays/stable/ecr/?ref=release-1.X" > private-ecr-driver.yaml
+   ```
+   **Note**  
+   If you encounter an issue that you aren't able to resolve by adding IAM permissions, try the [Manifest \(public registry\)](#-manifest-public-registry-) steps instead.
+
+2. In the following command, replace `region-code` with the AWS Region that your cluster is in. Then run the modified command to replace `us-west-2` in the file with your AWS Region.
+
+   ```sh
+   sed -i.bak -e 's|us-west-2|region-code|' private-ecr-driver.yaml
+   ```
+
+3. Replace `account` in the following command with the account from [Amazon container image registries](add-ons-images.md) for the AWS Region that your cluster is in and then run the modified command to replace `602401143452` in the file.
+
+   ```sh
+   sed -i.bak -e 's|602401143452|account|' private-ecr-driver.yaml
+   ```
+
+4. If you already created a service account by following [Create an IAM policy and role for Amazon EKS](./iam-policy-create.md), then edit the `private-ecr-driver.yaml` file. Remove the following lines that create a Kubernetes service account.
+
+   ```
+   apiVersion: v1
+   kind: ServiceAccount
+   metadata:
+     labels:
+       app.kubernetes.io/name: aws-efs-csi-driver
+     name: efs-csi-controller-sa
+     namespace: kube-system
+   ---
+   ```
+
+5. Apply the manifest.
+
+   ```sh
+   kubectl apply -f private-ecr-driver.yaml
+   ```
+
+------
+##### [ Manifest \(public registry\) ]
+
+For some situations, you may not be able to add the necessary IAM permissions to pull from the private Amazon ECR registry. One example of this scenario is if your [IAM principal](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_terms-and-concepts.html) isn't allowed to authenticate with someone else's account. When this is true, you can use the public Amazon ECR registry.
+
+**To install the driver using images stored in the public Amazon ECR registry**
+
+1. Download the manifest. Replace `release-X.X` with your desired branch. We recommend using the latest released version. For a list of active branches, see [Branches](../../../branches/active).
+
+   ```sh
+   kubectl kustomize \
+       "github.com/kubernetes-sigs/aws-efs-csi-driver/deploy/kubernetes/overlays/stable/?ref=release-1.X" > public-ecr-driver.yaml
+   ```
+
+2. If you already created a service account by following [Create an IAM policy and role](./iam-policy-create.md), then edit the `private-ecr-driver.yaml` file. Remove the following lines that create a Kubernetes service account.
+
+   ```sh
+   apiVersion: v1
+   kind: ServiceAccount
+   metadata:
+     labels:
+       app.kubernetes.io/name: aws-efs-csi-driver
+     name: efs-csi-controller-sa
+     namespace: kube-system
+   ---
+   ```
+
+3. Apply the manifest.
+
+   ```sh
+   kubectl apply -f public-ecr-driver.yaml
+   ```
+------
+
+After deploying the driver, you can continue to these sections:
+* [Create an Amazon EFS file system for Amazon EKS](./efs-create-filesystem.md)
+* [Examples](#examples)
 
 ### Container Arguments for efs-plugin of efs-csi-node daemonset
 | Parameters                  | Values | Default | Optional | Description                                                                                                                                                                                                                             |
