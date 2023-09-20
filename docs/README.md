@@ -37,7 +37,7 @@ The following CSI interfaces are implemented:
 | subPathPattern        |        | `/${.PV.name}`  | true     | The template used to construct the subPath under which each of the access points created under Dynamic Provisioning. Can be made up of fixed strings and limited variables, is akin to the 'subPathPattern' variable on the [nfs-subdir-external-provisioner](https://github.com/kubernetes-sigs/nfs-subdir-external-provisioner) chart. Supports `.PVC.name`,`.PVC.namespace` and `.PV.name` |
 | ensureUniqueDirectory |        | true            | true     | **NOTE: Only set this to false if you're sure this is the behaviour you want**.<br/> Used when dynamic provisioning is enabled, if set to true, appends the a UID to the pattern specified in `subPathPattern` to ensure that access points will not accidentally point at the same directory.                                                                                                |
 | az                    |        | ""              | true     | Used for cross-account mount. `az` under storage class parameter is optional. If specified, mount target associated with the az will be used for cross-account mount. If not specified, a random mount target will be picked for cross account mount                                                                                                                                          |
-| reuseAccessPoint      |        | false           | true     | When set to true, it creates Accesspoint client-token from the provided PVC name. So that the AccessPoint can be re-used from a differen cluster if same PVC name and storageclass configuration are used.                                                                                                                                                                                    |
+| reuseAccessPoint      |        | false           | true     | When set to true, it creates the Access Point client-token from the provided PVC name. So that the AccessPoint can be replicated from a different cluster if same PVC name and storageclass configuration are used.                                                                                                                                                                                    |
 
 **Note**
 * Custom Posix group Id range for Access Point root directory must include both `gidRangeStart` and `gidRangeEnd` parameters. These parameters are optional only if both are omitted. If you specify one, the other becomes mandatory.
@@ -71,6 +71,7 @@ The following sections are Kubernetes specific. If you are a Kubernetes user, us
 | AWS EFS CSI Driver \ Kubernetes Version | maturity | v1.11 | v1.12 | v1.13 | v1.14 | v1.15 | v1.16 | v1.17+ |
 |-----------------------------------------|----------|-------|-------|-------|-------|-------|-------|--------|
 | master branch                           | GA       | no    | no    | no    | no    | no    | no    | yes    |
+| v1.7.x                                  | GA       | no    | no    | no    | no    | no    | no    | yes    |
 | v1.6.x                                  | GA       | no    | no    | no    | no    | no    | no    | yes    |
 | v1.5.x                                  | GA       | no    | no    | no    | no    | no    | no    | yes    |
 | v1.4.x                                  | GA       | no    | no    | no    | no    | no    | no    | yes    |
@@ -86,6 +87,7 @@ The following sections are Kubernetes specific. If you are a Kubernetes user, us
 | EFS CSI Driver Version | Image                            |
 |------------------------|----------------------------------|
 | master branch          | amazon/aws-efs-csi-driver:master |
+| v1.7.0                 | amazon/aws-efs-csi-driver:v1.7.0 |
 | v1.6.0                 | amazon/aws-efs-csi-driver:v1.6.0 |
 | v1.5.9                 | amazon/aws-efs-csi-driver:v1.5.9 |
 | v1.5.8                 | amazon/aws-efs-csi-driver:v1.5.8 |
@@ -128,7 +130,7 @@ The following sections are Kubernetes specific. If you are a Kubernetes user, us
 ### ECR Image
 | Driver Version | [ECR](https://gallery.ecr.aws/efs-csi-driver/amazon/aws-efs-csi-driver) Image |
 |----------------|-------------------------------------------------------------------------------|
-| v1.6.0         | public.ecr.aws/efs-csi-driver/amazon/aws-efs-csi-driver:v1.6.0                |
+| v1.7.0         | public.ecr.aws/efs-csi-driver/amazon/aws-efs-csi-driver:v1.7.0                |
 
 #### Note : You can find previous efs-csi-driver versions' images from [here](https://gallery.ecr.aws/efs-csi-driver/amazon/aws-efs-csi-driver)
 
@@ -153,7 +155,7 @@ The driver requires IAM permission to talk to Amazon EFS to manage the volume on
 
 If you want to deploy the stable driver:
 ```sh
-kubectl apply -k "github.com/kubernetes-sigs/aws-efs-csi-driver/deploy/kubernetes/overlays/stable/?ref=release-1.6"
+kubectl apply -k "github.com/kubernetes-sigs/aws-efs-csi-driver/deploy/kubernetes/overlays/stable/?ref=release-1.7"
 ```
 
 If you want to deploy the development driver:
@@ -318,16 +320,16 @@ After deploying the driver, you can continue to these sections:
 #### Upgrade to the latest version:
 If you want to update to latest released version:
 ```sh
-kubectl apply -k "github.com/kubernetes-sigs/aws-efs-csi-driver/deploy/kubernetes/overlays/stable/?ref=release-1.6"
+kubectl apply -k "github.com/kubernetes-sigs/aws-efs-csi-driver/deploy/kubernetes/overlays/stable/?ref=release-1.7"
 ```
 
 #### Upgrade to a specific version:
 If you want to update to a specific version, first customize the driver yaml file locally:
 ```sh
-kubectl kustomize "github.com/kubernetes-sigs/aws-efs-csi-driver/deploy/kubernetes/overlays/stable/?ref=release-1.6" > driver.yaml
+kubectl kustomize "github.com/kubernetes-sigs/aws-efs-csi-driver/deploy/kubernetes/overlays/stable/?ref=release-1.7" > driver.yaml
 ```
 
-Then, update all lines referencing `image: amazon/aws-efs-csi-driver` to the desired version (e.g., to `image: amazon/aws-efs-csi-driver:v1.6.0`) in the yaml file, and deploy driver yaml again:
+Then, update all lines referencing `image: amazon/aws-efs-csi-driver` to the desired version (e.g., to `image: amazon/aws-efs-csi-driver:v1.7.0`) in the yaml file, and deploy driver yaml again:
 ```sh
 kubectl apply -f driver.yaml
 ```
