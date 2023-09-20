@@ -1,3 +1,16 @@
+# V1.7.0
+* Added Storage Class features to allow more control of the directory structure of Access Points under Dynamic Provisioning. ([#640](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/640), [@jonathanrainer](https://github.com/jonathanrainer))
+* Added Storage Class feature to allow access points to be replicated across different clusters. ([#1026](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1026), [@mskanth972](https://github.com/mskanth972))
+* Fixed GID allocator. ([#850](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/850), [@RomanBednar](https://github.com/RomanBednar))
+* Added unit test for subpath patterns with repeated elements. ([#1117](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1117), [@seanzatzdev-amazon](https://github.com/seanzatzdev-amazon))
+* Updated manifest paths in aws-efs-csi-driver/vendor/k8s.io/kubernetes/test/e2e/storage/testsuites/provisioning.go. ([#1118](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1118), [@seanzatzdev-amazon](https://github.com/seanzatzdev-amazon))
+* Added e2e test for dynamic provisioning. ([#1120](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1120), [@seanzatzdev-amazon](https://github.com/seanzatzdev-amazon))
+* Added CSI_NODE_NAME to node Daemonset. ([#1124](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1124), [@RyanStan](https://github.com/RyanStan))
+* Removed old TravisCI config file. ([#1129](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1129), [@jacobwolfaws](https://github.com/jacobwolfaws))
+* Added hostnetwork back to Node Daemonset. ([#1130](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1130), [@RyanStan](https://github.com/RyanStan))
+* Fixed ensureUniqueDirectory parameter in docs. ([#1133](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1133), [@wilkerlucio](https://github.com/wilkerlucio))
+* Increased the AccessPoint MAX limit from 120 to 1000. ([#1135](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1135), [@seanzatzdev-amazon](https://github.com/seanzatzdev-amazon))
+* Moved to new s3 bucket. ([#1137](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1137), [@dims](https://github.com/dims))
 # V1.6.0
 * Bump golang.org/x/net/html to fix CVE-2023-3978. ([#1089](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1089), [@jsafrane](https://github.com/jsafrane))
 * Set efs-plugin container security context to `true` which can solve the deleteAccessPointRootDir issues. ([#1096](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1096),
