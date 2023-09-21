@@ -50,6 +50,8 @@ imagePullSecrets: []
 controller:
   # Specifies whether a deployment should be created
   create: true
+  # Specifies whether the controller can access secrets required for cross account EFS mounting.
+  crossAccountPermission: false
   # Number for the log level verbosity
   logLevel: 2
   # If set, add pv/pvc metadata to plugin create requests as parameters.
