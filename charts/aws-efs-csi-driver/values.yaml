@@ -163,6 +163,33 @@ node:
     runAsGroup: 0
     fsGroup: 0
 
+additionalDaemonSets:
+# Additional node DaemonSets, using the config structure
+# See docs/additional-daemonsets.md for more information
+#
+# example:
+#    kubelet: /mnt/resource/kubelet
+#    tolerations:
+#      - operator: Exists
+#    nodeSelector: { }
+#    affinity:
+#      nodeAffinity:
+#        requiredDuringSchedulingIgnoredDuringExecution:
+#          nodeSelectorTerms:
+#            - matchExpressions:
+#                - key: eks.amazonaws.com/compute-type
+#                  operator: NotIn
+#                  values:
+#                    - fargate
+#                - key: kubelet.kubernetes.io/directory-location
+#                  operator: In
+#                  values:
+#                    - mnt-resource-kubelet
+#                - key: kubernetes.io/os
+#                  operator: In
+#                  values:
+#                    - linux
+
 storageClasses: []
 # Add StorageClass resources like:
 # - name: efs-sc
