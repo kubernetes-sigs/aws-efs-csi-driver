@@ -63,6 +63,12 @@ controller:
   # path on efs when deleteing an access point
   deleteAccessPointRootDir: false
   podAnnotations: {}
+  podLabel: {}
+  hostNetwork: false
+  priorityClassName: system-cluster-critical
+  dnsPolicy: ClusterFirst
+  dnsConfig: {}
+  additionalLabels: {}
   resources:
     {}
     # We usually recommend not to specify default resources and to leave this as a conscious
@@ -94,6 +100,11 @@ controller:
     runAsUser: 0
     runAsGroup: 0
     fsGroup: 0
+  # securityContext on the controller container
+  containerSecurityContext:
+    privileged: true
+  leaderElectionRenewDeadline: 10s
+  leaderElectionLeaseDuration: 15s
 
 
 ## Node daemonset variables

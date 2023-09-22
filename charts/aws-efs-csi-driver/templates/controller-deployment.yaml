@@ -6,6 +6,9 @@ metadata:
   name: efs-csi-controller
   labels:
     app.kubernetes.io/name: {{ include "aws-efs-csi-driver.name" . }}
+    {{- with .Values.controller.additionalLabels }}
+    {{ toYaml . | nindent 4 }}
+    {{- end }}
 spec:
   replicas: {{ .Values.replicaCount }}
   selector:
@@ -23,10 +26,16 @@ spec:
         app: efs-csi-controller
         app.kubernetes.io/name: {{ include "aws-efs-csi-driver.name" . }}
         app.kubernetes.io/instance: {{ .Release.Name }}
+        {{- with .Values.controller.podLabels }}
+        {{ toYaml . | nindent 8 }}
+        {{- end }}
       {{- with .Values.controller.podAnnotations }}
       annotations: {{- toYaml . | nindent 8 }}
       {{- end }}
     spec:
+      {{- if hasKey .Values.controller "hostNetwork" }}
+      hostNetwork: {{ .Values.controller.hostNetwork }}
+      {{- end }}
       {{- if .Values.imagePullSecrets }}
       imagePullSecrets:
         {{- range .Values.imagePullSecrets }}
@@ -39,7 +48,7 @@ spec:
         {{- toYaml . | nindent 8 }}
         {{- end }}
       serviceAccountName: {{ .Values.controller.serviceAccount.name }}
-      priorityClassName: system-cluster-critical
+      priorityClassName: {{ .Values.controller.priorityClassName | default "system-cluster-critical" }}
       {{- with .Values.controller.tolerations }}
       tolerations: {{- toYaml . | nindent 8 }}
       {{- end }}
@@ -47,10 +56,18 @@ spec:
       securityContext:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      {{- if .Values.controller.dnsPolicy }}
+      dnsPolicy: {{ .Values.node.dnsPolicy }}
+      {{- end }}
+      {{- with .Values.node.dnsConfig }}
+      dnsConfig: {{- toYaml . | nindent 8 }}
+      {{- end }}
       containers:
         - name: efs-plugin
+          {{- with .Values.controller.containerSecurityContext }}
           securityContext:
-            privileged: true
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           image: {{ printf "%s:%s" .Values.image.repository (default (printf "v%s" .Chart.AppVersion) (toString .Values.image.tag)) }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           args:
@@ -105,6 +122,12 @@ spec:
             - --extra-create-metadata
             {{- end }}
             - --leader-election
+            {{- if hasKey .Values.controller "leaderElectionRenewDeadline" }}
+            - --leader-election-renew-deadline={{ .Values.controller.leaderElectionRenewDeadline }}
+            {{- end }}
+            {{- if hasKey .Values.controller "leaderElectionLeaseDuration" }}
+            - --leader-election-lease-duration={{ .Values.controller.leaderElectionLeaseDuration }}
+            {{- end }}
           env:
             - name: ADDRESS
               value: /var/lib/csi/sockets/pluginproxy/csi.sock
