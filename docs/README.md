@@ -52,6 +52,9 @@ If you want to pass any other mountOptions to Amazon EFS CSI driver while mounti
 * **lookupcache**: Specifies how the kernel manages its cache of directory entries for a given mount point. Mode can be one of all, none, pos, or positive. Each mode has different functions and for more information you can refer to this [link](https://linux.die.net/man/5/nfs).
 * **iam**: Use the CSI Node Pod's IAM identity to authenticate with Amazon EFS.
 
+### Default Mount Options
+Please note that by default, the EFS CSI driver has the `noresvport` mount option enabled. Ensure you account for this in your configuration and usage.
+
 ### Encryption In Transit
 One of the advantages of using Amazon EFS is that it provides [encryption in transit](https://aws.amazon.com/blogs/aws/new-encryption-of-data-in-transit-for-amazon-efs/) support using TLS. Using encryption in transit, data will be encrypted during its transition over the network to the Amazon EFS service. This provides an extra layer of defence-in-depth for applications that requires strict security compliance.
 
