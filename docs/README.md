@@ -57,6 +57,9 @@ Examples of some mountOptions that can be passed:
 
 **iam**: Use the CSI Node Pod's IAM identity to authenticate with EFS.
 
+### Default Mount Options
+When using the EFS CSI driver, be aware that the `noresvport` mount option is enabled by default. This means the client can use any available source port for communication, not just the reserved ports.
+
 ### Encryption In Transit
 One of the advantages of using EFS is that it provides [encryption in transit](https://aws.amazon.com/blogs/aws/new-encryption-of-data-in-transit-for-amazon-efs/) support using TLS. Using encryption in transit, data will be encrypted during its transition over the network to the EFS service. This provides an extra layer of defence-in-depth for applications that requires strict security compliance.
 
