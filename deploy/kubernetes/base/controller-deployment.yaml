@@ -25,6 +25,9 @@ spec:
         kubernetes.io/os: linux
       serviceAccountName: efs-csi-controller-sa
       priorityClassName: system-cluster-critical
+      tolerations:
+        - key: CriticalAddonsOnly
+          operator: Exists
       securityContext:
         fsGroup: 0
         runAsGroup: 0
