@@ -50,6 +50,10 @@ You must complete the following steps in the same terminal because variables are
           --port 2049 \
           --cidr $cidr_range
       ```
+
+   > [!NOTE]
+   > If using [custom networking](https://aws.github.io/aws-eks-best-practices/networking/custom-networking/) in EKS, you may need to add Security Group ingress rules for your secondary CIDR ranges.
+   
 **Important**  
 To further restrict access to your file system, you can use the CIDR for your subnet instead of the VPC.
 
