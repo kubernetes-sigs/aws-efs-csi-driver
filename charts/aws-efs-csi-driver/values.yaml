@@ -83,6 +83,9 @@ controller:
     - key: efs.csi.aws.com/agent-not-ready
       operator: Exists
   affinity: {}
+  env: []
+  volumes: []
+  volumeMounts: []
   # Specifies whether a service account should be created
   serviceAccount:
     create: true
@@ -166,6 +169,9 @@ node:
     runAsUser: 0
     runAsGroup: 0
     fsGroup: 0
+  env: []
+  volumes: []
+  volumeMounts: []
 
 storageClasses: []
 # Add StorageClass resources like:
