@@ -787,7 +787,7 @@ func TestCreateVolume(t *testing.T) {
 				accessPoints := []*cloud.AccessPoint{accessPoint}
 				mockCloud.EXPECT().DescribeFileSystem(gomock.Eq(ctx), gomock.Any()).Return(fileSystem, nil)
 				mockCloud.EXPECT().ListAccessPoints(gomock.Eq(ctx), gomock.Any()).Return(accessPoints, nil)
-				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Eq(get64LenHash(pvcNameVal)), gomock.Any(), gomock.Any()).Return(accessPoint, nil)
+				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Eq(get64LenHash(pvcNameVal+fsId)), gomock.Any(), gomock.Any()).Return(accessPoint, nil)
 
 				res, err := driver.CreateVolume(ctx, req)
 
