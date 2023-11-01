@@ -11,7 +11,7 @@ useFIPS: false
 
 image:
   repository: public.ecr.aws/efs-csi-driver/amazon/aws-efs-csi-driver
-  tag: "v1.5.7"
+  tag: "v1.7.0"
   pullPolicy: IfNotPresent
 
 sidecars:
@@ -77,7 +77,9 @@ controller:
     #   memory: 128Mi
   nodeSelector: {}
   updateStrategy: {}
-  tolerations: []
+  tolerations:
+    - key: CriticalAddonsOnly
+      operator: Exists
   affinity: {}
   # Specifies whether a service account should be created
   serviceAccount:
@@ -178,5 +180,7 @@ storageClasses: []
 #     gidRangeStart: "1000"
 #     gidRangeEnd: "2000"
 #     basePath: "/dynamic_provisioning"
+#     subPathPattern: "/subPath"
+#     ensureUniqueDirectory: true
 #   reclaimPolicy: Delete
 #   volumeBindingMode: Immediate

@@ -4,25 +4,26 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strconv"
+	"strings"
 	"time"
 
-	"github.com/onsi/ginkgo"
+	"k8s.io/apimachinery/pkg/util/rand"
+
+	"github.com/onsi/ginkgo/v2"
 	v1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/fields"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/sets"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/kubernetes/test/e2e/framework"
-	e2enode "k8s.io/kubernetes/test/e2e/framework/node"
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
-	e2evolume "k8s.io/kubernetes/test/e2e/framework/volume"
 	storageframework "k8s.io/kubernetes/test/e2e/storage/framework"
 	"k8s.io/kubernetes/test/e2e/storage/testsuites"
 	"k8s.io/kubernetes/test/e2e/storage/utils"
+	admissionapi "k8s.io/pod-security-admission/api"
 )
 
 var (
@@ -120,12 +121,18 @@ func (e *efsDriver) GetDynamicProvisionStorageClass(config *storageframework.Per
 	defaultBindingMode := storagev1.VolumeBindingImmediate
 	return &storagev1.StorageClass{
 		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: generateName,
+			//GenerateName: generateName,
+			Name: generateName + generateRandomString(4),
 		},
 		Provisioner:       "efs.csi.aws.com",
 		Parameters:        parameters,
 		VolumeBindingMode: &defaultBindingMode,
 	}
+}
+
+func generateRandomString(len int) string {
+	rand.Seed(time.Now().UnixNano())
+	return rand.String(len)
 }
 
 // List of testSuites to be executed in below loop
@@ -228,6 +235,7 @@ var _ = ginkgo.Describe("[efs-csi] EFS CSI", func() {
 	})
 
 	f := framework.NewDefaultFramework("efs")
+	f.NamespacePodSecurityEnforceLevel = admissionapi.LevelPrivileged
 
 	ginkgo.Context(storageframework.GetDriverNameWithFeatureTags(driver), func() {
 		ginkgo.It("should mount different paths on same volume on same node", func() {
@@ -265,56 +273,36 @@ var _ = ginkgo.Describe("[efs-csi] EFS CSI", func() {
 			framework.ExpectNoError(e2epod.WaitForPodNameRunningInNamespace(f.ClientSet, pod.Name, f.Namespace.Name), "waiting for pod running")
 		})
 
-		ginkgo.It("should continue reading/writing without hanging after the driver pod is restarted", func() {
-			ginkgo.By(fmt.Sprintf("Creating efs pvc & pv"))
+		ginkgo.It("should continue reading/writing without interruption after the driver pod is restarted", func() {
+			const FilePath = "/mnt/testfile.txt"
+			const TestDuration = 30 * time.Second
+
+			ginkgo.By("Creating EFS PVC and associated PV")
 			pvc, pv, err := createEFSPVCPV(f.ClientSet, f.Namespace.Name, f.Namespace.Name, "", map[string]string{})
-			framework.ExpectNoError(err, "creating efs pvc & pv")
-			defer func() {
-				_ = f.ClientSet.CoreV1().PersistentVolumes().Delete(context.TODO(), pv.Name, metav1.DeleteOptions{})
-			}()
+			framework.ExpectNoError(err)
+			defer f.ClientSet.CoreV1().PersistentVolumes().Delete(context.TODO(), pv.Name, metav1.DeleteOptions{})
 
-			node, err := e2enode.GetRandomReadySchedulableNode(f.ClientSet)
-			framework.ExpectNoError(err, "getting random ready schedulable node")
-			command := fmt.Sprintf("touch /mnt/volume1/%s-%s && trap exit TERM; while true; do sleep 1; done", f.Namespace.Name, time.Now().Format(time.RFC3339))
-
-			ginkgo.By(fmt.Sprintf("Creating pod on node %q to mount pvc %q and run %q", node.Name, pvc.Name, command))
-			pod := e2epod.MakePod(f.Namespace.Name, nil, []*v1.PersistentVolumeClaim{pvc}, false, command)
-			pod.Spec.NodeName = node.Name
+			ginkgo.By("Deploying a pod to write data")
+			writeCommand := fmt.Sprintf("while true; do date +%%s >> %s; sleep 1; done", FilePath)
+			pod := e2epod.MakePod(f.Namespace.Name, nil, []*v1.PersistentVolumeClaim{pvc}, false, writeCommand)
 			pod, err = f.ClientSet.CoreV1().Pods(f.Namespace.Name).Create(context.TODO(), pod, metav1.CreateOptions{})
-			framework.ExpectNoError(err, "creating pod")
-			framework.ExpectNoError(e2epod.WaitForPodNameRunningInNamespace(f.ClientSet, pod.Name, f.Namespace.Name), "waiting for pod running")
+			framework.ExpectNoError(err)
+			framework.ExpectNoError(e2epod.WaitForPodNameRunningInNamespace(f.ClientSet, pod.Name, f.Namespace.Name))
+			defer f.ClientSet.CoreV1().Pods(f.Namespace.Name).Delete(context.TODO(), pod.Name, metav1.DeleteOptions{})
 
-			ginkgo.By(fmt.Sprintf("Getting driver pod on node %q", node.Name))
-			labelSelector := labels.SelectorFromSet(EfsDriverLabelSelectors).String()
-			fieldSelector := fields.SelectorFromSet(fields.Set{"spec.nodeName": node.Name}).String()
-			podList, err := f.ClientSet.CoreV1().Pods(EfsDriverNamespace).List(
-				context.TODO(),
-				metav1.ListOptions{
-					LabelSelector: labelSelector,
-					FieldSelector: fieldSelector,
-				})
-			framework.ExpectNoError(err, "getting driver pod")
-			framework.ExpectEqual(len(podList.Items), 1, "expected 1 efs csi node pod but got %d", len(podList.Items))
-			driverPod := podList.Items[0]
+			ginkgo.By("Triggering a restart for the EFS CSI Node DaemonSet")
+			_, err = framework.RunKubectl("kube-system", "rollout", "restart", "daemonset", "efs-csi-node")
+			framework.ExpectNoError(err)
 
-			ginkgo.By(fmt.Sprintf("Deleting driver pod %q on node %q", driverPod.Name, node.Name))
-			err = e2epod.DeletePodWithWaitByName(f.ClientSet, driverPod.Name, EfsDriverNamespace)
-			framework.ExpectNoError(err, "deleting driver pod")
+			time.Sleep(TestDuration)
 
-			ginkgo.By(fmt.Sprintf("Execing a write via the pod on node %q", node.Name))
-			command = fmt.Sprintf("touch /mnt/volume1/%s-%s", f.Namespace.Name, time.Now().Format(time.RFC3339))
-			done := make(chan bool)
-			go func() {
-				defer ginkgo.GinkgoRecover()
-				e2evolume.VerifyExecInPodSucceed(f, pod, command)
-				done <- true
-			}()
-			select {
-			case <-done:
-				framework.Logf("verified exec in pod succeeded")
-			case <-time.After(30 * time.Second):
-				framework.Failf("timed out verifying exec in pod succeeded")
-			}
+			ginkgo.By("Validating no interruption")
+			readCommand := fmt.Sprintf("cat %s", FilePath)
+			content, err := framework.RunKubectl(f.Namespace.Name, "exec", pod.Name, "--", "/bin/sh", "-c", readCommand)
+			framework.ExpectNoError(err)
+
+			timestamps := strings.Split(strings.TrimSpace(content), "\n")
+			checkInterruption(timestamps)
 		})
 
 		testEncryptInTransit := func(f *framework.Framework, encryptInTransit *bool) {
@@ -372,8 +360,107 @@ var _ = ginkgo.Describe("[efs-csi] EFS CSI", func() {
 			encryptInTransit := false
 			testEncryptInTransit(f, &encryptInTransit)
 		})
+
+		ginkgo.It("should successfully perform dynamic provisioning", func() {
+
+			ginkgo.By("Creating EFS Storage Class, PVC and associated PV")
+			params := map[string]string{
+				"provisioningMode":      "efs-ap",
+				"fileSystemId":          FileSystemId,
+				"subPathPattern":        "${.PVC.name}",
+				"directoryPerms":        "700",
+				"gidRangeStart":         "1000",
+				"gidRangeEnd":           "2000",
+				"basePath":              "/dynamic_provisioning",
+				"ensureUniqueDirectory": "true",
+			}
+
+			sc := GetStorageClass(params)
+			sc, err := f.ClientSet.StorageV1().StorageClasses().Create(context.TODO(), sc, metav1.CreateOptions{})
+			framework.ExpectNoError(err, "creating storage class")
+			pvc, err := createEFSPVCPVDynamicProvisioning(f.ClientSet, f.Namespace.Name, f.Namespace.Name, sc.Name)
+			framework.ExpectNoError(err, "creating pvc")
+
+			ginkgo.By("Deploying a pod that applies the PVC and writes data")
+			testData := "DP TEST"
+			writePath := "/mnt/volume1/out"
+			writeCommand := fmt.Sprintf("echo \"%s\" >> %s", testData, writePath)
+			pod := e2epod.MakePod(f.Namespace.Name, nil, []*v1.PersistentVolumeClaim{pvc}, false, writeCommand)
+			pod, err = f.ClientSet.CoreV1().Pods(f.Namespace.Name).Create(context.TODO(), pod, metav1.CreateOptions{})
+			framework.ExpectNoError(err, "creating pod")
+			framework.ExpectNoError(e2epod.WaitForPodSuccessInNamespace(f.ClientSet, pod.Name, f.Namespace.Name), "waiting for pod success")
+			_ = f.ClientSet.CoreV1().Pods(f.Namespace.Name).Delete(context.TODO(), pod.Name, metav1.DeleteOptions{})
+
+			ginkgo.By("Deploying a second pod that reads the data")
+			pod = e2epod.MakePod(f.Namespace.Name, nil, []*v1.PersistentVolumeClaim{pvc}, false, "while true; do echo $(date -u); sleep 5; done")
+			pod, err = f.ClientSet.CoreV1().Pods(f.Namespace.Name).Create(context.TODO(), pod, metav1.CreateOptions{})
+			framework.ExpectNoError(err, "creating pod")
+			framework.ExpectNoError(e2epod.WaitForPodNameRunningInNamespace(f.ClientSet, pod.Name, f.Namespace.Name), "waiting for pod running")
+
+			readCommand := fmt.Sprintf("cat %s", writePath)
+			output := framework.RunKubectlOrDie(f.Namespace.Name, "exec", pod.Name, "--", "/bin/sh", "-c", readCommand)
+			output = strings.TrimSuffix(output, "\n")
+			framework.Logf("The output is: %s", output)
+
+			defer func() {
+				_ = f.ClientSet.CoreV1().Pods(f.Namespace.Name).Delete(context.TODO(), pod.Name, metav1.DeleteOptions{})
+				_ = f.ClientSet.CoreV1().PersistentVolumeClaims(f.Namespace.Name).Delete(context.TODO(), pvc.Name, metav1.DeleteOptions{})
+				_ = f.ClientSet.StorageV1().StorageClasses().Delete(context.TODO(), sc.Name, metav1.DeleteOptions{})
+			}()
+
+			if output == "" {
+				ginkgo.Fail("Read data is empty.")
+			}
+			if output != testData {
+				ginkgo.Fail("Read data does not match write data.")
+			}
+		})
+
 	})
 })
+
+func createEFSPVCPVDynamicProvisioning(c clientset.Interface, namespace, name, storageClassName string) (*v1.PersistentVolumeClaim, error) {
+	pvc := makeEFSPVCDynamicProvisioning(namespace, name, storageClassName)
+	pvc, err := c.CoreV1().PersistentVolumeClaims(namespace).Create(context.TODO(), pvc, metav1.CreateOptions{})
+	if err != nil {
+		return nil, err
+	}
+	return pvc, nil
+}
+
+func makeEFSPVCDynamicProvisioning(namespace, name string, storageClassName string) *v1.PersistentVolumeClaim {
+	return &v1.PersistentVolumeClaim{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Spec: v1.PersistentVolumeClaimSpec{
+			AccessModes: []v1.PersistentVolumeAccessMode{v1.ReadWriteMany},
+			Resources: v1.ResourceRequirements{
+				Requests: v1.ResourceList{
+					v1.ResourceStorage: resource.MustParse("1Gi"),
+				},
+			},
+			StorageClassName: &storageClassName,
+		},
+	}
+}
+
+func GetStorageClass(params map[string]string) *storagev1.StorageClass {
+	parameters := params
+
+	generateName := fmt.Sprintf("efs-csi-dynamic-sc-test1234-")
+
+	defaultBindingMode := storagev1.VolumeBindingImmediate
+	return &storagev1.StorageClass{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: generateName + generateRandomString(4),
+		},
+		Provisioner:       "efs.csi.aws.com",
+		Parameters:        parameters,
+		VolumeBindingMode: &defaultBindingMode,
+	}
+}
 
 func createEFSPVCPV(c clientset.Interface, namespace, name, path string, volumeAttributes map[string]string) (*v1.PersistentVolumeClaim, *v1.PersistentVolume, error) {
 	pvc, pv := makeEFSPVCPV(namespace, name, path, volumeAttributes)
@@ -452,4 +539,32 @@ func makeDir(path string) error {
 		}
 	}
 	return nil
+}
+
+// checkInterruption takes a slice of strings, where each string is expected to
+// be an integer representing a timestamp. It checks that the difference between each successive
+// pair of integers is not greater than 1.
+//
+// This function is used to check that reading/writing to a file was not
+// interrupted for more than 1 second at a time, even when the driver pod is
+// restarted.
+func checkInterruption(timestamps []string) {
+	var curr int64
+	var err error
+
+	for i, t := range timestamps {
+		if i == 0 {
+			curr, err = strconv.ParseInt(t, 10, 64)
+			framework.ExpectNoError(err)
+			continue
+		}
+
+		next, err := strconv.ParseInt(t, 10, 64)
+		framework.ExpectNoError(err)
+		if next-curr > 1 {
+			framework.Failf("Detected an interruption. Time gap: %d seconds.", next-curr)
+		}
+
+		curr = next
+	}
 }
