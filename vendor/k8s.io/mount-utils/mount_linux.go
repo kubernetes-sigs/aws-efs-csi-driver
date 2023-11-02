@@ -362,19 +362,7 @@ func (mounter *Mounter) Unmount(target string) error {
 	command := exec.Command("umount", target)
 	output, err := command.CombinedOutput()
 	if err != nil {
-		if err.Error() == errNoChildProcesses {
-			if command.ProcessState.Success() {
-				// We don't consider errNoChildProcesses an error if the process itself succeeded (see - k/k issue #103753).
-				return nil
-			}
-			// Rewrite err with the actual exit error of the process.
-			err = &exec.ExitError{ProcessState: command.ProcessState}
-		}
-		if mounter.withSafeNotMountedBehavior && strings.Contains(string(output), errNotMounted) {
-			klog.V(4).Infof("ignoring 'not mounted' error for %s", target)
-			return nil
-		}
-		return fmt.Errorf("unmount failed: %v\nUnmounting arguments: %s\nOutput: %s", err, target, string(output))
+		return checkUmountError(target, command, output, err, mounter.withSafeNotMountedBehavior)
 	}
 	return nil
 }
@@ -382,11 +370,11 @@ func (mounter *Mounter) Unmount(target string) error {
 // UnmountWithForce unmounts given target but will retry unmounting with force option
 // after given timeout.
 func (mounter *Mounter) UnmountWithForce(target string, umountTimeout time.Duration) error {
-	err := tryUnmount(target, umountTimeout)
+	err := tryUnmount(target, mounter.withSafeNotMountedBehavior, umountTimeout)
 	if err != nil {
 		if err == context.DeadlineExceeded {
 			klog.V(2).Infof("Timed out waiting for unmount of %s, trying with -f", target)
-			err = forceUmount(target)
+			err = forceUmount(target, mounter.withSafeNotMountedBehavior)
 		}
 		return err
 	}
@@ -463,13 +451,15 @@ func (mounter *SafeFormatAndMount) checkAndRepairFilesystem(source string) error
 			return NewMountError(HasFilesystemErrors, "'fsck' found errors on device %s but could not correct them: %s", source, string(out))
 		case isExitError && ee.ExitStatus() > fsckErrorsUncorrected:
 			klog.Infof("`fsck` error %s", string(out))
+		default:
+			klog.Warningf("fsck on device %s failed with error %v, output: %v", source, err, string(out))
 		}
 	}
 	return nil
 }
 
 // formatAndMount uses unix utils to format and mount the given disk
-func (mounter *SafeFormatAndMount) formatAndMountSensitive(source string, target string, fstype string, options []string, sensitiveOptions []string) error {
+func (mounter *SafeFormatAndMount) formatAndMountSensitive(source string, target string, fstype string, options []string, sensitiveOptions []string, formatOptions []string) error {
 	readOnly := false
 	for _, option := range options {
 		if option == "ro" {
@@ -521,6 +511,7 @@ func (mounter *SafeFormatAndMount) formatAndMountSensitive(source string, target
 				source,
 			}
 		}
+		args = append(formatOptions, args...)
 
 		klog.Infof("Disk %q appears to be unformatted, attempting to format as type: %q with options: %v", source, fstype, args)
 		output, err := mounter.Exec.Command("mkfs."+fstype, args...).CombinedOutput()
@@ -771,13 +762,13 @@ func (mounter *Mounter) IsMountPoint(file string) (bool, error) {
 }
 
 // tryUnmount calls plain "umount" and waits for unmountTimeout for it to finish.
-func tryUnmount(path string, unmountTimeout time.Duration) error {
-	klog.V(4).Infof("Unmounting %s", path)
+func tryUnmount(target string, withSafeNotMountedBehavior bool, unmountTimeout time.Duration) error {
+	klog.V(4).Infof("Unmounting %s", target)
 	ctx, cancel := context.WithTimeout(context.Background(), unmountTimeout)
 	defer cancel()
 
-	cmd := exec.CommandContext(ctx, "umount", path)
-	out, cmderr := cmd.CombinedOutput()
+	command := exec.CommandContext(ctx, "umount", target)
+	output, err := command.CombinedOutput()
 
 	// CombinedOutput() does not return DeadlineExceeded, make sure it's
 	// propagated on timeout.
@@ -785,18 +776,35 @@ func tryUnmount(path string, unmountTimeout time.Duration) error {
 		return ctx.Err()
 	}
 
-	if cmderr != nil {
-		return fmt.Errorf("unmount failed: %v\nUnmounting arguments: %s\nOutput: %s", cmderr, path, string(out))
+	if err != nil {
+		return checkUmountError(target, command, output, err, withSafeNotMountedBehavior)
 	}
 	return nil
 }
 
-func forceUmount(path string) error {
-	cmd := exec.Command("umount", "-f", path)
-	out, cmderr := cmd.CombinedOutput()
+func forceUmount(target string, withSafeNotMountedBehavior bool) error {
+	command := exec.Command("umount", "-f", target)
+	output, err := command.CombinedOutput()
 
-	if cmderr != nil {
-		return fmt.Errorf("unmount failed: %v\nUnmounting arguments: %s\nOutput: %s", cmderr, path, string(out))
+	if err != nil {
+		return checkUmountError(target, command, output, err, withSafeNotMountedBehavior)
 	}
 	return nil
+}
+
+// checkUmountError checks a result of umount command and determine a return value.
+func checkUmountError(target string, command *exec.Cmd, output []byte, err error, withSafeNotMountedBehavior bool) error {
+	if err.Error() == errNoChildProcesses {
+		if command.ProcessState.Success() {
+			// We don't consider errNoChildProcesses an error if the process itself succeeded (see - k/k issue #103753).
+			return nil
+		}
+		// Rewrite err with the actual exit error of the process.
+		err = &exec.ExitError{ProcessState: command.ProcessState}
+	}
+	if withSafeNotMountedBehavior && strings.Contains(string(output), errNotMounted) {
+		klog.V(4).Infof("ignoring 'not mounted' error for %s", target)
+		return nil
+	}
+	return fmt.Errorf("unmount failed: %v\nUnmounting arguments: %s\nOutput: %s", err, target, string(output))
 }
