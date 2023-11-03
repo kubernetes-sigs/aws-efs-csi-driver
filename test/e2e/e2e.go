@@ -8,9 +8,10 @@ import (
 	"strings"
 	"time"
 
+	ginkgo "github.com/onsi/ginkgo/v2"
 	"k8s.io/apimachinery/pkg/util/rand"
+	"k8s.io/kubernetes/test/e2e/framework/kubectl"
 
-	"github.com/onsi/ginkgo/v2"
 	v1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -83,16 +84,14 @@ func (e *efsDriver) GetDriverInfo() *storageframework.DriverInfo {
 
 func (e *efsDriver) SkipUnsupportedTest(storageframework.TestPattern) {}
 
-func (e *efsDriver) PrepareTest(f *framework.Framework) (*storageframework.PerTestConfig, func()) {
+func (e *efsDriver) PrepareTest(f *framework.Framework) *storageframework.PerTestConfig {
 	cancelPodLogs := utils.StartPodLogs(f, f.Namespace)
-
+	ginkgo.DeferCleanup(cancelPodLogs)
 	return &storageframework.PerTestConfig{
-			Driver:    e,
-			Prefix:    "efs",
-			Framework: f,
-		}, func() {
-			cancelPodLogs()
-		}
+		Driver:    e,
+		Prefix:    "efs",
+		Framework: f,
+	}
 }
 
 func (e *efsDriver) CreateVolume(config *storageframework.PerTestConfig, volType storageframework.TestVolType) storageframework.TestVolume {
@@ -190,7 +189,7 @@ var _ = ginkgo.SynchronizedBeforeSuite(func() []byte {
 			framework.ExpectNoError(err, "getting csidriver efs.csi.aws.com")
 		} else {
 			ginkgo.By("Deploying EFS CSI driver")
-			framework.RunKubectlOrDie("kube-system", "apply", "-k", "github.com/kubernetes-sigs/aws-efs-csi-driver/deploy/kubernetes/overlays/stable/?ref=master")
+			kubectl.RunKubectlOrDie("kube-system", "apply", "-k", "github.com/kubernetes-sigs/aws-efs-csi-driver/deploy/kubernetes/overlays/stable/?ref=master")
 			ginkgo.By("Deployed EFS CSI driver")
 			destroyDriver = true
 		}
@@ -218,7 +217,7 @@ var _ = ginkgo.SynchronizedAfterSuite(func() {
 
 	if destroyDriver {
 		ginkgo.By("Cleaning up EFS CSI driver")
-		framework.RunKubectlOrDie("delete", "-k", "github.com/kubernetes-sigs/aws-efs-csi-driver/deploy/kubernetes/overlays/stable/?ref=master")
+		kubectl.RunKubectlOrDie("delete", "-k", "github.com/kubernetes-sigs/aws-efs-csi-driver/deploy/kubernetes/overlays/stable/?ref=master")
 	}
 })
 
@@ -291,14 +290,14 @@ var _ = ginkgo.Describe("[efs-csi] EFS CSI", func() {
 			defer f.ClientSet.CoreV1().Pods(f.Namespace.Name).Delete(context.TODO(), pod.Name, metav1.DeleteOptions{})
 
 			ginkgo.By("Triggering a restart for the EFS CSI Node DaemonSet")
-			_, err = framework.RunKubectl("kube-system", "rollout", "restart", "daemonset", "efs-csi-node")
+			_, err = kubectl.RunKubectl("kube-system", "rollout", "restart", "daemonset", "efs-csi-node")
 			framework.ExpectNoError(err)
 
 			time.Sleep(TestDuration)
 
 			ginkgo.By("Validating no interruption")
 			readCommand := fmt.Sprintf("cat %s", FilePath)
-			content, err := framework.RunKubectl(f.Namespace.Name, "exec", pod.Name, "--", "/bin/sh", "-c", readCommand)
+			content, err := kubectl.RunKubectl(f.Namespace.Name, "exec", pod.Name, "--", "/bin/sh", "-c", readCommand)
 			framework.ExpectNoError(err)
 
 			timestamps := strings.Split(strings.TrimSpace(content), "\n")
@@ -398,7 +397,7 @@ var _ = ginkgo.Describe("[efs-csi] EFS CSI", func() {
 			framework.ExpectNoError(e2epod.WaitForPodNameRunningInNamespace(f.ClientSet, pod.Name, f.Namespace.Name), "waiting for pod running")
 
 			readCommand := fmt.Sprintf("cat %s", writePath)
-			output := framework.RunKubectlOrDie(f.Namespace.Name, "exec", pod.Name, "--", "/bin/sh", "-c", readCommand)
+			output := kubectl.RunKubectlOrDie(f.Namespace.Name, "exec", pod.Name, "--", "/bin/sh", "-c", readCommand)
 			output = strings.TrimSuffix(output, "\n")
 			framework.Logf("The output is: %s", output)
 
