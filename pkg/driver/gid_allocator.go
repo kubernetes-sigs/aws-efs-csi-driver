@@ -92,7 +92,7 @@ func getNextUnusedGid(usedGids []int64, gidMin, gidMax int) (nextGid int, err er
 
 	var lookup func(usedGids []int64)
 	lookup = func(usedGids []int64) {
-		for gid := gidMax; gid > gidMin; gid-- {
+		for gid := gidMin; gid <= gidMax; gid++ {
 			if !slices.Contains(usedGids, int64(gid)) {
 				nextGid = gid
 				return
