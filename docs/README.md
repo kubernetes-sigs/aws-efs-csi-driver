@@ -285,7 +285,7 @@ For some situations, you may not be able to add the necessary IAM permissions to
        "github.com/kubernetes-sigs/aws-efs-csi-driver/deploy/kubernetes/overlays/stable/?ref=release-1.X" > public-ecr-driver.yaml
    ```
 
-2. If you already created a service account by following [Create an IAM policy and role](./iam-policy-create.md), then edit the `private-ecr-driver.yaml` file. Remove the following lines that create a Kubernetes service account.
+2. If you already created a service account by following [Create an IAM policy and role](./iam-policy-create.md), then edit the `public-ecr-driver.yaml` file. Remove the following lines that create a Kubernetes service account.
 
    ```sh
    apiVersion: v1
