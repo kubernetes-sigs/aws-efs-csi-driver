@@ -309,14 +309,20 @@ func (c *cloud) ListAccessPoints(ctx context.Context, fileSystemId string) (acce
 		return
 	}
 
+	var posixUser *PosixUser
 	for _, accessPointDescription := range res.AccessPoints {
+		if accessPointDescription.PosixUser != nil {
+			posixUser = &PosixUser{
+				Gid: *accessPointDescription.PosixUser.Gid,
+				Uid: *accessPointDescription.PosixUser.Gid,
+			}
+		} else {
+			posixUser = nil
+		}
 		accessPoint := &AccessPoint{
 			AccessPointId: *accessPointDescription.AccessPointId,
 			FileSystemId:  *accessPointDescription.FileSystemId,
-			PosixUser: &PosixUser{
-				Gid: *accessPointDescription.PosixUser.Gid,
-				Uid: *accessPointDescription.PosixUser.Gid,
-			},
+			PosixUser:     posixUser,
 		}
 		accessPoints = append(accessPoints, accessPoint)
 	}
