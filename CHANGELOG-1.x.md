@@ -1,3 +1,8 @@
+# V1.7.1
+* Fixed Posixuser nil pointer dereference issue. ([#1180](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1180), [@mskanth972](https://github.com/mskanth972))
+* Fixed CVE-2023-45142: bump k8s and opentelemetry. ([#1176](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1176), [@jsafrane](https://github.com/jsafrane))
+* README Update: Fix typo in installation with public manifest. ([#1168](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1168), [@ysam12345](https://github.com/ysam12345))
+* README Update: Updating README for 'noresvport' mount option. ([#1158](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1158), [@mskanth972](https://github.com/mskanth972))
 # V1.7.0
 * Added Storage Class features to allow more control of the directory structure of Access Points under Dynamic Provisioning. ([#640](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/640), [@jonathanrainer](https://github.com/jonathanrainer))
 * Added Storage Class feature to allow access points to be replicated across different clusters. ([#1026](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1026), [@mskanth972](https://github.com/mskanth972))
