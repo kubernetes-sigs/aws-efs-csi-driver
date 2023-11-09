@@ -365,6 +365,54 @@ func TestDescribeAccessPoint(t *testing.T) {
 			},
 		},
 		{
+			name: "Success - nil Posix user",
+			testFunc: func(t *testing.T) {
+				mockctl := gomock.NewController(t)
+				mockEfs := mocks.NewMockEfs(mockctl)
+				c := &cloud{efs: mockEfs}
+
+				output := &efs.DescribeAccessPointsOutput{
+					AccessPoints: []*efs.AccessPointDescription{
+						{
+							AccessPointArn: aws.String(arn),
+							AccessPointId:  aws.String(accessPointId),
+							ClientToken:    aws.String("test"),
+							FileSystemId:   aws.String(fsId),
+							OwnerId:        aws.String("1234567890"),
+							RootDirectory: &efs.RootDirectory{
+								CreationInfo: &efs.CreationInfo{
+									OwnerGid:    aws.Int64(gid),
+									OwnerUid:    aws.Int64(uid),
+									Permissions: aws.String(directoryPerms),
+								},
+								Path: aws.String(directoryPath),
+							},
+						},
+					},
+					NextToken: nil,
+				}
+				ctx := context.Background()
+				mockEfs.EXPECT().DescribeAccessPointsWithContext(gomock.Eq(ctx), gomock.Any()).Return(output, nil)
+				res, err := c.DescribeAccessPoint(ctx, accessPointId)
+				if err != nil {
+					t.Fatalf("Describe Access Point failed: %v", err)
+				}
+
+				if res == nil {
+					t.Fatal("Result is nil")
+				}
+
+				if accessPointId != res.AccessPointId {
+					t.Fatalf("AccessPointId mismatched. Expected: %v, Actual: %v", accessPointId, res.AccessPointId)
+				}
+
+				if fsId != res.FileSystemId {
+					t.Fatalf("FileSystemId mismatched. Expected: %v, Actual: %v", fsId, res.FileSystemId)
+				}
+				mockctl.Finish()
+			},
+		},
+		{
 			name: "Fail: DescribeAccessPoint result has 0 access points",
 			testFunc: func(t *testing.T) {
 				mockctl := gomock.NewController(t)

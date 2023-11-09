@@ -76,11 +76,9 @@ func (g *GidAllocator) getUsedGids(ctx context.Context, fsId string) (gids []int
 		if ap == nil {
 			continue
 		}
-		if ap != nil && ap.PosixUser == nil {
-			err = fmt.Errorf("failed to discover used GID because PosixUser is nil for AccessPoint: %s", ap.AccessPointId)
-			return
+		if ap.PosixUser != nil {
+			gids = append(gids, ap.PosixUser.Gid)
 		}
-		gids = append(gids, ap.PosixUser.Gid)
 	}
 	klog.V(5).Infof("Discovered used GIDs: %+v for FS ID: %v", gids, fsId)
 	return
