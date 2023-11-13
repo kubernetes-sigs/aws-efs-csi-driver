@@ -52,8 +52,8 @@ Also you can verify that data is written onto EFS filesystem:
 
 ## Cross Account Static Provisioning
 ### Prerequisites
-* Create an EKS cluster in VPC A in account A with the EFS CSI Driver installed, and an EFS instance in VPC B in account B.
-* Create a VPC connection between VPC A & VPC B; To set up a connection, follow the official documentation to set up the peering connection and configure route tables to send and receive traffic. 
+* Create an EKS cluster in VPC A in account A with [the EFS CSI Driver installed](https://docs.aws.amazon.com/eks/latest/userguide/efs-csi.html), and an EFS instance in VPC B in account B.
+* Create a VPC connection between VPC A & VPC B; To set up a connection, follow [the official documentation to set up the peering connection](https://docs.aws.amazon.com/vpc/latest/peering/create-vpc-peering-connection.html) and [configure route tables to send and receive traffic](https://docs.aws.amazon.com/vpc/latest/peering/vpc-peering-routing.html). 
     * The route tables must be configured for each of the EKS nodes as well the EFS Mount Targets’ Subnets.
 
 
