@@ -44,7 +44,7 @@ func (k kubernetesApiMetadataProvider) getMetadata() (MetadataService, error) {
 		return nil, fmt.Errorf("node providerID empty, cannot parse")
 	}
 
-	re := regexp.MustCompile("i-[a-z0-9]+$")
+	re := regexp.MustCompile("i-[a-z0-9]+$|[a-z0-9]{32}")
 	instanceID := re.FindString(providerId)
 	if instanceID == "" {
 		return nil, fmt.Errorf("did not find aws instance ID in node providerID string")
