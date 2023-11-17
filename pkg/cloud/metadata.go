@@ -42,6 +42,8 @@ type metadata struct {
 
 var _ MetadataService = &metadata{}
 
+type KubernetesAPIClient func() (kubernetes.Interface, error)
+
 // GetInstanceID returns the instance identification.
 func (m *metadata) GetInstanceID() string {
 	return m.instanceID

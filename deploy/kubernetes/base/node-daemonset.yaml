@@ -37,6 +37,8 @@ spec:
       priorityClassName: system-node-critical
       tolerations:
         - operator: Exists
+        - key: efs.csi.aws.com/agent-not-ready
+          operator: Exists
       securityContext:
         fsGroup: 0
         runAsGroup: 0
