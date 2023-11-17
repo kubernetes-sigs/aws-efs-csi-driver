@@ -31,6 +31,9 @@ import (
 
 const (
 	driverName = "efs.csi.aws.com"
+
+	// AgentNotReadyTaintKey contains the key of taints to be removed on driver startup
+	AgentNotReadyNodeTaintKey = "efs.csi.aws.com/agent-not-ready"
 )
 
 type Driver struct {
@@ -123,6 +126,13 @@ func (d *Driver) Run() error {
 	reaper := newReaper()
 	klog.Info("Starting reaper")
 	reaper.start()
+
+	// Remove taint from node to indicate driver startup success
+	// This is done at the last possible moment to prevent race conditions or false positive removals
+	err = removeNotReadyTaint(cloud.DefaultKubernetesAPIClient)
+	if err != nil {
+		klog.ErrorS(err, "Unexpected failure when attempting to remove node taint(s)")
+	}
 
 	klog.Infof("Listening for connections on address: %#v", listener.Addr())
 	return d.srv.Serve(listener)
