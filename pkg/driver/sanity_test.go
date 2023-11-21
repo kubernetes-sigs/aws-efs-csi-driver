@@ -79,7 +79,7 @@ func TestSanityEFSCSI(t *testing.T) {
 		nodeCaps:        nodeCaps,
 		volMetricsOptIn: true,
 		volStatter:      NewVolStatter(),
-		gidAllocator:    NewGidAllocator(mockCloud),
+		gidAllocator:    NewGidAllocator(),
 	}
 	defer func() {
 		if r := recover(); r != nil {

@@ -72,7 +72,7 @@ func NewDriver(endpoint, efsUtilsCfgPath, efsUtilsStaticFilesPath, tags string, 
 		volMetricsOptIn:          volMetricsOptIn,
 		volMetricsRefreshPeriod:  volMetricsRefreshPeriod,
 		volMetricsFsRateLimit:    volMetricsFsRateLimit,
-		gidAllocator:             NewGidAllocator(cloud),
+		gidAllocator:             NewGidAllocator(),
 		deleteAccessPointRootDir: deleteAccessPointRootDir,
 		tags:                     parseTagsFromStr(strings.TrimSpace(tags)),
 	}
