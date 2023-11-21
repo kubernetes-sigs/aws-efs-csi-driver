@@ -254,7 +254,7 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 
 	var allocatedGid int64
 	if uid == -1 || gid == -1 {
-		allocatedGid, err = d.gidAllocator.getNextGid(ctx, accessPointsOptions.FileSystemId, gidMin, gidMax)
+		allocatedGid, err = d.gidAllocator.getNextGid(ctx, localCloud, accessPointsOptions.FileSystemId, gidMin, gidMax)
 		if err != nil {
 			return nil, err
 		}
