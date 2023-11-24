@@ -49,7 +49,7 @@ func TestCreateVolume(t *testing.T) {
 				driver := &Driver{
 					endpoint:     endpoint,
 					cloud:        mockCloud,
-					gidAllocator: NewGidAllocator(mockCloud),
+					gidAllocator: NewGidAllocator(),
 				}
 
 				req := &csi.CreateVolumeRequest{
@@ -114,7 +114,7 @@ func TestCreateVolume(t *testing.T) {
 				driver := &Driver{
 					endpoint:     endpoint,
 					cloud:        mockCloud,
-					gidAllocator: NewGidAllocator(mockCloud),
+					gidAllocator: NewGidAllocator(),
 				}
 
 				req := &csi.CreateVolumeRequest{
@@ -181,7 +181,7 @@ func TestCreateVolume(t *testing.T) {
 				driver := &Driver{
 					endpoint:     endpoint,
 					cloud:        mockCloud,
-					gidAllocator: NewGidAllocator(mockCloud),
+					gidAllocator: NewGidAllocator(),
 				}
 
 				req := &csi.CreateVolumeRequest{
@@ -267,7 +267,7 @@ func TestCreateVolume(t *testing.T) {
 				driver := &Driver{
 					endpoint:     endpoint,
 					cloud:        mockCloud,
-					gidAllocator: NewGidAllocator(mockCloud),
+					gidAllocator: NewGidAllocator(),
 				}
 
 				req := &csi.CreateVolumeRequest{
@@ -402,7 +402,7 @@ func TestCreateVolume(t *testing.T) {
 				driver := &Driver{
 					endpoint:     endpoint,
 					cloud:        mockCloud,
-					gidAllocator: NewGidAllocator(mockCloud),
+					gidAllocator: NewGidAllocator(),
 				}
 
 				req := &csi.CreateVolumeRequest{
@@ -497,7 +497,7 @@ func TestCreateVolume(t *testing.T) {
 				driver := &Driver{
 					endpoint:     endpoint,
 					cloud:        mockCloud,
-					gidAllocator: NewGidAllocator(mockCloud),
+					gidAllocator: NewGidAllocator(),
 					tags:         parseTagsFromStr(""),
 				}
 
@@ -561,7 +561,7 @@ func TestCreateVolume(t *testing.T) {
 				driver := &Driver{
 					endpoint:     endpoint,
 					cloud:        mockCloud,
-					gidAllocator: NewGidAllocator(mockCloud),
+					gidAllocator: NewGidAllocator(),
 				}
 
 				req := &csi.CreateVolumeRequest{
@@ -621,7 +621,7 @@ func TestCreateVolume(t *testing.T) {
 				driver := &Driver{
 					endpoint:     endpoint,
 					cloud:        mockCloud,
-					gidAllocator: NewGidAllocator(mockCloud),
+					gidAllocator: NewGidAllocator(),
 					tags:         parseTagsFromStr("cluster:efs"),
 				}
 
@@ -684,7 +684,7 @@ func TestCreateVolume(t *testing.T) {
 				driver := &Driver{
 					endpoint:     endpoint,
 					cloud:        mockCloud,
-					gidAllocator: NewGidAllocator(mockCloud),
+					gidAllocator: NewGidAllocator(),
 					tags:         parseTagsFromStr("cluster-efs"),
 				}
 
@@ -747,7 +747,7 @@ func TestCreateVolume(t *testing.T) {
 				driver := &Driver{
 					endpoint:     endpoint,
 					cloud:        mockCloud,
-					gidAllocator: NewGidAllocator(mockCloud),
+					gidAllocator: NewGidAllocator(),
 					tags:         parseTagsFromStr(""),
 				}
 				pvcNameVal := "test-pvc"
@@ -816,7 +816,7 @@ func TestCreateVolume(t *testing.T) {
 				driver := &Driver{
 					endpoint:     endpoint,
 					cloud:        mockCloud,
-					gidAllocator: NewGidAllocator(mockCloud),
+					gidAllocator: NewGidAllocator(),
 					tags:         parseTagsFromStr(""),
 				}
 
@@ -890,7 +890,7 @@ func TestCreateVolume(t *testing.T) {
 				driver := &Driver{
 					endpoint:     endpoint,
 					cloud:        mockCloud,
-					gidAllocator: NewGidAllocator(mockCloud),
+					gidAllocator: NewGidAllocator(),
 					tags:         parseTagsFromStr(""),
 				}
 
@@ -962,7 +962,7 @@ func TestCreateVolume(t *testing.T) {
 				driver := &Driver{
 					endpoint:     endpoint,
 					cloud:        mockCloud,
-					gidAllocator: NewGidAllocator(mockCloud),
+					gidAllocator: NewGidAllocator(),
 					tags:         parseTagsFromStr(""),
 				}
 
@@ -1037,7 +1037,7 @@ func TestCreateVolume(t *testing.T) {
 				driver := &Driver{
 					endpoint:     endpoint,
 					cloud:        mockCloud,
-					gidAllocator: NewGidAllocator(mockCloud),
+					gidAllocator: NewGidAllocator(),
 					tags:         parseTagsFromStr(""),
 				}
 
@@ -1113,7 +1113,7 @@ func TestCreateVolume(t *testing.T) {
 				driver := &Driver{
 					endpoint:     endpoint,
 					cloud:        mockCloud,
-					gidAllocator: NewGidAllocator(mockCloud),
+					gidAllocator: NewGidAllocator(),
 					tags:         parseTagsFromStr(""),
 				}
 
@@ -1186,7 +1186,7 @@ func TestCreateVolume(t *testing.T) {
 				driver := &Driver{
 					endpoint:     endpoint,
 					cloud:        mockCloud,
-					gidAllocator: NewGidAllocator(mockCloud),
+					gidAllocator: NewGidAllocator(),
 					tags:         parseTagsFromStr(""),
 				}
 
@@ -1255,7 +1255,7 @@ func TestCreateVolume(t *testing.T) {
 				driver := &Driver{
 					endpoint:     endpoint,
 					cloud:        mockCloud,
-					gidAllocator: NewGidAllocator(mockCloud),
+					gidAllocator: NewGidAllocator(),
 					tags:         parseTagsFromStr(""),
 				}
 
@@ -1325,7 +1325,7 @@ func TestCreateVolume(t *testing.T) {
 				driver := &Driver{
 					endpoint:     endpoint,
 					cloud:        mockCloud,
-					gidAllocator: NewGidAllocator(mockCloud),
+					gidAllocator: NewGidAllocator(),
 					tags:         parseTagsFromStr(""),
 				}
 
@@ -1397,7 +1397,7 @@ func TestCreateVolume(t *testing.T) {
 				driver := &Driver{
 					endpoint:     endpoint,
 					cloud:        mockCloud,
-					gidAllocator: NewGidAllocator(mockCloud),
+					gidAllocator: NewGidAllocator(),
 				}
 
 				req := &csi.CreateVolumeRequest{
@@ -1425,7 +1425,7 @@ func TestCreateVolume(t *testing.T) {
 				driver := &Driver{
 					endpoint:     endpoint,
 					cloud:        mockCloud,
-					gidAllocator: NewGidAllocator(mockCloud),
+					gidAllocator: NewGidAllocator(),
 				}
 
 				req := &csi.CreateVolumeRequest{
@@ -1454,7 +1454,7 @@ func TestCreateVolume(t *testing.T) {
 				driver := &Driver{
 					endpoint:     endpoint,
 					cloud:        mockCloud,
-					gidAllocator: NewGidAllocator(mockCloud),
+					gidAllocator: NewGidAllocator(),
 				}
 
 				req := &csi.CreateVolumeRequest{
@@ -1486,7 +1486,7 @@ func TestCreateVolume(t *testing.T) {
 				driver := &Driver{
 					endpoint:     endpoint,
 					cloud:        mockCloud,
-					gidAllocator: NewGidAllocator(mockCloud),
+					gidAllocator: NewGidAllocator(),
 				}
 
 				req := &csi.CreateVolumeRequest{
@@ -1528,7 +1528,7 @@ func TestCreateVolume(t *testing.T) {
 				driver := &Driver{
 					endpoint:     endpoint,
 					cloud:        mockCloud,
-					gidAllocator: NewGidAllocator(mockCloud),
+					gidAllocator: NewGidAllocator(),
 					tags:         parseTagsFromStr(""),
 				}
 
@@ -1576,7 +1576,7 @@ func TestCreateVolume(t *testing.T) {
 				driver := &Driver{
 					endpoint:     endpoint,
 					cloud:        mockCloud,
-					gidAllocator: NewGidAllocator(mockCloud),
+					gidAllocator: NewGidAllocator(),
 				}
 
 				req := &csi.CreateVolumeRequest{
@@ -1618,7 +1618,7 @@ func TestCreateVolume(t *testing.T) {
 				driver := &Driver{
 					endpoint:     endpoint,
 					cloud:        mockCloud,
-					gidAllocator: NewGidAllocator(mockCloud),
+					gidAllocator: NewGidAllocator(),
 				}
 
 				req := &csi.CreateVolumeRequest{
@@ -1653,7 +1653,7 @@ func TestCreateVolume(t *testing.T) {
 				driver := &Driver{
 					endpoint:     endpoint,
 					cloud:        mockCloud,
-					gidAllocator: NewGidAllocator(mockCloud),
+					gidAllocator: NewGidAllocator(),
 				}
 
 				req := &csi.CreateVolumeRequest{
@@ -1687,7 +1687,7 @@ func TestCreateVolume(t *testing.T) {
 				driver := &Driver{
 					endpoint:     endpoint,
 					cloud:        mockCloud,
-					gidAllocator: NewGidAllocator(mockCloud),
+					gidAllocator: NewGidAllocator(),
 				}
 
 				req := &csi.CreateVolumeRequest{
@@ -1721,7 +1721,7 @@ func TestCreateVolume(t *testing.T) {
 				driver := &Driver{
 					endpoint:     endpoint,
 					cloud:        mockCloud,
-					gidAllocator: NewGidAllocator(mockCloud),
+					gidAllocator: NewGidAllocator(),
 				}
 
 				req := &csi.CreateVolumeRequest{
@@ -1756,7 +1756,7 @@ func TestCreateVolume(t *testing.T) {
 				driver := &Driver{
 					endpoint:     endpoint,
 					cloud:        mockCloud,
-					gidAllocator: NewGidAllocator(mockCloud),
+					gidAllocator: NewGidAllocator(),
 				}
 
 				req := &csi.CreateVolumeRequest{
@@ -1792,7 +1792,7 @@ func TestCreateVolume(t *testing.T) {
 				driver := &Driver{
 					endpoint:     endpoint,
 					cloud:        mockCloud,
-					gidAllocator: NewGidAllocator(mockCloud),
+					gidAllocator: NewGidAllocator(),
 				}
 
 				req := &csi.CreateVolumeRequest{
@@ -1828,7 +1828,7 @@ func TestCreateVolume(t *testing.T) {
 				driver := &Driver{
 					endpoint:     endpoint,
 					cloud:        mockCloud,
-					gidAllocator: NewGidAllocator(mockCloud),
+					gidAllocator: NewGidAllocator(),
 				}
 
 				req := &csi.CreateVolumeRequest{
@@ -1864,7 +1864,7 @@ func TestCreateVolume(t *testing.T) {
 				driver := &Driver{
 					endpoint:     endpoint,
 					cloud:        mockCloud,
-					gidAllocator: NewGidAllocator(mockCloud),
+					gidAllocator: NewGidAllocator(),
 				}
 
 				req := &csi.CreateVolumeRequest{
@@ -1900,7 +1900,7 @@ func TestCreateVolume(t *testing.T) {
 				driver := &Driver{
 					endpoint:     endpoint,
 					cloud:        mockCloud,
-					gidAllocator: NewGidAllocator(mockCloud),
+					gidAllocator: NewGidAllocator(),
 				}
 
 				req := &csi.CreateVolumeRequest{
@@ -1936,7 +1936,7 @@ func TestCreateVolume(t *testing.T) {
 				driver := &Driver{
 					endpoint:     endpoint,
 					cloud:        mockCloud,
-					gidAllocator: NewGidAllocator(mockCloud),
+					gidAllocator: NewGidAllocator(),
 				}
 
 				req := &csi.CreateVolumeRequest{
@@ -1972,7 +1972,7 @@ func TestCreateVolume(t *testing.T) {
 				driver := &Driver{
 					endpoint:     endpoint,
 					cloud:        mockCloud,
-					gidAllocator: NewGidAllocator(mockCloud),
+					gidAllocator: NewGidAllocator(),
 				}
 
 				req := &csi.CreateVolumeRequest{
@@ -2009,7 +2009,7 @@ func TestCreateVolume(t *testing.T) {
 				driver := &Driver{
 					endpoint:     endpoint,
 					cloud:        mockCloud,
-					gidAllocator: NewGidAllocator(mockCloud),
+					gidAllocator: NewGidAllocator(),
 				}
 
 				req := &csi.CreateVolumeRequest{
@@ -2046,7 +2046,7 @@ func TestCreateVolume(t *testing.T) {
 				driver := &Driver{
 					endpoint:     endpoint,
 					cloud:        mockCloud,
-					gidAllocator: NewGidAllocator(mockCloud),
+					gidAllocator: NewGidAllocator(),
 				}
 
 				req := &csi.CreateVolumeRequest{
@@ -2082,7 +2082,7 @@ func TestCreateVolume(t *testing.T) {
 				driver := &Driver{
 					endpoint:     endpoint,
 					cloud:        mockCloud,
-					gidAllocator: NewGidAllocator(mockCloud),
+					gidAllocator: NewGidAllocator(),
 				}
 
 				req := &csi.CreateVolumeRequest{
@@ -2118,7 +2118,7 @@ func TestCreateVolume(t *testing.T) {
 				driver := &Driver{
 					endpoint:     endpoint,
 					cloud:        mockCloud,
-					gidAllocator: NewGidAllocator(mockCloud),
+					gidAllocator: NewGidAllocator(),
 				}
 
 				req := &csi.CreateVolumeRequest{
@@ -2156,7 +2156,7 @@ func TestCreateVolume(t *testing.T) {
 				driver := &Driver{
 					endpoint:     endpoint,
 					cloud:        mockCloud,
-					gidAllocator: NewGidAllocator(mockCloud),
+					gidAllocator: NewGidAllocator(),
 				}
 
 				req := &csi.CreateVolumeRequest{
@@ -2194,7 +2194,7 @@ func TestCreateVolume(t *testing.T) {
 				driver := &Driver{
 					endpoint:     endpoint,
 					cloud:        mockCloud,
-					gidAllocator: NewGidAllocator(mockCloud),
+					gidAllocator: NewGidAllocator(),
 				}
 
 				req := &csi.CreateVolumeRequest{
@@ -2232,7 +2232,7 @@ func TestCreateVolume(t *testing.T) {
 				driver := &Driver{
 					endpoint:     endpoint,
 					cloud:        mockCloud,
-					gidAllocator: NewGidAllocator(mockCloud),
+					gidAllocator: NewGidAllocator(),
 				}
 
 				req := &csi.CreateVolumeRequest{
@@ -2275,7 +2275,7 @@ func TestCreateVolume(t *testing.T) {
 				driver := &Driver{
 					endpoint:     endpoint,
 					cloud:        mockCloud,
-					gidAllocator: NewGidAllocator(mockCloud),
+					gidAllocator: NewGidAllocator(),
 				}
 
 				req := &csi.CreateVolumeRequest{
@@ -2318,7 +2318,7 @@ func TestCreateVolume(t *testing.T) {
 				driver := &Driver{
 					endpoint:     endpoint,
 					cloud:        mockCloud,
-					gidAllocator: NewGidAllocator(mockCloud),
+					gidAllocator: NewGidAllocator(),
 				}
 
 				req := &csi.CreateVolumeRequest{
@@ -2381,7 +2381,7 @@ func TestCreateVolume(t *testing.T) {
 				driver := &Driver{
 					endpoint:     endpoint,
 					cloud:        mockCloud,
-					gidAllocator: NewGidAllocator(mockCloud),
+					gidAllocator: NewGidAllocator(),
 					tags:         parseTagsFromStr(""),
 				}
 
@@ -2429,7 +2429,7 @@ func TestCreateVolume(t *testing.T) {
 				driver := &Driver{
 					endpoint:     endpoint,
 					cloud:        mockCloud,
-					gidAllocator: NewGidAllocator(mockCloud),
+					gidAllocator: NewGidAllocator(),
 				}
 
 				req := &csi.CreateVolumeRequest{
@@ -2478,7 +2478,7 @@ func TestCreateVolume(t *testing.T) {
 				driver := &Driver{
 					endpoint:     endpoint,
 					cloud:        mockCloud,
-					gidAllocator: NewGidAllocator(mockCloud),
+					gidAllocator: NewGidAllocator(),
 				}
 
 				req := &csi.CreateVolumeRequest{
@@ -2527,7 +2527,7 @@ func TestCreateVolume(t *testing.T) {
 				driver := &Driver{
 					endpoint:     endpoint,
 					cloud:        mockCloud,
-					gidAllocator: NewGidAllocator(mockCloud),
+					gidAllocator: NewGidAllocator(),
 				}
 
 				req := &csi.CreateVolumeRequest{
@@ -2593,7 +2593,7 @@ func TestDeleteVolume(t *testing.T) {
 				driver := &Driver{
 					endpoint:     endpoint,
 					cloud:        mockCloud,
-					gidAllocator: NewGidAllocator(mockCloud),
+					gidAllocator: NewGidAllocator(),
 				}
 
 				req := &csi.DeleteVolumeRequest{
@@ -2620,7 +2620,7 @@ func TestDeleteVolume(t *testing.T) {
 					endpoint:                 endpoint,
 					cloud:                    mockCloud,
 					mounter:                  mockMounter,
-					gidAllocator:             NewGidAllocator(mockCloud),
+					gidAllocator:             NewGidAllocator(),
 					deleteAccessPointRootDir: true,
 				}
 
@@ -2659,7 +2659,7 @@ func TestDeleteVolume(t *testing.T) {
 					endpoint:                 endpoint,
 					cloud:                    mockCloud,
 					mounter:                  mockMounter,
-					gidAllocator:             NewGidAllocator(mockCloud),
+					gidAllocator:             NewGidAllocator(),
 					deleteAccessPointRootDir: true,
 				}
 
@@ -2687,7 +2687,7 @@ func TestDeleteVolume(t *testing.T) {
 					endpoint:                 endpoint,
 					cloud:                    mockCloud,
 					mounter:                  mockMounter,
-					gidAllocator:             NewGidAllocator(mockCloud),
+					gidAllocator:             NewGidAllocator(),
 					deleteAccessPointRootDir: true,
 				}
 
@@ -2715,7 +2715,7 @@ func TestDeleteVolume(t *testing.T) {
 					endpoint:                 endpoint,
 					cloud:                    mockCloud,
 					mounter:                  mockMounter,
-					gidAllocator:             NewGidAllocator(mockCloud),
+					gidAllocator:             NewGidAllocator(),
 					deleteAccessPointRootDir: true,
 				}
 
@@ -2743,7 +2743,7 @@ func TestDeleteVolume(t *testing.T) {
 					endpoint:                 endpoint,
 					cloud:                    mockCloud,
 					mounter:                  mockMounter,
-					gidAllocator:             NewGidAllocator(mockCloud),
+					gidAllocator:             NewGidAllocator(),
 					deleteAccessPointRootDir: true,
 				}
 
@@ -2779,7 +2779,7 @@ func TestDeleteVolume(t *testing.T) {
 					endpoint:                 endpoint,
 					cloud:                    mockCloud,
 					mounter:                  mockMounter,
-					gidAllocator:             NewGidAllocator(mockCloud),
+					gidAllocator:             NewGidAllocator(),
 					deleteAccessPointRootDir: true,
 				}
 
@@ -2816,7 +2816,7 @@ func TestDeleteVolume(t *testing.T) {
 					endpoint:                 endpoint,
 					cloud:                    mockCloud,
 					mounter:                  mockMounter,
-					gidAllocator:             NewGidAllocator(mockCloud),
+					gidAllocator:             NewGidAllocator(),
 					deleteAccessPointRootDir: true,
 				}
 
@@ -2852,7 +2852,7 @@ func TestDeleteVolume(t *testing.T) {
 				driver := &Driver{
 					endpoint:     endpoint,
 					cloud:        mockCloud,
-					gidAllocator: NewGidAllocator(mockCloud),
+					gidAllocator: NewGidAllocator(),
 				}
 
 				req := &csi.DeleteVolumeRequest{
@@ -2877,7 +2877,7 @@ func TestDeleteVolume(t *testing.T) {
 				driver := &Driver{
 					endpoint:     endpoint,
 					cloud:        mockCloud,
-					gidAllocator: NewGidAllocator(mockCloud),
+					gidAllocator: NewGidAllocator(),
 				}
 
 				req := &csi.DeleteVolumeRequest{
@@ -2902,7 +2902,7 @@ func TestDeleteVolume(t *testing.T) {
 				driver := &Driver{
 					endpoint:     endpoint,
 					cloud:        mockCloud,
-					gidAllocator: NewGidAllocator(mockCloud),
+					gidAllocator: NewGidAllocator(),
 				}
 
 				req := &csi.DeleteVolumeRequest{
@@ -2927,7 +2927,7 @@ func TestDeleteVolume(t *testing.T) {
 				driver := &Driver{
 					endpoint:     endpoint,
 					cloud:        mockCloud,
-					gidAllocator: NewGidAllocator(mockCloud),
+					gidAllocator: NewGidAllocator(),
 				}
 
 				req := &csi.DeleteVolumeRequest{
@@ -2951,7 +2951,7 @@ func TestDeleteVolume(t *testing.T) {
 				driver := &Driver{
 					endpoint:     endpoint,
 					cloud:        mockCloud,
-					gidAllocator: NewGidAllocator(mockCloud),
+					gidAllocator: NewGidAllocator(),
 					tags:         parseTagsFromStr(""),
 				}
 
