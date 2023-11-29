@@ -2974,6 +2974,41 @@ func TestDeleteVolume(t *testing.T) {
 				mockCtl.Finish()
 			},
 		},
+		{
+			name: "Fail: Access point root directory is '/'",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockCloud := mocks.NewMockCloud(mockCtl)
+				mockMounter := mocks.NewMockMounter(mockCtl)
+
+				driver := &Driver{
+					endpoint:                 endpoint,
+					cloud:                    mockCloud,
+					mounter:                  mockMounter,
+					gidAllocator:             NewGidAllocator(),
+					deleteAccessPointRootDir: true,
+				}
+
+				req := &csi.DeleteVolumeRequest{
+					VolumeId: volumeId,
+				}
+
+				accessPoint := &cloud.AccessPoint{
+					AccessPointId:      apId,
+					FileSystemId:       fsId,
+					AccessPointRootDir: "/",
+					CapacityGiB:        0,
+				}
+
+				ctx := context.Background()
+				mockCloud.EXPECT().DescribeAccessPoint(gomock.Eq(ctx), gomock.Eq(apId)).Return(accessPoint, nil)
+				_, err := driver.DeleteVolume(ctx, req)
+				if err == nil {
+					t.Fatalf("DeleteVolume did not fail")
+				}
+				mockCtl.Finish()
+			},
+		},
 	}
 
 	for _, tc := range testCases {

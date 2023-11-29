@@ -21,6 +21,7 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"github.com/google/uuid"
+	"io"
 	"os"
 	"path"
 	"sort"
@@ -394,11 +395,28 @@ func (d *Driver) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeRequest)
 				}
 			}
 
+			klog.V(2).Infof("Access point root directory : %s", accessPoint.AccessPointRootDir)
+			if accessPoint.AccessPointRootDir == "/" {
+				return nil, status.Errorf(codes.Internal, "Could not delete efs root dir '/'")
+			}
+
 			target := TempMountPathPrefix + "/" + accessPointId
 			if err := d.mounter.MakeDir(target); err != nil {
 				return nil, status.Errorf(codes.Internal, "Could not create dir %q: %v", target, err)
 			}
 			if err := d.mounter.Mount(fileSystemId, target, "efs", mountOptions); err != nil {
+				targetDir, err := os.Open(target)
+				if err != nil {
+					return nil, status.Errorf(codes.Internal, "Could not read dir %q: %v", target, err)
+				}
+				_, err = targetDir.Readdir(1)
+				if err != io.EOF {
+					if err != nil {
+						return nil, status.Errorf(codes.Internal, "Could not read dir %q: %v", target, err)
+					} else {
+						return nil, status.Errorf(codes.Internal, "Expected empty directory %s", target)
+					}
+				}
 				os.Remove(target)
 				return nil, status.Errorf(codes.Internal, "Could not mount %q at %q: %v", fileSystemId, target, err)
 			}
