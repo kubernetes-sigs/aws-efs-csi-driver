@@ -80,6 +80,8 @@ controller:
   tolerations:
     - key: CriticalAddonsOnly
       operator: Exists
+    - key: efs.csi.aws.com/agent-not-ready
+      operator: Exists
   affinity: {}
   # Specifies whether a service account should be created
   serviceAccount:
