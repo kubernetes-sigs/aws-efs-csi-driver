@@ -96,7 +96,7 @@ controller:
     runAsUser: 0
     runAsGroup: 0
     fsGroup: 0
-
+  hostNetwork: false 
 
 ## Node daemonset variables
 
