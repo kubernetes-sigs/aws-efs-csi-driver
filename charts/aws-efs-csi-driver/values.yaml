@@ -108,16 +108,19 @@ node:
   volMetricsOptIn: false
   volMetricsRefreshPeriod: 240
   volMetricsFsRateLimit: 5
-  hostAliases:
-    {}
+  hostAliases: []
     # For cross VPC EFS, you need to poison or overwrite the DNS for the efs volume as per
     # https://docs.aws.amazon.com/efs/latest/ug/efs-different-vpc.html#wt6-efs-utils-step3
     # implementing the suggested solution found here:
     # https://github.com/kubernetes-sigs/aws-efs-csi-driver/issues/240#issuecomment-676849346
-    # EFS Vol ID, IP, Region
-    # "fs-01234567":
-    #   ip: 10.10.2.2
-    #   region: us-east-2
+    # https://github.com/kubernetes-sigs/aws-efs-csi-driver/issues/1141
+    # Allows to set multiple IPs for the same file system ID
+    # - fsid: fs-01234567
+    #   region: eu-west-1
+    #   ips: 
+    #     - 10.10.10.1
+    #     - 10.10.10.2
+    #     - 10.10.10.31
   dnsPolicy: ClusterFirst
   dnsConfig:
     {}
