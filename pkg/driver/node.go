@@ -18,6 +18,7 @@ package driver
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"path"
@@ -26,8 +27,12 @@ import (
 	"strings"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
+	"github.com/kubernetes-sigs/aws-efs-csi-driver/pkg/cloud"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	k8stypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2"
 )
 
@@ -438,4 +443,72 @@ func isValidFileSystemId(filesystemId string) bool {
 
 func isValidAccessPointId(accesspointId string) bool {
 	return strings.HasPrefix(accesspointId, "fsap-")
+}
+
+// Struct for JSON patch operations
+type JSONPatch struct {
+	OP    string      `json:"op,omitempty"`
+	Path  string      `json:"path,omitempty"`
+	Value interface{} `json:"value"`
+}
+
+// removeNotReadyTaint removes the taint ebs.csi.aws.com/agent-not-ready from the local node
+// This taint can be optionally applied by users to prevent startup race conditions such as
+// https://github.com/kubernetes/kubernetes/issues/95911
+func removeNotReadyTaint(k8sClient cloud.KubernetesAPIClient) error {
+	nodeName := os.Getenv("CSI_NODE_NAME")
+	if nodeName == "" {
+		klog.V(4).InfoS("CSI_NODE_NAME missing, skipping taint removal")
+		return nil
+	}
+
+	clientset, err := k8sClient()
+	if err != nil {
+		klog.V(4).InfoS("Failed to communicate with k8s API, skipping taint removal")
+		return nil //lint:ignore nilerr Failing to communicate with k8s API is a soft failure
+	}
+
+	node, err := clientset.CoreV1().Nodes().Get(context.Background(), nodeName, metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+
+	var taintsToKeep []corev1.Taint
+	for _, taint := range node.Spec.Taints {
+		if taint.Key != AgentNotReadyNodeTaintKey {
+			taintsToKeep = append(taintsToKeep, taint)
+		} else {
+			klog.V(4).InfoS("Queued taint for removal", "key", taint.Key, "effect", taint.Effect)
+		}
+	}
+
+	if len(taintsToKeep) == len(node.Spec.Taints) {
+		klog.V(4).InfoS("No taints to remove on node, skipping taint removal")
+		return nil
+	}
+
+	patchRemoveTaints := []JSONPatch{
+		{
+			OP:    "test",
+			Path:  "/spec/taints",
+			Value: node.Spec.Taints,
+		},
+		{
+			OP:    "replace",
+			Path:  "/spec/taints",
+			Value: taintsToKeep,
+		},
+	}
+
+	patch, err := json.Marshal(patchRemoveTaints)
+	if err != nil {
+		return err
+	}
+
+	_, err = clientset.CoreV1().Nodes().Patch(context.Background(), nodeName, k8stypes.JSONPatchType, patch, metav1.PatchOptions{})
+	if err != nil {
+		return err
+	}
+	klog.InfoS("Removed taint(s) from local node", "node", nodeName)
+	return nil
 }
