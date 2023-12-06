@@ -1,3 +1,9 @@
+# V1.7.2
+* Fixed the GID allocator work with the cross account feature. ([#1199](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1199), [@RomanBednar](https://github.com/RomanBednar))
+* Added Startup Taint Removal Feature to alleviate potential race conditions. ([#1197](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1197), [@mskanth972](https://github.com/mskanth972))
+* Updated the apiversion in StaticProvisioning storageclass.yaml example file. ([#1193](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1193), [@Rajit11](https://github.com/Rajit11))
+* README Update: Update Static Provisioning README.md on mounttargetip option. ([#1192](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1192), [@seanzatzdev-amazon](https://github.com/seanzatzdev-amazon))
+* Updated the GID allocator to allocate GIDs in increasing order. ([#1182](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1182), [@RomanBednar](https://github.com/RomanBednar))
 # V1.7.1
 * Fixed Posixuser nil pointer dereference issue. ([#1180](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1180), [@mskanth972](https://github.com/mskanth972))
 * Fixed CVE-2023-45142: bump k8s and opentelemetry. ([#1176](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1176), [@jsafrane](https://github.com/jsafrane))
