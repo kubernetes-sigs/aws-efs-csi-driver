@@ -86,6 +86,7 @@ The following sections are Kubernetes specific. If you are a Kubernetes user, us
 | Amazon EFS CSI Driver Version | Image                            |
 |-------------------------------|----------------------------------|
 | master branch                 | amazon/aws-efs-csi-driver:master |
+| v1.7.3                        | amazon/aws-efs-csi-driver:v1.7.3 |
 | v1.7.2                        | amazon/aws-efs-csi-driver:v1.7.2 |
 | v1.7.1                        | amazon/aws-efs-csi-driver:v1.7.1 |
 | v1.7.0                        | amazon/aws-efs-csi-driver:v1.7.0 |
@@ -131,7 +132,7 @@ The following sections are Kubernetes specific. If you are a Kubernetes user, us
 ### ECR Image
 | Driver Version | [ECR](https://gallery.ecr.aws/efs-csi-driver/amazon/aws-efs-csi-driver) Image |
 |----------------|-------------------------------------------------------------------------------|
-| v1.7.2         | public.ecr.aws/efs-csi-driver/amazon/aws-efs-csi-driver:v1.7.2                |
+| v1.7.3         | public.ecr.aws/efs-csi-driver/amazon/aws-efs-csi-driver:v1.7.3                |
 
 **Note**  
 You can find previous efs-csi-driver versions' images from [here](https://gallery.ecr.aws/efs-csi-driver/amazon/aws-efs-csi-driver)
@@ -343,7 +344,7 @@ If you want to update to a specific version, first customize the driver yaml fil
 kubectl kustomize "github.com/kubernetes-sigs/aws-efs-csi-driver/deploy/kubernetes/overlays/stable/?ref=release-1.7" > driver.yaml
 ```
 
-Then, update all lines referencing `image: amazon/aws-efs-csi-driver` to the desired version (e.g., to `image: amazon/aws-efs-csi-driver:v1.7.2`) in the yaml file, and deploy driver yaml again:
+Then, update all lines referencing `image: amazon/aws-efs-csi-driver` to the desired version (e.g., to `image: amazon/aws-efs-csi-driver:v1.7.3`) in the yaml file, and deploy driver yaml again:
 ```sh
 kubectl apply -f driver.yaml
 ```

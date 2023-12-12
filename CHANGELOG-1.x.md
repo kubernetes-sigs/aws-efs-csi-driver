@@ -1,3 +1,8 @@
+# V1.7.3
+* Edit file paths in provisioning.go to fix failing e2e test. ([#1223](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1223) [@seanzatzdev-amazon](https://github.com/seanzatzdev-amazon))
+* CVE-2023-48795: bump golang.org/x/crypto to v0.17.0. ([#1222](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1222), [@dobsonj](https://github.com/dobsonj))
+* set results count for listing access points. ([#1217](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1217), [@RomanBednar](https://github.com/RomanBednar))
+* Reduce calls to EFS API. ([#1226](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1226), [@otorreno](https://github.com/otorreno))
 # V1.7.2
 * Fixed the GID allocator work with the cross account feature. ([#1199](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1199), [@RomanBednar](https://github.com/RomanBednar))
 * Added Startup Taint Removal Feature to alleviate potential race conditions. ([#1197](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1197), [@mskanth972](https://github.com/mskanth972))
