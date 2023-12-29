@@ -302,10 +302,10 @@ func (c *cloud) ListAccessPoints(ctx context.Context, fileSystemId string) (acce
 	res, err := c.efs.DescribeAccessPointsWithContext(ctx, describeAPInput)
 	if err != nil {
 		if isAccessDenied(err) {
-			return
+			return nil, ErrAccessDenied
 		}
 		if isFileSystemNotFound(err) {
-			return
+			return nil, ErrNotFound
 		}
 		err = fmt.Errorf("List Access Points failed: %v", err)
 		return
