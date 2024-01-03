@@ -162,18 +162,18 @@ func (m *MockCloud) EXPECT() *MockCloudMockRecorder {
 }
 
 // CreateAccessPoint mocks base method.
-func (m *MockCloud) CreateAccessPoint(ctx context.Context, clientToken string, accessPointOpts *cloud.AccessPointOptions, usePvcName bool) (*cloud.AccessPoint, error) {
+func (m *MockCloud) CreateAccessPoint(ctx context.Context, clientToken string, accessPointOpts *cloud.AccessPointOptions) (*cloud.AccessPoint, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateAccessPoint", ctx, clientToken, accessPointOpts, usePvcName)
+	ret := m.ctrl.Call(m, "CreateAccessPoint", ctx, clientToken, accessPointOpts)
 	ret0, _ := ret[0].(*cloud.AccessPoint)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // CreateAccessPoint indicates an expected call of CreateAccessPoint.
-func (mr *MockCloudMockRecorder) CreateAccessPoint(ctx, clientToken, accessPointOpts, usePvcName interface{}) *gomock.Call {
+func (mr *MockCloudMockRecorder) CreateAccessPoint(ctx, clientToken, accessPointOpts interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateAccessPoint", reflect.TypeOf((*MockCloud)(nil).CreateAccessPoint), ctx, clientToken, accessPointOpts, usePvcName)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateAccessPoint", reflect.TypeOf((*MockCloud)(nil).CreateAccessPoint), ctx, clientToken, accessPointOpts)
 }
 
 // DeleteAccessPoint mocks base method.
@@ -235,6 +235,21 @@ func (mr *MockCloudMockRecorder) DescribeMountTargets(ctx, fileSystemId, az inte
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeMountTargets", reflect.TypeOf((*MockCloud)(nil).DescribeMountTargets), ctx, fileSystemId, az)
 }
 
+// FindAccessPointByClientToken mocks base method.
+func (m *MockCloud) FindAccessPointByClientToken(ctx context.Context, clientToken, fileSystemId string) (*cloud.AccessPoint, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "FindAccessPointByClientToken", ctx, clientToken, fileSystemId)
+	ret0, _ := ret[0].(*cloud.AccessPoint)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// FindAccessPointByClientToken indicates an expected call of FindAccessPointByClientToken.
+func (mr *MockCloudMockRecorder) FindAccessPointByClientToken(ctx, clientToken, fileSystemId interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindAccessPointByClientToken", reflect.TypeOf((*MockCloud)(nil).FindAccessPointByClientToken), ctx, clientToken, fileSystemId)
+}
+
 // GetMetadata mocks base method.
 func (m *MockCloud) GetMetadata() cloud.MetadataService {
 	m.ctrl.T.Helper()
@@ -250,16 +265,16 @@ func (mr *MockCloudMockRecorder) GetMetadata() *gomock.Call {
 }
 
 // ListAccessPoints mocks base method.
-func (m *MockCloud) ListAccessPoints(arg0 context.Context, arg1 string) ([]*cloud.AccessPoint, error) {
+func (m *MockCloud) ListAccessPoints(ctx context.Context, fileSystemId string) ([]*cloud.AccessPoint, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListAccessPoints", arg0, arg1)
+	ret := m.ctrl.Call(m, "ListAccessPoints", ctx, fileSystemId)
 	ret0, _ := ret[0].([]*cloud.AccessPoint)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ListAccessPoints indicates an expected call of ListAccessPoints.
-func (mr *MockCloudMockRecorder) ListAccessPoints(arg0, arg1 interface{}) *gomock.Call {
+func (mr *MockCloudMockRecorder) ListAccessPoints(ctx, fileSystemId interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListAccessPoints", reflect.TypeOf((*MockCloud)(nil).ListAccessPoints), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListAccessPoints", reflect.TypeOf((*MockCloud)(nil).ListAccessPoints), ctx, fileSystemId)
 }
