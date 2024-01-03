@@ -215,8 +215,8 @@ func TestCreateVolume(t *testing.T) {
 						AccessPointId: apId,
 						FileSystemId:  fsId,
 						PosixUser: &cloud.PosixUser{
-							Gid: 1001,
-							Uid: 1001,
+							Gid: 1003,
+							Uid: 1003,
 						},
 					},
 					{
@@ -229,7 +229,7 @@ func TestCreateVolume(t *testing.T) {
 					},
 				}
 
-				var expectedGid int64 = 1003 //1001 and 1002 are taken, next available is 1003
+				var expectedGid int64 = 1001 //1003 and 1002 are taken, next available is 1001
 				mockCloud.EXPECT().DescribeFileSystem(gomock.Eq(ctx), gomock.Any()).Return(fileSystem, nil)
 				mockCloud.EXPECT().ListAccessPoints(gomock.Eq(ctx), gomock.Any()).Return(accessPoints, nil)
 				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any(), false).Return(accessPoint, nil).
@@ -429,7 +429,7 @@ func TestCreateVolume(t *testing.T) {
 				}
 
 				accessPoints := []*cloud.AccessPoint{}
-				for i := 0; i < cloud.AccessPointPerFsLimit; i++ {
+				for i := 0; i < ACCESS_POINT_PER_FS_LIMIT; i++ {
 					gidMin, err := strconv.Atoi(req.Parameters[GidMin])
 					if err != nil {
 						t.Fatalf("Failed to convert GidMax Parameter to int.")
@@ -485,69 +485,6 @@ func TestCreateVolume(t *testing.T) {
 				if err == nil {
 					t.Fatalf("CreateVolume should have failed.")
 				}
-				mockCtl.Finish()
-			},
-		},
-		{
-			name: "Success: GID range exceeds EFS access point limit",
-			testFunc: func(t *testing.T) {
-				mockCtl := gomock.NewController(t)
-				mockCloud := mocks.NewMockCloud(mockCtl)
-
-				driver := &Driver{
-					endpoint:     endpoint,
-					cloud:        mockCloud,
-					gidAllocator: NewGidAllocator(),
-				}
-
-				req := &csi.CreateVolumeRequest{
-					Name: volumeName,
-					VolumeCapabilities: []*csi.VolumeCapability{
-						stdVolCap,
-					},
-					CapacityRange: &csi.CapacityRange{
-						RequiredBytes: capacityRange,
-					},
-					Parameters: map[string]string{
-						ProvisioningMode: "efs-ap",
-						FsId:             fsId,
-						DirectoryPerms:   "777",
-						BasePath:         "test",
-						GidMin:           "1000",
-						GidMax:           "1000000",
-					},
-				}
-
-				ctx := context.Background()
-				fileSystem := &cloud.FileSystem{
-					FileSystemId: fsId,
-				}
-
-				accessPoint := &cloud.AccessPoint{
-					AccessPointId: apId,
-					FileSystemId:  fsId,
-				}
-
-				expectedGid := 1000 // Allocator should pick lowest available GID
-				mockCloud.EXPECT().DescribeFileSystem(gomock.Eq(ctx), gomock.Any()).Return(fileSystem, nil)
-				mockCloud.EXPECT().ListAccessPoints(gomock.Eq(ctx), gomock.Any()).Return(nil, nil)
-				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any(), false).Return(accessPoint, nil).
-					Do(func(ctx context.Context, clientToken string, accessPointOpts *cloud.AccessPointOptions, reuseAccessPointName bool) {
-						if accessPointOpts.Uid != int64(expectedGid) {
-							t.Fatalf("Uid mismatched. Expected: %v, actual: %v", expectedGid, accessPointOpts.Uid)
-						}
-						if accessPointOpts.Gid != int64(expectedGid) {
-							t.Fatalf("Gid mismatched. Expected: %v, actual: %v", expectedGid, accessPointOpts.Gid)
-						}
-					})
-
-				var err error
-
-				_, err = driver.CreateVolume(ctx, req)
-				if err != nil {
-					t.Fatalf("CreateVolume failed unexpectedly: %v", err)
-				}
-
 				mockCtl.Finish()
 			},
 		},

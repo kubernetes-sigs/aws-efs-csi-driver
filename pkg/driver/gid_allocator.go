@@ -12,6 +12,8 @@ import (
 	"k8s.io/klog/v2"
 )
 
+var ACCESS_POINT_PER_FS_LIMIT int = 1000
+
 type FilesystemID struct {
 	gidMin int
 	gidMax int
@@ -83,10 +85,9 @@ func (g *GidAllocator) getUsedGids(ctx context.Context, localCloud cloud.Cloud, 
 func getNextUnusedGid(usedGids []int64, gidMin, gidMax int) (nextGid int, err error) {
 	requestedRange := gidMax - gidMin
 
-	if requestedRange > cloud.AccessPointPerFsLimit {
-		overrideGidMax := gidMin + cloud.AccessPointPerFsLimit
-		klog.Warningf("Requested GID range (%v:%v) exceeds EFS Access Point limit (%v) per Filesystem. Driver will use limited GID range (%v:%v)", gidMin, gidMax, cloud.AccessPointPerFsLimit, gidMin, overrideGidMax)
-		gidMax = overrideGidMax
+	if requestedRange > ACCESS_POINT_PER_FS_LIMIT {
+		klog.Warningf("Requested GID range (%v:%v) exceeds EFS Access Point limit (%v) per Filesystem. Driver will not allocate GIDs outside of this limit.", gidMin, gidMax, ACCESS_POINT_PER_FS_LIMIT)
+		gidMin = gidMax - ACCESS_POINT_PER_FS_LIMIT
 	}
 
 	var lookup func(usedGids []int64)
@@ -96,7 +97,7 @@ func getNextUnusedGid(usedGids []int64, gidMin, gidMax int) (nextGid int, err er
 				nextGid = gid
 				return
 			}
-			klog.V(5).Infof("Allocator found GID which is already in use: %v, trying next one.", gid)
+			klog.V(5).Infof("Allocator found GID which is already in use: %v - trying next one.", nextGid)
 		}
 		return
 	}
