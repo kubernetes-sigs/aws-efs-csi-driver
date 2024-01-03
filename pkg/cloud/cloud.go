@@ -38,6 +38,7 @@ const (
 	AccessDeniedException    = "AccessDeniedException"
 	AccessPointAlreadyExists = "AccessPointAlreadyExists"
 	PvcNameTagKey            = "pvcName"
+	AccessPointPerFsLimit    = 1000
 )
 
 var (
@@ -266,7 +267,7 @@ func (c *cloud) findAccessPointByClientToken(ctx context.Context, clientToken st
 	klog.V(2).Infof("ClientToken to find AP : %s", clientToken)
 	describeAPInput := &efs.DescribeAccessPointsInput{
 		FileSystemId: &accessPointOpts.FileSystemId,
-		MaxResults:   aws.Int64(1000),
+		MaxResults:   aws.Int64(AccessPointPerFsLimit),
 	}
 	res, err := c.efs.DescribeAccessPointsWithContext(ctx, describeAPInput)
 	if err != nil {
@@ -296,14 +297,15 @@ func (c *cloud) findAccessPointByClientToken(ctx context.Context, clientToken st
 func (c *cloud) ListAccessPoints(ctx context.Context, fileSystemId string) (accessPoints []*AccessPoint, err error) {
 	describeAPInput := &efs.DescribeAccessPointsInput{
 		FileSystemId: &fileSystemId,
+		MaxResults:   aws.Int64(AccessPointPerFsLimit),
 	}
 	res, err := c.efs.DescribeAccessPointsWithContext(ctx, describeAPInput)
 	if err != nil {
 		if isAccessDenied(err) {
-			return
+			return nil, ErrAccessDenied
 		}
 		if isFileSystemNotFound(err) {
-			return
+			return nil, ErrNotFound
 		}
 		err = fmt.Errorf("List Access Points failed: %v", err)
 		return

@@ -38,8 +38,8 @@ const (
 	AccessPointMode       = "efs-ap"
 	AzName                = "az"
 	BasePath              = "basePath"
-	DefaultGidMin         = 50000
-	DefaultGidMax         = 7000000
+	DefaultGidMin         = int64(50000)
+	DefaultGidMax         = DefaultGidMin + cloud.AccessPointPerFsLimit
 	DefaultTagKey         = "efs.csi.aws.com/cluster"
 	DefaultTagValue       = "true"
 	DirectoryPerms        = "directoryPerms"
@@ -120,8 +120,8 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 		azName           string
 		basePath         string
 		gid              int64
-		gidMin           int
-		gidMax           int
+		gidMin           int64
+		gidMax           int64
 		localCloud       cloud.Cloud
 		provisioningMode string
 		roleArn          string
@@ -189,7 +189,7 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 	}
 
 	if value, ok := volumeParams[GidMin]; ok {
-		gidMin, err = strconv.Atoi(value)
+		gidMin, err = strconv.ParseInt(value, 10, 64)
 		if err != nil {
 			return nil, status.Errorf(codes.InvalidArgument, "Failed to parse invalid %v: %v", GidMin, err)
 		}
@@ -203,7 +203,7 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 		if gidMin == 0 {
 			return nil, status.Errorf(codes.InvalidArgument, "Missing %v parameter", GidMin)
 		}
-		gidMax, err = strconv.Atoi(value)
+		gidMax, err = strconv.ParseInt(value, 10, 64)
 		if err != nil {
 			return nil, status.Errorf(codes.InvalidArgument, "Failed to parse invalid %v: %v", GidMax, err)
 		}
@@ -241,20 +241,27 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 		return nil, err
 	}
 
-	// Check if file system exists. Describe FS handles appropriate error codes
-	if _, err = localCloud.DescribeFileSystem(ctx, accessPointsOptions.FileSystemId); err != nil {
+	// Check if file system exists. Describe FS or List APs handle appropriate error codes
+	// With dynamic uid/gid provisioning we can save a call to describe FS, as list APs fails if FS ID does not exist
+	var accessPoints []*cloud.AccessPoint
+	if uid == -1 || gid == -1 {
+		accessPoints, err = localCloud.ListAccessPoints(ctx, accessPointsOptions.FileSystemId)
+	} else {
+		_, err = localCloud.DescribeFileSystem(ctx, accessPointsOptions.FileSystemId)
+	}
+	if err != nil {
 		if err == cloud.ErrAccessDenied {
 			return nil, status.Errorf(codes.Unauthenticated, "Access Denied. Please ensure you have the right AWS permissions: %v", err)
 		}
 		if err == cloud.ErrNotFound {
 			return nil, status.Errorf(codes.InvalidArgument, "File System does not exist: %v", err)
 		}
-		return nil, status.Errorf(codes.Internal, "Failed to fetch File System info: %v", err)
+		return nil, status.Errorf(codes.Internal, "Failed to fetch Access Points or Describe File System: %v", err)
 	}
 
 	var allocatedGid int64
 	if uid == -1 || gid == -1 {
-		allocatedGid, err = d.gidAllocator.getNextGid(ctx, localCloud, accessPointsOptions.FileSystemId, gidMin, gidMax)
+		allocatedGid, err = d.gidAllocator.getNextGid(accessPointsOptions.FileSystemId, accessPoints, gidMin, gidMax)
 		if err != nil {
 			return nil, err
 		}
