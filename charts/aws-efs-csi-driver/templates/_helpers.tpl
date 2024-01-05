@@ -54,3 +54,22 @@ Create a string out of the map for controller tags flag
 {{- end -}}
 {{- join " " $tags -}}
 {{- end -}}
+
+
+{{/*
+Controller Selector labels
+*/}}
+{{- define "aws-efs-csi-driver.controllerSelectorLabels" -}}
+app: efs-csi-controller
+app.kubernetes.io/name: {{ include "aws-efs-csi-driver.name" . }}
+app.kubernetes.io/instance: {{ .Release.Name }}
+{{- end }}
+
+{{/*
+Node Selector labels
+*/}}
+{{- define "aws-efs-csi-driver.nodeSelectorLabels" -}}
+app: efs-csi-node
+app.kubernetes.io/name: {{ include "aws-efs-csi-driver.name" . }}
+app.kubernetes.io/instance: {{ .Release.Name }}
+{{- end }}
