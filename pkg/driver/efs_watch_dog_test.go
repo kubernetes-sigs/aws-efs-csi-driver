@@ -75,9 +75,16 @@ dns_name_suffix = amazonaws.com.cn
 [mount.cn-northwest-1]
 dns_name_suffix = amazonaws.com.cn
 
+[mount.us-iso-west-1]
+dns_name_suffix = c2s.ic.gov
+stunnel_cafile = /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
 
 [mount.us-iso-east-1]
 dns_name_suffix = c2s.ic.gov
+stunnel_cafile = /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
+
+[mount.us-isob-west-1]
+dns_name_suffix = sc2s.sgov.gov
 stunnel_cafile = /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
 
 [mount.us-isob-east-1]
