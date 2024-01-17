@@ -1,4 +1,7 @@
 # Helm chart
+
+# v2.6.0
+* Expose volumes, volumeMounts, env helm values for configuring the efs controller and daemonset
 # v2.5.3
 * Bump app/driver version to `v1.7.3`
 # v2.5.2
@@ -22,7 +25,7 @@
 # v2.4.3
 * Bump app/driver version to `v1.5.6`
 # v2.4.2
-* Bump app/driver version to `v1.5.5` 
+* Bump app/driver version to `v1.5.5`
 # v2.4.1
 * Bump app/driver version to `v1.5.4`
 # v2.4.0
@@ -35,6 +38,7 @@
 * Bump app/driver version to `v1.5.0`
 # v2.3.6
 * Bump app/driver version to `v1.4.9`
+
 # v2.3.5
 * Bump app/driver version to `v1.4.8`
 
@@ -94,7 +98,7 @@
 * Add node.serviceAccount values for creating and/or specifying daemonset service account
 
 # v2.1.3
-* Bump app/driver version to `v1.3.2` 
+* Bump app/driver version to `v1.3.2`
 
 # v2.1.2
 * Add extra-create-metadata
