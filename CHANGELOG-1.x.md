@@ -1,3 +1,6 @@
+# V1.7.4
+* Bump the side-cars to the latest to mitigate the CVEs. ([#1246](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1246), [@mskanth972](https://github.com/mskanth972))
+* Update efs-csi-driver to use efs-utils latest release v1.35.1 which include adding 'fsap' to the ignored mount option list, compatibility with OpenSSL 3.0 in the RPM spec file, a new watchdog log message for outdated efs-utils versions, and regeneration of empty private key files.
 # V1.7.3
 * Edit file paths in provisioning.go to fix failing e2e test. ([#1223](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1223) [@seanzatzdev-amazon](https://github.com/seanzatzdev-amazon))
 * CVE-2023-48795: bump golang.org/x/crypto to v0.17.0. ([#1222](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1222), [@dobsonj](https://github.com/dobsonj))
