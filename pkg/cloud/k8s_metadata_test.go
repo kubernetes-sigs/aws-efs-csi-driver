@@ -78,6 +78,20 @@ func TestInstanceIdParsedFromProviderIdCorrectly(t *testing.T) {
 	}
 }
 
+func TestTaskIdParsedFromProviderIdCorrectly(t *testing.T) {
+	clientSet := setupKubernetesClient(t, nodeName, createFargateNode())
+	k8sMp := kubernetesApiMetadataProvider{api: clientSet}
+
+	metadata, err := k8sMp.getMetadata()
+
+	if err != nil {
+		t.Fatalf("Error occurred when parsing instance ID, %v", err)
+	}
+	if metadata.GetInstanceID() != taskId {
+		t.Fatalf("Instance ID not extracted correctly, expected %s, got %s", taskId, metadata.GetInstanceID())
+	}
+}
+
 func TestRegionAndZoneExtractedCorrectlyFromLabels(t *testing.T) {
 	clientSet := setupKubernetesClient(t, nodeName, createDefaultNode())
 	k8sMp := kubernetesApiMetadataProvider{api: clientSet}
@@ -122,4 +136,8 @@ func createNode(nodeName string, nodeRegion string, nodeZone string, providerId 
 
 func createDefaultNode() *v1.Node {
 	return createNode(nodeName, nodeRegion, nodeZone, fmt.Sprintf("aws:///%s/%s", nodeZone, instanceId))
+}
+
+func createFargateNode() *v1.Node {
+	return createNode(nodeName, nodeRegion, nodeZone, fmt.Sprintf("aws:///%s/1234567890-%s/%s", nodeZone, taskId, nodeName))
 }
