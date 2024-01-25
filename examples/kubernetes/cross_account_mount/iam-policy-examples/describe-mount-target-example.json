@@ -1,24 +1,62 @@
 {
   "Version": "2012-10-17",
   "Statement": [
-    {
-      "Sid" : "Stmt1DescribeMountTargets",
-      "Effect": "Allow",
-      "Action": [
-        "elasticfilesystem:DescribeFileSystems",
-        "elasticfilesystem:DescribeMountTargets",
-        "elasticfilesystem:CreateAccessPoint"
-      ],
-      "Resource": "arn:aws:elasticfilesystem:us-west-2:123456789012:file-system/file-system-ID"
-    },
-    {
-      "Sid" : "Stmt2AdditionalEC2PermissionsToDescribeMountTarget",
-      "Effect": "Allow",
-      "Action": [
-        "ec2:DescribeSubnets",
-        "ec2:DescribeNetworkInterfaces"
-      ],
-      "Resource": "*"
-    }
+      {
+          "Sid": "AllowDescribe",
+          "Effect": "Allow",
+          "Action": [
+              "elasticfilesystem:DescribeAccessPoints",
+              "elasticfilesystem:DescribeFileSystems",
+              "elasticfilesystem:DescribeMountTargets",
+              "ec2:DescribeAvailabilityZones"
+          ],
+          "Resource": "*"
+      },
+      {
+          "Sid": "AllowCreateAccessPoint",
+          "Effect": "Allow",
+          "Action": [
+              "elasticfilesystem:CreateAccessPoint"
+          ],
+          "Resource": "*",
+          "Condition": {
+              "Null": {
+                  "aws:RequestTag/efs.csi.aws.com/cluster": "false"
+              },
+              "ForAllValues:StringEquals": {
+                  "aws:TagKeys": "efs.csi.aws.com/cluster"
+              }
+          }
+      },
+      {
+          "Sid": "AllowTagNewAccessPoints",
+          "Effect": "Allow",
+          "Action": [
+              "elasticfilesystem:TagResource"
+          ],
+          "Resource": "*",
+          "Condition": {
+              "StringEquals": {
+                  "elasticfilesystem:CreateAction": "CreateAccessPoint"
+              },
+              "Null": {
+                  "aws:RequestTag/efs.csi.aws.com/cluster": "false"
+              },
+              "ForAllValues:StringEquals": {
+                  "aws:TagKeys": "efs.csi.aws.com/cluster"
+              }
+          }
+      },
+      {
+          "Sid": "AllowDeleteAccessPoint",
+          "Effect": "Allow",
+          "Action": "elasticfilesystem:DeleteAccessPoint",
+          "Resource": "*",
+          "Condition": {
+              "Null": {
+                  "aws:ResourceTag/efs.csi.aws.com/cluster": "false"
+              }
+          }
+      }
   ]
 }
