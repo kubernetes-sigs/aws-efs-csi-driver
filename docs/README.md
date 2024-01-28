@@ -325,6 +325,12 @@ After deploying the driver, you can continue to these sections:
 | vol-metrics-refresh-period  |        | 240     | true     | Refresh period for volume metrics in minutes.                                                                                                                                                                                           |
 | vol-metrics-fs-rate-limit   |        | 5       | true     | Volume metrics routines rate limiter per file system.                                                                                                                                                                                   |
 
+
+
+##### Understanding the Impact of vol-metrics-opt-in:
+Enabling the vol-metrics-opt-in parameter activates the gathering of inode and disk usage data. This functionality, particularly in scenarios with larger file systems, may result in an uptick in memory usage due to the detailed aggregation of file system information. We advise users with large-scale file systems to consider this aspect when utilizing this feature.
+
+
 ### Container Arguments for deployment(controller) 
 | Parameters                  | Values | Default | Optional | Description                                                                                                                                                                                                                            |
 |-----------------------------|--------|---------|----------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
