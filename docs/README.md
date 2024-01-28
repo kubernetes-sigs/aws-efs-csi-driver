@@ -339,6 +339,12 @@ After deploying the driver, you can continue to these sections:
 | vol-metrics-fs-rate-limit   |        | 5       | true     | Volume metrics routines rate limiter per file system.                                                                                                                                                                                   |
 | tags                         |       |         | true     | Space separated key:value pairs which will be added as tags for EFS resources. For example, '--tags=name:efs-tag-test date:Jan24'                                                                                                       |
 
+
+
+##### Understanding the Impact of vol-metrics-opt-in:
+Enabling the vol-metrics-opt-in parameter activates the gathering of inode and disk usage data. This functionality, particularly in scenarios with larger file systems, may result in an uptick in memory usage due to the detailed aggregation of file system information. We advise users with large-scale file systems to consider this aspect when utilizing this feature.
+
+
 ### Container Arguments for deployment(controller) 
 | Parameters                  | Values | Default | Optional | Description                                                                                                                                                                                                                            |
 |-----------------------------|--------|---------|----------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
