@@ -101,6 +101,7 @@ controller:
     runAsGroup: 0
     fsGroup: 0
   # securityContext on the controller container
+  # Setting privileged=false will cause the "delete-access-point-root-dir" controller option to fail
   containerSecurityContext:
     privileged: true
   leaderElectionRenewDeadline: 10s
