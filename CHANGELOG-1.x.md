@@ -1,3 +1,6 @@
+# V1.7.5
+* Allow controller SA to describe Secrets - fixes cross account dynamic provisioning. ([#1256](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1256), [@RyanStan](https://github.com/RyanStan))
+* Added Fargate support for EFS CSI Controller. ([#1195](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1195), [@Rio Maulana](https://github.com/rimaulana))
 # V1.7.4
 * Bump the side-cars to the latest to mitigate the CVEs. ([#1246](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1246), [@mskanth972](https://github.com/mskanth972))
 * Update efs-csi-driver to use efs-utils latest release v1.35.1 which include adding 'fsap' to the ignored mount option list, compatibility with OpenSSL 3.0 in the RPM spec file, a new watchdog log message for outdated efs-utils versions, and regeneration of empty private key files.
