@@ -115,6 +115,8 @@ stunnel_health_check_enabled = true
 stunnel_health_check_interval_min = 5
 stunnel_health_check_command_timeout_sec = 30
 
+enable_version_check = false
+
 [client-info] 
 source={{.EfsClientSource}}
 
