@@ -1,3 +1,6 @@
+# V1.7.6
+* Added feathrye to disable efs-utils version check. ([#1272](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1272), [@RyanStan](https://github.com/RyanStan))
+* Fixed checker in controller to gid instead of uid.  ([#1269](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1269), [@ashrayjain](https://github.com/ashrayjain))
 # V1.7.5
 * Allow controller SA to describe Secrets - fixes cross account dynamic provisioning. ([#1256](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1256), [@RyanStan](https://github.com/RyanStan))
 * Added Fargate support for EFS CSI Controller. ([#1195](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1195), [@Rio Maulana](https://github.com/rimaulana))
