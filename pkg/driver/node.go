@@ -78,6 +78,7 @@ func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 	// TODO when CreateVolume is implemented, it must use the same key names
 	subpath := "/"
 	encryptInTransit := true
+	crossAccountDNSEnabled := false
 	volContext := req.GetVolumeContext()
 	for k, v := range volContext {
 		switch strings.ToLower(k) {
@@ -99,8 +100,14 @@ func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 		case MountTargetIp:
 			ipAddr := volContext[MountTargetIp]
 			mountOptions = append(mountOptions, MountTargetIp+"="+ipAddr)
+		case CrossAccount:
+			var err error
+			crossAccountDNSEnabled, err = strconv.ParseBool(v)
+			if err != nil {
+				return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("Volume context property %q must be a boolean value: %v", k, err))
+			}
 		default:
-			return nil, status.Errorf(codes.InvalidArgument, "Volume context property %s not supported", k)
+			return nil, status.Errorf(codes.InvalidArgument, "Volume context property %s not supported.", k)
 		}
 	}
 
@@ -131,6 +138,10 @@ func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 		if !hasOption(mountOptions, "tls") {
 			mountOptions = append(mountOptions, "tls")
 		}
+	}
+
+	if crossAccountDNSEnabled {
+		mountOptions = append(mountOptions, CrossAccount)
 	}
 
 	if req.GetReadonly() {
