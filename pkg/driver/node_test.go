@@ -498,7 +498,7 @@ func TestNodePublishVolume(t *testing.T) {
 			expectMakeDir: false,
 			expectError: errtyp{
 				code:    "InvalidArgument",
-				message: "Volume context property asdf not supported",
+				message: "Volume context property asdf not supported.",
 			},
 		},
 		{
