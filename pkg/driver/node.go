@@ -25,6 +25,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
 	"github.com/kubernetes-sigs/aws-efs-csi-driver/pkg/cloud"
@@ -464,7 +465,7 @@ type JSONPatch struct {
 	Value interface{} `json:"value"`
 }
 
-// removeNotReadyTaint removes the taint ebs.csi.aws.com/agent-not-ready from the local node
+// removeNotReadyTaint removes the taint efs.csi.aws.com/agent-not-ready from the local node
 // This taint can be optionally applied by users to prevent startup race conditions such as
 // https://github.com/kubernetes/kubernetes/issues/95911
 func removeNotReadyTaint(k8sClient cloud.KubernetesAPIClient) error {
@@ -523,4 +524,17 @@ func removeNotReadyTaint(k8sClient cloud.KubernetesAPIClient) error {
 	}
 	klog.InfoS("Removed taint(s) from local node", "node", nodeName)
 	return nil
+}
+
+// remove taint may failed, this keep retring until succeed, make sure the taint will eventually being removed
+func tryRemoveNotReadyTaintUntilSucceed(k8sClient cloud.KubernetesAPIClient, interval time.Duration) {
+	for {
+		err := removeNotReadyTaint(k8sClient)
+		if err == nil {
+			return
+		}
+
+		klog.ErrorS(err, "Unexpected failure when attempting to remove node taint(s)")
+		time.Sleep(interval)
+	}
 }
