@@ -20,6 +20,7 @@ import (
 	"context"
 	"net"
 	"strings"
+	"time"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
 	"google.golang.org/grpc"
@@ -129,10 +130,7 @@ func (d *Driver) Run() error {
 
 	// Remove taint from node to indicate driver startup success
 	// This is done at the last possible moment to prevent race conditions or false positive removals
-	err = removeNotReadyTaint(cloud.DefaultKubernetesAPIClient)
-	if err != nil {
-		klog.ErrorS(err, "Unexpected failure when attempting to remove node taint(s)")
-	}
+	go tryRemoveNotReadyTaintUntilSucceed(cloud.DefaultKubernetesAPIClient, time.Second)
 
 	klog.Infof("Listening for connections on address: %#v", listener.Addr())
 	return d.srv.Serve(listener)
