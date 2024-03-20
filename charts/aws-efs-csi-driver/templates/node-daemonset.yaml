@@ -21,9 +21,6 @@ spec:
         app: efs-csi-node
         app.kubernetes.io/name: {{ include "aws-efs-csi-driver.name" . }}
         app.kubernetes.io/instance: {{ .Release.Name }}
-        {{- with .Values.node.podLabels }}
-        {{ toYaml . | nindent 8 }}
-        {{- end }}
       {{- if .Values.node.podAnnotations }}
       annotations: {{ toYaml .Values.node.podAnnotations | nindent 8 }}
       {{- end }}
@@ -50,13 +47,13 @@ spec:
       {{- with .Values.node.affinity }}
       affinity: {{- toYaml . | nindent 8 }}
       {{- end }}
-      hostNetwork: {{ .Values.node.hostNetwork }}
+      hostNetwork: true
       dnsPolicy: {{ .Values.node.dnsPolicy }}
       {{- with .Values.node.dnsConfig }}
       dnsConfig: {{- toYaml . | nindent 8 }}
       {{- end }}
       serviceAccountName: {{ .Values.node.serviceAccount.name }}
-      priorityClassName: {{ .Values.node.priorityClassName}}
+      priorityClassName: system-node-critical
       {{- with .Values.node.tolerations }}
       tolerations: {{- toYaml . | nindent 8 }}
       {{- end }}
