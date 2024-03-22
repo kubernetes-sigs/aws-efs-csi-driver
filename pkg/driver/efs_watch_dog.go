@@ -219,6 +219,11 @@ func copyWithoutOverwriting(srcDir, dstDir string) error {
 			if err := copyFile(src, dst); err != nil {
 				return err
 			}
+		} else if filepath.Base(src) == "efs-utils.crt" {
+			klog.Infof("Copying %s ", dst)
+			if err := copyFile(src, dst); err != nil {
+				return err
+			}
 		} else {
 			klog.Infof("Skip copying %s since it exists already", dst)
 		}
