@@ -85,6 +85,10 @@ spec:
             - name: AWS_USE_FIPS_ENDPOINT
               value: "true"
             {{- end }}
+            - name: AWS_DEFAULT_REGION
+              value: AWS_REGION
+            - name: AWS_CA_BUNDLE
+              value: /etc/pki/tls/certs/ca-bundle.crt
           volumeMounts:
             - name: kubelet-dir
               mountPath: /var/lib/kubelet
@@ -97,6 +101,8 @@ spec:
               mountPath: /var/amazon/efs
             - name: efs-utils-config-legacy
               mountPath: /etc/amazon/efs-legacy
+            - name: ca-bundle
+              mountPath: /etc/pki/tls/certs/ca-bundle.crt
           ports:
             - name: healthz
               containerPort: {{ .Values.node.healthPort }}
@@ -182,3 +188,7 @@ spec:
           hostPath:
             path: /etc/amazon/efs
             type: DirectoryOrCreate
+        - name: ca-bundle
+          hostPath:
+            path: /etc/pki/tls/certs/ca-bundle.crt
+            type: File

@@ -51,9 +51,15 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
+            - name: AWS_DEFAULT_REGION
+              value: AWS_REGION
+            - name: AWS_CA_BUNDLE
+              value: /etc/pki/tls/certs/ca-bundle.crt
           volumeMounts:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
+            - name: ca-bundle
+              mountPath: /etc/pki/tls/certs/ca-bundle.crt
           ports:
             - name: healthz
               containerPort: 9909
@@ -99,3 +105,7 @@ spec:
       volumes:
         - name: socket-dir
           emptyDir: {}
+        - name: ca-bundle
+          hostPath:
+            path: /etc/pki/tls/certs/ca-bundle.crt
+            type: File
