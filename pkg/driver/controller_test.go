@@ -2487,6 +2487,7 @@ func TestCreateVolume(t *testing.T) {
 
 				secrets := map[string]string{}
 				secrets["awsRoleArn"] = "arn:aws:iam::1234567890:role/EFSCrossAccountRole"
+				secrets["crossaccount"] = "true"
 
 				req := &csi.CreateVolumeRequest{
 					Name: volumeName,

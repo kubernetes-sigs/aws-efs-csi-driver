@@ -20,12 +20,13 @@ import (
 	"context"
 	"crypto/sha256"
 	"fmt"
-	"github.com/google/uuid"
 	"os"
 	"path"
 	"sort"
 	"strconv"
 	"strings"
+
+	"github.com/google/uuid"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
 	"github.com/kubernetes-sigs/aws-efs-csi-driver/pkg/cloud"
@@ -59,6 +60,7 @@ const (
 	Uid                   = "uid"
 	ReuseAccessPointKey   = "reuseAccessPoint"
 	PvcNameKey            = "csi.storage.k8s.io/pvc/name"
+	CrossAccount          = "crossaccount"
 )
 
 var (
@@ -117,15 +119,16 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 	}
 
 	var (
-		azName           string
-		basePath         string
-		gid              int64
-		gidMin           int64
-		gidMax           int64
-		localCloud       cloud.Cloud
-		provisioningMode string
-		roleArn          string
-		uid              int64
+		azName                 string
+		basePath               string
+		gid                    int64
+		gidMin                 int64
+		gidMax                 int64
+		localCloud             cloud.Cloud
+		provisioningMode       string
+		roleArn                string
+		uid                    int64
+		crossAccountDNSEnabled bool
 	)
 
 	//Parse parameters
@@ -236,7 +239,7 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 		azName = value
 	}
 
-	localCloud, roleArn, err = getCloud(req.GetSecrets(), d)
+	localCloud, roleArn, crossAccountDNSEnabled, err = getCloud(req.GetSecrets(), d)
 	if err != nil {
 		return nil, err
 	}
@@ -326,13 +329,22 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 
 	volContext := map[string]string{}
 
-	// Fetch mount target Ip for cross-account mount
+	// Enable cross-account dns resolution or fetch mount target Ip for cross-account mount
 	if roleArn != "" {
-		mountTarget, err := localCloud.DescribeMountTargets(ctx, accessPointsOptions.FileSystemId, azName)
-		if err != nil {
-			klog.Warningf("Failed to describe mount targets for file system %v. Skip using `mounttargetip` mount option: %v", accessPointsOptions.FileSystemId, err)
+		if crossAccountDNSEnabled {
+			// This option indicates the customer would like to use DNS to resolve
+			// the cross-account mount target ip address (in order to mount to
+			// the same AZ-ID as the client instance); mounttargetip should
+			// not be used as a mount option in this case.
+			volContext[CrossAccount] = strconv.FormatBool(true)
 		} else {
-			volContext[MountTargetIp] = mountTarget.IPAddress
+			mountTarget, err := localCloud.DescribeMountTargets(ctx, accessPointsOptions.FileSystemId, azName)
+			if err != nil {
+				klog.Warningf("Failed to describe mount targets for file system %v. Skip using `mounttargetip` mount option: %v", accessPointsOptions.FileSystemId, err)
+			} else {
+				volContext[MountTargetIp] = mountTarget.IPAddress
+			}
+
 		}
 	}
 
@@ -347,12 +359,13 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 
 func (d *Driver) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeRequest) (*csi.DeleteVolumeResponse, error) {
 	var (
-		localCloud cloud.Cloud
-		roleArn    string
-		err        error
+		localCloud             cloud.Cloud
+		roleArn                string
+		crossAccountDNSEnabled bool
+		err                    error
 	)
 
-	localCloud, roleArn, err = getCloud(req.GetSecrets(), d)
+	localCloud, roleArn, crossAccountDNSEnabled, err = getCloud(req.GetSecrets(), d)
 	if err != nil {
 		return nil, err
 	}
@@ -392,12 +405,16 @@ func (d *Driver) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeRequest)
 			//Mount File System at it root and delete access point root directory
 			mountOptions := []string{"tls", "iam"}
 			if roleArn != "" {
-				mountTarget, err := localCloud.DescribeMountTargets(ctx, fileSystemId, "")
-
-				if err == nil {
-					mountOptions = append(mountOptions, MountTargetIp+"="+mountTarget.IPAddress)
+				if crossAccountDNSEnabled {
+					// Connect via dns rather than mounttargetip
+					mountOptions = append(mountOptions, CrossAccount)
 				} else {
-					klog.Warningf("Failed to describe mount targets for file system %v. Skip using `mounttargetip` mount option: %v", fileSystemId, err)
+					mountTarget, err := localCloud.DescribeMountTargets(ctx, fileSystemId, "")
+					if err == nil {
+						mountOptions = append(mountOptions, MountTargetIp+"="+mountTarget.IPAddress)
+					} else {
+						klog.Warningf("Failed to describe mount targets for file system %v. Skip using `mounttargetip` mount option: %v", fileSystemId, err)
+					}
 				}
 			}
 
@@ -520,10 +537,11 @@ func (d *Driver) ControllerGetVolume(ctx context.Context, req *csi.ControllerGet
 	return nil, status.Error(codes.Unimplemented, "")
 }
 
-func getCloud(secrets map[string]string, driver *Driver) (cloud.Cloud, string, error) {
+func getCloud(secrets map[string]string, driver *Driver) (cloud.Cloud, string, bool, error) {
 
 	var localCloud cloud.Cloud
 	var roleArn string
+	var crossAccountDNSEnabled bool
 	var err error
 
 	// Fetch aws role ARN for cross account mount from CSI secrets. Link to CSI secrets below
@@ -531,17 +549,25 @@ func getCloud(secrets map[string]string, driver *Driver) (cloud.Cloud, string, e
 	if value, ok := secrets[RoleArn]; ok {
 		roleArn = value
 	}
+	if value, ok := secrets[CrossAccount]; ok {
+		crossAccountDNSEnabled, err = strconv.ParseBool(value)
+		if err != nil {
+			return nil, "", false, status.Error(codes.InvalidArgument, "crossaccount parameter must have boolean value.")
+		}
+	} else {
+		crossAccountDNSEnabled = false
+	}
 
 	if roleArn != "" {
 		localCloud, err = cloud.NewCloudWithRole(roleArn)
 		if err != nil {
-			return nil, "", status.Errorf(codes.Unauthenticated, "Unable to initialize aws cloud: %v. Please verify role has the correct AWS permissions for cross account mount", err)
+			return nil, "", false, status.Errorf(codes.Unauthenticated, "Unable to initialize aws cloud: %v. Please verify role has the correct AWS permissions for cross account mount", err)
 		}
 	} else {
 		localCloud = driver.cloud
 	}
 
-	return localCloud, roleArn, nil
+	return localCloud, roleArn, crossAccountDNSEnabled, nil
 }
 
 func interpolateRootDirectoryName(rootDirectoryPath string, volumeParams map[string]string) (string, error) {
