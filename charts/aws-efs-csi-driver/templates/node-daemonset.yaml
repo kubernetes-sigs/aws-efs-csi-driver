@@ -133,6 +133,8 @@ spec:
               mountPath: /csi
             - name: registration-dir
               mountPath: /registration
+            - name: probe-dir
+              mountPath: /var/lib/kubelet/plugins/efs.csi.aws.com/
           {{- with .Values.sidecars.nodeDriverRegistrar.resources }}
           resources: {{ toYaml . | nindent 12 }}
           {{- end }}
@@ -182,3 +184,5 @@ spec:
           hostPath:
             path: /etc/amazon/efs
             type: DirectoryOrCreate
+        - emptyDir: {}
+          name: probe-dir
