@@ -18,6 +18,7 @@ package driver
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"reflect"
@@ -1011,4 +1012,33 @@ func getNodeMock(mockCtl *gomock.Controller, nodeName string, returnNode *corev1
 	mockNode.EXPECT().Get(gomock.Any(), gomock.Eq(nodeName), gomock.Any()).Return(returnNode, returnError).MinTimes(1)
 
 	return mockClient, mockNode
+}
+
+func TestTryRemoveNotReadyTaintUntilSucceed(t *testing.T) {
+	{
+		i := 0
+		tryRemoveNotReadyTaintUntilSucceed(time.Second, func() error {
+			i++
+			if i < 3 {
+				return errors.New("test")
+			}
+
+			return nil
+		})
+
+		if i != 3 {
+			t.Fatalf("unexpected result")
+		}
+	}
+	{
+		i := 0
+		tryRemoveNotReadyTaintUntilSucceed(time.Second, func() error {
+			i++
+			return nil
+		})
+
+		if i != 1 {
+			t.Fatalf("unexpected result")
+		}
+	}
 }
