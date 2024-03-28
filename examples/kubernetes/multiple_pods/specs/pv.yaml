@@ -3,6 +3,8 @@ kind: PersistentVolume
 metadata:
   name: efs-pv
 spec:
+  mountOptions:
+    - iam
   capacity:
     storage: 5Gi
   volumeMode: Filesystem
