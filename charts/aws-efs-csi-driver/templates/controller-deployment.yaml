@@ -13,9 +13,7 @@ spec:
   replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
-      app: efs-csi-controller
-      app.kubernetes.io/name: {{ include "aws-efs-csi-driver.name" . }}
-      app.kubernetes.io/instance: {{ .Release.Name }}
+      {{- include "aws-efs-csi-driver.controllerSelectorLabels" . | nindent 6 }}
   {{- with .Values.controller.updateStrategy }}
   strategy:
     {{ toYaml . | nindent 4 }}
@@ -23,11 +21,9 @@ spec:
   template:
     metadata:
       labels:
-        app: efs-csi-controller
-        app.kubernetes.io/name: {{ include "aws-efs-csi-driver.name" . }}
-        app.kubernetes.io/instance: {{ .Release.Name }}
+        {{- include "aws-efs-csi-driver.controllerSelectorLabels" . | nindent 8 }}
         {{- with .Values.controller.podLabels }}
-        {{ toYaml . | nindent 8 }}
+        {{- toYaml . | nindent 8 }}
         {{- end }}
       {{- with .Values.controller.podAnnotations }}
       annotations: {{- toYaml . | nindent 8 }}
