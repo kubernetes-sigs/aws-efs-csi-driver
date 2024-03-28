@@ -3,6 +3,8 @@ kind: StorageClass
 apiVersion: storage.k8s.io/v1
 metadata:
   name: {{ .name }}
+  labels:
+    {{- include "aws-efs-csi-driver.labels" . | nindent 4 }}
   {{- with .annotations }}
   annotations:
   {{ toYaml . | indent 4 }}

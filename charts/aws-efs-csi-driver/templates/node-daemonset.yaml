@@ -4,13 +4,12 @@ apiVersion: apps/v1
 metadata:
   name: efs-csi-node
   labels:
-    app.kubernetes.io/name: {{ include "aws-efs-csi-driver.name" . }}
+    {{- include "aws-efs-csi-driver.labels" . | nindent 4 }}
 spec:
   selector:
     matchLabels:
       app: efs-csi-node
-      app.kubernetes.io/name: {{ include "aws-efs-csi-driver.name" . }}
-      app.kubernetes.io/instance: {{ .Release.Name }}
+      {{- include "aws-efs-csi-driver.labels" . | nindent 6 }}
   {{- with .Values.node.updateStrategy }}
   updateStrategy:
     {{ toYaml . | nindent 4 }}
@@ -19,8 +18,7 @@ spec:
     metadata:
       labels:
         app: efs-csi-node
-        app.kubernetes.io/name: {{ include "aws-efs-csi-driver.name" . }}
-        app.kubernetes.io/instance: {{ .Release.Name }}
+        {{- include "aws-efs-csi-driver.labels" . | nindent 8 }}
       {{- if .Values.node.podAnnotations }}
       annotations: {{ toYaml .Values.node.podAnnotations | nindent 8 }}
       {{- end }}
