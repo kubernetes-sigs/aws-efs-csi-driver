@@ -3,8 +3,10 @@ kind: CSIDriver
 metadata:
   name: efs.csi.aws.com
   annotations:
+    {{- if .Values.useHelmHooksForCSIDriver }}
     "helm.sh/hook": pre-install, pre-upgrade
     "helm.sh/hook-delete-policy": before-hook-creation
+    {{- end }}
     "helm.sh/resource-policy": keep
 spec:
   attachRequired: false
