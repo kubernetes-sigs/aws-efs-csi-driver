@@ -1,3 +1,9 @@
+# V1.7.7
+* Add seanzatzdev-amazon OWNERS. ([#1200](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1200), [@seanzatzdev-amazon](https://github.com/seanzatzdev-amazon))
+* CVE-2024-24786: bump google.golang.org/protobuf to v1.33.0. ([#1286](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1286), [@dobsonj](https://github.com/dobsonj))
+* Update EFS Utils Restoration to Overwrite Certificates. ([#1289](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1289), [@mskanth972](https://github.com/mskanth972))
+* Add static & dynamic provisioning options for using efs-utils crossacount mount option for cross-account AZ mapping between client instance and mount target ([#1292](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1292), [@seanzatzdev-amazon](https://github.com/seanzatzdev-amazon))
+* Add unit tests for cross account dns feature ([#1293](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1293), [@seanzatzdev-amazon](https://github.com/seanzatzdev-amazon))
 # V1.7.6
 * Add feature to disable efs-utils version check. ([#1272](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1272), [@RyanStan](https://github.com/RyanStan))
 * Fix checker in controller to use gid instead of uid.  ([#1269](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1269), [@ashrayjain](https://github.com/ashrayjain))
