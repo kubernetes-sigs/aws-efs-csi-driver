@@ -17,10 +17,14 @@ limitations under the License.
 package main
 
 import (
-	"flag"
 	"fmt"
 	"os"
 
+	flag "github.com/spf13/pflag"
+
+	"k8s.io/component-base/featuregate"
+	logsapi "k8s.io/component-base/logs/api/v1"
+	json "k8s.io/component-base/logs/json"
 	"k8s.io/klog/v2"
 
 	"github.com/kubernetes-sigs/aws-efs-csi-driver/pkg/driver"
@@ -29,22 +33,40 @@ import (
 // etcAmazonEfs is the non-negotiable directory that the mount.efs will use for config files. We will create a symlink here.
 const etcAmazonEfs = "/etc/amazon/efs"
 
+var featureGate = featuregate.NewFeatureGate()
+
 func main() {
 	var (
-		endpoint                 = flag.String("endpoint", "unix://tmp/csi.sock", "CSI Endpoint")
-		version                  = flag.Bool("version", false, "Print the version and exit")
-		efsUtilsCfgDirPath       = flag.String("efs-utils-config-dir-path", "/var/amazon/efs", "The preferred path for the efs-utils config directory. efs-utils-config-legacy-dir-path will be used if it is not empty, otherwise efs-utils-config-dir-path will be used.")
-		efsUtilsCfgLegacyDirPath = flag.String("efs-utils-config-legacy-dir-path", "/etc/amazon/efs-legacy", "The path to the legacy efs-utils config directory mounted from the host path /etc/amazon/efs")
-		efsUtilsStaticFilesPath  = flag.String("efs-utils-static-files-path", "/etc/amazon/efs-static-files/", "The path to efs-utils static files directory")
-		volMetricsOptIn          = flag.Bool("vol-metrics-opt-in", false, "Opt in to emit volume metrics")
-		volMetricsRefreshPeriod  = flag.Float64("vol-metrics-refresh-period", 240, "Refresh period for volume metrics in minutes")
-		volMetricsFsRateLimit    = flag.Int("vol-metrics-fs-rate-limit", 5, "Volume metrics routines rate limiter per file system")
-		deleteAccessPointRootDir = flag.Bool("delete-access-point-root-dir", false,
-			"Opt in to delete access point root directory by DeleteVolume. By default, DeleteVolume will delete the access point behind Persistent Volume and deleting access point will not delete the access point root directory or its contents.")
-		tags = flag.String("tags", "", "Space separated key:value pairs which will be added as tags for EFS resources. For example, 'environment:prod region:us-east-1'")
+		fs                       = flag.NewFlagSet("aws-efs-csi-driver", flag.ExitOnError)
+		endpoint                 = fs.String("endpoint", "unix://tmp/csi.sock", "CSI Endpoint")
+		version                  = fs.Bool("version", false, "Print the version and exit")
+		efsUtilsCfgDirPath       = fs.String("efs-utils-config-dir-path", "/var/amazon/efs", "The preferred path for the efs-utils config directory. efs-utils-config-legacy-dir-path will be used if it is not empty, otherwise efs-utils-config-dir-path will be used.")
+		efsUtilsCfgLegacyDirPath = fs.String("efs-utils-config-legacy-dir-path", "/etc/amazon/efs-legacy", "The path to the legacy efs-utils config directory mounted from the host path /etc/amazon/efs")
+		efsUtilsStaticFilesPath  = fs.String("efs-utils-static-files-path", "/etc/amazon/efs-static-files/", "The path to efs-utils static files directory")
+		volMetricsOptIn          = fs.Bool("vol-metrics-opt-in", false, "Opt in to emit volume metrics")
+		volMetricsRefreshPeriod  = fs.Float64("vol-metrics-refresh-period", 240, "Refresh period for volume metrics in minutes")
+		volMetricsFsRateLimit    = fs.Int("vol-metrics-fs-rate-limit", 5, "Volume metrics routines rate limiter per file system")
+		deleteAccessPointRootDir = fs.Bool("delete-access-point-root-dir", false, "Opt in to delete access point root directory by DeleteVolume. By default, DeleteVolume will delete the access point behind Persistent Volume and deleting access point will not delete the access point root directory or its contents.")
+		tags                     = fs.String("tags", "", "Space separated key:value pairs which will be added as tags for EFS resources. For example, 'environment:prod region:us-east-1'")
 	)
-	klog.InitFlags(nil)
-	flag.Parse()
+	if err := logsapi.RegisterLogFormat(logsapi.JSONLogFormat, json.Factory{}, logsapi.LoggingBetaOptions); err != nil {
+		klog.ErrorS(err, "failed to register JSON log format")
+	}
+
+	c := logsapi.NewLoggingConfiguration()
+
+	err := logsapi.AddFeatureGates(featureGate)
+	if err != nil {
+		klog.ErrorS(err, "failed to add feature gates")
+	}
+
+	logsapi.AddFlags(c, fs)
+	fs.Parse(os.Args[1:])
+
+	err = logsapi.ValidateAndApply(c, featureGate)
+	if err != nil {
+		klog.ErrorS(err, "failed to validate and apply logging configuration")
+	}
 
 	if *version {
 		info, err := driver.GetVersionJSON()
@@ -56,7 +78,7 @@ func main() {
 	}
 
 	// chose which configuration directory we will use and create a symlink to it
-	err := driver.InitConfigDir(*efsUtilsCfgLegacyDirPath, *efsUtilsCfgDirPath, etcAmazonEfs)
+	err = driver.InitConfigDir(*efsUtilsCfgLegacyDirPath, *efsUtilsCfgDirPath, etcAmazonEfs)
 	if err != nil {
 		klog.Fatalln(err)
 	}
