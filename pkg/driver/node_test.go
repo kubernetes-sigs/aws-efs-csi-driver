@@ -306,6 +306,30 @@ func TestNodePublishVolume(t *testing.T) {
 			mountSuccess:  true,
 		},
 		{
+			name: "success: normal with crossaccount true volume context",
+			req: &csi.NodePublishVolumeRequest{
+				VolumeId:         volumeId,
+				VolumeCapability: stdVolCap,
+				TargetPath:       targetPath,
+				VolumeContext:    map[string]string{"crossaccount": "true"},
+			},
+			expectMakeDir: true,
+			mountArgs:     []interface{}{volumeId + ":/", targetPath, "efs", []string{"tls", "crossaccount"}},
+			mountSuccess:  true,
+		},
+		{
+			name: "success: normal with crossaccount false volume context",
+			req: &csi.NodePublishVolumeRequest{
+				VolumeId:         volumeId,
+				VolumeCapability: stdVolCap,
+				TargetPath:       targetPath,
+				VolumeContext:    map[string]string{"crossaccount": "false"},
+			},
+			expectMakeDir: true,
+			mountArgs:     []interface{}{volumeId + ":/", targetPath, "efs", []string{"tls"}},
+			mountSuccess:  true,
+		},
+		{
 			name: "success: normal with volume context populated from dynamic provisioning",
 			req: &csi.NodePublishVolumeRequest{
 				VolumeId:         volumeId,
