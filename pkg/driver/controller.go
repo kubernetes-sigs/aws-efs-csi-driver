@@ -43,6 +43,7 @@ const (
 	DefaultGidMax         = DefaultGidMin + cloud.AccessPointPerFsLimit
 	DefaultTagKey         = "efs.csi.aws.com/cluster"
 	DefaultTagValue       = "true"
+	DiscoverAzName        = "discoverAzName"
 	DirectoryPerms        = "directoryPerms"
 	EnsureUniqueDirectory = "ensureUniqueDirectory"
 	FsId                  = "fileSystemId"
@@ -129,6 +130,7 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 		roleArn                string
 		uid                    int64
 		crossAccountDNSEnabled bool
+		discoverAzNameEnabled  bool
 	)
 
 	//Parse parameters
@@ -141,6 +143,13 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 		}
 	} else {
 		return nil, status.Errorf(codes.InvalidArgument, "Missing %v parameter", ProvisioningMode)
+	}
+
+	if value, ok := volumeParams[DiscoverAzName]; ok {
+		discoverAzNameEnabled, err = strconv.ParseBool(value)
+		if err != nil {
+			return nil, status.Errorf(codes.InvalidArgument, "Failed to parse invalid %v: %v", DiscoverAzName, err)
+		}
 	}
 
 	// Create tags
@@ -346,6 +355,10 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 			}
 
 		}
+	}
+
+	if discoverAzNameEnabled {
+		volContext[DiscoverAzName] = strconv.FormatBool(true)
 	}
 
 	return &csi.CreateVolumeResponse{

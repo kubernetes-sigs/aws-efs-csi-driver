@@ -106,6 +106,15 @@ func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 			if err != nil {
 				return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("Volume context property %q must be a boolean value: %v", k, err))
 			}
+		case strings.ToLower(DiscoverAzName):
+			discoverAzNameEnabled, err := strconv.ParseBool(v)
+			if err != nil {
+				return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("Volume context property %q must be a boolean value: %v", k, err))
+			}
+			if discoverAzNameEnabled {
+				az := d.cloud.GetMetadata().GetAvailabilityZone()
+				mountOptions = append(mountOptions, "az="+az)
+			}
 		default:
 			return nil, status.Errorf(codes.InvalidArgument, "Volume context property %s not supported.", k)
 		}
