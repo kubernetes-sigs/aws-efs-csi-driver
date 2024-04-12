@@ -305,6 +305,11 @@ var _ = ginkgo.Describe("[efs-csi] EFS CSI", func() {
 		})
 
 		testEncryptInTransit := func(f *framework.Framework, encryptInTransit *bool) {
+			// TODO [RyanStan 4-15-24]
+			// Now that non-tls mounts are re-directed to efs-proxy (efs-utils v2),
+			// we need a new method of determining whether encrypt in transit is correctly working.
+			// One way to do this could be to parse the arguments passed to efs-proxy and look for the '--tls' flag.
+
 			ginkgo.By("Creating efs pvc & pv")
 			volumeAttributes := map[string]string{}
 			if encryptInTransit != nil {
@@ -320,20 +325,16 @@ var _ = ginkgo.Describe("[efs-csi] EFS CSI", func() {
 				_ = f.ClientSet.CoreV1().PersistentVolumes().Delete(context.TODO(), pv.Name, metav1.DeleteOptions{})
 			}()
 
-			// If mount.efs is passed option tls, the mount table entry should be...
+			// mount.efs connects the local NFS client to efs-proxy which listens on localhost and forwards NFS operations to EFS.
+			// This occurs for both non-tls and tls mounts.
+			// Therefore, the mount table entry should be
 			// 127.0.0.1:/ on /mnt/volume1 type nfs4 (rw,relatime,vers=4.1,rsize=1048576,wsize=1048576,namlen=255,hard,noresvport,proto=tcp,port=20052,timeo=600,retrans=2,sec=sys,clientaddr=127.0.0.1,local_lock=none,addr=127.0.0.1)
-			// Note the tls option is not actually there. The proof that tls is passed
-			// to mount.efs is the server is 127.0.0.1
 			// (stunnel proxy running on localhost)
 			// instead of the EFS DNS name
 			// (file-system-id.efs.aws-region.amazonaws.com).
 			// Call `mount` alone first to print it for debugging.
+
 			command := "mount && mount | grep /mnt/volume1 | grep 127.0.0.1"
-			if encryptInTransit != nil {
-				if !*encryptInTransit {
-					command = fmt.Sprintf("mount && mount | grep /mnt/volume1 | grep %v", FileSystemId)
-				}
-			}
 			ginkgo.By(fmt.Sprintf("Creating pod to mount pvc %q and run %q", pvc.Name, command))
 			pod := e2epod.MakePod(f.Namespace.Name, nil, []*v1.PersistentVolumeClaim{pvc}, false, command)
 			pod.Spec.RestartPolicy = v1.RestartPolicyNever

@@ -38,7 +38,7 @@ RUN mkdir -p /tmp/rpms && \
     then echo "Installing efs-utils from Amazon Linux 2 yum repo" && \
          yum -y install --downloadonly --downloaddir=/tmp/rpms amazon-efs-utils-1.35.0-1.amzn2.noarch; \
     else echo "Installing efs-utils from github using the latest git tag" && \
-         yum -y install git rpm-build make && \
+         yum -y install git rpm-build make rust cargo openssl-devel && \
          git clone https://github.com/aws/efs-utils && \
          cd efs-utils && \
          git checkout $(git describe --tags $(git rev-list --tags --max-count=1)) && \
