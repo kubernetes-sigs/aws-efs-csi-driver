@@ -133,6 +133,7 @@ node:
     # "fs-01234567":
     #   ip: 10.10.2.2
     #   region: us-east-2
+  priorityClassName: system-node-critical
   dnsPolicy: ClusterFirst
   dnsConfig:
     {}
@@ -141,6 +142,7 @@ node:
     # dnsConfig:
     #   nameservers:
     #     - 169.254.169.253
+  podLabels: {}
   podAnnotations: {}
   resources:
     {}
