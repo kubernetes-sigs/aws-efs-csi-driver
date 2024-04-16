@@ -250,7 +250,7 @@ If you want to download the image with a manifest, we recommend first trying the
 
    ```sh
    kubectl kustomize \
-       "github.com/kubernetes-sigs/aws-efs-csi-driver/deploy/kubernetes/overlays/stable/ecr/?ref=release-1.X" > private-ecr-driver.yaml
+       "github.com/kubernetes-sigs/aws-efs-csi-driver/deploy/kubernetes/overlays/stable/ecr/?ref=release-2.X" > private-ecr-driver.yaml
    ```
    **Note**  
    If you encounter an issue that you aren't able to resolve by adding IAM permissions, try the [Manifest \(public registry\)](#-manifest-public-registry-) steps instead.
@@ -297,7 +297,7 @@ For some situations, you may not be able to add the necessary IAM permissions to
 
    ```sh
    kubectl kustomize \
-       "github.com/kubernetes-sigs/aws-efs-csi-driver/deploy/kubernetes/overlays/stable/?ref=release-1.X" > public-ecr-driver.yaml
+       "github.com/kubernetes-sigs/aws-efs-csi-driver/deploy/kubernetes/overlays/stable/?ref=release-2.X" > public-ecr-driver.yaml
    ```
 
 2. If you already created a service account by following [Create an IAM policy and role](./iam-policy-create.md), then edit the `public-ecr-driver.yaml` file. Remove the following lines that create a Kubernetes service account.
