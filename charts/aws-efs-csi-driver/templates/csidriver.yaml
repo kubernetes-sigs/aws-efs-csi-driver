@@ -2,6 +2,8 @@ apiVersion: {{ ternary "storage.k8s.io/v1" "storage.k8s.io/v1beta1" (semverCompa
 kind: CSIDriver
 metadata:
   name: efs.csi.aws.com
+  labels:
+    {{- include "aws-efs-csi-driver.labels" . | nindent 4 }}
   annotations:
     "helm.sh/hook": pre-install, pre-upgrade
     "helm.sh/hook-delete-policy": before-hook-creation
