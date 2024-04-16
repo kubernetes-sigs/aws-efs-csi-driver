@@ -1,0 +1,184 @@
+# Node Service
+{{- define "node" }}
+{{- if ne .Values.node.enable false }}
+kind: DaemonSet
+apiVersion: apps/v1
+metadata:
+  name: {{ .NodeName }}
+  labels:
+    app.kubernetes.io/name: {{ include "aws-efs-csi-driver.name" . }}
+spec:
+  selector:
+    matchLabels:
+      app: {{ .NodeName }}
+      app.kubernetes.io/name: {{ include "aws-efs-csi-driver.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  {{- with .Values.node.updateStrategy }}
+  updateStrategy:
+    {{ toYaml . | nindent 4 }}
+  {{- end }}
+  template:
+    metadata:
+      labels:
+        app: {{ .NodeName }}
+        app.kubernetes.io/name: {{ include "aws-efs-csi-driver.name" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+      {{- if .Values.node.podAnnotations }}
+      annotations: {{ toYaml .Values.node.podAnnotations | nindent 8 }}
+      {{- end }}
+    spec:
+    {{- with .Values.node.hostAliases }}
+      hostAliases:
+      {{- range $k, $v := . }}
+        - ip: {{ $v.ip }}
+          hostnames:
+            - {{ $k }}.efs.{{ $v.region }}.amazonaws.com
+      {{- end }}
+    {{- end }}
+    {{- if .Values.imagePullSecrets }}
+      imagePullSecrets:
+      {{- range .Values.imagePullSecrets }}
+        - name: {{ . }}
+      {{- end }}
+    {{- end }}
+      nodeSelector:
+        kubernetes.io/os: linux
+        {{- with .Values.node.nodeSelector }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with .Values.node.affinity }}
+      affinity: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      hostNetwork: true
+      dnsPolicy: {{ .Values.node.dnsPolicy }}
+      {{- with .Values.node.dnsConfig }}
+      dnsConfig: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ .Values.node.serviceAccount.name }}
+      priorityClassName: system-node-critical
+      {{- with .Values.node.tolerations }}
+      tolerations: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.node.securityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: efs-plugin
+          securityContext:
+            privileged: true
+          image: {{ printf "%s:%s" .Values.image.repository (default (printf "v%s" .Chart.AppVersion) (toString .Values.image.tag)) }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args:
+            - --endpoint=$(CSI_ENDPOINT)
+            - --logtostderr
+            - --v={{ .Values.node.logLevel }}
+            - --vol-metrics-opt-in={{ hasKey .Values.node "volMetricsOptIn" | ternary .Values.node.volMetricsOptIn false }}
+            - --vol-metrics-refresh-period={{ hasKey .Values.node "volMetricsRefreshPeriod" | ternary .Values.node.volMetricsRefreshPeriod 240 }}
+            - --vol-metrics-fs-rate-limit={{ hasKey .Values.node "volMetricsFsRateLimit" | ternary .Values.node.volMetricsFsRateLimit 5 }}
+          env:
+            - name: CSI_ENDPOINT
+              value: unix:/csi/csi.sock
+            {{- if .Values.useFIPS }}
+            - name: AWS_USE_FIPS_ENDPOINT
+              value: "true"
+            {{- end }}
+          volumeMounts:
+            - name: kubelet-dir
+              mountPath: {{ .Values.node.kubelet | default "/var/lib/kubelet" }}
+              mountPropagation: "Bidirectional"
+            - name: plugin-dir
+              mountPath: /csi
+            - name: efs-state-dir
+              mountPath: /var/run/efs
+            - name: efs-utils-config
+              mountPath: /var/amazon/efs
+            - name: efs-utils-config-legacy
+              mountPath: /etc/amazon/efs-legacy
+          ports:
+            - name: healthz
+              containerPort: {{ .Values.node.healthPort }}
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: healthz
+            initialDelaySeconds: 10
+            timeoutSeconds: 3
+            periodSeconds: 2
+            failureThreshold: 5
+          {{- with .Values.node.resources }}
+          resources: {{ toYaml . | nindent 12 }}
+          {{- end }}
+        - name: csi-driver-registrar
+          image: {{ printf "%s:%s" .Values.sidecars.nodeDriverRegistrar.image.repository .Values.sidecars.nodeDriverRegistrar.image.tag }}
+          imagePullPolicy: {{ .Values.sidecars.nodeDriverRegistrar.image.pullPolicy }}
+          args:
+            - --csi-address=$(ADDRESS)
+            - --kubelet-registration-path=$(DRIVER_REG_SOCK_PATH)
+            - --v={{ .Values.node.logLevel }}
+          env:
+            - name: ADDRESS
+              value: /csi/csi.sock
+            - name: DRIVER_REG_SOCK_PATH
+              value: {{ .Values.node.kubelet | default "/var/lib/kubelet" }}/plugins/efs.csi.aws.com/csi.sock
+            - name: KUBE_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+          volumeMounts:
+            - name: plugin-dir
+              mountPath: /csi
+            - name: registration-dir
+              mountPath: /registration
+          {{- with .Values.sidecars.nodeDriverRegistrar.resources }}
+          resources: {{ toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.sidecars.nodeDriverRegistrar.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+        - name: liveness-probe
+          image: {{ printf "%s:%s" .Values.sidecars.livenessProbe.image.repository .Values.sidecars.livenessProbe.image.tag }}
+          imagePullPolicy: {{ .Values.sidecars.livenessProbe.image.pullPolicy }}
+          args:
+            - --csi-address=/csi/csi.sock
+            - --health-port={{ .Values.node.healthPort }}
+            - --v={{ .Values.node.logLevel }}
+          volumeMounts:
+            - name: plugin-dir
+              mountPath: /csi
+          {{- with .Values.sidecars.livenessProbe.resources }}
+          resources: {{ toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.sidecars.livenessProbe.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      volumes:
+        - name: kubelet-dir
+          hostPath:
+            path: {{ .Values.node.kubelet | default "/var/lib/kubelet" }}
+            type: Directory
+        - name: plugin-dir
+          hostPath:
+            path: {{ .Values.node.kubelet | default "/var/lib/kubelet" }}/plugins/efs.csi.aws.com/
+            type: DirectoryOrCreate
+        - name: registration-dir
+          hostPath:
+            path: {{ .Values.node.kubelet | default "/var/lib/kubelet" }}/plugins_registry/
+            type: Directory
+        - name: efs-state-dir
+          hostPath:
+            path: /var/run/efs
+            type: DirectoryOrCreate
+        - name: efs-utils-config
+          hostPath:
+            path: /var/amazon/efs
+            type: DirectoryOrCreate
+        - name: efs-utils-config-legacy
+          hostPath:
+            path: /etc/amazon/efs
+            type: DirectoryOrCreate
+{{- end }}
+{{- end }}
