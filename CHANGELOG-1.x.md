@@ -1,3 +1,5 @@
+# V2.0.1
+* Efs-utils v2.0.1. Disable Nagle's algorithm for efs-proxy TLS mounts to improve latencies. ([#210](https://github.com/aws/efs-utils/pull/210), [@RyanStan](https://github.com/RyanStan))
 # V2.0.0
 * Efs-utils v2.0.0 replaces stunnel, which provides TLS encryptions for mounts, with efs-proxy, a component built in-house at AWS. ([#203](https://github.com/aws/efs-utils/pull/203), [@RyanStan](https://github.com/RyanStan))
 * Install Rust and Cargo for building efs-utils v2.0.0 ([#1306](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1306), [@RyanStan](https://github.com/RyanStan))
