@@ -36,6 +36,8 @@ This example requires Kubernetes 1.17 or later and a driver version of 1.2.0 or 
       * `provisioningMode` - The type of volume to be provisioned by Amazon EFS. Currently, only access point based provisioning is supported (`efs-ap`).
       * `fileSystemId` - The file system under which the access point is created.
       * `directoryPerms` - The directory permissions of the root directory created by the access point.
+      * `gid` (Optional) - The Group Id for the POSIX user of the access point. 
+      * `uid` (Optional) - The User Id for the POSIX user of the access point.
       * `gidRangeStart` (Optional) - The starting range of the Posix group ID to be applied onto the root directory of the access point. The default value is `50000`. 
       * `gidRangeEnd` (Optional) - The ending range of the Posix group ID. The default value is `7000000`.
       * `basePath` (Optional) - The path on the file system under which the access point root directory is created. If the path isn't provided, the access points root directory is created under the root of the file system.
