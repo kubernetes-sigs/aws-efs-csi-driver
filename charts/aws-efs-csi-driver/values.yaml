@@ -10,7 +10,7 @@ replicaCount: 2
 useFIPS: false
 
 image:
-  repository: amazon/aws-efs-csi-driver
+  repository: public.ecr.aws/efs-csi-driver/amazon/aws-efs-csi-driver
   tag: "v2.0.1"
   pullPolicy: IfNotPresent
 
