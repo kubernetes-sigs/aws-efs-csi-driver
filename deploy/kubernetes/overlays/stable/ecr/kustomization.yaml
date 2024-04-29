@@ -3,7 +3,7 @@ kind: Kustomization
 bases:
   - ../../../base
 images:
-  - name: amazon/aws-efs-csi-driver
+  - name: public.ecr.aws/efs-csi-driver/amazon/aws-efs-csi-driver
     newName: 602401143452.dkr.ecr.us-west-2.amazonaws.com/eks/aws-efs-csi-driver
     newTag: v2.0.1
   - name: public.ecr.aws/eks-distro/kubernetes-csi/livenessprobe
