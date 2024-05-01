@@ -1,4 +1,6 @@
 # Helm chart
+# v3.0.3
+* Bump app/driver version to `v2.0.2`
 # v3.0.2
 * Update Helm to use the image from Public ECR rather than DockerHub
 # v3.0.1
