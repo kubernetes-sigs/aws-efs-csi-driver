@@ -1,3 +1,6 @@
+# V2.0.2
+* Update the ChangeLog to point to latest. ([#1334](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1334), [@mskanth972](https://github.com/mskanth972))
+* Fix ARM support for EFS CSI Driver.
 # V2.0.1
 * Efs-utils v2.0.1. Disable Nagle's algorithm for efs-proxy TLS mounts to improve latencies. ([#210](https://github.com/aws/efs-utils/pull/210), [@RyanStan](https://github.com/RyanStan))
 * Updated the default image to be used from Public AWS ECR Repo instead of DockerHub. ([#1323](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1323), [@mskanth972](https://github.com/mskanth972))
