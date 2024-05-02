@@ -108,10 +108,17 @@ spec:
             httpGet:
               path: /healthz
               port: healthz
+            {{- if .Values.node.livenessProbe }}
+            initialDelaySeconds: {{ .Values.node.livenessProbe.initialDelaySeconds }}
+            timeoutSeconds: {{ .Values.node.livenessProbe.timeoutSeconds }}
+            periodSeconds: {{ .Values.node.livenessProbe.periodSeconds }}
+            failureThreshold: {{ .Values.node.livenessProbe.failureThreshold }}
+            {{- else }}
             initialDelaySeconds: 10
             timeoutSeconds: 3
             periodSeconds: 2
             failureThreshold: 5
+            {{- end }}
           {{- with .Values.node.resources }}
           resources: {{ toYaml . | nindent 12 }}
           {{- end }}

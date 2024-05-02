@@ -141,6 +141,11 @@ node:
     #     - 169.254.169.253
   podLabels: {}
   podAnnotations: {}
+  # livenessProbe:
+  #   initialDelaySeconds: 30
+  #   timeoutSeconds: 3
+  #   periodSeconds: 5
+  #   failureThreshold: 10
   resources:
     {}
     # limits:
