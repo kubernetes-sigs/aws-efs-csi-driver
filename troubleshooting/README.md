@@ -1,5 +1,9 @@
 # Troubleshooting
 
+#### Note
+By default, logs are published to the node in which the EFS mount occurs. 
+This node can be found by examining the output of `kubectl describe pod efs-app`, where `efs-app` is the pod which utilizes the EFS PVC. For the most accurate logs, please substitute the pod name corresponding to the aforementioned node in the below steps for `<driver_pod_name>`.
+
 ### Log collector script
 
 The log collector script will collect  
