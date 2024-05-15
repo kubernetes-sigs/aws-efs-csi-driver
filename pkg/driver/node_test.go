@@ -27,6 +27,7 @@ import (
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
 	"github.com/golang/mock/gomock"
+	"github.com/kubernetes-sigs/aws-efs-csi-driver/pkg/cloud"
 	"github.com/kubernetes-sigs/aws-efs-csi-driver/pkg/driver/mocks"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
@@ -42,10 +43,30 @@ type errtyp struct {
 	message string
 }
 
-func setup(mockCtrl *gomock.Controller, volStatter VolStatter, volMetricsOptIn bool) (*mocks.MockMounter, *Driver, context.Context) {
+type cloudMetadata struct {
+	instanceID       string
+	region           string
+	availabilityZone string
+}
+
+var _ cloud.MetadataService = &cloudMetadata{}
+
+func (m *cloudMetadata) GetInstanceID() string {
+	return m.instanceID
+}
+func (m *cloudMetadata) GetRegion() string {
+	return m.region
+}
+func (m *cloudMetadata) GetAvailabilityZone() string {
+	return m.availabilityZone
+}
+
+func setup(mockCtrl *gomock.Controller, volStatter VolStatter, volMetricsOptIn bool) (*mocks.MockCloud, *mocks.MockMounter, *Driver, context.Context) {
+	mockCloud := mocks.NewMockCloud(mockCtrl)
 	mockMounter := mocks.NewMockMounter(mockCtrl)
 	nodeCaps := SetNodeCapOptInFeatures(volMetricsOptIn)
 	driver := &Driver{
+		cloud:           mockCloud,
 		endpoint:        "endpoint",
 		nodeID:          "nodeID",
 		mounter:         mockMounter,
@@ -54,7 +75,7 @@ func setup(mockCtrl *gomock.Controller, volStatter VolStatter, volMetricsOptIn b
 		nodeCaps:        nodeCaps,
 	}
 	ctx := context.Background()
-	return mockMounter, driver, ctx
+	return mockCloud, mockMounter, driver, ctx
 }
 
 func testResult(t *testing.T, funcName string, ret interface{}, err error, expectError errtyp) {
@@ -105,6 +126,7 @@ func TestNodePublishVolume(t *testing.T) {
 		mountSuccess    bool
 		volMetricsOptIn bool
 		expectError     errtyp
+		cloudMetadata   cloud.MetadataService
 	}{
 		{
 			name: "success: normal",
@@ -363,6 +385,21 @@ func TestNodePublishVolume(t *testing.T) {
 			mountSuccess:  true,
 		},
 		{
+			name: "success: normal with discoverAzName true volume context",
+			req: &csi.NodePublishVolumeRequest{
+				VolumeId:         volumeId,
+				VolumeCapability: stdVolCap,
+				TargetPath:       targetPath,
+				VolumeContext:    map[string]string{"discoverAzName": "true"},
+			},
+			expectMakeDir: true,
+			mountArgs:     []interface{}{volumeId + ":/", targetPath, "efs", []string{"az=us-east-1a", "tls"}},
+			mountSuccess:  true,
+			cloudMetadata: &cloudMetadata{
+				availabilityZone: "us-east-1a",
+			},
+		},
+		{
 			name: "fail: conflicting access point in volume handle and mount options",
 			req: &csi.NodePublishVolumeRequest{
 				VolumeId: volumeId + "::" + accessPointID,
@@ -594,8 +631,11 @@ func TestNodePublishVolume(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			mockCtrl := gomock.NewController(t)
 			defer mockCtrl.Finish()
-			mockMounter, driver, ctx := setup(mockCtrl, NewVolStatter(), tc.volMetricsOptIn)
+			mockCloud, mockMounter, driver, ctx := setup(mockCtrl, NewVolStatter(), tc.volMetricsOptIn)
 
+			if tc.cloudMetadata != nil {
+				mockCloud.EXPECT().GetMetadata().Return(tc.cloudMetadata)
+			}
 			if tc.expectMakeDir {
 				var err error
 				// If not expecting mount, it's because mkdir errored
@@ -722,7 +762,7 @@ func TestNodeUnpublishVolume(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			mockCtrl := gomock.NewController(t)
 			defer mockCtrl.Finish()
-			mockMounter, driver, ctx := setup(mockCtrl, NewVolStatter(), true)
+			_, mockMounter, driver, ctx := setup(mockCtrl, NewVolStatter(), true)
 
 			if tc.expectGetDeviceName {
 				mockMounter.EXPECT().
@@ -849,7 +889,7 @@ func TestNodeGetVolumeStats(t *testing.T) {
 			//setup
 			mockCtrl := gomock.NewController(t)
 			defer mockCtrl.Finish()
-			_, driver, ctx = setup(mockCtrl, NewVolStatter(), true)
+			_, _, driver, ctx = setup(mockCtrl, NewVolStatter(), true)
 
 			if tc.updateCache {
 				mu.Lock()
