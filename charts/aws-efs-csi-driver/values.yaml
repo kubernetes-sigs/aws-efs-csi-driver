@@ -105,9 +105,10 @@ controller:
     runAsGroup: 0
     fsGroup: 0
   # securityContext on the controller container
-  # Setting privileged=false will cause the "delete-access-point-root-dir" controller option to fail
+  # Setting privileged=false as privileged access are not supported by EKS Fargate.
+  # Customers who wants to enable delete-access-point-root-dir parameter can set this to true.
   containerSecurityContext:
-    privileged: true
+    privileged: false
   leaderElectionRenewDeadline: 10s
   leaderElectionLeaseDuration: 15s
 

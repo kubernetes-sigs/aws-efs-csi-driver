@@ -344,6 +344,9 @@ Enabling the vol-metrics-opt-in parameter activates the gathering of inode and d
 |-----------------------------|--------|---------|----------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | delete-access-point-root-dir|        | false  | true     | Opt in to delete access point root directory by DeleteVolume. By default, DeleteVolume will delete the access point behind Persistent Volume and deleting access point will not delete the access point root directory or its contents. |
 | tags                         |       |         | true     | Space separated key:value pairs which will be added as tags for Amazon EFS resources. For example, '--tags=name:efs-tag-test date:Jan24'                                                                                               |
+
+ ##### Note: 
+When enabling `delete-access-point-root-dir`, ensure that you also set `securityContext:privileged` to **true** under the efs-plugin in the controller. By default, this is set to false because EKS Fargate does not support privileged access.
 ### Upgrading the Amazon EFS CSI Driver
 
 
