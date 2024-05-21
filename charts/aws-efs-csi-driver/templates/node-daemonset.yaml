@@ -88,6 +88,9 @@ spec:
             - name: AWS_USE_FIPS_ENDPOINT
               value: "true"
             {{- end }}
+            {{- with .Values.node.env }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
           volumeMounts:
             - name: kubelet-dir
               mountPath: /var/lib/kubelet
@@ -100,6 +103,9 @@ spec:
               mountPath: /var/amazon/efs
             - name: efs-utils-config-legacy
               mountPath: /etc/amazon/efs-legacy
+            {{- with .Values.node.volumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
           ports:
             - name: healthz
               containerPort: {{ .Values.node.healthPort }}
@@ -185,3 +191,6 @@ spec:
           hostPath:
             path: /etc/amazon/efs
             type: DirectoryOrCreate
+        {{- with .Values.node.volumes }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
