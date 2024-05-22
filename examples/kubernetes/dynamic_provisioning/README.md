@@ -45,6 +45,7 @@ This example requires Kubernetes 1.17 or later and a driver version of 1.2.0 or 
         any dynamically provisioned path, as in the above example. This can be turned off but this requires you as the
         administrator to ensure that your storage classes are set up correctly. Otherwise, it's possible that 2 pods could
         end up writing to the same directory by accident. **Please think very carefully before setting this to false!**
+      * `reuseAccessPoint` (Optional) - A boolean when set to true, creates AccessPoint client-token from the provided PVC name. So that the AccessPoint can be re-used from a differen cluster if same PVC name and storageclass configuration are used.                                                       
 
    4. Deploy the storage class.
 
