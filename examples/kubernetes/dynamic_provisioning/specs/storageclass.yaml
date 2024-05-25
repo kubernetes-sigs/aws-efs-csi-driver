@@ -13,3 +13,4 @@ parameters:
   subPathPattern: "${.PVC.namespace}/${.PVC.name}" # optional
   ensureUniqueDirectory: "true" # optional
   reuseAccessPoint: "false" # optional
+  pvcTags: "service_name=my_service,team=infra,environment=development" # optional

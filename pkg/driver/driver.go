@@ -74,7 +74,7 @@ func NewDriver(endpoint, efsUtilsCfgPath, efsUtilsStaticFilesPath, tags string, 
 		volMetricsFsRateLimit:    volMetricsFsRateLimit,
 		gidAllocator:             NewGidAllocator(),
 		deleteAccessPointRootDir: deleteAccessPointRootDir,
-		tags:                     parseTagsFromStr(strings.TrimSpace(tags)),
+		tags:                     parseTagsFromStr(strings.TrimSpace(tags), " ", ":"),
 	}
 }
 
@@ -138,7 +138,7 @@ func (d *Driver) Run() error {
 	return d.srv.Serve(listener)
 }
 
-func parseTagsFromStr(tagStr string) map[string]string {
+func parseTagsFromStr(tagStr string, firstDel string, secondDel string) map[string]string {
 	defer func() {
 		if r := recover(); r != nil {
 			klog.Errorf("Failed to parse input tag string: %v", tagStr)
@@ -150,9 +150,9 @@ func parseTagsFromStr(tagStr string) map[string]string {
 		klog.Infof("Did not find any input tags.")
 		return m
 	}
-	tagsSplit := strings.Split(tagStr, " ")
+	tagsSplit := strings.Split(tagStr, firstDel)
 	for _, pair := range tagsSplit {
-		p := strings.Split(pair, ":")
+		p := strings.Split(pair, secondDel)
 		m[p[0]] = p[1]
 	}
 	return m

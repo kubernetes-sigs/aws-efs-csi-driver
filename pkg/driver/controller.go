@@ -43,6 +43,7 @@ const (
 	DefaultGidMax         = DefaultGidMin + cloud.AccessPointPerFsLimit
 	DefaultTagKey         = "efs.csi.aws.com/cluster"
 	DefaultTagValue       = "true"
+	PvcTags               = "pvcTags"
 	DirectoryPerms        = "directoryPerms"
 	EnsureUniqueDirectory = "ensureUniqueDirectory"
 	FsId                  = "fileSystemId"
@@ -151,6 +152,15 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 	// Append input tags to default tag
 	if len(d.tags) != 0 {
 		for k, v := range d.tags {
+			tags[k] = v
+		}
+	}
+
+	// Adding from tags parameter
+	if value, ok := volumeParams[PvcTags]; ok {
+		klog.Infof("Adding tags from PVC tags parameter ", value)
+		tagsFromStr := parseTagsFromStr(value, ",", "=")
+		for k, v := range tagsFromStr {
 			tags[k] = v
 		}
 	}
