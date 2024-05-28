@@ -231,7 +231,7 @@ This procedure requires Helm V3 or later. To install or upgrade Helm, see [Using
    If you don't have outbound access to the Internet, add the following arguments.
    ```sh
    --set sidecars.livenessProbe.image.repository=602401143452.dkr.ecr.region-code.amazonaws.com/eks/livenessprobe \
-   --set sidecars.node-driver-registrar.image.repository=602401143452.dkr.ecr.region-code.amazonaws.com/eks/csi-node-driver-registrar \
+   --set sidecars.nodeDriverRegistrar.image.repository=602401143452.dkr.ecr.region-code.amazonaws.com/eks/csi-node-driver-registrar \
    --set sidecars.csiProvisioner.image.repository=602401143452.dkr.ecr.region-code.amazonaws.com/eks/csi-provisioner
    ```
 
