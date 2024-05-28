@@ -1,3 +1,7 @@
+# V2.0.3
+* Expose env, volume, and volume mounts in helm chart for the efs controller and deamonset. ([#1165](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1165), [@cnmcavoy](https://github.com/cnmcavoy))
+* Update golang.org dependency. ([#1355](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1355),[@mskanth972](https://github.com/mskanth972))
+* efs-utils v2.0.2: Check for efs-proxy PIDs when cleaning tunnel state files. ([#219](https://github.com/aws/efs-utils/pull/219), [@anthotse](https://github.com/anthotse))
 # V2.0.2
 * Update the ChangeLog to point to latest. ([#1334](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1334), [@mskanth972](https://github.com/mskanth972))
 * Fix ARM support for EFS CSI Driver.
