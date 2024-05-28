@@ -93,9 +93,15 @@ spec:
             - name: AWS_USE_FIPS_ENDPOINT
               value: "true"
             {{- end }}
+            {{- with .Values.controller.env }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
           volumeMounts:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
+            {{- with .Values.controller.volumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
           ports:
             - name: healthz
               containerPort: {{ .Values.controller.healthPort }}
@@ -150,6 +156,9 @@ spec:
           volumeMounts:
             - name: socket-dir
               mountPath: /csi
+            {{- with .Values.controller.volumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
           {{- with .Values.sidecars.livenessProbe.resources }}
           resources: {{ toYaml . | nindent 12 }}
           {{- end }}
@@ -160,6 +169,9 @@ spec:
       volumes:
         - name: socket-dir
           emptyDir: {}
+        {{- with .Values.controller.volumes }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
       {{- with .Values.controller.affinity }}
       affinity: {{- toYaml . | nindent 8 }}
       {{- end }}
