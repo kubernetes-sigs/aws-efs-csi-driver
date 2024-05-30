@@ -28,6 +28,7 @@ import (
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
 	"github.com/kubernetes-sigs/aws-efs-csi-driver/pkg/cloud"
+	"github.com/kubernetes-sigs/aws-efs-csi-driver/pkg/util"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	corev1 "k8s.io/api/core/v1"
@@ -54,7 +55,7 @@ func (d *Driver) NodeUnstageVolume(ctx context.Context, req *csi.NodeUnstageVolu
 }
 
 func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolumeRequest) (*csi.NodePublishVolumeResponse, error) {
-	klog.V(4).Infof("NodePublishVolume: called with args %+v", req)
+	klog.V(4).Infof("NodePublishVolume: called with args %+v", util.SanitizeRequest(*req))
 	mountOptions := []string{}
 
 	target := req.GetTargetPath()
@@ -216,7 +217,7 @@ func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 }
 
 func (d *Driver) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpublishVolumeRequest) (*csi.NodeUnpublishVolumeResponse, error) {
-	klog.V(4).Infof("NodeUnpublishVolume: called with args %+v", req)
+	klog.V(4).Infof("NodeUnpublishVolume: called with args %+v", util.SanitizeRequest(*req))
 
 	target := req.GetTargetPath()
 	if len(target) == 0 {
@@ -266,7 +267,7 @@ func (d *Driver) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpublish
 }
 
 func (d *Driver) NodeGetVolumeStats(ctx context.Context, req *csi.NodeGetVolumeStatsRequest) (*csi.NodeGetVolumeStatsResponse, error) {
-	klog.V(4).Infof("NodeGetVolumeStats: called with args %+v", req)
+	klog.V(4).Infof("NodeGetVolumeStats: called with args %+v", util.SanitizeRequest(*req))
 
 	volId := req.GetVolumeId()
 	if volId == "" {
@@ -303,7 +304,7 @@ func (d *Driver) NodeExpandVolume(ctx context.Context, req *csi.NodeExpandVolume
 }
 
 func (d *Driver) NodeGetCapabilities(ctx context.Context, req *csi.NodeGetCapabilitiesRequest) (*csi.NodeGetCapabilitiesResponse, error) {
-	klog.V(4).Infof("NodeGetCapabilities: called with args %+v", req)
+	klog.V(4).Infof("NodeGetCapabilities: called with args %+v", util.SanitizeRequest(*req))
 	var caps []*csi.NodeServiceCapability
 	for _, cap := range d.nodeCaps {
 		c := &csi.NodeServiceCapability{
@@ -319,7 +320,7 @@ func (d *Driver) NodeGetCapabilities(ctx context.Context, req *csi.NodeGetCapabi
 }
 
 func (d *Driver) NodeGetInfo(ctx context.Context, req *csi.NodeGetInfoRequest) (*csi.NodeGetInfoResponse, error) {
-	klog.V(4).Infof("NodeGetInfo: called with args %+v", req)
+	klog.V(4).Infof("NodeGetInfo: called with args %+v", util.SanitizeRequest(*req))
 
 	return &csi.NodeGetInfoResponse{
 		NodeId: d.nodeID,
