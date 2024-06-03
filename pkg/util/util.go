@@ -24,6 +24,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"reflect"
 	"strings"
 )
 
@@ -66,4 +67,21 @@ func GetHttpResponse(client *http.Client, endpoint string) ([]byte, error) {
 		return nil, fmt.Errorf("unable to read response body: %v", err)
 	}
 	return body, nil
+}
+
+// SanitizeRequest takes a request object and returns a copy of the request with
+// the "Secrets" field cleared.
+func SanitizeRequest(req interface{}) interface{} {
+	v := reflect.ValueOf(&req).Elem()
+	e := reflect.New(v.Elem().Type()).Elem()
+
+	e.Set(v.Elem())
+
+	f := reflect.Indirect(e).FieldByName("Secrets")
+
+	if f.IsValid() && f.CanSet() && f.Kind() == reflect.Map {
+		f.Set(reflect.MakeMap(f.Type()))
+		v.Set(e)
+	}
+	return req
 }
