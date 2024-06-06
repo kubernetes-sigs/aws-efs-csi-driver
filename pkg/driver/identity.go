@@ -22,6 +22,7 @@ import (
 	"k8s.io/klog/v2"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
+	"github.com/kubernetes-sigs/aws-efs-csi-driver/pkg/util"
 )
 
 func (d *Driver) GetPluginInfo(ctx context.Context, req *csi.GetPluginInfoRequest) (*csi.GetPluginInfoResponse, error) {
@@ -34,7 +35,7 @@ func (d *Driver) GetPluginInfo(ctx context.Context, req *csi.GetPluginInfoReques
 }
 
 func (d *Driver) GetPluginCapabilities(ctx context.Context, req *csi.GetPluginCapabilitiesRequest) (*csi.GetPluginCapabilitiesResponse, error) {
-	klog.V(5).Infof("GetPluginCapabilities: called with args %+v", *req)
+	klog.V(5).Infof("GetPluginCapabilities: called with args %+v", util.SanitizeRequest(*req))
 	resp := &csi.GetPluginCapabilitiesResponse{
 		Capabilities: []*csi.PluginCapability{
 			{

@@ -30,6 +30,7 @@ import (
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
 	"github.com/kubernetes-sigs/aws-efs-csi-driver/pkg/cloud"
+	"github.com/kubernetes-sigs/aws-efs-csi-driver/pkg/util"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"k8s.io/klog/v2"
@@ -78,7 +79,7 @@ var (
 )
 
 func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest) (*csi.CreateVolumeResponse, error) {
-	klog.V(4).Infof("CreateVolume: called with args %+v", *req)
+	klog.V(4).Infof("CreateVolume: called with args %+v", util.SanitizeRequest(*req))
 
 	var reuseAccessPoint bool
 	var err error
@@ -370,7 +371,7 @@ func (d *Driver) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeRequest)
 		return nil, err
 	}
 
-	klog.V(4).Infof("DeleteVolume: called with args %+v", *req)
+	klog.V(4).Infof("DeleteVolume: called with args %+v", util.SanitizeRequest(*req))
 	volId := req.GetVolumeId()
 	if volId == "" {
 		return nil, status.Error(codes.InvalidArgument, "Volume ID not provided")
@@ -467,7 +468,7 @@ func (d *Driver) ControllerUnpublishVolume(ctx context.Context, req *csi.Control
 }
 
 func (d *Driver) ValidateVolumeCapabilities(ctx context.Context, req *csi.ValidateVolumeCapabilitiesRequest) (*csi.ValidateVolumeCapabilitiesResponse, error) {
-	klog.V(4).Infof("ValidateVolumeCapabilities: called with args %+v", *req)
+	klog.V(4).Infof("ValidateVolumeCapabilities: called with args %+v", util.SanitizeRequest(*req))
 	volId := req.GetVolumeId()
 	if volId == "" {
 		return nil, status.Error(codes.InvalidArgument, "Volume ID not provided")
@@ -501,7 +502,7 @@ func (d *Driver) GetCapacity(ctx context.Context, req *csi.GetCapacityRequest) (
 }
 
 func (d *Driver) ControllerGetCapabilities(ctx context.Context, req *csi.ControllerGetCapabilitiesRequest) (*csi.ControllerGetCapabilitiesResponse, error) {
-	klog.V(4).Infof("ControllerGetCapabilities: called with args %+v", *req)
+	klog.V(4).Infof("ControllerGetCapabilities: called with args %+v", util.SanitizeRequest(*req))
 	var caps []*csi.ControllerServiceCapability
 	for _, cap := range controllerCaps {
 		c := &csi.ControllerServiceCapability{
