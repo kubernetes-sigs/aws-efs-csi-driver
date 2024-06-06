@@ -85,7 +85,7 @@ func (r *reaper) stop() {
 }
 
 func waitIfZombieStunnel(p ps.Process) bool {
-	if !strings.Contains(p.Executable(), "stunnel") {
+	if !strings.Contains(p.Executable(), "stunnel") && !strings.Contains(p.Executable(), "efs-proxy") {
 		return false
 	}
 	data, err := ioutil.ReadFile(fmt.Sprintf("/proc/%v/status", p.Pid()))
