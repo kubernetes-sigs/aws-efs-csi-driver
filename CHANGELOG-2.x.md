@@ -1,3 +1,7 @@
+# V2.0.4
+* Reap efs-proxy zombie processes. ([#1364](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1364),[@mskanth972](https://github.com/mskanth972))
+* Sanitize CSI RPC request logs. ([#1363](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1363),[@mskanth972](https://github.com/mskanth972))
+* Edit file paths in provisioning.go to fix failing e2e test. ([#1366](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1366) [@seanzatzdev-amazon](https://github.com/seanzatzdev-amazon))
 # V2.0.3
 * Expose env, volume, and volume mounts in helm chart for the efs controller and deamonset. ([#1165](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1165), [@cnmcavoy](https://github.com/cnmcavoy))
 * Update golang.org dependency. ([#1355](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1355),[@mskanth972](https://github.com/mskanth972))
