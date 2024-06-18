@@ -6,6 +6,7 @@ metadata:
   labels:
     app.kubernetes.io/name: {{ include "aws-efs-csi-driver.name" . }}
 spec:
+  revisionHistoryLimit: {{ .Values.node.revisionHistoryLimit }}
   selector:
     matchLabels:
       app: efs-csi-node
