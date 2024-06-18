@@ -133,6 +133,8 @@ spec:
             {{- end }}
             {{- if hasKey .Values.controller "leaderElectionLeaseDuration" }}
             - --leader-election-lease-duration={{ .Values.controller.leaderElectionLeaseDuration }}
+            - --metrics-address=:{{ .Values.controller.metrics.port }}
+            - --metrics-path={{ .Values.controller.metrics.path }}
             {{- end }}
           env:
             - name: ADDRESS
@@ -140,6 +142,10 @@ spec:
           volumeMounts:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
+          ports:
+            - name: metrics
+              containerPort: {{ .Values.controller.metrics.port }}
+              protocol: TCP
           {{- with .Values.sidecars.csiProvisioner.resources }}
           resources: {{ toYaml . | nindent 12 }}
           {{- end }}

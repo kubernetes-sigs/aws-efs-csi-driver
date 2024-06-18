@@ -113,6 +113,10 @@ controller:
     privileged: true
   leaderElectionRenewDeadline: 10s
   leaderElectionLeaseDuration: 15s
+  # Enable metrics for CSI Provisioner
+  metrics:
+    port: 8080
+    path: /metrics
 
 
 ## Node daemonset variables
