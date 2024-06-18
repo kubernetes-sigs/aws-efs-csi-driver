@@ -81,6 +81,7 @@ controller:
     # requests:
     #   cpu: 100m
     #   memory: 128Mi
+  revisionHistoryLimit: 10
   nodeSelector: {}
   updateStrategy: {}
   tolerations:
@@ -164,6 +165,7 @@ node:
     # requests:
     #   cpu: 100m
     #   memory: 128Mi
+  revisionHistoryLimit: 10
   nodeSelector: {}
   updateStrategy:
     {}
