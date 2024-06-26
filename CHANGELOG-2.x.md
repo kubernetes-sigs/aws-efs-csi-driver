@@ -1,3 +1,9 @@
+# V2.0.5
+* Add a note to not proceed to the next step until pv STATUS is Bound ([#1075](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1075),[@wafuwafu13](https://github.com/wafuwafu13))
+* Add Pod Identity Support ([#1254](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/12541),[@askulkarni2](https://github.com/askulkarni2))
+* Add Pod Identity Documentation ([#1381](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1381),[@arnavgup1](https://github.com/arnavgup1))
+* Bump Side-cars and add Patch verbs ([#1387](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1387),[@mskanth972](https://github.com/mskanth972))
+* Update k8s dependencies ([#1384](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1384),[@mskanth972](https://github.com/mskanth972))
 # V2.0.4
 * Reap efs-proxy zombie processes. ([#1364](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1364),[@mskanth972](https://github.com/mskanth972))
 * Sanitize CSI RPC request logs. ([#1363](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1363),[@mskanth972](https://github.com/mskanth972))
