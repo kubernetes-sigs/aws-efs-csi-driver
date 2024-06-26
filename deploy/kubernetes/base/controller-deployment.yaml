@@ -67,7 +67,7 @@ spec:
             periodSeconds: 10
             failureThreshold: 5
         - name: csi-provisioner
-          image: public.ecr.aws/eks-distro/kubernetes-csi/external-provisioner:v4.0.0-eks-1-29-7
+          image: public.ecr.aws/eks-distro/kubernetes-csi/external-provisioner:v5.0.1-eks-1-30-8
           imagePullPolicy: IfNotPresent
           args:
             - --csi-address=$(ADDRESS)
@@ -85,7 +85,7 @@ spec:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
         - name: liveness-probe
-          image: public.ecr.aws/eks-distro/kubernetes-csi/livenessprobe:v2.12.0-eks-1-29-7
+          image: public.ecr.aws/eks-distro/kubernetes-csi/livenessprobe:v2.13.0-eks-1-30-8
           imagePullPolicy: IfNotPresent
           args:
             - --csi-address=/csi/csi.sock
