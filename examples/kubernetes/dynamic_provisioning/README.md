@@ -45,6 +45,7 @@ This example requires Kubernetes 1.17 or later and a driver version of 1.2.0 or 
         any dynamically provisioned path, as in the above example. This can be turned off but this requires you as the
         administrator to ensure that your storage classes are set up correctly. Otherwise, it's possible that 2 pods could
         end up writing to the same directory by accident. **Please think very carefully before setting this to false!**
+      * `pvcTags` (Optional) - A comma-separated list of tags to be applied to the dynamically provisioned PersistentVolumeClaim (PVC).
 
    4. Deploy the storage class.
 
