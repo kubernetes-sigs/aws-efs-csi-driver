@@ -144,6 +144,7 @@ node:
     #     - 169.254.169.253
   podLabels: {}
   podAnnotations: {}
+  additionalLabels: {}
   resources:
     {}
     # limits:
