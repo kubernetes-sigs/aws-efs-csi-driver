@@ -1,4 +1,7 @@
 # Helm chart
+# v3.1.0
+* Allow user to enable/disable cross account role creation and able to customize cross account secret name or provide more than one.
+* This change is not breaking and the default values will create the same x-account as before.
 # v3.0.6
 * Bump app/driver version to `v2.0.5`
 # v3.0.5
@@ -44,7 +47,7 @@
 # v2.4.3
 * Bump app/driver version to `v1.5.6`
 # v2.4.2
-* Bump app/driver version to `v1.5.5` 
+* Bump app/driver version to `v1.5.5`
 # v2.4.1
 * Bump app/driver version to `v1.5.4`
 # v2.4.0
@@ -116,7 +119,7 @@
 * Add node.serviceAccount values for creating and/or specifying daemonset service account
 
 # v2.1.3
-* Bump app/driver version to `v1.3.2` 
+* Bump app/driver version to `v1.3.2`
 
 # v2.1.2
 * Add extra-create-metadata

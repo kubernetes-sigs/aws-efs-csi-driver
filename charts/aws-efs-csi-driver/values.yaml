@@ -207,3 +207,13 @@ storageClasses: []
 #     ensureUniqueDirectory: true
 #   reclaimPolicy: Delete
 #   volumeBindingMode: Immediate
+
+# It will create ClusterRole and RoleBinding resources to allow the
+# controller access the Secret resources to read cross accounts' arns.
+crossAccountRole:
+  create: true
+  # If empty list provided, it means the controller has access to read
+  # all secrets in the same namespace as the efs csi driver.
+  # secrets: []
+  secrets:
+    - x-account
