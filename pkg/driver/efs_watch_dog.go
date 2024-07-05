@@ -73,7 +73,7 @@ fips_mode_enabled = {{.FipsEnabled -}}
 
 # Define the port range that the TLS tunnel will choose from
 port_range_lower_bound = 20049
-port_range_upper_bound = 20449
+port_range_upper_bound = 21049
 
 # Optimize read_ahead_kb for Linux 5.4+
 optimize_readahead = true
