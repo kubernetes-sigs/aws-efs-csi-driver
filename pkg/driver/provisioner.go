@@ -2,10 +2,13 @@ package driver
 
 import (
 	"context"
+	"fmt"
+	"path"
 	"strconv"
 	"strings"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
+	"github.com/google/uuid"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"k8s.io/klog"
@@ -35,8 +38,24 @@ func getProvisioners(tags map[string]string, cloud cloud.Cloud, gidAllocator *Gi
 }
 
 func (a AccessPointProvisioner) Provision(ctx context.Context, req *csi.CreateVolumeRequest) (*csi.Volume, error) {
+	var reuseAccessPoint bool
+	var err error
 	volumeParams := req.GetParameters()
 	volName := req.GetName()
+	clientToken := volName
+
+	// if true, then use sha256 hash of pvcName as clientToken instead of PVC Id
+	// This allows users to reconnect to the same AP from different k8s cluster
+	if reuseAccessPointStr, ok := volumeParams[ReuseAccessPointKey]; ok {
+		reuseAccessPoint, err = strconv.ParseBool(reuseAccessPointStr)
+		if err != nil {
+			return nil, status.Error(codes.InvalidArgument, "Invalid value for reuseAccessPoint parameter")
+		}
+		if reuseAccessPoint {
+			clientToken = get64LenHash(volumeParams[PvcNameKey])
+			klog.V(5).Infof("Client token : %s", clientToken)
+		}
+	}
 	if volName == "" {
 		return nil, status.Error(codes.InvalidArgument, "Volume name not provided")
 	}
@@ -46,16 +65,16 @@ func (a AccessPointProvisioner) Provision(ctx context.Context, req *csi.CreateVo
 	volSize := req.GetCapacityRange().GetRequiredBytes()
 
 	var (
-		azName   string
-		basePath string
-		err      error
-		gid      int
-		gidMin   int
-		gidMax   int
-		roleArn  string
-		uid      int
+		azName                 string
+		basePath               string
+		gid                    int64
+		gidMin                 int64
+		gidMax                 int64
+		localCloud             cloud.Cloud
+		roleArn                string
+		uid                    int64
+		crossAccountDNSEnabled bool
 	)
-
 	// Create tags
 	tags := map[string]string{
 		DefaultTagKey: DefaultTagValue,
@@ -84,7 +103,7 @@ func (a AccessPointProvisioner) Provision(ctx context.Context, req *csi.CreateVo
 
 	uid = -1
 	if value, ok := volumeParams[Uid]; ok {
-		uid, err = strconv.Atoi(value)
+		uid, err = strconv.ParseInt(value, 10, 64)
 		if err != nil {
 			return nil, status.Errorf(codes.InvalidArgument, "Failed to parse invalid %v: %v", Uid, err)
 		}
@@ -95,17 +114,17 @@ func (a AccessPointProvisioner) Provision(ctx context.Context, req *csi.CreateVo
 
 	gid = -1
 	if value, ok := volumeParams[Gid]; ok {
-		gid, err = strconv.Atoi(value)
+		gid, err = strconv.ParseInt(value, 10, 64)
 		if err != nil {
 			return nil, status.Errorf(codes.InvalidArgument, "Failed to parse invalid %v: %v", Gid, err)
 		}
-		if uid < 0 {
+		if gid < 0 {
 			return nil, status.Errorf(codes.InvalidArgument, "%v must be greater or equal than 0", Gid)
 		}
 	}
 
 	if value, ok := volumeParams[GidMin]; ok {
-		gidMin, err = strconv.Atoi(value)
+		gidMin, err = strconv.ParseInt(value, 10, 64)
 		if err != nil {
 			return nil, status.Errorf(codes.InvalidArgument, "Failed to parse invalid %v: %v", GidMin, err)
 		}
@@ -119,7 +138,7 @@ func (a AccessPointProvisioner) Provision(ctx context.Context, req *csi.CreateVo
 		if gidMin == 0 {
 			return nil, status.Errorf(codes.InvalidArgument, "Missing %v parameter", GidMin)
 		}
-		gidMax, err = strconv.Atoi(value)
+		gidMax, err = strconv.ParseInt(value, 10, 64)
 		if err != nil {
 			return nil, status.Errorf(codes.InvalidArgument, "Failed to parse invalid %v: %v", GidMax, err)
 		}
@@ -143,10 +162,6 @@ func (a AccessPointProvisioner) Provision(ctx context.Context, req *csi.CreateVo
 		accessPointsOptions.DirectoryPerms = value
 	}
 
-	if value, ok := volumeParams[BasePath]; ok {
-		basePath = value
-	}
-
 	// Storage class parameter `az` will be used to fetch preferred mount target for cross account mount.
 	// If the `az` storage class parameter is not provided, a random mount target will be picked for mounting.
 	// This storage class parameter different from `az` mount option provided by efs-utils https://github.com/aws/efs-utils/blob/v1.31.1/src/mount_efs/__init__.py#L195
@@ -156,25 +171,32 @@ func (a AccessPointProvisioner) Provision(ctx context.Context, req *csi.CreateVo
 		azName = value
 	}
 
-	localCloud, roleArn, err := a.getCloud(req.GetSecrets())
+	localCloud, roleArn, crossAccountDNSEnabled, err = getCloud(req.GetSecrets(), a.cloud)
 	if err != nil {
 		return nil, err
 	}
 
-	// Check if file system exists. Describe FS handles appropriate error codes
-	if _, err = localCloud.DescribeFileSystem(ctx, accessPointsOptions.FileSystemId); err != nil {
+	// Check if file system exists. Describe FS or List APs handle appropriate error codes
+	// With dynamic uid/gid provisioning we can save a call to describe FS, as list APs fails if FS ID does not exist
+	var accessPoints []*cloud.AccessPoint
+	if uid == -1 || gid == -1 {
+		accessPoints, err = localCloud.ListAccessPoints(ctx, accessPointsOptions.FileSystemId)
+	} else {
+		_, err = localCloud.DescribeFileSystem(ctx, accessPointsOptions.FileSystemId)
+	}
+	if err != nil {
 		if err == cloud.ErrAccessDenied {
 			return nil, status.Errorf(codes.Unauthenticated, "Access Denied. Please ensure you have the right AWS permissions: %v", err)
 		}
 		if err == cloud.ErrNotFound {
 			return nil, status.Errorf(codes.InvalidArgument, "File System does not exist: %v", err)
 		}
-		return nil, status.Errorf(codes.Internal, "Failed to fetch File System info: %v", err)
+		return nil, status.Errorf(codes.Internal, "Failed to fetch Access Points or Describe File System: %v", err)
 	}
 
-	var allocatedGid int
+	var allocatedGid int64
 	if uid == -1 || gid == -1 {
-		allocatedGid, err = a.gidAllocator.getNextGid(accessPointsOptions.FileSystemId, gidMin, gidMax)
+		allocatedGid, err = a.gidAllocator.getNextGid(accessPointsOptions.FileSystemId, accessPoints, gidMin, gidMax)
 		if err != nil {
 			return nil, err
 		}
@@ -186,34 +208,75 @@ func (a AccessPointProvisioner) Provision(ctx context.Context, req *csi.CreateVo
 		gid = allocatedGid
 	}
 
-	rootDirName := volName
-	rootDir := basePath + "/" + rootDirName
+	if value, ok := volumeParams[BasePath]; ok {
+		basePath = value
+	}
 
-	accessPointsOptions.Uid = int64(uid)
-	accessPointsOptions.Gid = int64(gid)
+	rootDirName := volName
+	// Check if a custom structure should be imposed on the access point directory
+	if value, ok := volumeParams[SubPathPattern]; ok {
+		// Try and construct the root directory and check it only contains supported components
+		val, err := interpolateRootDirectoryName(value, volumeParams)
+		if err == nil {
+			klog.Infof("Using user-specified structure for access point directory.")
+			rootDirName = val
+			if value, ok := volumeParams[EnsureUniqueDirectory]; ok {
+				if ensureUniqueDirectory, err := strconv.ParseBool(value); !ensureUniqueDirectory && err == nil {
+					klog.Infof("Not appending PVC UID to path.")
+				} else {
+					klog.Infof("Appending PVC UID to path.")
+					rootDirName = fmt.Sprintf("%s-%s", val, uuid.New().String())
+				}
+			} else {
+				klog.Infof("Appending PVC UID to path.")
+				rootDirName = fmt.Sprintf("%s-%s", val, uuid.New().String())
+			}
+		} else {
+			return nil, err
+		}
+	} else {
+		klog.Infof("Using PV name for access point directory.")
+	}
+
+	rootDir := path.Join("/", basePath, rootDirName)
+	if ok, err := validateEfsPathRequirements(rootDir); !ok {
+		return nil, err
+	}
+	klog.Infof("Using %v as the access point directory.", rootDir)
+
+	accessPointsOptions.Uid = uid
+	accessPointsOptions.Gid = gid
 	accessPointsOptions.DirectoryPath = rootDir
 
-	accessPointId, err := localCloud.CreateAccessPoint(ctx, volName, accessPointsOptions)
+	accessPointId, err := localCloud.CreateAccessPoint(ctx, clientToken, accessPointsOptions, reuseAccessPoint)
 	if err != nil {
-		a.gidAllocator.releaseGid(accessPointsOptions.FileSystemId, gid)
 		if err == cloud.ErrAccessDenied {
 			return nil, status.Errorf(codes.Unauthenticated, "Access Denied. Please ensure you have the right AWS permissions: %v", err)
 		}
 		if err == cloud.ErrAlreadyExists {
-			return nil, status.Errorf(codes.AlreadyExists, "Access Point already exists")
+			return nil, status.Errorf(codes.AlreadyExists, "Access Point already exists %d", codes.AlreadyExists)
 		}
 		return nil, status.Errorf(codes.Internal, "Failed to create Access point in File System %v : %v", accessPointsOptions.FileSystemId, err)
 	}
 
 	volContext := map[string]string{}
 
-	// Fetch mount target Ip for cross-account mount
+	// Enable cross-account dns resolution or fetch mount target Ip for cross-account mount
 	if roleArn != "" {
-		mountTarget, err := localCloud.DescribeMountTargets(ctx, accessPointsOptions.FileSystemId, azName)
-		if err != nil {
-			klog.Warningf("Failed to describe mount targets for file system %v. Skip using `mounttargetip` mount option: %v", accessPointsOptions.FileSystemId, err)
+		if crossAccountDNSEnabled {
+			// This option indicates the customer would like to use DNS to resolve
+			// the cross-account mount target ip address (in order to mount to
+			// the same AZ-ID as the client instance); mounttargetip should
+			// not be used as a mount option in this case.
+			volContext[CrossAccount] = strconv.FormatBool(true)
 		} else {
-			volContext[MountTargetIp] = mountTarget.IPAddress
+			mountTarget, err := localCloud.DescribeMountTargets(ctx, accessPointsOptions.FileSystemId, azName)
+			if err != nil {
+				klog.Warningf("Failed to describe mount targets for file system %v. Skip using `mounttargetip` mount option: %v", accessPointsOptions.FileSystemId, err)
+			} else {
+				volContext[MountTargetIp] = mountTarget.IPAddress
+			}
+
 		}
 	}
 

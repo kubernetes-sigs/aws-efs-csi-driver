@@ -77,32 +77,7 @@ var (
 
 func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest) (*csi.CreateVolumeResponse, error) {
 	klog.V(4).Infof("CreateVolume: called with args %+v", util.SanitizeRequest(*req))
-
-	var reuseAccessPoint bool
-	var err error
 	volumeParams := req.GetParameters()
-	volName := req.GetName()
-	clientToken := volName
-
-	// if true, then use sha256 hash of pvcName as clientToken instead of PVC Id
-	// This allows users to reconnect to the same AP from different k8s cluster
-	if reuseAccessPointStr, ok := volumeParams[ReuseAccessPointKey]; ok {
-		reuseAccessPoint, err = strconv.ParseBool(reuseAccessPointStr)
-		if err != nil {
-			return nil, status.Error(codes.InvalidArgument, "Invalid value for reuseAccessPoint parameter")
-		}
-		if reuseAccessPoint {
-			clientToken = get64LenHash(volumeParams[PvcNameKey])
-			klog.V(5).Infof("Client token : %s", clientToken)
-		}
-	}
-	if volName == "" {
-		return nil, status.Error(codes.InvalidArgument, "Volume name not provided")
-	}
-
-	// Volume size is required to match PV to PVC by k8s.
-	// Volume size is not consumed by EFS for any purposes.
-	volSize := req.GetCapacityRange().GetRequiredBytes()
 
 	volCaps := req.GetVolumeCapabilities()
 	if len(volCaps) == 0 {
@@ -127,12 +102,12 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 
 	mode := volumeParams[ProvisioningMode]
 	provisioner := d.provisioners[mode]
+
 	klog.V(5).Infof("CreateVolume: provisioning mode %s selected. Support modes are %s", mode,
 		strings.Join(d.GetProvisioningModes(), ","))
 	volume, err := provisioner.Provision(ctx, req)
-
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "Could not provision underlying storage: %v", err)
+		return nil, err
 	}
 
 	return &csi.CreateVolumeResponse{
@@ -148,7 +123,7 @@ func (d *Driver) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeRequest)
 		err                    error
 	)
 
-	localCloud, roleArn, crossAccountDNSEnabled, err = getCloud(req.GetSecrets(), d)
+	localCloud, roleArn, crossAccountDNSEnabled, err = getCloud(req.GetSecrets(), d.cloud)
 	if err != nil {
 		return nil, err
 	}
@@ -320,7 +295,7 @@ func (d *Driver) ControllerGetVolume(ctx context.Context, req *csi.ControllerGet
 	return nil, status.Error(codes.Unimplemented, "")
 }
 
-func getCloud(secrets map[string]string, driver *Driver) (cloud.Cloud, string, bool, error) {
+func getCloud(secrets map[string]string, driverCloud cloud.Cloud) (cloud.Cloud, string, bool, error) {
 
 	var localCloud cloud.Cloud
 	var roleArn string
@@ -347,7 +322,7 @@ func getCloud(secrets map[string]string, driver *Driver) (cloud.Cloud, string, b
 			return nil, "", false, status.Errorf(codes.Unauthenticated, "Unable to initialize aws cloud: %v. Please verify role has the correct AWS permissions for cross account mount", err)
 		}
 	} else {
-		localCloud = driver.cloud
+		localCloud = driverCloud
 	}
 
 	return localCloud, roleArn, crossAccountDNSEnabled, nil
