@@ -370,19 +370,18 @@ func (a AccessPointProvisioner) Delete(ctx context.Context, req *csi.DeleteVolum
 			return status.Errorf(codes.Internal, "Could not delete %q: %v", target, err)
 		}
 
-		// Delete access point
-		if err = localCloud.DeleteAccessPoint(ctx, accessPointId); err != nil {
-			if err == cloud.ErrAccessDenied {
-				return status.Errorf(codes.Unauthenticated, "Access Denied. Please ensure you have the right AWS permissions: %v", err)
-			}
-			if err == cloud.ErrNotFound {
-				klog.V(5).Infof("DeleteVolume: Access Point not found, returning success")
-				return nil
-			}
-			return status.Errorf(codes.Internal, "Failed to Delete volume %v: %v", volId, err)
+	}
+
+	// Delete access point
+	if err = localCloud.DeleteAccessPoint(ctx, accessPointId); err != nil {
+		if err == cloud.ErrAccessDenied {
+			return status.Errorf(codes.Unauthenticated, "Access Denied. Please ensure you have the right AWS permissions: %v", err)
 		}
-	} else {
-		return status.Errorf(codes.NotFound, "Failed to find access point for volume: %v", volId)
+		if err == cloud.ErrNotFound {
+			klog.V(5).Infof("DeleteVolume: Access Point not found, returning success")
+			return nil
+		}
+		return status.Errorf(codes.Internal, "Failed to Delete volume %v: %v", volId, err)
 	}
 
 	return nil

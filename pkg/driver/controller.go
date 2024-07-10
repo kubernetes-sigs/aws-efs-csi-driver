@@ -128,11 +128,10 @@ func (d *Driver) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeRequest)
 		return &csi.DeleteVolumeResponse{}, nil
 	}
 
-	//TODO: Add Delete File System when FS provisioning is implemented
 	if accessPointId != "" {
 		err := d.provisioners[AccessPointMode].Delete(ctx, req)
 		if err != nil {
-			return nil, status.Errorf(codes.Internal, "Failed to Delete volume %v: %v", volId, err)
+			return nil, err
 		}
 	} else {
 		return nil, status.Errorf(codes.NotFound, "Failed to find access point for volume: %v", volId)
