@@ -40,8 +40,9 @@ func getProvisioners(tags map[string]string, cloud cloud.Cloud, gidAllocator *Gi
 			mounter:                  mounter,
 		},
 		DirectoryMode: DirectoryProvisioner{
-			mounter: mounter,
-			cloud:   cloud,
+			osClient: NewOsClient(),
+			mounter:  mounter,
+			cloud:    cloud,
 		},
 	}
 }
@@ -416,17 +417,14 @@ func (a AccessPointProvisioner) getCloud(secrets map[string]string) (cloud.Cloud
 }
 
 type DirectoryProvisioner struct {
-	mounter Mounter
-	cloud   cloud.Cloud
+	mounter              Mounter
+	cloud                cloud.Cloud
+	osClient             OsClient
+	deleteProvisionedDir bool
 }
 
-func (d DirectoryProvisioner) Provision(ctx context.Context, req *csi.CreateVolumeRequest, uid, gid int64) (*csi.Volume, error) {
+func (d DirectoryProvisioner) Provision(ctx context.Context, req *csi.CreateVolumeRequest) (*csi.Volume, error) {
 	var provisionedPath string
-
-	localCloud, roleArn, err := d.getCloud(req.GetSecrets())
-	if err != nil {
-		return nil, err
-	}
 
 	var fileSystemId string
 	volumeParams := req.GetParameters()
@@ -438,55 +436,64 @@ func (d DirectoryProvisioner) Provision(ctx context.Context, req *csi.CreateVolu
 	} else {
 		return nil, status.Errorf(codes.InvalidArgument, "Missing %v parameter", FsId)
 	}
+	klog.V(5).Infof("Provisioning directory on FileSystem %s...", fileSystemId)
 
-	//Mount File System at it root and create the specified directory
-	mountOptions := []string{"tls", "iam"}
-	if roleArn != "" {
-		mountTarget, err := localCloud.DescribeMountTargets(ctx, fileSystemId, "")
-
-		if err == nil {
-			mountOptions = append(mountOptions, MountTargetIp+"="+mountTarget.IPAddress)
-		} else {
-			klog.Warningf("Failed to describe mount targets for file system %v. Skip using `mounttargetip` mount option: %v", fileSystemId, err)
-		}
+	localCloud, roleArn, _, err := getCloud(req.GetSecrets(), d.cloud)
+	if err != nil {
+		return nil, err
 	}
 
-	// Mount the
+	mountOptions, err := getMountOptions(ctx, localCloud, fileSystemId, roleArn)
+	if err != nil {
+		return nil, err
+	}
 	target := TempMountPathPrefix + "/" + uuid.New().String()
 	if err := d.mounter.MakeDir(target); err != nil {
 		return nil, status.Errorf(codes.Internal, "Could not create dir %q: %v", target, err)
 	}
 	if err := d.mounter.Mount(fileSystemId, target, "efs", mountOptions); err != nil {
-		// Extract the basePath
-		var basePath string
-		if value, ok := volumeParams[BasePath]; ok {
-			basePath = value
-		}
-
-		rootDirName := req.Name
-		provisionedPath = basePath + "/" + rootDirName
-
-		// Grab the required permissions
-		perms := os.FileMode(0755)
-		if value, ok := volumeParams[DirectoryPerms]; ok {
-			parsedPerms, err := strconv.Atoi(value)
-			if err == nil {
-				perms = os.FileMode(parsedPerms)
-			}
-		}
-
-		provisionedDirectory := path.Join(target, provisionedPath)
-		os.MkdirAll(provisionedDirectory, perms)
-		os.Chown(provisionedDirectory, int(uid), int(gid))
-	} else {
 		return nil, status.Errorf(codes.Internal, "Could not mount %q at %q: %v", fileSystemId, target, err)
 	}
+	// Extract the basePath
+	var basePath string
+	if value, ok := volumeParams[BasePath]; ok {
+		basePath = value
+	}
+
+	rootDirName := req.Name
+	provisionedPath = path.Join(basePath, rootDirName)
+
+	klog.V(5).Infof("Provisioning directory at path %s", provisionedPath)
+
+	// Grab the required permissions
+	perms := os.FileMode(0777)
+	if value, ok := volumeParams[DirectoryPerms]; ok {
+		parsedPerms, err := strconv.ParseUint(value, 8, 32)
+		if err == nil {
+			perms = os.FileMode(parsedPerms)
+		}
+	}
+
+	klog.V(5).Infof("Provisioning directory with permissions %s", perms)
+
+	provisionedDirectory := path.Join(target, provisionedPath)
+	err = d.osClient.MkDirAllWithPermsNoOwnership(provisionedDirectory, perms)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "Could not provision directory: %v", err)
+	}
+
+	// Check the permissions that actually got created
+	actualPerms, err := d.osClient.GetPerms(provisionedDirectory)
+	if err != nil {
+		klog.V(5).Infof("Could not load file info for '%s'", provisionedDirectory)
+	}
+	klog.V(5).Infof("Permissions of folder '%s' are '%s'", provisionedDirectory, actualPerms)
 
 	err = d.mounter.Unmount(target)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "Could not unmount %q: %v", target, err)
 	}
-	err = os.RemoveAll(target)
+	err = d.osClient.RemoveAll(target)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "Could not delete %q: %v", target, err)
 	}
@@ -498,49 +505,60 @@ func (d DirectoryProvisioner) Provision(ctx context.Context, req *csi.CreateVolu
 	}, nil
 }
 
-func (d DirectoryProvisioner) Delete(ctx context.Context, req *csi.DeleteVolumeRequest) error {
-	localCloud, roleArn, err := d.getCloud(req.GetSecrets())
+func (d DirectoryProvisioner) Delete(ctx context.Context, req *csi.DeleteVolumeRequest) (e error) {
+	if !d.deleteProvisionedDir {
+		return nil
+	}
+	fileSystemId, subpath, _, _ := parseVolumeId(req.GetVolumeId())
+	klog.V(5).Infof("Running delete for EFS %s at subpath %s", fileSystemId, subpath)
+
+	localCloud, roleArn, _, err := getCloud(req.GetSecrets(), d.cloud)
 	if err != nil {
 		return err
 	}
 
-	fileSystemId, subpath, accessPointID, _ := parseVolumeId(req.GetVolumeId())
-	if accessPointID != "" {
-		//Mount File System at it root and delete access point root directory
-		mountOptions := []string{"tls", "iam"}
-		if roleArn != "" {
-			mountTarget, err := localCloud.DescribeMountTargets(ctx, fileSystemId, "")
+	mountOptions, err := getMountOptions(ctx, localCloud, fileSystemId, roleArn)
+	if err != nil {
+		return err
+	}
 
-			if err == nil {
-				mountOptions = append(mountOptions, MountTargetIp+"="+mountTarget.IPAddress)
-			} else {
-				klog.Warningf("Failed to describe mount targets for file system %v. Skip using `mounttargetip` mount option: %v", fileSystemId, err)
+	target := TempMountPathPrefix + "/" + uuid.New().String()
+	klog.V(5).Infof("Making temporary directory at '%s' to temporarily mount EFS folder in", target)
+	if err := d.mounter.MakeDir(target); err != nil {
+		return status.Errorf(codes.Internal, "Could not create dir %q: %v", target, err)
+	}
+
+	defer func() {
+		// Try and unmount the directory
+		klog.V(5).Infof("Unmounting directory mounted at '%s'", target)
+		unmountErr := d.mounter.Unmount(target)
+		// If that fails then track the error but don't do anything else
+		if unmountErr != nil {
+			klog.V(5).Infof("Unmount failed at '%s'", target)
+			e = status.Errorf(codes.Internal, "Could not unmount %q: %v", target, err)
+		} else {
+			// If it is nil then it's safe to try and delete the directory as it should now be empty
+			klog.V(5).Infof("Deleting temporary directory at '%s'", target)
+			if err := d.osClient.RemoveAll(target); err != nil {
+				e = status.Errorf(codes.Internal, "Could not delete %q: %v", target, err)
 			}
 		}
+	}()
 
-		target := TempMountPathPrefix + "/" + uuid.New().String()
-		if err := d.mounter.MakeDir(target); err != nil {
-			return status.Errorf(codes.Internal, "Could not create dir %q: %v", target, err)
-		}
-		if err := d.mounter.Mount(fileSystemId, target, "efs", mountOptions); err != nil {
-			os.Remove(target)
-			return status.Errorf(codes.Internal, "Could not mount %q at %q: %v", fileSystemId, target, err)
-		}
-		err = os.RemoveAll(target + subpath)
-		if err != nil {
-			return status.Errorf(codes.Internal, "Could not delete directory %q: %v", subpath, err)
-		}
-		err = d.mounter.Unmount(target)
-		if err != nil {
-			return status.Errorf(codes.Internal, "Could not unmount %q: %v", target, err)
-		}
-		err = os.RemoveAll(target)
-		if err != nil {
-			return status.Errorf(codes.Internal, "Could not delete %q: %v", target, err)
-		}
-	} else {
-		return status.Errorf(codes.NotFound, "Failed to find access point for volume: %v", req.GetVolumeId())
+	klog.V(5).Infof("Mounting EFS '%s' into temporary directory at '%s'", fileSystemId, target)
+	if err := d.mounter.Mount(fileSystemId, target, "efs", mountOptions); err != nil {
+		// If this call throws an error we're about to return anyway and the mount has failed, so it's more
+		// important we return with that information than worry about the folder not being deleted
+		_ = d.osClient.Remove(target)
+		return status.Errorf(codes.Internal, "Could not mount %q at %q: %v", fileSystemId, target, err)
 	}
+
+	pathToRemove := path.Join(target, subpath)
+	klog.V(5).Infof("Delete all files at %s, stored on EFS %s", pathToRemove, fileSystemId)
+	if err := d.osClient.RemoveAll(pathToRemove); err != nil {
+		return status.Errorf(codes.Internal, "Could not delete directory %q: %v", subpath, err)
+	}
+
 	return nil
 }
 
@@ -566,4 +584,19 @@ func (d DirectoryProvisioner) getCloud(secrets map[string]string) (cloud.Cloud, 
 	}
 
 	return localCloud, roleArn, nil
+}
+
+func getMountOptions(ctx context.Context, cloud cloud.Cloud, fileSystemId string, roleArn string) ([]string, error) {
+	//Mount File System at it root and delete access point root directory
+	mountOptions := []string{"tls", "iam"}
+	if roleArn != "" {
+		mountTarget, err := cloud.DescribeMountTargets(ctx, fileSystemId, "")
+
+		if err == nil {
+			mountOptions = append(mountOptions, MountTargetIp+"="+mountTarget.IPAddress)
+		} else {
+			klog.Warningf("Failed to describe mount targets for file system %v. Skip using `mounttargetip` mount option: %v", fileSystemId, err)
+		}
+	}
+	return mountOptions, nil
 }
