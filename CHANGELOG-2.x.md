@@ -1,3 +1,11 @@
+# V2.0.6
+* Updated the docker file to install the latest version of Rust. ([#1414](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1414),[@mskanth972](https://github.com/mskanth972))
+* Increase the default Port Range from 400 to 1000. ([#1402](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1402),[@mskanth972](https://github.com/mskanth972))
+* Update statefulset example ([#1400](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1400) [@seanzatzdev-amazon](https://github.com/seanzatzdev-amazon))
+* Add additionalLabels to node-daemonset ([#1394](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1394) [@omerap12](https://github.com/omerap12))
+* Set fips_mode_enabled in efs-utils.conf ([#1344](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1344) [@mpatlasov](https://github.com/mpatlasov))
+* make sure the startup taint will eventually being removed after efs driver ready ([#1287](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1287) [@abbshr](https://github.com/abbshr))
+* Refactor re-use Access Point ([#1233](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1233) [@otorreno](https://github.com/otorreno))
 # V2.0.5
 * Add a note to not proceed to the next step until pv STATUS is Bound ([#1075](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1075),[@wafuwafu13](https://github.com/wafuwafu13))
 * Add Pod Identity Support ([#1254](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/12541),[@askulkarni2](https://github.com/askulkarni2))
