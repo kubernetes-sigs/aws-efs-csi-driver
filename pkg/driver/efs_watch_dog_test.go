@@ -54,9 +54,12 @@ stunnel_check_cert_hostname = true
 # Use OCSP to check certificate validity. This option is not supported by certain stunnel versions.
 stunnel_check_cert_validity = false
 
+# Enable FIPS mode. stunnel complains if FIPS is available and enabled system-wide, but not set here.
+#fips_mode_enabled = false
+
 # Define the port range that the TLS tunnel will choose from
 port_range_lower_bound = 20049
-port_range_upper_bound = 20449
+port_range_upper_bound = 21049
 
 # Optimize read_ahead_kb for Linux 5.4+
 optimize_readahead = true

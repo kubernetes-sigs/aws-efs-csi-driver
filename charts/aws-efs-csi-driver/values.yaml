@@ -142,6 +142,7 @@ node:
     #   nameservers:
     #     - 169.254.169.253
   podAnnotations: {}
+  additionalLabels: {}
   resources:
     {}
     # limits:

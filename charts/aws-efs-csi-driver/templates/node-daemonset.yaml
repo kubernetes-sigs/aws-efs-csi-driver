@@ -5,6 +5,9 @@ metadata:
   name: efs-csi-node
   labels:
     app.kubernetes.io/name: {{ include "aws-efs-csi-driver.name" . }}
+    {{- with .Values.node.additionalLabels }}
+    {{ toYaml . | nindent 4 }}
+    {{- end }}
 spec:
   selector:
     matchLabels:
