@@ -105,6 +105,7 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 
 	klog.V(5).Infof("CreateVolume: provisioning mode %s selected. Support modes are %s", mode,
 		strings.Join(d.GetProvisioningModes(), ","))
+
 	volume, err := provisioner.Provision(ctx, req)
 	if err != nil {
 		return nil, err
