@@ -78,7 +78,7 @@ spec:
             {{- end }}
             - --v={{ .Values.controller.logLevel }}
             - --delete-access-point-root-dir={{ hasKey .Values.controller "deleteAccessPointRootDir" | ternary .Values.controller.deleteAccessPointRootDir false }}
-            {{- range .Values.sidecars.efs-plugin.additionalArgs }}
+            {{- range .Values.controller.additionalArgs }}
             - {{ . }}
             {{- end }}
           env:
@@ -137,7 +137,7 @@ spec:
             {{- if hasKey .Values.controller "leaderElectionLeaseDuration" }}
             - --leader-election-lease-duration={{ .Values.controller.leaderElectionLeaseDuration }}
             {{- end }}
-            {{- range .Values.sidecars.csi-provisioner.additionalArgs }}
+            {{- range .Values.sidecars.csiProvisioner.additionalArgs }}
             - {{ . }}
             {{- end }}
           env:
@@ -159,7 +159,7 @@ spec:
           args:
             - --csi-address=/csi/csi.sock
             - --health-port={{ .Values.controller.healthPort }}
-            {{- range .Values.sidecars.liveness-probe.additionalArgs }}
+            {{- range .Values.sidecars.livenessProbe.additionalArgs }}
             - {{ . }}
             {{- end }}
           volumeMounts:

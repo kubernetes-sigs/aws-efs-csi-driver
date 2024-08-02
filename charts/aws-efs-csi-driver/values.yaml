@@ -65,6 +65,7 @@ controller:
   # Enable if you want the controller to also delete the
   # path on efs when deleteing an access point
   deleteAccessPointRootDir: false
+  additionalArgs: [] # Additional parameters provided by aws-efs-csi-driver controller
   podAnnotations: {}
   podLabel: {}
   hostNetwork: false

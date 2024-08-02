@@ -80,7 +80,7 @@ spec:
             - --vol-metrics-opt-in={{ hasKey .Values.node "volMetricsOptIn" | ternary .Values.node.volMetricsOptIn false }}
             - --vol-metrics-refresh-period={{ hasKey .Values.node "volMetricsRefreshPeriod" | ternary .Values.node.volMetricsRefreshPeriod 240 }}
             - --vol-metrics-fs-rate-limit={{ hasKey .Values.node "volMetricsFsRateLimit" | ternary .Values.node.volMetricsFsRateLimit 5 }}
-            {{- range .Values.sidecars.efs-plugin.additionalArgs }}
+            {{- range .Values.controller.additionalArgs }}
             - {{ . }}
             {{- end }}
           env:
@@ -134,7 +134,7 @@ spec:
             - --csi-address=$(ADDRESS)
             - --kubelet-registration-path=$(DRIVER_REG_SOCK_PATH)
             - --v={{ .Values.node.logLevel }}
-            {{- range .Values.sidecars.csi-driver-registrar.additionalArgs }}
+            {{- range .Values.sidecars.nodeDriverRegistrar.additionalArgs }}
             - {{ . }}
             {{- end }}
           env:
@@ -165,7 +165,7 @@ spec:
             - --csi-address=/csi/csi.sock
             - --health-port={{ .Values.node.healthPort }}
             - --v={{ .Values.node.logLevel }}
-            {{- range .Values.sidecars.liveness-probe.additionalArgs }}
+            {{- range .Values.sidecars.livenessProbe.additionalArgs }}
             - {{ . }}
             {{- end }}
           volumeMounts:
