@@ -81,8 +81,8 @@ func TestCreateVolume(t *testing.T) {
 					FileSystemId:  fsId,
 				}
 				mockCloud.EXPECT().DescribeFileSystem(gomock.Eq(ctx), gomock.Any()).Return(fileSystem, nil)
-				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Eq(volumeName), gomock.Any(), gomock.Eq(false)).Return(accessPoint, nil).
-					Do(func(ctx context.Context, clientToken string, accessPointsOptions *cloud.AccessPointOptions, reuseAccessPointName bool) {
+				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Eq(volumeName), gomock.Any()).Return(accessPoint, nil).
+					Do(func(ctx context.Context, clientToken string, accessPointsOptions *cloud.AccessPointOptions) {
 						if accessPointsOptions.Uid != 1000 {
 							t.Fatalf("Uid mismatched. Expected: %v, actual: %v", 1000, accessPointsOptions.Uid)
 						}
@@ -148,8 +148,8 @@ func TestCreateVolume(t *testing.T) {
 					FileSystemId:  fsId,
 				}
 				mockCloud.EXPECT().DescribeFileSystem(gomock.Eq(ctx), gomock.Any()).Return(fileSystem, nil)
-				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any(), gomock.Any()).Return(accessPoint, nil).
-					Do(func(ctx context.Context, clientToken string, accessPointOpts *cloud.AccessPointOptions, reuseAccessPointName bool) {
+				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(accessPoint, nil).
+					Do(func(ctx context.Context, clientToken string, accessPointOpts *cloud.AccessPointOptions) {
 						if accessPointOpts.Uid != 1000 {
 							t.Fatalf("Uid mismatched. Expected: %v, actual: %v", 1000, accessPointOpts.Uid)
 						}
@@ -230,8 +230,8 @@ func TestCreateVolume(t *testing.T) {
 
 				var expectedGid int64 = 1003 //1001 and 1002 are taken, next available is 1003
 				mockCloud.EXPECT().ListAccessPoints(gomock.Eq(ctx), gomock.Any()).Return(accessPoints, nil)
-				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any(), false).Return(accessPoint, nil).
-					Do(func(ctx context.Context, clientToken string, accessPointOpts *cloud.AccessPointOptions, reuseAccessPointName bool) {
+				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(accessPoint, nil).
+					Do(func(ctx context.Context, clientToken string, accessPointOpts *cloud.AccessPointOptions) {
 						if accessPointOpts.Uid != expectedGid {
 							t.Fatalf("Uid mismatched. Expected: %v, actual: %v", expectedGid, accessPointOpts.Uid)
 						}
@@ -325,8 +325,8 @@ func TestCreateVolume(t *testing.T) {
 				var expectedGid int64 = 1004 // 1001-1003 is taken.
 
 				mockCloud.EXPECT().ListAccessPoints(gomock.Eq(ctx), gomock.Any()).Return(accessPoints, nil)
-				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any(), false).Return(ap2, nil).
-					Do(func(ctx context.Context, clientToken string, accessPointOpts *cloud.AccessPointOptions, reuseAccessPointName bool) {
+				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(ap2, nil).
+					Do(func(ctx context.Context, clientToken string, accessPointOpts *cloud.AccessPointOptions) {
 						if accessPointOpts.Uid != expectedGid {
 							t.Fatalf("Uid mismatched. Expected: %v, actual: %v", expectedGid, accessPointOpts.Uid)
 						}
@@ -342,8 +342,8 @@ func TestCreateVolume(t *testing.T) {
 				expectedGid = 1001 // 1001 is now free and lowest possible, if no GID return would happen allocator would pick 1005.
 
 				mockCloud.EXPECT().ListAccessPoints(gomock.Eq(ctx), gomock.Any()).Return(accessPoints, nil)
-				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any(), false).Return(ap3, nil).
-					Do(func(ctx context.Context, clientToken string, accessPointOpts *cloud.AccessPointOptions, reuseAccessPointName bool) {
+				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(ap3, nil).
+					Do(func(ctx context.Context, clientToken string, accessPointOpts *cloud.AccessPointOptions) {
 						if accessPointOpts.Uid != expectedGid {
 							t.Fatalf("Uid mismatched. Expected: %v, actual: %v", expectedGid, accessPointOpts.Uid)
 						}
@@ -359,8 +359,8 @@ func TestCreateVolume(t *testing.T) {
 				expectedGid = 1002 // 1001 and 1004 are now taken, lowest available is 1002
 
 				mockCloud.EXPECT().ListAccessPoints(gomock.Eq(ctx), gomock.Any()).Return(accessPoints, nil)
-				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any(), false).Return(ap2, nil).
-					Do(func(ctx context.Context, clientToken string, accessPointOpts *cloud.AccessPointOptions, reuseAccessPointName bool) {
+				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(ap2, nil).
+					Do(func(ctx context.Context, clientToken string, accessPointOpts *cloud.AccessPointOptions) {
 						if accessPointOpts.Uid != expectedGid {
 							t.Fatalf("Uid mismatched. Expected: %v, actual: %v", expectedGid, accessPointOpts.Uid)
 						}
@@ -446,8 +446,8 @@ func TestCreateVolume(t *testing.T) {
 
 				expectedGid := 2000
 				mockCloud.EXPECT().ListAccessPoints(gomock.Eq(ctx), gomock.Any()).Return(accessPoints, nil)
-				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any(), false).Return(lastAccessPoint, nil).
-					Do(func(ctx context.Context, clientToken string, accessPointOpts *cloud.AccessPointOptions, reuseAccessPointName bool) {
+				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(lastAccessPoint, nil).
+					Do(func(ctx context.Context, clientToken string, accessPointOpts *cloud.AccessPointOptions) {
 						if accessPointOpts.Uid != int64(expectedGid) {
 							t.Fatalf("Uid mismatched. Expected: %v, actual: %v", expectedGid, accessPointOpts.Uid)
 						}
@@ -514,8 +514,8 @@ func TestCreateVolume(t *testing.T) {
 
 				expectedGid := 1000 // Allocator should pick lowest available GID
 				mockCloud.EXPECT().ListAccessPoints(gomock.Eq(ctx), gomock.Any()).Return(nil, nil)
-				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any(), false).Return(accessPoint, nil).
-					Do(func(ctx context.Context, clientToken string, accessPointOpts *cloud.AccessPointOptions, reuseAccessPointName bool) {
+				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(accessPoint, nil).
+					Do(func(ctx context.Context, clientToken string, accessPointOpts *cloud.AccessPointOptions) {
 						if accessPointOpts.Uid != int64(expectedGid) {
 							t.Fatalf("Uid mismatched. Expected: %v, actual: %v", expectedGid, accessPointOpts.Uid)
 						}
@@ -576,7 +576,7 @@ func TestCreateVolume(t *testing.T) {
 				}
 				accessPoints := []*cloud.AccessPoint{accessPoint}
 				mockCloud.EXPECT().ListAccessPoints(gomock.Eq(ctx), gomock.Any()).Return(accessPoints, nil)
-				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Eq(volumeName), gomock.Any(), gomock.Any()).Return(accessPoint, nil)
+				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Eq(volumeName), gomock.Any()).Return(accessPoint, nil)
 
 				res, err := driver.CreateVolume(ctx, req)
 
@@ -632,7 +632,7 @@ func TestCreateVolume(t *testing.T) {
 				}
 				accessPoints := []*cloud.AccessPoint{accessPoint}
 				mockCloud.EXPECT().ListAccessPoints(gomock.Eq(ctx), gomock.Any()).Return(accessPoints, nil)
-				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any(), gomock.Any()).Return(accessPoint, nil)
+				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(accessPoint, nil)
 
 				res, err := driver.CreateVolume(ctx, req)
 
@@ -691,7 +691,7 @@ func TestCreateVolume(t *testing.T) {
 				}
 				accessPoints := []*cloud.AccessPoint{accessPoint}
 				mockCloud.EXPECT().ListAccessPoints(gomock.Eq(ctx), gomock.Any()).Return(accessPoints, nil)
-				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any(), gomock.Any()).Return(accessPoint, nil)
+				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(accessPoint, nil)
 
 				res, err := driver.CreateVolume(ctx, req)
 
@@ -750,7 +750,7 @@ func TestCreateVolume(t *testing.T) {
 				}
 				accessPoints := []*cloud.AccessPoint{accessPoint}
 				mockCloud.EXPECT().ListAccessPoints(gomock.Eq(ctx), gomock.Any()).Return(accessPoints, nil)
-				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any(), gomock.Any()).Return(accessPoint, nil)
+				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(accessPoint, nil)
 
 				res, err := driver.CreateVolume(ctx, req)
 
@@ -878,9 +878,7 @@ func TestCreateVolume(t *testing.T) {
 						Uid: 1000,
 					},
 				}
-				accessPoints := []*cloud.AccessPoint{accessPoint}
-				mockCloud.EXPECT().ListAccessPoints(gomock.Eq(ctx), gomock.Any()).Return(accessPoints, nil)
-				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Eq(get64LenHash(pvcNameVal)), gomock.Any(), gomock.Any()).Return(accessPoint, nil)
+				mockCloud.EXPECT().FindAccessPointByClientToken(gomock.Eq(ctx), gomock.Any(), gomock.Eq(fsId)).Return(accessPoint, nil)
 
 				res, err := driver.CreateVolume(ctx, req)
 
@@ -943,8 +941,8 @@ func TestCreateVolume(t *testing.T) {
 				}
 				mockCloud.EXPECT().ListAccessPoints(gomock.Eq(ctx), gomock.Any()).Return(nil, nil)
 
-				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any(), gomock.Any()).Return(accessPoint, nil).
-					Do(func(ctx context.Context, clientToken string, accessPointOpts *cloud.AccessPointOptions, reuseAccessPoint bool) {
+				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(accessPoint, nil).
+					Do(func(ctx context.Context, clientToken string, accessPointOpts *cloud.AccessPointOptions) {
 						if !verifyPathWhenUUIDIncluded(accessPointOpts.DirectoryPath, directoryCreated) {
 							t.Fatalf("Root directory mismatch. Expected: %v (with UID appended), actual: %v",
 								directoryCreated,
@@ -1011,8 +1009,8 @@ func TestCreateVolume(t *testing.T) {
 				}
 				mockCloud.EXPECT().ListAccessPoints(gomock.Eq(ctx), gomock.Any()).Return(nil, nil)
 
-				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any(), gomock.Any()).Return(accessPoint, nil).
-					Do(func(ctx context.Context, clientToken string, accessPointOpts *cloud.AccessPointOptions, reuseAccessPointName bool) {
+				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(accessPoint, nil).
+					Do(func(ctx context.Context, clientToken string, accessPointOpts *cloud.AccessPointOptions) {
 						if !verifyPathWhenUUIDIncluded(accessPointOpts.DirectoryPath, directoryCreated) {
 							t.Fatalf("Root directory mismatch. Expected: %v (with UID appended), actual: %v",
 								directoryCreated,
@@ -1082,8 +1080,8 @@ func TestCreateVolume(t *testing.T) {
 				}
 				mockCloud.EXPECT().ListAccessPoints(gomock.Eq(ctx), gomock.Any()).Return(nil, nil)
 
-				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any(), gomock.Any()).Return(accessPoint, nil).
-					Do(func(ctx context.Context, clientToken string, accessPointOpts *cloud.AccessPointOptions, reuseAccessPointName bool) {
+				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(accessPoint, nil).
+					Do(func(ctx context.Context, clientToken string, accessPointOpts *cloud.AccessPointOptions) {
 						if !verifyPathWhenUUIDIncluded(accessPointOpts.DirectoryPath, directoryCreated) {
 							t.Fatalf("Root directory mismatch. Expected: %v (with UID appended), actual: %v",
 								directoryCreated,
@@ -1153,8 +1151,8 @@ func TestCreateVolume(t *testing.T) {
 				}
 				mockCloud.EXPECT().ListAccessPoints(gomock.Eq(ctx), gomock.Any()).Return(nil, nil)
 
-				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any(), gomock.Any()).Return(accessPoint, nil).
-					Do(func(ctx context.Context, clientToken string, accessPointOpts *cloud.AccessPointOptions, reuseAccessPointName bool) {
+				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(accessPoint, nil).
+					Do(func(ctx context.Context, clientToken string, accessPointOpts *cloud.AccessPointOptions) {
 						if accessPointOpts.DirectoryPath != directoryCreated {
 							t.Fatalf("Root directory mismatch. Expected: %v, actual: %v",
 								directoryCreated,
@@ -1223,8 +1221,8 @@ func TestCreateVolume(t *testing.T) {
 				}
 				mockCloud.EXPECT().ListAccessPoints(gomock.Eq(ctx), gomock.Any()).Return(nil, nil)
 
-				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any(), gomock.Any()).Return(accessPoint, nil).
-					Do(func(ctx context.Context, clientToken string, accessPointOpts *cloud.AccessPointOptions, reuseAccessPointName bool) {
+				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(accessPoint, nil).
+					Do(func(ctx context.Context, clientToken string, accessPointOpts *cloud.AccessPointOptions) {
 						if !verifyPathWhenUUIDIncluded(accessPointOpts.DirectoryPath, directoryCreated) {
 							t.Fatalf("Root directory mismatch. Expected: %v (with UID appended), actual: %v",
 								directoryCreated,
@@ -1288,8 +1286,8 @@ func TestCreateVolume(t *testing.T) {
 				}
 				mockCloud.EXPECT().ListAccessPoints(gomock.Eq(ctx), gomock.Any()).Return(nil, nil)
 
-				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any(), gomock.Any()).Return(accessPoint, nil).
-					Do(func(ctx context.Context, clientToken string, accessPointOpts *cloud.AccessPointOptions, reuseAccessPointName bool) {
+				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(accessPoint, nil).
+					Do(func(ctx context.Context, clientToken string, accessPointOpts *cloud.AccessPointOptions) {
 						if accessPointOpts.DirectoryPath != "/" {
 							t.Fatalf("Root directory mismatch. Expected: %v, actual: %v",
 								"/",
@@ -1354,8 +1352,8 @@ func TestCreateVolume(t *testing.T) {
 				}
 				mockCloud.EXPECT().ListAccessPoints(gomock.Eq(ctx), gomock.Any()).Return(nil, nil)
 
-				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any(), gomock.Any()).Return(accessPoint, nil).
-					Do(func(ctx context.Context, clientToken string, accessPointOpts *cloud.AccessPointOptions, reuseAccessPointName bool) {
+				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(accessPoint, nil).
+					Do(func(ctx context.Context, clientToken string, accessPointOpts *cloud.AccessPointOptions) {
 						if accessPointOpts.DirectoryPath != "/" {
 							t.Fatalf("Root directory mismatch. Expected: %v, actual: %v",
 								"/",
@@ -1422,8 +1420,8 @@ func TestCreateVolume(t *testing.T) {
 				}
 				mockCloud.EXPECT().ListAccessPoints(gomock.Eq(ctx), gomock.Any()).Return(nil, nil)
 
-				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any(), gomock.Any()).Return(accessPoint, nil).
-					Do(func(ctx context.Context, clientToken string, accessPointOpts *cloud.AccessPointOptions, reuseAccessPointName bool) {
+				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(accessPoint, nil).
+					Do(func(ctx context.Context, clientToken string, accessPointOpts *cloud.AccessPointOptions) {
 						if !verifyPathWhenUUIDIncluded(accessPointOpts.DirectoryPath, directoryCreated) {
 							t.Fatalf("Root directory mismatch. Expected: %v (with UID appended), actual: %v",
 								directoryCreated,
@@ -2434,7 +2432,7 @@ func TestCreateVolume(t *testing.T) {
 
 				ctx := context.Background()
 				mockCloud.EXPECT().ListAccessPoints(gomock.Eq(ctx), gomock.Any()).Return([]*cloud.AccessPoint{}, nil)
-				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("CreateAccessPoint call failed"))
+				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(nil, errors.New("CreateAccessPoint call failed"))
 				_, err := driver.CreateVolume(ctx, req)
 				if err == nil {
 					t.Fatal("CreateVolume did not fail")
@@ -2473,7 +2471,7 @@ func TestCreateVolume(t *testing.T) {
 
 				ctx := context.Background()
 				mockCloud.EXPECT().ListAccessPoints(gomock.Eq(ctx), gomock.Any()).Return([]*cloud.AccessPoint{}, nil)
-				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, cloud.ErrAccessDenied)
+				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(nil, cloud.ErrAccessDenied)
 				_, err := driver.CreateVolume(ctx, req)
 				if err == nil {
 					t.Fatal("CreateVolume did not fail")
@@ -2528,7 +2526,7 @@ func TestCreateVolume(t *testing.T) {
 					},
 				}
 				mockCloud.EXPECT().ListAccessPoints(gomock.Eq(ctx), gomock.Any()).Return([]*cloud.AccessPoint{ap1, ap2}, nil).AnyTimes()
-				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any(), gomock.Any()).Return(ap2, nil).AnyTimes()
+				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(ap2, nil).AnyTimes()
 
 				var err error
 				// All GIDs from available range are taken, CreateVolume should fail.
