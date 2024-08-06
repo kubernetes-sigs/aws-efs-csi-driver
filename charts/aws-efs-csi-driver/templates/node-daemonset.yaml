@@ -117,10 +117,10 @@ spec:
             httpGet:
               path: /healthz
               port: healthz
-            initialDelaySeconds: 10
-            timeoutSeconds: 3
-            periodSeconds: 2
-            failureThreshold: 5
+            initialDelaySeconds: {{ .Values.node.healthInitialDelaySeconds }}
+            timeoutSeconds: {{ .Values.node.healthTimeoutSeconds }}
+            periodSeconds: {{ .Values.node.healthPeriodSeconds }}
+            failureThreshold: {{ .Values.node.healthFailureThreshold }}
           {{- with .Values.node.resources }}
           resources: {{ toYaml . | nindent 12 }}
           {{- end }}

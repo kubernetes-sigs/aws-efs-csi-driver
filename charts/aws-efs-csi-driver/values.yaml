@@ -100,6 +100,10 @@ controller:
     ## Enable if EKS IAM for SA is used
     #  eks.amazonaws.com/role-arn: arn:aws:iam::111122223333:role/efs-csi-role
   healthPort: 9909
+  healthInitialDelaySeconds: 10
+  healthTimeoutSeconds: 3
+  healthPeriodSeconds: 10
+  healthFailureThreshold: 5
   regionalStsEndpoints: false
   # securityContext on the controller pod
   securityContext:
@@ -190,6 +194,10 @@ node:
     ## Enable if EKS IAM for SA is used
     #  eks.amazonaws.com/role-arn: arn:aws:iam::111122223333:role/efs-csi-role
   healthPort: 9809
+  healthInitialDelaySeconds: 10
+  healthTimeoutSeconds: 3
+  healthPeriodSeconds: 2
+  healthFailureThreshold: 5
   # securityContext on the node pod
   securityContext:
     # The node pod must be run as root to bind to the registration/driver sockets
