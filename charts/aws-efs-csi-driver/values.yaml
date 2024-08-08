@@ -123,6 +123,7 @@ node:
   volMetricsOptIn: false
   volMetricsRefreshPeriod: 240
   volMetricsFsRateLimit: 5
+  hostNetwork: true
   hostAliases:
     {}
     # For cross VPC EFS, you need to poison or overwrite the DNS for the efs volume as per
