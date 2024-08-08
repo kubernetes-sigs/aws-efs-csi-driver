@@ -186,7 +186,25 @@ A Pod running on AWS Fargate automatically mounts an Amazon EFS file system, wit
 
 #### Set up driver permission
 The driver requires IAM permission to talk to Amazon EFS to manage the volume on user's behalf. There are several methods to grant driver IAM permission:
-* Using the EKS Pod Identity Add-on - [Install the EKS Pod Identity add-on to your EKS cluster](https://docs.aws.amazon.com/eks/latest/userguide/pod-id-agent-setup.html). This doesn't need the efs-csi-driver to be installed through EKS add-on, it can be used no matter the method of installation of the efs-csi-driver. If this installation method is used, the ```AmazonEFSCSIDriverPolicy``` policy has to be added to the cluster's node group's IAM role. 
+* Using the EKS Pod Identity Add-on - [Install the EKS Pod Identity add-on to your EKS cluster](https://docs.aws.amazon.com/eks/latest/userguide/pod-id-agent-setup.html). This requires the driver to be installed not through EKS add-on due to [limitation](https://docs.aws.amazon.com/eks/latest/userguide/pod-identities.html) of the add-ons that require IAM credentials, it can only be used with self-installation method such as via [HELM chart](https://kubernetes-sigs.github.io/aws-efs-csi-driver/). If the self-installation method is used, the **AWS managed policy**  ```AmazonEFSCSIDriverPolicy``` has to be added to the IAM role which will be associated with the **k8s service account** of the driver over ```--set controller.serviceAccount.name```. This [Pod Identity's IAM role trust relationship](https://docs.aws.amazon.com/eks/latest/userguide/pod-id-association.html) is described as follows:
+  ```json
+  {
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "AllowEksAuthToAssumeRoleForPodIdentity",
+            "Effect": "Allow",
+            "Principal": {
+                "Service": "pods.eks.amazonaws.com"
+            },
+            "Action": [
+                "sts:AssumeRole",
+                "sts:TagSession"
+            ]
+        }
+    ]
+  }
+  ```
 * Using IAM role for service account – Create an [IAM Role for service accounts](https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts.html) with the required permissions in [iam-policy-example.json](./iam-policy-example.json). Uncomment annotations and put the IAM role ARN in the [service-account manifest](../deploy/kubernetes/base/controller-serviceaccount.yaml). For example steps, see [Create an IAM policy and role for Amazon EKS](./iam-policy-create.md).
 * Using IAM [instance profile](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_use_switch-role-ec2_instance-profiles.html) – Grant all the worker nodes with [required permissions](./iam-policy-example.json) by attaching the policy to the instance profile of the worker.
 
