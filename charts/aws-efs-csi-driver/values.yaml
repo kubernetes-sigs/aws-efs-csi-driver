@@ -21,6 +21,7 @@ sidecars:
       tag: v2.13.0-eks-1-30-8
       pullPolicy: IfNotPresent
     resources: {}
+    additionalArgs: [] # Additional arguments for the liveness probe container
     securityContext:
       readOnlyRootFilesystem: true
       allowPrivilegeEscalation: false
@@ -30,6 +31,7 @@ sidecars:
       tag: v2.11.0-eks-1-30-8
       pullPolicy: IfNotPresent
     resources: {}
+    additionalArgs: [] # Additional arguments for the node driver registrar container
     securityContext:
       readOnlyRootFilesystem: true
       allowPrivilegeEscalation: false
@@ -39,6 +41,7 @@ sidecars:
       tag: v5.0.1-eks-1-30-8
       pullPolicy: IfNotPresent
     resources: {}
+    additionalArgs: [] # Additional arguments for the csi provisioner container
     securityContext:
       readOnlyRootFilesystem: true
       allowPrivilegeEscalation: false
@@ -62,6 +65,7 @@ controller:
   # Enable if you want the controller to also delete the
   # path on efs when deleteing an access point
   deleteAccessPointRootDir: false
+  additionalArgs: [] # Additional parameters provided by aws-efs-csi-driver controller
   podAnnotations: {}
   podLabel: {}
   hostNetwork: false
@@ -154,6 +158,7 @@ node:
     #   cpu: 100m
     #   memory: 128Mi
   nodeSelector: {}
+
   updateStrategy: {}
     # Override default strategy (RollingUpdate) to speed up deployment.
     # This can be useful if helm timeouts are observed.
