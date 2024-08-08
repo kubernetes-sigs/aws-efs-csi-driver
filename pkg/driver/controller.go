@@ -95,7 +95,7 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 			return nil, status.Error(codes.InvalidArgument, "Invalid value for reuseAccessPoint parameter")
 		}
 		if reuseAccessPoint {
-			clientToken = get64LenHash(volumeParams[PvcNameKey])
+			clientToken = get64LenHash(volumeParams[PvcNameKey] + volumeParams[FsId])
 			klog.V(5).Infof("Client token : %s", clientToken)
 		}
 	}

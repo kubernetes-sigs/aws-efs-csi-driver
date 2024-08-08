@@ -810,7 +810,7 @@ func TestCreateVolume(t *testing.T) {
 						Uid: 1000,
 					},
 				}
-				mockCloud.EXPECT().FindAccessPointByClientToken(gomock.Eq(ctx), gomock.Any(), gomock.Eq(fsId)).Return(accessPoint, nil)
+				mockCloud.EXPECT().FindAccessPointByClientToken(gomock.Eq(ctx), gomock.Eq(get64LenHash(pvcNameVal+fsId)), gomock.Eq(fsId)).Return(accessPoint, nil)
 
 				res, err := driver.CreateVolume(ctx, req)
 
