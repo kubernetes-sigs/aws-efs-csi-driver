@@ -187,6 +187,7 @@ node:
   env: []
   volumes: []
   volumeMounts: []
+  kubeletPath: /var/lib/kubelet
 
 storageClasses: []
 # Add StorageClass resources like:
