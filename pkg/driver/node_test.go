@@ -916,7 +916,7 @@ func TestRemoveNotReadyTaint(t *testing.T) {
 					return nil, fmt.Errorf("Failed setup!")
 				}
 			},
-			expResult: nil,
+			expResult: fmt.Errorf("Failed setup!"),
 		},
 		{
 			name: "failed to get node",

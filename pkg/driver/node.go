@@ -477,8 +477,7 @@ func removeNotReadyTaint(k8sClient cloud.KubernetesAPIClient) error {
 
 	clientset, err := k8sClient()
 	if err != nil {
-		klog.V(4).InfoS("Failed to communicate with k8s API, skipping taint removal")
-		return nil //lint:ignore nilerr Failing to communicate with k8s API is a soft failure
+		return err
 	}
 
 	node, err := clientset.CoreV1().Nodes().Get(context.Background(), nodeName, metav1.GetOptions{})
