@@ -43,6 +43,7 @@ RUN mkdir -p /tmp/rpms && \
          source $HOME/.cargo/env && \
          rustup update && \
          rustup default stable && \
+         yum -y install rustc cargo && \
          git clone https://github.com/aws/efs-utils && \
          cd efs-utils && \
          git checkout $(git describe --tags $(git rev-list --tags --max-count=1)) && \
