@@ -63,7 +63,7 @@ controller:
   # path on efs when deleteing an access point
   deleteAccessPointRootDir: false
   podAnnotations: {}
-  podLabel: {}
+  podLabels: {}
   hostNetwork: false
   priorityClassName: system-cluster-critical
   dnsPolicy: ClusterFirst
