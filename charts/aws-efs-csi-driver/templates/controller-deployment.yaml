@@ -9,6 +9,10 @@ metadata:
     {{- with .Values.controller.additionalLabels }}
     {{ toYaml . | nindent 4 }}
     {{- end }}
+  {{- with .Values.controller.additionalAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 spec:
   replicas: {{ .Values.replicaCount }}
   selector:
