@@ -74,7 +74,6 @@ disable_fetch_ec2_metadata_token = false
 [mount.cn-north-1]
 dns_name_suffix = amazonaws.com.cn
 
-
 [mount.cn-northwest-1]
 dns_name_suffix = amazonaws.com.cn
 
@@ -92,6 +91,18 @@ stunnel_cafile = /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
 
 [mount.us-isob-east-1]
 dns_name_suffix = sc2s.sgov.gov
+stunnel_cafile = /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
+
+[mount.us-isof-east-1]
+dns_name_suffix = csp.hci.ic.gov
+stunnel_cafile = /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
+
+[mount.us-isof-south-1]
+dns_name_suffix = csp.hci.ic.gov
+stunnel_cafile = /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
+
+[mount.eu-isoe-west-1]
+dns_name_suffix = cloud.adc-e.uk
 stunnel_cafile = /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
 
 [mount-watchdog]
