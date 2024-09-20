@@ -1,14 +1,15 @@
 package cloud
 
 import (
+	"context"
 	"fmt"
 
-	"github.com/aws/aws-sdk-go/aws/ec2metadata"
+	"github.com/aws/aws-sdk-go-v2/feature/ec2/imds"
 )
 
 type EC2Metadata interface {
-	Available() bool
-	GetInstanceIdentityDocument() (ec2metadata.EC2InstanceIdentityDocument, error)
+	GetInstanceIdentityDocument(context.Context, *imds.GetInstanceIdentityDocumentInput, ...func(*imds.Options)) (*imds.GetInstanceIdentityDocumentOutput, error)
+	GetMetadata(context.Context, *imds.GetMetadataInput, ...func(*imds.Options)) (*imds.GetMetadataOutput, error)
 }
 
 type ec2MetadataProvider struct {
@@ -16,7 +17,7 @@ type ec2MetadataProvider struct {
 }
 
 func (e ec2MetadataProvider) getMetadata() (MetadataService, error) {
-	doc, err := e.ec2MetadataService.GetInstanceIdentityDocument()
+	doc, err := e.ec2MetadataService.GetInstanceIdentityDocument(context.TODO(), &imds.GetInstanceIdentityDocumentInput{})
 	if err != nil {
 		return nil, fmt.Errorf("could not get EC2 instance identity metadata")
 	}
