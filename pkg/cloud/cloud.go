@@ -20,17 +20,16 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/aws/smithy-go"
 	"math/rand"
 	"os"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
-	"github.com/aws/aws-sdk-go/aws/ec2metadata"
-	"github.com/aws/aws-sdk-go/aws/request"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/efs"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/efs"
+	"github.com/aws/aws-sdk-go-v2/service/efs/types"
+
 	"k8s.io/klog/v2"
 )
 
@@ -88,15 +87,14 @@ type MountTarget struct {
 
 // Efs abstracts efs client(https://docs.aws.amazon.com/sdk-for-go/api/service/efs/)
 type Efs interface {
-	CreateAccessPointWithContext(aws.Context, *efs.CreateAccessPointInput, ...request.Option) (*efs.CreateAccessPointOutput, error)
-	DeleteAccessPointWithContext(aws.Context, *efs.DeleteAccessPointInput, ...request.Option) (*efs.DeleteAccessPointOutput, error)
-	DescribeAccessPointsWithContext(aws.Context, *efs.DescribeAccessPointsInput, ...request.Option) (*efs.DescribeAccessPointsOutput, error)
-	DescribeFileSystemsWithContext(aws.Context, *efs.DescribeFileSystemsInput, ...request.Option) (*efs.DescribeFileSystemsOutput, error)
-	DescribeMountTargetsWithContext(aws.Context, *efs.DescribeMountTargetsInput, ...request.Option) (*efs.DescribeMountTargetsOutput, error)
+	CreateAccessPoint(context.Context, *efs.CreateAccessPointInput, ...func(*efs.Options)) (*efs.CreateAccessPointOutput, error)
+	DeleteAccessPoint(context.Context, *efs.DeleteAccessPointInput, ...func(*efs.Options)) (*efs.DeleteAccessPointOutput, error)
+	DescribeAccessPoints(context.Context, *efs.DescribeAccessPointsInput, ...func(*efs.Options)) (*efs.DescribeAccessPointsOutput, error)
+	DescribeFileSystems(context.Context, *efs.DescribeFileSystemsInput, ...func(*efs.Options)) (*efs.DescribeFileSystemsOutput, error)
+	DescribeMountTargets(context.Context, *efs.DescribeMountTargetsInput, ...func(*efs.Options)) (*efs.DescribeMountTargetsOutput, error)
 }
 
 type Cloud interface {
-	GetMetadata() MetadataService
 	CreateAccessPoint(ctx context.Context, clientToken string, accessPointOpts *AccessPointOptions) (accessPoint *AccessPoint, err error)
 	DeleteAccessPoint(ctx context.Context, accessPointId string) (err error)
 	DescribeAccessPoint(ctx context.Context, accessPointId string) (accessPoint *AccessPoint, err error)
@@ -124,45 +122,21 @@ func NewCloudWithRole(awsRoleArn string) (Cloud, error) {
 }
 
 func createCloud(awsRoleArn string) (Cloud, error) {
-	sess := session.Must(session.NewSession(&aws.Config{}))
-	svc := ec2metadata.New(sess)
-	api, err := DefaultKubernetesAPIClient()
-
-	if err != nil && !isDriverBootedInECS() {
-		klog.Warningf("Could not create Kubernetes Client: %v", err)
-	}
-
-	metadataProvider, err := GetNewMetadataProvider(svc, api)
-
+	cfg, err := config.LoadDefaultConfig(context.TODO())
 	if err != nil {
-		return nil, fmt.Errorf("error creating MetadataProvider: %v", err)
+		klog.Warningf("Could not load config: %v", err)
 	}
 
-	metadata, err := metadataProvider.getMetadata()
-
-	if err != nil {
-		return nil, fmt.Errorf("could not get metadata: %v", err)
-	}
-
-	efs_client := createEfsClient(awsRoleArn, metadata, sess)
-	klog.V(5).Infof("EFS Client created using the following endpoint: %+v", efs_client.(*efs.EFS).Client.ClientInfo.Endpoint)
+	efs_client := efs.NewFromConfig(cfg)
+	klog.V(5).Infof("EFS Client created using the following endpoint: %+v", cfg.BaseEndpoint)
 
 	return &cloud{
-		metadata: metadata,
-		efs:      efs_client,
+		efs: efs_client,
 	}, nil
 }
 
-func createEfsClient(awsRoleArn string, metadata MetadataService, sess *session.Session) Efs {
-	config := aws.NewConfig().WithRegion(metadata.GetRegion())
-	if awsRoleArn != "" {
-		config = config.WithCredentials(stscreds.NewCredentials(sess, awsRoleArn))
-	}
-	return efs.New(session.Must(session.NewSession(config)))
-}
-
-func (c *cloud) GetMetadata() MetadataService {
-	return c.metadata
+func createEfsClient(awsRoleArn string, cfg aws.Config) Efs {
+	return efs.NewFromConfig(cfg)
 }
 
 func (c *cloud) CreateAccessPoint(ctx context.Context, clientToken string, accessPointOpts *AccessPointOptions) (accessPoint *AccessPoint, err error) {
@@ -170,12 +144,12 @@ func (c *cloud) CreateAccessPoint(ctx context.Context, clientToken string, acces
 	createAPInput := &efs.CreateAccessPointInput{
 		ClientToken:  &clientToken,
 		FileSystemId: &accessPointOpts.FileSystemId,
-		PosixUser: &efs.PosixUser{
+		PosixUser: &types.PosixUser{
 			Gid: &accessPointOpts.Gid,
 			Uid: &accessPointOpts.Uid,
 		},
-		RootDirectory: &efs.RootDirectory{
-			CreationInfo: &efs.CreationInfo{
+		RootDirectory: &types.RootDirectory{
+			CreationInfo: &types.CreationInfo{
 				OwnerGid:    &accessPointOpts.Gid,
 				OwnerUid:    &accessPointOpts.Uid,
 				Permissions: &accessPointOpts.DirectoryPerms,
@@ -186,7 +160,7 @@ func (c *cloud) CreateAccessPoint(ctx context.Context, clientToken string, acces
 	}
 
 	klog.V(5).Infof("Calling Create AP with input: %+v", *createAPInput)
-	res, err := c.efs.CreateAccessPointWithContext(ctx, createAPInput)
+	res, err := c.efs.CreateAccessPoint(ctx, createAPInput)
 	if err != nil {
 		if isAccessDenied(err) {
 			return nil, ErrAccessDenied
@@ -204,7 +178,7 @@ func (c *cloud) CreateAccessPoint(ctx context.Context, clientToken string, acces
 
 func (c *cloud) DeleteAccessPoint(ctx context.Context, accessPointId string) (err error) {
 	deleteAccessPointInput := &efs.DeleteAccessPointInput{AccessPointId: &accessPointId}
-	_, err = c.efs.DeleteAccessPointWithContext(ctx, deleteAccessPointInput)
+	_, err = c.efs.DeleteAccessPoint(ctx, deleteAccessPointInput)
 	if err != nil {
 		if isAccessDenied(err) {
 			return ErrAccessDenied
@@ -222,7 +196,7 @@ func (c *cloud) DescribeAccessPoint(ctx context.Context, accessPointId string) (
 	describeAPInput := &efs.DescribeAccessPointsInput{
 		AccessPointId: &accessPointId,
 	}
-	res, err := c.efs.DescribeAccessPointsWithContext(ctx, describeAPInput)
+	res, err := c.efs.DescribeAccessPoints(ctx, describeAPInput)
 	if err != nil {
 		if isAccessDenied(err) {
 			return nil, ErrAccessDenied
@@ -250,9 +224,9 @@ func (c *cloud) FindAccessPointByClientToken(ctx context.Context, clientToken, f
 	klog.V(2).Infof("ClientToken to find AP : %s", clientToken)
 	describeAPInput := &efs.DescribeAccessPointsInput{
 		FileSystemId: &fileSystemId,
-		MaxResults:   aws.Int64(AccessPointPerFsLimit),
+		MaxResults:   aws.Int32(AccessPointPerFsLimit),
 	}
-	res, err := c.efs.DescribeAccessPointsWithContext(ctx, describeAPInput)
+	res, err := c.efs.DescribeAccessPoints(ctx, describeAPInput)
 	if err != nil {
 		if isAccessDenied(err) {
 			return nil, ErrAccessDenied
@@ -265,7 +239,7 @@ func (c *cloud) FindAccessPointByClientToken(ctx context.Context, clientToken, f
 	}
 	for _, ap := range res.AccessPoints {
 		// check if AP exists with same client token
-		if aws.StringValue(ap.ClientToken) == clientToken {
+		if *ap.ClientToken == clientToken {
 			return &AccessPoint{
 				AccessPointId:      *ap.AccessPointId,
 				FileSystemId:       *ap.FileSystemId,
@@ -280,9 +254,9 @@ func (c *cloud) FindAccessPointByClientToken(ctx context.Context, clientToken, f
 func (c *cloud) ListAccessPoints(ctx context.Context, fileSystemId string) (accessPoints []*AccessPoint, err error) {
 	describeAPInput := &efs.DescribeAccessPointsInput{
 		FileSystemId: &fileSystemId,
-		MaxResults:   aws.Int64(AccessPointPerFsLimit),
+		MaxResults:   aws.Int32(AccessPointPerFsLimit),
 	}
-	res, err := c.efs.DescribeAccessPointsWithContext(ctx, describeAPInput)
+	res, err := c.efs.DescribeAccessPoints(ctx, describeAPInput)
 	if err != nil {
 		if isAccessDenied(err) {
 			return nil, ErrAccessDenied
@@ -318,7 +292,7 @@ func (c *cloud) ListAccessPoints(ctx context.Context, fileSystemId string) (acce
 func (c *cloud) DescribeFileSystem(ctx context.Context, fileSystemId string) (fs *FileSystem, err error) {
 	describeFsInput := &efs.DescribeFileSystemsInput{FileSystemId: &fileSystemId}
 	klog.V(5).Infof("Calling DescribeFileSystems with input: %+v", *describeFsInput)
-	res, err := c.efs.DescribeFileSystemsWithContext(ctx, describeFsInput)
+	res, err := c.efs.DescribeFileSystems(ctx, describeFsInput)
 	if err != nil {
 		if isAccessDenied(err) {
 			return nil, ErrAccessDenied
@@ -341,7 +315,7 @@ func (c *cloud) DescribeFileSystem(ctx context.Context, fileSystemId string) (fs
 func (c *cloud) DescribeMountTargets(ctx context.Context, fileSystemId, azName string) (fs *MountTarget, err error) {
 	describeMtInput := &efs.DescribeMountTargetsInput{FileSystemId: &fileSystemId}
 	klog.V(5).Infof("Calling DescribeMountTargets with input: %+v", *describeMtInput)
-	res, err := c.efs.DescribeMountTargetsWithContext(ctx, describeMtInput)
+	res, err := c.efs.DescribeMountTargets(ctx, describeMtInput)
 	if err != nil {
 		if isAccessDenied(err) {
 			return nil, ErrAccessDenied
@@ -363,7 +337,7 @@ func (c *cloud) DescribeMountTargets(ctx context.Context, fileSystemId, azName s
 		return nil, fmt.Errorf("No mount target for file system %v is in available state. Please retry in 5 minutes.", fileSystemId)
 	}
 
-	var mountTarget *efs.MountTargetDescription
+	var mountTarget *types.MountTargetDescription
 	if azName != "" {
 		mountTarget = getMountTargetForAz(availableMountTargets, azName)
 	}
@@ -373,7 +347,7 @@ func (c *cloud) DescribeMountTargets(ctx context.Context, fileSystemId, azName s
 	if mountTarget == nil {
 		klog.Infof("Picking a random mount target from available mount target")
 		rand.Seed(time.Now().Unix())
-		mountTarget = availableMountTargets[rand.Intn(len(availableMountTargets))]
+		mountTarget = &availableMountTargets[rand.Intn(len(availableMountTargets))]
 	}
 
 	return &MountTarget{
@@ -385,26 +359,25 @@ func (c *cloud) DescribeMountTargets(ctx context.Context, fileSystemId, azName s
 }
 
 func isFileSystemNotFound(err error) bool {
-	if awsErr, ok := err.(awserr.Error); ok {
-		if awsErr.Code() == efs.ErrCodeFileSystemNotFound {
-			return true
-		}
+	var FileSystemNotFoundErr *types.FileSystemNotFound
+	if errors.As(err, &FileSystemNotFoundErr) {
+		return true
 	}
 	return false
 }
 
 func isAccessPointNotFound(err error) bool {
-	if awsErr, ok := err.(awserr.Error); ok {
-		if awsErr.Code() == efs.ErrCodeAccessPointNotFound {
-			return true
-		}
+	var AccessPointNotFoundErr *types.AccessPointNotFound
+	if errors.As(err, &AccessPointNotFoundErr) {
+		return true
 	}
 	return false
 }
 
 func isAccessDenied(err error) bool {
-	if awsErr, ok := err.(awserr.Error); ok {
-		if awsErr.Code() == AccessDeniedException {
+	var apiErr smithy.APIError
+	if errors.As(err, &apiErr) {
+		if apiErr.ErrorCode() == AccessDeniedException {
 			return true
 		}
 	}
@@ -416,12 +389,12 @@ func isDriverBootedInECS() bool {
 	return ecsContainerMetadataUri != ""
 }
 
-func parseEfsTags(tagMap map[string]string) []*efs.Tag {
-	efsTags := []*efs.Tag{}
+func parseEfsTags(tagMap map[string]string) []types.Tag {
+	efsTags := []types.Tag{}
 	for k, v := range tagMap {
 		key := k
 		value := v
-		efsTags = append(efsTags, &efs.Tag{
+		efsTags = append(efsTags, types.Tag{
 			Key:   &key,
 			Value: &value,
 		})
@@ -429,10 +402,10 @@ func parseEfsTags(tagMap map[string]string) []*efs.Tag {
 	return efsTags
 }
 
-func getAvailableMountTargets(mountTargets []*efs.MountTargetDescription) []*efs.MountTargetDescription {
-	availableMountTargets := []*efs.MountTargetDescription{}
+func getAvailableMountTargets(mountTargets []types.MountTargetDescription) []types.MountTargetDescription {
+	availableMountTargets := []types.MountTargetDescription{}
 	for _, mt := range mountTargets {
-		if *mt.LifeCycleState == "available" {
+		if mt.LifeCycleState == "available" {
 			availableMountTargets = append(availableMountTargets, mt)
 		}
 	}
@@ -440,10 +413,10 @@ func getAvailableMountTargets(mountTargets []*efs.MountTargetDescription) []*efs
 	return availableMountTargets
 }
 
-func getMountTargetForAz(mountTargets []*efs.MountTargetDescription, azName string) *efs.MountTargetDescription {
+func getMountTargetForAz(mountTargets []types.MountTargetDescription, azName string) *types.MountTargetDescription {
 	for _, mt := range mountTargets {
 		if *mt.AvailabilityZoneName == azName {
-			return mt
+			return &mt
 		}
 	}
 	klog.Infof("There is no mount target match %v", azName)

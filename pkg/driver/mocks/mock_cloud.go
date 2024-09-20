@@ -39,7 +39,7 @@ func (m *MockEfs) EXPECT() *MockEfsMockRecorder {
 }
 
 // CreateAccessPointWithContext mocks base method.
-func (m *MockEfs) CreateAccessPointWithContext(arg0 aws.Context, arg1 *efs.CreateAccessPointInput, arg2 ...request.Option) (*efs.CreateAccessPointOutput, error) {
+func (m *MockEfs) CreateAccessPoint(arg0 aws.Context, arg1 *efs.CreateAccessPointInput, arg2 ...request.Option) (*efs.CreateAccessPointOutput, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
@@ -52,14 +52,14 @@ func (m *MockEfs) CreateAccessPointWithContext(arg0 aws.Context, arg1 *efs.Creat
 }
 
 // CreateAccessPointWithContext indicates an expected call of CreateAccessPointWithContext.
-func (mr *MockEfsMockRecorder) CreateAccessPointWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+func (mr *MockEfsMockRecorder) CreateAccessPoint(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateAccessPointWithContext", reflect.TypeOf((*MockEfs)(nil).CreateAccessPointWithContext), varargs...)
 }
 
 // DeleteAccessPointWithContext mocks base method.
-func (m *MockEfs) DeleteAccessPointWithContext(arg0 aws.Context, arg1 *efs.DeleteAccessPointInput, arg2 ...request.Option) (*efs.DeleteAccessPointOutput, error) {
+func (m *MockEfs) DeleteAccessPoint(arg0 aws.Context, arg1 *efs.DeleteAccessPointInput, arg2 ...request.Option) (*efs.DeleteAccessPointOutput, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
@@ -72,14 +72,14 @@ func (m *MockEfs) DeleteAccessPointWithContext(arg0 aws.Context, arg1 *efs.Delet
 }
 
 // DeleteAccessPointWithContext indicates an expected call of DeleteAccessPointWithContext.
-func (mr *MockEfsMockRecorder) DeleteAccessPointWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+func (mr *MockEfsMockRecorder) DeleteAccessPoint(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteAccessPointWithContext", reflect.TypeOf((*MockEfs)(nil).DeleteAccessPointWithContext), varargs...)
 }
 
 // DescribeAccessPointsWithContext mocks base method.
-func (m *MockEfs) DescribeAccessPointsWithContext(arg0 aws.Context, arg1 *efs.DescribeAccessPointsInput, arg2 ...request.Option) (*efs.DescribeAccessPointsOutput, error) {
+func (m *MockEfs) DescribeAccessPoints(arg0 aws.Context, arg1 *efs.DescribeAccessPointsInput, arg2 ...request.Option) (*efs.DescribeAccessPointsOutput, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
@@ -92,14 +92,14 @@ func (m *MockEfs) DescribeAccessPointsWithContext(arg0 aws.Context, arg1 *efs.De
 }
 
 // DescribeAccessPointsWithContext indicates an expected call of DescribeAccessPointsWithContext.
-func (mr *MockEfsMockRecorder) DescribeAccessPointsWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+func (mr *MockEfsMockRecorder) DescribeAccessPoints(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeAccessPointsWithContext", reflect.TypeOf((*MockEfs)(nil).DescribeAccessPointsWithContext), varargs...)
 }
 
 // DescribeFileSystemsWithContext mocks base method.
-func (m *MockEfs) DescribeFileSystemsWithContext(arg0 aws.Context, arg1 *efs.DescribeFileSystemsInput, arg2 ...request.Option) (*efs.DescribeFileSystemsOutput, error) {
+func (m *MockEfs) DescribeFileSystems(arg0 aws.Context, arg1 *efs.DescribeFileSystemsInput, arg2 ...request.Option) (*efs.DescribeFileSystemsOutput, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
@@ -112,14 +112,14 @@ func (m *MockEfs) DescribeFileSystemsWithContext(arg0 aws.Context, arg1 *efs.Des
 }
 
 // DescribeFileSystemsWithContext indicates an expected call of DescribeFileSystemsWithContext.
-func (mr *MockEfsMockRecorder) DescribeFileSystemsWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+func (mr *MockEfsMockRecorder) DescribeFileSystems(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeFileSystemsWithContext", reflect.TypeOf((*MockEfs)(nil).DescribeFileSystemsWithContext), varargs...)
 }
 
 // DescribeMountTargetsWithContext mocks base method.
-func (m *MockEfs) DescribeMountTargetsWithContext(arg0 aws.Context, arg1 *efs.DescribeMountTargetsInput, arg2 ...request.Option) (*efs.DescribeMountTargetsOutput, error) {
+func (m *MockEfs) DescribeMountTargets(arg0 aws.Context, arg1 *efs.DescribeMountTargetsInput, arg2 ...request.Option) (*efs.DescribeMountTargetsOutput, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
