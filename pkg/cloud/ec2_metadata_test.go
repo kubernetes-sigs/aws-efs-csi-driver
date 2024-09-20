@@ -1,10 +1,11 @@
 package cloud
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
-	"github.com/aws/aws-sdk-go/aws/ec2metadata"
+	"github.com/aws/aws-sdk-go-v2/feature/ec2/imds"
 	"github.com/golang/mock/gomock"
 
 	"github.com/kubernetes-sigs/aws-efs-csi-driver/pkg/cloud/mocks"
@@ -21,13 +22,13 @@ func TestRetrieveMetadataFromEC2MetadataService(t *testing.T) {
 		name             string
 		isAvailable      bool
 		isPartial        bool
-		identityDocument ec2metadata.EC2InstanceIdentityDocument
+		identityDocument imds.InstanceIdentityDocument
 		err              error
 	}{
 		{
 			name:        "success: normal",
 			isAvailable: true,
-			identityDocument: ec2metadata.EC2InstanceIdentityDocument{
+			identityDocument: imds.InstanceIdentityDocument{
 				InstanceID:       stdInstanceID,
 				Region:           stdRegionName,
 				AvailabilityZone: stdAvailabilityZone,
@@ -37,7 +38,7 @@ func TestRetrieveMetadataFromEC2MetadataService(t *testing.T) {
 		{
 			name:        "fail: GetInstanceIdentityDocument returned error",
 			isAvailable: true,
-			identityDocument: ec2metadata.EC2InstanceIdentityDocument{
+			identityDocument: imds.InstanceIdentityDocument{
 				InstanceID:       stdInstanceID,
 				Region:           stdRegionName,
 				AvailabilityZone: stdAvailabilityZone,
@@ -48,7 +49,7 @@ func TestRetrieveMetadataFromEC2MetadataService(t *testing.T) {
 			name:        "fail: GetInstanceIdentityDocument returned empty instance",
 			isAvailable: true,
 			isPartial:   true,
-			identityDocument: ec2metadata.EC2InstanceIdentityDocument{
+			identityDocument: imds.InstanceIdentityDocument{
 				InstanceID:       "",
 				Region:           stdRegionName,
 				AvailabilityZone: stdAvailabilityZone,
@@ -59,7 +60,7 @@ func TestRetrieveMetadataFromEC2MetadataService(t *testing.T) {
 			name:        "fail: GetInstanceIdentityDocument returned empty region",
 			isAvailable: true,
 			isPartial:   true,
-			identityDocument: ec2metadata.EC2InstanceIdentityDocument{
+			identityDocument: imds.InstanceIdentityDocument{
 				InstanceID:       stdInstanceID,
 				Region:           "",
 				AvailabilityZone: stdAvailabilityZone,
@@ -70,7 +71,7 @@ func TestRetrieveMetadataFromEC2MetadataService(t *testing.T) {
 			name:        "fail: GetInstanceIdentityDocument returned empty az",
 			isAvailable: true,
 			isPartial:   true,
-			identityDocument: ec2metadata.EC2InstanceIdentityDocument{
+			identityDocument: imds.InstanceIdentityDocument{
 				InstanceID:       stdInstanceID,
 				Region:           stdRegionName,
 				AvailabilityZone: "",
@@ -85,7 +86,7 @@ func TestRetrieveMetadataFromEC2MetadataService(t *testing.T) {
 			mockEC2Metadata := mocks.NewMockEC2Metadata(mockCtrl)
 
 			if tc.isAvailable {
-				mockEC2Metadata.EXPECT().GetInstanceIdentityDocument().Return(tc.identityDocument, tc.err)
+				mockEC2Metadata.EXPECT().GetInstanceIdentityDocument(context.TODO(), &imds.GetInstanceIdentityDocumentInput{}).Return(&imds.GetInstanceIdentityDocumentOutput{InstanceIdentityDocument: tc.identityDocument}, tc.err)
 			}
 
 			ec2Mp := ec2MetadataProvider{ec2MetadataService: mockEC2Metadata}
