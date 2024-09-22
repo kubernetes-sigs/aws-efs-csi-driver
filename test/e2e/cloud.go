@@ -17,32 +17,33 @@ limitations under the License.
 package e2e
 
 import (
+	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awsutil"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/aws/aws-sdk-go/service/efs"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/ec2"
+	ec2types "github.com/aws/aws-sdk-go-v2/service/ec2/types"
+	"github.com/aws/aws-sdk-go-v2/service/efs"
+	efstypes "github.com/aws/aws-sdk-go-v2/service/efs/types"
 )
 
 type cloud struct {
-	efsclient *efs.EFS
-	ec2client *ec2.EC2
+	efsclient *efs.Client
+	ec2client *ec2.Client
 }
 
 func NewCloud(region string) *cloud {
-	config := &aws.Config{
-		Region: aws.String(region),
+	config := aws.Config{
+		Region: region,
 	}
-	sess := session.Must(session.NewSession(config))
 
 	return &cloud{
-		efsclient: efs.New(sess),
-		ec2client: ec2.New(sess),
+		efsclient: efs.NewFromConfig(config),
+		ec2client: ec2.NewFromConfig(config),
 	}
 }
 
@@ -54,7 +55,7 @@ type CreateOptions struct {
 }
 
 func (c *cloud) CreateFileSystem(opts CreateOptions) (string, error) {
-	tags := []*efs.Tag{
+	tags := []efstypes.Tag{
 		{
 			Key:   aws.String("Name"),
 			Value: aws.String(opts.Name),
@@ -70,13 +71,14 @@ func (c *cloud) CreateFileSystem(opts CreateOptions) (string, error) {
 		CreationToken: aws.String(opts.ClusterName),
 		Tags:          tags,
 	}
-
+	ctx := context.TODO()
 	var fileSystemId *string
-	response, err := c.efsclient.CreateFileSystem(request)
+	response, err := c.efsclient.CreateFileSystem(ctx, request)
 	if err != nil {
-		switch t := err.(type) {
-		case *efs.FileSystemAlreadyExists:
-			fileSystemId = t.FileSystemId
+		var FileSystemAlreadyExistsErr *efstypes.FileSystemAlreadyExists
+		switch {
+		case errors.As(err, &FileSystemAlreadyExistsErr):
+			fileSystemId = FileSystemAlreadyExistsErr.FileSystemId
 		default:
 			return "", err
 		}
@@ -89,37 +91,36 @@ func (c *cloud) CreateFileSystem(opts CreateOptions) (string, error) {
 		return "", err
 	}
 
-	securityGroupIds := aws.StringSlice(opts.SecurityGroupIds)
+	securityGroupIds := opts.SecurityGroupIds
 	if len(securityGroupIds) == 0 {
 		securityGroupId, err := c.getSecurityGroupId(opts.ClusterName)
 		if err != nil {
 			return "", err
 		}
-		securityGroupIds = []*string{
-			aws.String(securityGroupId),
+		securityGroupIds = []string{
+			securityGroupId,
 		}
 	}
-
-	subnetIds := aws.StringSlice(opts.SubnetIds)
-	if len(subnetIds) == 0 {
+	if len(opts.SubnetIds) == 0 {
 		matchingSubnetIds, err := c.getSubnetIds(opts.ClusterName)
 		if err != nil {
 			return "", err
 		}
-		subnetIds = aws.StringSlice(matchingSubnetIds)
+		opts.SubnetIds = append(opts.SubnetIds, matchingSubnetIds...)
 	}
 
-	for _, subnetId := range subnetIds {
+	for _, subnetId := range opts.SubnetIds {
 		request := &efs.CreateMountTargetInput{
 			FileSystemId:   fileSystemId,
-			SubnetId:       subnetId,
+			SubnetId:       &subnetId,
 			SecurityGroups: securityGroupIds,
 		}
 
-		_, err := c.efsclient.CreateMountTarget(request)
+		_, err := c.efsclient.CreateMountTarget(ctx, request)
 		if err != nil {
-			switch err.(type) {
-			case *efs.MountTargetConflict:
+			var MountTargetConflictErr *efstypes.MountTargetConflict
+			switch {
+			case errors.As(err, &MountTargetConflictErr):
 				continue
 			default:
 				return "", err
@@ -132,7 +133,7 @@ func (c *cloud) CreateFileSystem(opts CreateOptions) (string, error) {
 		return "", err
 	}
 
-	return aws.StringValue(fileSystemId), nil
+	return *fileSystemId, nil
 }
 
 func (c *cloud) DeleteFileSystem(fileSystemId string) error {
@@ -147,10 +148,12 @@ func (c *cloud) DeleteFileSystem(fileSystemId string) error {
 	request := &efs.DeleteFileSystemInput{
 		FileSystemId: aws.String(fileSystemId),
 	}
-	_, err = c.efsclient.DeleteFileSystem(request)
+	ctx := context.TODO()
+	_, err = c.efsclient.DeleteFileSystem(ctx, request)
 	if err != nil {
-		switch err.(type) {
-		case *efs.FileSystemNotFound:
+		var FileSystemNotFoundErr *efstypes.FileSystemNotFound
+		switch {
+		case errors.As(err, &FileSystemNotFoundErr):
 			return nil
 		default:
 			return err
@@ -161,7 +164,7 @@ func (c *cloud) DeleteFileSystem(fileSystemId string) error {
 }
 
 func (c *cloud) CreateAccessPoint(fileSystemId, clusterName string) (string, error) {
-	tags := []*efs.Tag{
+	tags := []efstypes.Tag{
 		{
 			Key:   aws.String("efs.csi.aws.com/cluster"),
 			Value: aws.String("true"),
@@ -171,12 +174,12 @@ func (c *cloud) CreateAccessPoint(fileSystemId, clusterName string) (string, err
 	request := &efs.CreateAccessPointInput{
 		ClientToken:  &clusterName,
 		FileSystemId: &fileSystemId,
-		PosixUser: &efs.PosixUser{
+		PosixUser: &efstypes.PosixUser{
 			Gid: aws.Int64(1000),
 			Uid: aws.Int64(1000),
 		},
-		RootDirectory: &efs.RootDirectory{
-			CreationInfo: &efs.CreationInfo{
+		RootDirectory: &efstypes.RootDirectory{
+			CreationInfo: &efstypes.CreationInfo{
 				OwnerGid:    aws.Int64(1000),
 				OwnerUid:    aws.Int64(1000),
 				Permissions: aws.String("0777"),
@@ -186,8 +189,9 @@ func (c *cloud) CreateAccessPoint(fileSystemId, clusterName string) (string, err
 		Tags: tags,
 	}
 
+	ctx := context.TODO()
 	var accessPointId *string
-	response, err := c.efsclient.CreateAccessPoint(request)
+	response, err := c.efsclient.CreateAccessPoint(ctx, request)
 	if err != nil {
 		return "", err
 	}
@@ -198,7 +202,7 @@ func (c *cloud) CreateAccessPoint(fileSystemId, clusterName string) (string, err
 		return "", err
 	}
 
-	return aws.StringValue(accessPointId), nil
+	return *accessPointId, nil
 }
 
 func (c *cloud) DeleteAccessPoint(accessPointId string) error {
@@ -206,7 +210,8 @@ func (c *cloud) DeleteAccessPoint(accessPointId string) error {
 		AccessPointId: &accessPointId,
 	}
 
-	_, err := c.efsclient.DeleteAccessPoint(request)
+	ctx := context.TODO()
+	_, err := c.efsclient.DeleteAccessPoint(ctx, request)
 	if err != nil {
 		return err
 	}
@@ -251,11 +256,11 @@ func (c *cloud) getSubnetIds(clusterName string) ([]string, error) {
 // api.$clustername
 func (c *cloud) getKopsSecurityGroupId(clusterName string) (string, error) {
 	securityGroups, err := c.getFilteredSecurityGroups(
-		[]*ec2.Filter{
+		[]ec2types.Filter{
 			{
 				Name: aws.String("tag:Name"),
-				Values: []*string{
-					aws.String(fmt.Sprintf("nodes.%s", clusterName)),
+				Values: []string{
+					fmt.Sprintf("nodes.%s", clusterName),
 				},
 			},
 		},
@@ -264,7 +269,7 @@ func (c *cloud) getKopsSecurityGroupId(clusterName string) (string, error) {
 		return "", err
 	}
 
-	return aws.StringValue(securityGroups[0].GroupId), nil
+	return *securityGroups[0].GroupId, nil
 }
 
 // EKS unmanaged node groups:
@@ -273,7 +278,7 @@ func (c *cloud) getKopsSecurityGroupId(clusterName string) (string, error) {
 // aws:cloudformation:logical-id=NodeSecurityGroup
 //
 // EKS managed node groups:
-// EKS doesn't create a separate node security group and instead reuses the the
+// EKS doesn't create a separate node security group and instead reuses the
 // cluster one: "EKS created security group applied to ENI that is attached to
 // EKS Control Plane master nodes, as well as any managed workloads"
 //
@@ -282,11 +287,11 @@ func (c *cloud) getKopsSecurityGroupId(clusterName string) (string, error) {
 // no such group exists, use the first one in the response
 func (c *cloud) getEksSecurityGroupId(clusterName string) (string, error) {
 	securityGroups, err := c.getFilteredSecurityGroups(
-		[]*ec2.Filter{
+		[]ec2types.Filter{
 			{
 				Name: aws.String("tag-key"),
-				Values: []*string{
-					aws.String(fmt.Sprintf("kubernetes.io/cluster/%s", clusterName)),
+				Values: []string{
+					fmt.Sprintf("kubernetes.io/cluster/%s", clusterName),
 				},
 			},
 		},
@@ -295,10 +300,10 @@ func (c *cloud) getEksSecurityGroupId(clusterName string) (string, error) {
 		return "", err
 	}
 
-	securityGroupId := aws.StringValue(securityGroups[0].GroupId)
+	securityGroupId := *securityGroups[0].GroupId
 	for _, securityGroup := range securityGroups {
 		if strings.Contains(strings.ToLower(*securityGroup.GroupName), "node") {
-			securityGroupId = aws.StringValue(securityGroup.GroupId)
+			securityGroupId = *securityGroup.GroupId
 		}
 	}
 
@@ -307,11 +312,11 @@ func (c *cloud) getEksSecurityGroupId(clusterName string) (string, error) {
 
 func (c *cloud) getKopsSubnetIds(clusterName string) ([]string, error) {
 	return c.getFilteredSubnetIds(
-		[]*ec2.Filter{
+		[]ec2types.Filter{
 			{
 				Name: aws.String("tag-key"),
-				Values: []*string{
-					aws.String(fmt.Sprintf("kubernetes.io/cluster/%s", clusterName)),
+				Values: []string{
+					fmt.Sprintf("kubernetes.io/cluster/%s", clusterName),
 				},
 			},
 		},
@@ -330,11 +335,11 @@ func (c *cloud) getEksSubnetIds(clusterName string) ([]string, error) {
 
 func (c *cloud) getEksctlSubnetIds(clusterName string) ([]string, error) {
 	return c.getFilteredSubnetIds(
-		[]*ec2.Filter{
+		[]ec2types.Filter{
 			{
 				Name: aws.String("tag:alpha.eksctl.io/cluster-name"),
-				Values: []*string{
-					aws.String(fmt.Sprintf("%s", clusterName)),
+				Values: []string{
+					fmt.Sprintf("%s", clusterName),
 				},
 			},
 		},
@@ -347,51 +352,53 @@ func (c *cloud) getEksCloudFormationSubnetIds(clusterName string) ([]string, err
 	// because the subnet names are derived from the stack name which is
 	// user-supplied. Assume that they are prefixed by cluster name and a dash.
 	return c.getFilteredSubnetIds(
-		[]*ec2.Filter{
+		[]ec2types.Filter{
 			{
 				Name: aws.String("tag:Name"),
-				Values: []*string{
-					aws.String(fmt.Sprintf("%s-*", clusterName)),
+				Values: []string{
+					fmt.Sprintf("%s-*", clusterName),
 				},
 			},
 		},
 	)
 }
 
-func (c *cloud) getFilteredSecurityGroups(filters []*ec2.Filter) ([]*ec2.SecurityGroup, error) {
+func (c *cloud) getFilteredSecurityGroups(filters []ec2types.Filter) ([]ec2types.SecurityGroup, error) {
 	request := &ec2.DescribeSecurityGroupsInput{
 		Filters: filters,
 	}
 
-	response, err := c.ec2client.DescribeSecurityGroups(request)
+	ctx := context.TODO()
+	response, err := c.ec2client.DescribeSecurityGroups(ctx, request)
 	if err != nil {
 		return nil, err
 	}
 
 	if len(response.SecurityGroups) == 0 {
-		return nil, fmt.Errorf("no security groups found with filters %s", awsutil.Prettify(filters))
+		return nil, fmt.Errorf("no security groups found with filters %s", MarshalToString(filters))
 	}
 
 	return response.SecurityGroups, nil
 }
 
-func (c *cloud) getFilteredSubnetIds(filters []*ec2.Filter) ([]string, error) {
+func (c *cloud) getFilteredSubnetIds(filters []ec2types.Filter) ([]string, error) {
 	request := &ec2.DescribeSubnetsInput{
 		Filters: filters,
 	}
 
+	ctx := context.TODO()
 	subnetIds := []string{}
-	response, err := c.ec2client.DescribeSubnets(request)
+	response, err := c.ec2client.DescribeSubnets(ctx, request)
 	if err != nil {
 		return subnetIds, err
 	}
 
 	if len(response.Subnets) == 0 {
-		return []string{}, fmt.Errorf("no subnets found with filters %s", awsutil.Prettify(filters))
+		return []string{}, fmt.Errorf("no subnets found with filters %s", MarshalToString(filters))
 	}
 
 	for _, subnet := range response.Subnets {
-		subnetIds = append(subnetIds, aws.StringValue(subnet.SubnetId))
+		subnetIds = append(subnetIds, *subnet.SubnetId)
 	}
 
 	return subnetIds, nil
@@ -401,9 +408,10 @@ func (c *cloud) ensureFileSystemStatus(fileSystemId, status string) error {
 	request := &efs.DescribeFileSystemsInput{
 		FileSystemId: aws.String(fileSystemId),
 	}
+	ctx := context.TODO()
 
 	for {
-		response, err := c.efsclient.DescribeFileSystems(request)
+		response, err := c.efsclient.DescribeFileSystems(ctx, request)
 		if err != nil {
 			return err
 		}
@@ -412,7 +420,7 @@ func (c *cloud) ensureFileSystemStatus(fileSystemId, status string) error {
 			return errors.New("no filesystem found")
 		}
 
-		if *response.FileSystems[0].LifeCycleState == status {
+		if string(response.FileSystems[0].LifeCycleState) == status {
 			return nil
 		}
 		time.Sleep(time.Second)
@@ -423,9 +431,10 @@ func (c *cloud) ensureAccessPointStatus(accessPointId, status string) error {
 	request := &efs.DescribeAccessPointsInput{
 		AccessPointId: aws.String(accessPointId),
 	}
+	ctx := context.TODO()
 
 	for {
-		response, err := c.efsclient.DescribeAccessPoints(request)
+		response, err := c.efsclient.DescribeAccessPoints(ctx, request)
 		if err != nil {
 			return err
 		}
@@ -434,7 +443,7 @@ func (c *cloud) ensureAccessPointStatus(accessPointId, status string) error {
 			return errors.New("no access point found")
 		}
 
-		if *response.AccessPoints[0].LifeCycleState == status {
+		if string(response.AccessPoints[0].LifeCycleState) == status {
 			return nil
 		}
 		time.Sleep(time.Second)
@@ -445,9 +454,10 @@ func (c *cloud) ensureNoMountTarget(fileSystemId string) error {
 	request := &efs.DescribeFileSystemsInput{
 		FileSystemId: aws.String(fileSystemId),
 	}
+	ctx := context.TODO()
 
 	for {
-		response, err := c.efsclient.DescribeFileSystems(request)
+		response, err := c.efsclient.DescribeFileSystems(ctx, request)
 		if err != nil {
 			return err
 		}
@@ -456,7 +466,7 @@ func (c *cloud) ensureNoMountTarget(fileSystemId string) error {
 			return errors.New("no filesystem found")
 		}
 
-		if *response.FileSystems[0].NumberOfMountTargets == 0 {
+		if int32(response.FileSystems[0].NumberOfMountTargets) == 0 {
 			return nil
 		}
 		time.Sleep(time.Second)
@@ -468,15 +478,16 @@ func (c *cloud) ensureMountTargetStatus(fileSystemId, status string) error {
 		FileSystemId: aws.String(fileSystemId),
 	}
 
+	ctx := context.TODO()
 	for {
-		response, err := c.efsclient.DescribeMountTargets(request)
+		response, err := c.efsclient.DescribeMountTargets(ctx, request)
 		if err != nil {
 			return err
 		}
 
 		done := true
 		for _, target := range response.MountTargets {
-			if *target.LifeCycleState != status {
+			if string(target.LifeCycleState) != status {
 				done = false
 				break
 			}
@@ -492,8 +503,9 @@ func (c *cloud) deleteMountTargets(fileSystemId string) error {
 	request := &efs.DescribeMountTargetsInput{
 		FileSystemId: aws.String(fileSystemId),
 	}
+	ctx := context.TODO()
 
-	response, err := c.efsclient.DescribeMountTargets(request)
+	response, err := c.efsclient.DescribeMountTargets(ctx, request)
 	if err != nil {
 		return err
 	}
@@ -503,10 +515,11 @@ func (c *cloud) deleteMountTargets(fileSystemId string) error {
 			MountTargetId: target.MountTargetId,
 		}
 
-		_, err := c.efsclient.DeleteMountTarget(request)
+		_, err := c.efsclient.DeleteMountTarget(ctx, request)
 		if err != nil {
-			switch err.(type) {
-			case *efs.MountTargetNotFound:
+			var MountTargetNotFoundErr *efstypes.MountTargetNotFound
+			switch {
+			case errors.As(err, &MountTargetNotFoundErr):
 				return nil
 			default:
 				return err
@@ -515,4 +528,9 @@ func (c *cloud) deleteMountTargets(fileSystemId string) error {
 	}
 
 	return nil
+}
+
+func MarshalToString(data interface{}) string {
+	jsonBytes, _ := json.MarshalIndent(data, "", "  ")
+	return string(jsonBytes)
 }

@@ -27,6 +27,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/feature/ec2/imds"
 	"github.com/aws/aws-sdk-go-v2/service/efs"
 	"github.com/aws/aws-sdk-go-v2/service/efs/types"
 
@@ -95,6 +96,7 @@ type Efs interface {
 }
 
 type Cloud interface {
+	GetMetadata() MetadataService
 	CreateAccessPoint(ctx context.Context, clientToken string, accessPointOpts *AccessPointOptions) (accessPoint *AccessPoint, err error)
 	DeleteAccessPoint(ctx context.Context, accessPointId string) (err error)
 	DescribeAccessPoint(ctx context.Context, accessPointId string) (accessPoint *AccessPoint, err error)
@@ -127,16 +129,38 @@ func createCloud(awsRoleArn string) (Cloud, error) {
 		klog.Warningf("Could not load config: %v", err)
 	}
 
+	svc := imds.NewFromConfig(cfg)
+	api, err := DefaultKubernetesAPIClient()
+
+	if err != nil && !isDriverBootedInECS() {
+		klog.Warningf("Could not create Kubernetes Client: %v", err)
+	}
+	metadataProvider, err := GetNewMetadataProvider(svc, api)
+	if err != nil {
+		return nil, fmt.Errorf("error creating MetadataProvider: %v", err)
+	}
+
+	metadata, err := metadataProvider.getMetadata()
+
+	if err != nil {
+		return nil, fmt.Errorf("could not get metadata: %v", err)
+	}
+
 	efs_client := efs.NewFromConfig(cfg)
 	klog.V(5).Infof("EFS Client created using the following endpoint: %+v", cfg.BaseEndpoint)
 
 	return &cloud{
-		efs: efs_client,
+		metadata: metadata,
+		efs:      efs_client,
 	}, nil
 }
 
 func createEfsClient(awsRoleArn string, cfg aws.Config) Efs {
 	return efs.NewFromConfig(cfg)
+}
+
+func (c *cloud) GetMetadata() MetadataService {
+	return c.metadata
 }
 
 func (c *cloud) CreateAccessPoint(ctx context.Context, clientToken string, accessPointOpts *AccessPointOptions) (accessPoint *AccessPoint, err error) {

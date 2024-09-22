@@ -17,8 +17,12 @@ limitations under the License.
 package cloud
 
 import (
+	"context"
+	"errors"
 	"reflect"
 	"testing"
+
+	"github.com/aws/aws-sdk-go-v2/feature/ec2/imds"
 
 	"github.com/golang/mock/gomock"
 	"k8s.io/client-go/kubernetes/fake"
@@ -71,7 +75,12 @@ func TestGetMetadataProvider(t *testing.T) {
 			}
 
 			if !tc.isRunningInECS {
-				mockEC2Metadata.EXPECT().Available().Return(tc.isEC2MetadataServiceAvailable)
+				if tc.isEC2MetadataServiceAvailable {
+					mockEC2Metadata.EXPECT().GetMetadata(context.TODO(), &imds.GetMetadataInput{Path: "instance-id"}).Return(nil, nil)
+				} else {
+					mockEC2Metadata.EXPECT().GetMetadata(context.TODO(), &imds.GetMetadataInput{Path: "instance-id"}).Return(nil, errors.New("fake error"))
+
+				}
 			}
 
 			defer mockCtrl.Finish()
