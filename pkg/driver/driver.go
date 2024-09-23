@@ -43,6 +43,7 @@ type Driver struct {
 	srv                      *grpc.Server
 	mounter                  Mounter
 	efsWatchdog              Watchdog
+	provisioners             map[string]Provisioner
 	cloud                    cloud.Cloud
 	nodeCaps                 []csi.NodeServiceCapability_RPC_Type
 	volMetricsOptIn          bool
@@ -62,32 +63,25 @@ func NewDriver(endpoint, efsUtilsCfgPath, efsUtilsStaticFilesPath, tags string, 
 
 	nodeCaps := SetNodeCapOptInFeatures(volMetricsOptIn)
 	watchdog := newExecWatchdog(efsUtilsCfgPath, efsUtilsStaticFilesPath, "amazon-efs-mount-watchdog")
-	return &Driver{
-		endpoint:                 endpoint,
-		nodeID:                   cloud.GetMetadata().GetInstanceID(),
-		mounter:                  newNodeMounter(),
-		efsWatchdog:              watchdog,
-		cloud:                    cloud,
-		nodeCaps:                 nodeCaps,
-		volStatter:               NewVolStatter(),
-		volMetricsOptIn:          volMetricsOptIn,
-		volMetricsRefreshPeriod:  volMetricsRefreshPeriod,
-		volMetricsFsRateLimit:    volMetricsFsRateLimit,
-		gidAllocator:             NewGidAllocator(),
-		deleteAccessPointRootDir: deleteAccessPointRootDir,
-		tags:                     parseTagsFromStr(strings.TrimSpace(tags)),
-	}
-}
+	parsedTags := parseTagsFromStr(strings.TrimSpace(tags))
+	gidAllocator := NewGidAllocator()
+	mounter := newNodeMounter()
+	provisioners := getProvisioners(parsedTags, cloud, &gidAllocator, deleteAccessPointRootDir, mounter)
 
-func SetNodeCapOptInFeatures(volMetricsOptIn bool) []csi.NodeServiceCapability_RPC_Type {
-	var nCaps = []csi.NodeServiceCapability_RPC_Type{}
-	if volMetricsOptIn {
-		klog.V(4).Infof("Enabling Node Service capability for Get Volume Stats")
-		nCaps = append(nCaps, csi.NodeServiceCapability_RPC_GET_VOLUME_STATS)
-	} else {
-		klog.V(4).Infof("Node Service capability for Get Volume Stats Not enabled")
+	return &Driver{
+		endpoint:                endpoint,
+		nodeID:                  cloud.GetMetadata().GetInstanceID(),
+		mounter:                 mounter,
+		efsWatchdog:             watchdog,
+		provisioners:            provisioners,
+		cloud:                   cloud,
+		nodeCaps:                nodeCaps,
+		volStatter:              NewVolStatter(),
+		volMetricsOptIn:         volMetricsOptIn,
+		volMetricsRefreshPeriod: volMetricsRefreshPeriod,
+		volMetricsFsRateLimit:   volMetricsFsRateLimit,
+		tags:                    parsedTags,
 	}
-	return nCaps
 }
 
 func (d *Driver) Run() error {
@@ -136,6 +130,25 @@ func (d *Driver) Run() error {
 
 	klog.Infof("Listening for connections on address: %#v", listener.Addr())
 	return d.srv.Serve(listener)
+}
+
+func (d *Driver) GetProvisioningModes() []string {
+	var keys []string
+	for k := range d.provisioners {
+		keys = append(keys, k)
+	}
+	return keys
+}
+
+func SetNodeCapOptInFeatures(volMetricsOptIn bool) []csi.NodeServiceCapability_RPC_Type {
+	var nCaps = []csi.NodeServiceCapability_RPC_Type{}
+	if volMetricsOptIn {
+		klog.V(4).Infof("Enabling Node Service capability for Get Volume Stats")
+		nCaps = append(nCaps, csi.NodeServiceCapability_RPC_GET_VOLUME_STATS)
+	} else {
+		klog.V(4).Infof("Node Service capability for Get Volume Stats Not enabled")
+	}
+	return nCaps
 }
 
 func parseTagsFromStr(tagStr string) map[string]string {
