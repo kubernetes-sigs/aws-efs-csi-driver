@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM public.ecr.aws/eks-distro-build-tooling/golang:1.20 as go-builder
+FROM public.ecr.aws/eks-distro-build-tooling/golang:1.22.5 as go-builder
 WORKDIR /go/src/github.com/kubernetes-sigs/aws-efs-csi-driver
 
 ARG TARGETOS
@@ -38,11 +38,14 @@ RUN mkdir -p /tmp/rpms && \
     then echo "Installing efs-utils from Amazon Linux 2 yum repo" && \
          yum -y install --downloadonly --downloaddir=/tmp/rpms amazon-efs-utils-1.35.0-1.amzn2.noarch; \
     else echo "Installing efs-utils from github using the latest git tag" && \
-         yum -y install git rpm-build make rust cargo openssl-devel && \
+         yum -y install git rpm-build make openssl-devel curl && \
+         curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y && \
+         source $HOME/.cargo/env && \
+         rustup update && \
+         rustup default stable && \
          git clone https://github.com/aws/efs-utils && \
          cd efs-utils && \
-         git checkout $(git describe --tags $(git rev-list --tags --max-count=1)) && \
-         make rpm && mv build/amazon-efs-utils*rpm /tmp/rpms && \
+         make rpm-without-system-rust && mv build/amazon-efs-utils*rpm /tmp/rpms && \
          # clean up efs-utils folder after install
          cd .. && rm -rf efs-utils && \
          yum clean all; \

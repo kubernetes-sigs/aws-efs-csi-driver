@@ -27,7 +27,7 @@ func (c *FakeCloudProvider) GetMetadata() MetadataService {
 	return c.m
 }
 
-func (c *FakeCloudProvider) CreateAccessPoint(ctx context.Context, clientToken string, accessPointOpts *AccessPointOptions, usePvcName bool) (accessPoint *AccessPoint, err error) {
+func (c *FakeCloudProvider) CreateAccessPoint(ctx context.Context, clientToken string, accessPointOpts *AccessPointOptions) (accessPoint *AccessPoint, err error) {
 	ap, exists := c.accessPoints[clientToken]
 	if exists {
 		if accessPointOpts.CapacityGiB == ap.CapacityGiB {
@@ -96,6 +96,14 @@ func (c *FakeCloudProvider) DescribeMountTargets(ctx context.Context, fileSystem
 	}
 
 	return nil, ErrNotFound
+}
+
+func (c *FakeCloudProvider) FindAccessPointByClientToken(ctx context.Context, clientToken, fileSystemId string) (accessPoint *AccessPoint, err error) {
+	if ap, exists := c.accessPoints[clientToken]; exists {
+		return ap, nil
+	} else {
+		return nil, nil
+	}
 }
 
 func (c *FakeCloudProvider) ListAccessPoints(ctx context.Context, fileSystemId string) ([]*AccessPoint, error) {

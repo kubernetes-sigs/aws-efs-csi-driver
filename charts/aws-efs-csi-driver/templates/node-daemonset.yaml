@@ -6,6 +6,9 @@ metadata:
   namespace: {{ .Release.Namespace }}
   labels:
     app.kubernetes.io/name: {{ include "aws-efs-csi-driver.name" . }}
+    {{- with .Values.node.additionalLabels }}
+    {{ toYaml . | nindent 4 }}
+    {{- end }}
 spec:
   selector:
     matchLabels:
@@ -94,7 +97,7 @@ spec:
             {{- end }}
           volumeMounts:
             - name: kubelet-dir
-              mountPath: /var/lib/kubelet
+              mountPath: {{ .Values.node.kubeletPath }}
               mountPropagation: "Bidirectional"
             - name: plugin-dir
               mountPath: /csi
@@ -133,7 +136,7 @@ spec:
             - name: ADDRESS
               value: /csi/csi.sock
             - name: DRIVER_REG_SOCK_PATH
-              value: /var/lib/kubelet/plugins/efs.csi.aws.com/csi.sock
+              value: {{ printf "%s/plugins/efs.csi.aws.com/csi.sock" (trimSuffix "/" .Values.node.kubeletPath) }}
             - name: KUBE_NODE_NAME
               valueFrom:
                 fieldRef:
@@ -170,15 +173,15 @@ spec:
       volumes:
         - name: kubelet-dir
           hostPath:
-            path: /var/lib/kubelet
+            path: {{ .Values.node.kubeletPath }}
             type: Directory
         - name: plugin-dir
           hostPath:
-            path: /var/lib/kubelet/plugins/efs.csi.aws.com/
+            path: {{ printf "%s/plugins/efs.csi.aws.com/" (trimSuffix "/" .Values.node.kubeletPath) }}
             type: DirectoryOrCreate
         - name: registration-dir
           hostPath:
-            path: /var/lib/kubelet/plugins_registry/
+            path: {{ printf "%s/plugins_registry/" (trimSuffix "/" .Values.node.kubeletPath) }}
             type: Directory
         - name: efs-state-dir
           hostPath:
