@@ -45,8 +45,7 @@ RUN mkdir -p /tmp/rpms && \
          rustup default stable && \
          git clone https://github.com/aws/efs-utils && \
          cd efs-utils && \
-         git checkout $(git describe --tags $(git rev-list --tags --max-count=1)) && \
-         make rpm && mv build/amazon-efs-utils*rpm /tmp/rpms && \
+         make rpm-without-system-rust && mv build/amazon-efs-utils*rpm /tmp/rpms && \
          # clean up efs-utils folder after install
          cd .. && rm -rf efs-utils && \
          yum clean all; \
