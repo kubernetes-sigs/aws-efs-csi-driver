@@ -1,3 +1,8 @@
+# V2.0.8
+* Update K8s dependencies. ([#1440](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1440), [@retornam](https://github.com/retornam))
+* Add flag that enables CSI driver to be added without using helm hooks ([#1074](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1074), [@woehrl01](https://github.com/woehrl01))
+* Add new region DNS suffixes to watchdog ([#1455](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1455), [@jdwtf](https://github.com/jdwtf))
+* Use protobuf content type instead of JSON for K8s client ([#1451](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1451), [@bhavi-koduru](https://github.com/bhavi-koduru))
 # V2.0.7
 * Update GO version from 1.20 to 1.22.5 to mitigate CVEs. ([#1427](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1427),[@mskanth972](https://github.com/mskanth972))
 # V2.0.6
