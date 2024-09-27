@@ -255,9 +255,9 @@ func (p *provisioningTestSuite) DefineTests(driver storageframework.TestDriver, 
 
 		ginkgo.By("Deploying validator")
 		valManifests := []string{
-			"vendor/k8s.io/kubernetes/test/e2e/testing-manifests/storage-csi/any-volume-datasource/crd/populator.storage.k8s.io_volumepopulators.yaml",
-			"vendor/k8s.io/kubernetes/test/e2e/testing-manifests/storage-csi/any-volume-datasource/volume-data-source-validator/rbac-data-source-validator.yaml",
-			"vendor/k8s.io/kubernetes/test/e2e/testing-manifests/storage-csi/any-volume-datasource/volume-data-source-validator/setup-data-source-validator.yaml",
+			"test/e2e/testing-manifests/storage-csi/any-volume-datasource/crd/populator.storage.k8s.io_volumepopulators.yaml",
+			"test/e2e/testing-manifests/storage-csi/any-volume-datasource/volume-data-source-validator/rbac-data-source-validator.yaml",
+			"test/e2e/testing-manifests/storage-csi/any-volume-datasource/volume-data-source-validator/setup-data-source-validator.yaml",
 		}
 		valCleanup, err := storageutils.CreateFromManifests(f, valNamespace,
 			func(item interface{}) error { return nil },
@@ -279,8 +279,8 @@ func (p *provisioningTestSuite) DefineTests(driver storageframework.TestDriver, 
 
 		ginkgo.By("Deploying hello-populator")
 		popManifests := []string{
-			"vendor/k8s.io/kubernetes/test/e2e/testing-manifests/storage-csi/any-volume-datasource/crd/hello-populator-crd.yaml",
-			"vendor/k8s.io/kubernetes/test/e2e/testing-manifests/storage-csi/any-volume-datasource/hello-populator-deploy.yaml",
+			"test/e2e/testing-manifests/storage-csi/any-volume-datasource/crd/hello-populator-crd.yaml",
+			"test/e2e/testing-manifests/storage-csi/any-volume-datasource/hello-populator-deploy.yaml",
 		}
 		popCleanup, err := storageutils.CreateFromManifests(f, popNamespace,
 			func(item interface{}) error {
