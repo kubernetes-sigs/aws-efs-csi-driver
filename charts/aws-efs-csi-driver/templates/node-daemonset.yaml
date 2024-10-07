@@ -9,6 +9,7 @@ metadata:
     {{ toYaml . | nindent 4 }}
     {{- end }}
 spec:
+  revisionHistoryLimit: {{ .Values.node.revisionHistoryLimit }}
   selector:
     matchLabels:
       app: efs-csi-node
