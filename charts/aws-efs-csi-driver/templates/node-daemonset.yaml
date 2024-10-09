@@ -117,8 +117,7 @@ spec:
           livenessProbe: {{ toYaml . | nindent 12 }}
           {{- end }}
           {{- with .Values.node.resources }}
-          resources:
-            {{ toYaml . | nindent 12 }}
+          resources: {{ toYaml . | nindent 12 }}
           {{- end }}
         - name: csi-driver-registrar
           image: {{ printf "%s:%s" .Values.sidecars.nodeDriverRegistrar.image.repository .Values.sidecars.nodeDriverRegistrar.image.tag }}
