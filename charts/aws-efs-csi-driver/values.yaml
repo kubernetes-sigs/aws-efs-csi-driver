@@ -9,6 +9,8 @@ replicaCount: 2
 
 useFIPS: false
 
+portRangeUpperBound: "21049"
+
 image:
   repository: public.ecr.aws/efs-csi-driver/amazon/aws-efs-csi-driver
   tag: "v2.0.8"
