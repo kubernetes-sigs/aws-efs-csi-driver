@@ -10,7 +10,7 @@ metadata:
     {{ toYaml . | nindent 4 }}
     {{- end }}
 spec:
-  replicas: {{ .Values.replicaCount }}
+  replicas: {{ .Values.controller.replicaCount }}
   selector:
     matchLabels:
       app: efs-csi-controller
@@ -140,7 +140,7 @@ spec:
           volumeMounts:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
-          {{- with .Values.sidecars.csiProvisioner.resources }}
+          {{- with default .Values.controller.resources .Values.sidecars.csiProvisioner.resources }}
           resources: {{ toYaml . | nindent 12 }}
           {{- end }}
           {{- with .Values.sidecars.csiProvisioner.securityContext }}
@@ -159,7 +159,7 @@ spec:
             {{- with .Values.controller.volumeMounts }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
-          {{- with .Values.sidecars.livenessProbe.resources }}
+          {{- with default .Values.controller.resources .Values.sidecars.livenessProbe.resources }}
           resources: {{ toYaml . | nindent 12 }}
           {{- end }}
           {{- with .Values.sidecars.livenessProbe.securityContext }}
@@ -174,5 +174,14 @@ spec:
         {{- end }}
       {{- with .Values.controller.affinity }}
       affinity: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if .Values.controller.topologySpreadConstraints }}
+      {{- $tscLabelSelector := dict "labelSelector" ( dict "matchLabels" ( dict "app" "efs-csi-controller" ) ) }}
+      {{- $constraints := list }}
+      {{- range .Values.controller.topologySpreadConstraints }}
+        {{- $constraints = mustAppend $constraints (mergeOverwrite . $tscLabelSelector) }}
+      {{- end }}
+      topologySpreadConstraints:
+        {{- $constraints | toYaml | nindent 8 }}
       {{- end }}
 {{- end }}
