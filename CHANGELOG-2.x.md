@@ -1,3 +1,7 @@
+# V2.0.9
+* Upgrade AL2 version and address CVEs (CVE-2024-34156, CVE-2024-34158)
+* Fix controller template to support replicaCount, resources, topologySpreadConstraints
+* Migrate to aws-sdk-go-v2. ([#1458](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1458), [@avanish23](https://github.com/avanish23))
 # V2.0.8
 * Update K8s dependencies. ([#1440](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1440), [@retornam](https://github.com/retornam))
 * Add flag that enables CSI driver to be added without using helm hooks ([#1074](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1074), [@woehrl01](https://github.com/woehrl01))
