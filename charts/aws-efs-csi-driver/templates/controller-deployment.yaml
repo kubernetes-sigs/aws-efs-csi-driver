@@ -78,6 +78,9 @@ spec:
             {{- end }}
             - --v={{ .Values.controller.logLevel }}
             - --delete-access-point-root-dir={{ hasKey .Values.controller "deleteAccessPointRootDir" | ternary .Values.controller.deleteAccessPointRootDir false }}
+            {{- range .Values.controller.additionalArgs }}
+            - {{ . }}
+            {{- end }}
           env:
             - name: CSI_ENDPOINT
               value: unix:///var/lib/csi/sockets/pluginproxy/csi.sock
@@ -134,6 +137,9 @@ spec:
             {{- if hasKey .Values.controller "leaderElectionLeaseDuration" }}
             - --leader-election-lease-duration={{ .Values.controller.leaderElectionLeaseDuration }}
             {{- end }}
+            {{- range .Values.sidecars.csiProvisioner.additionalArgs }}
+            - {{ . }}
+            {{- end }}
           env:
             - name: ADDRESS
               value: /var/lib/csi/sockets/pluginproxy/csi.sock
@@ -153,6 +159,9 @@ spec:
           args:
             - --csi-address=/csi/csi.sock
             - --health-port={{ .Values.controller.healthPort }}
+            {{- range .Values.sidecars.livenessProbe.additionalArgs }}
+            - {{ . }}
+            {{- end }}  
           volumeMounts:
             - name: socket-dir
               mountPath: /csi
