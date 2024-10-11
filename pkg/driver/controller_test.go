@@ -2,8 +2,10 @@ package driver
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"reflect"
 	"regexp"
 	"strconv"
 	"testing"
@@ -542,7 +544,7 @@ func TestCreateVolume(t *testing.T) {
 					endpoint:     endpoint,
 					cloud:        mockCloud,
 					gidAllocator: NewGidAllocator(),
-					tags:         parseTagsFromStr(""),
+					tags:         parseTagsFromStr("", " ", ":"),
 				}
 
 				req := &csi.CreateVolumeRequest{
@@ -658,7 +660,7 @@ func TestCreateVolume(t *testing.T) {
 					endpoint:     endpoint,
 					cloud:        mockCloud,
 					gidAllocator: NewGidAllocator(),
-					tags:         parseTagsFromStr("cluster:efs"),
+					tags:         parseTagsFromStr("cluster:efs", " ", ":"),
 				}
 
 				req := &csi.CreateVolumeRequest{
@@ -717,7 +719,7 @@ func TestCreateVolume(t *testing.T) {
 					endpoint:     endpoint,
 					cloud:        mockCloud,
 					gidAllocator: NewGidAllocator(),
-					tags:         parseTagsFromStr("cluster-efs"),
+					tags:         parseTagsFromStr("cluster-efs", " ", ":"),
 				}
 
 				req := &csi.CreateVolumeRequest{
@@ -767,6 +769,72 @@ func TestCreateVolume(t *testing.T) {
 			},
 		},
 		{
+			name: "Success: Normal flow with pvcTags",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockCloud := mocks.NewMockCloud(mockCtl)
+
+				driver := &Driver{
+					endpoint: endpoint,
+					cloud:    mockCloud,
+				}
+
+				expectedTags := map[string]string{"service_name": "my_service", "team": "infra", "environment": "development", "efs.csi.aws.com/cluster": "true"}
+				req := &csi.CreateVolumeRequest{
+					Name: volumeName,
+					VolumeCapabilities: []*csi.VolumeCapability{
+						stdVolCap,
+					},
+					CapacityRange: &csi.CapacityRange{
+						RequiredBytes: capacityRange,
+					},
+					Parameters: map[string]string{
+						ProvisioningMode: "efs-ap",
+						FsId:             fsId,
+						GidMin:           "1000",
+						GidMax:           "2000",
+						DirectoryPerms:   "777",
+						PvcTags:          "service_name=my_service,team=infra,environment=development",
+					},
+				}
+				ctx := context.Background()
+				accessPoint := &cloud.AccessPoint{
+					AccessPointId: apId,
+					FileSystemId:  fsId,
+				}
+				accessPoints := []*cloud.AccessPoint{accessPoint}
+				mockCloud.EXPECT().ListAccessPoints(gomock.Eq(ctx), gomock.Any()).Return(accessPoints, nil)
+				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any(), gomock.Any()).Return(accessPoint, nil).Do(
+					func(ctx context.Context, volumeName string, accessPointsOptions *cloud.AccessPointOptions, reuseAccessPointName bool) {
+						if !reflect.DeepEqual(expectedTags, accessPointsOptions.Tags) {
+							t.Fatalf("Tags mismatched. Expected: %v, Actual: %v", expectedTags, accessPointsOptions.Tags)
+							tagsMarshal, err := json.Marshal(accessPointsOptions.Tags)
+							if err != nil {
+								t.Fatalf("Failed to marshal access point tags: %v", err)
+							}
+							expectedTagsMarshal, err := json.Marshal(expectedTags)
+							if err != nil {
+								t.Fatalf("Tags mismatched. Expected: %v, Actual: %v", string(expectedTagsMarshal), string(tagsMarshal))
+							}
+						}
+					},
+				)
+				res, err := driver.CreateVolume(ctx, req)
+				if err != nil {
+					t.Fatalf("CreateVolume failed: %v", err)
+				}
+
+				if res.Volume == nil {
+					t.Fatal("Volume is nil")
+				}
+
+				if res.Volume.VolumeId != volumeId {
+					t.Fatalf("Volume Id mismatched. Expected: %v, Actual: %v", volumeId, res.Volume.VolumeId)
+				}
+				mockCtl.Finish()
+			},
+		},
+		{
 			name: "Success: reuseAccessPointName is true",
 			testFunc: func(t *testing.T) {
 				mockCtl := gomock.NewController(t)
@@ -776,7 +844,7 @@ func TestCreateVolume(t *testing.T) {
 					endpoint:     endpoint,
 					cloud:        mockCloud,
 					gidAllocator: NewGidAllocator(),
-					tags:         parseTagsFromStr(""),
+					tags:         parseTagsFromStr("", " ", ":"),
 				}
 				pvcNameVal := "test-pvc"
 
@@ -839,7 +907,7 @@ func TestCreateVolume(t *testing.T) {
 					endpoint:     endpoint,
 					cloud:        mockCloud,
 					gidAllocator: NewGidAllocator(),
-					tags:         parseTagsFromStr(""),
+					tags:         parseTagsFromStr("", " ", ":"),
 				}
 
 				pvName := "foo"
@@ -909,7 +977,7 @@ func TestCreateVolume(t *testing.T) {
 					endpoint:     endpoint,
 					cloud:        mockCloud,
 					gidAllocator: NewGidAllocator(),
-					tags:         parseTagsFromStr(""),
+					tags:         parseTagsFromStr("", " ", ":"),
 				}
 
 				pvcName := "foo"
@@ -977,7 +1045,7 @@ func TestCreateVolume(t *testing.T) {
 					endpoint:     endpoint,
 					cloud:        mockCloud,
 					gidAllocator: NewGidAllocator(),
-					tags:         parseTagsFromStr(""),
+					tags:         parseTagsFromStr("", " ", ":"),
 				}
 
 				pvcName := "foo"
@@ -1048,7 +1116,7 @@ func TestCreateVolume(t *testing.T) {
 					endpoint:     endpoint,
 					cloud:        mockCloud,
 					gidAllocator: NewGidAllocator(),
-					tags:         parseTagsFromStr(""),
+					tags:         parseTagsFromStr("", " ", ":"),
 				}
 
 				pvcName := "foo"
@@ -1120,7 +1188,7 @@ func TestCreateVolume(t *testing.T) {
 					endpoint:     endpoint,
 					cloud:        mockCloud,
 					gidAllocator: NewGidAllocator(),
-					tags:         parseTagsFromStr(""),
+					tags:         parseTagsFromStr("", " ", ":"),
 				}
 
 				pvcName := "foo"
@@ -1189,7 +1257,7 @@ func TestCreateVolume(t *testing.T) {
 					endpoint:     endpoint,
 					cloud:        mockCloud,
 					gidAllocator: NewGidAllocator(),
-					tags:         parseTagsFromStr(""),
+					tags:         parseTagsFromStr("", " ", ":"),
 				}
 
 				req := &csi.CreateVolumeRequest{
@@ -1254,7 +1322,7 @@ func TestCreateVolume(t *testing.T) {
 					endpoint:     endpoint,
 					cloud:        mockCloud,
 					gidAllocator: NewGidAllocator(),
-					tags:         parseTagsFromStr(""),
+					tags:         parseTagsFromStr("", " ", ":"),
 				}
 
 				req := &csi.CreateVolumeRequest{
@@ -1320,7 +1388,7 @@ func TestCreateVolume(t *testing.T) {
 					endpoint:     endpoint,
 					cloud:        mockCloud,
 					gidAllocator: NewGidAllocator(),
-					tags:         parseTagsFromStr(""),
+					tags:         parseTagsFromStr("", " ", ":"),
 				}
 
 				pvcName := "foo"
@@ -1519,7 +1587,7 @@ func TestCreateVolume(t *testing.T) {
 					endpoint:     endpoint,
 					cloud:        mockCloud,
 					gidAllocator: NewGidAllocator(),
-					tags:         parseTagsFromStr(""),
+					tags:         parseTagsFromStr("", " ", ":"),
 				}
 
 				req := &csi.CreateVolumeRequest{
@@ -2480,7 +2548,7 @@ func TestCreateVolume(t *testing.T) {
 					endpoint:     endpoint,
 					cloud:        mockCloud,
 					gidAllocator: NewGidAllocator(),
-					tags:         parseTagsFromStr(""),
+					tags:         parseTagsFromStr("", " ", ":"),
 				}
 
 				secrets := map[string]string{}
@@ -3036,7 +3104,7 @@ func TestDeleteVolume(t *testing.T) {
 					endpoint:     endpoint,
 					cloud:        mockCloud,
 					gidAllocator: NewGidAllocator(),
-					tags:         parseTagsFromStr(""),
+					tags:         parseTagsFromStr("", " ", ":"),
 				}
 
 				secrets := map[string]string{}
