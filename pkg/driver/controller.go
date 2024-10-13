@@ -19,7 +19,9 @@ package driver
 import (
 	"context"
 	"crypto/sha256"
+	"encoding/json"
 	"fmt"
+	"github.com/aws/aws-sdk-go/aws"
 	"os"
 	"path"
 	"sort"
@@ -47,6 +49,7 @@ const (
 	DirectoryPerms        = "directoryPerms"
 	EnsureUniqueDirectory = "ensureUniqueDirectory"
 	FsId                  = "fileSystemId"
+	FsDiscovery           = "fileSystemDiscovery"
 	Gid                   = "gid"
 	GidMin                = "gidRangeStart"
 	GidMax                = "gidRangeEnd"
@@ -77,6 +80,11 @@ var (
 		".PV.name":       PvName,
 	}
 )
+
+type FileSystemDiscovery struct {
+	CreationToken string            `yaml:"creationToken" json:"creationToken"`
+	Tags          map[string]string `yaml:"tags,omitempty" json:"tags,omitempty"`
+}
 
 func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest) (*csi.CreateVolumeResponse, error) {
 	klog.V(4).Infof("CreateVolume: called with args %+v", util.SanitizeRequest(*req))
@@ -148,18 +156,34 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 		CapacityGiB: volSize,
 	}
 
+	localCloud, roleArn, crossAccountDNSEnabled, err = getCloud(req.GetSecrets(), d)
+	if err != nil {
+		return nil, err
+	}
+
 	if value, ok := volumeParams[FsId]; ok {
 		if strings.TrimSpace(value) == "" {
 			return nil, status.Errorf(codes.InvalidArgument, "Parameter %v cannot be empty", FsId)
 		}
 		accessPointsOptions.FileSystemId = value
 	} else {
-		return nil, status.Errorf(codes.InvalidArgument, "Missing %v parameter", FsId)
-	}
-
-	localCloud, roleArn, crossAccountDNSEnabled, err = getCloud(req.GetSecrets(), d)
-	if err != nil {
-		return nil, err
+		var discovery *FileSystemDiscovery
+		if value, ok := volumeParams[FsDiscovery]; ok {
+			json.Unmarshal([]byte(value), &discovery)
+		} else {
+			return nil, status.Errorf(codes.InvalidArgument, "Both parameters %v and %v missing", FsId, FsDiscovery)
+		}
+		FsId, err := discoverVolume(ctx, localCloud, discovery)
+		if err != nil {
+			if err == cloud.ErrAccessDenied {
+				return nil, status.Errorf(codes.Unauthenticated, "Access Denied. Please ensure you have the right AWS permissions: %v", err)
+			}
+			if err == cloud.ErrNotFound {
+				return nil, status.Errorf(codes.InvalidArgument, "File System does not exist: %v", err)
+			}
+			return nil, status.Errorf(codes.Internal, "Failed to fetch Access Points or Describe File System: %v", err)
+		}
+		accessPointsOptions.FileSystemId = *FsId
 	}
 
 	var accessPoint *cloud.AccessPoint
@@ -272,7 +296,7 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 		if uid == -1 || gid == -1 {
 			accessPoints, err = localCloud.ListAccessPoints(ctx, accessPointsOptions.FileSystemId)
 		} else {
-			_, err = localCloud.DescribeFileSystem(ctx, accessPointsOptions.FileSystemId)
+			_, err = localCloud.DescribeFileSystemById(ctx, accessPointsOptions.FileSystemId)
 		}
 		if err != nil {
 			if err == cloud.ErrAccessDenied {
@@ -645,4 +669,40 @@ func get64LenHash(text string) string {
 	h := sha256.New()
 	h.Write([]byte(text))
 	return fmt.Sprintf("%x", h.Sum(nil))
+}
+
+func discoverVolume(ctx context.Context, localCloud cloud.Cloud, discovery *FileSystemDiscovery) (*string, error) {
+	efs, err := localCloud.DescribeFileSystemByToken(ctx, discovery.CreationToken)
+	if err != nil {
+		if err == cloud.ErrAccessDenied {
+			return nil, status.Errorf(codes.Unauthenticated, "Access Denied. Please ensure you have the right AWS permissions: %v", err)
+		}
+		if err == cloud.ErrNotFound {
+			return nil, status.Errorf(codes.InvalidArgument, "File System does not exist: %v", err)
+		}
+		return nil, status.Errorf(codes.Internal, "Failed to fetch Access Points or Describe File System: %v", err)
+	}
+	if len(discovery.Tags) > 0 {
+		res := make([]string, 0)
+		for _, fs := range efs {
+			tags := fs.Tags
+			foundAllTags := true
+			for k, v := range discovery.Tags {
+				if value, exists := tags[k]; !exists || value != v {
+					foundAllTags = false
+				}
+			}
+			if foundAllTags {
+				res = append(res, fs.FileSystemId)
+			}
+		}
+		if len(res) != 1 {
+			return nil, fmt.Errorf("failed to discover volume, found %d file systems", len(res))
+		}
+		return aws.String(res[0]), nil
+	}
+	if len(efs) != 1 {
+		return nil, fmt.Errorf("failed to discover volume, found %d file systems", len(efs))
+	}
+	return aws.String(efs[0].FileSystemId), nil
 }

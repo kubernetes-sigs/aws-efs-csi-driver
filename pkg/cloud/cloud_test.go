@@ -785,7 +785,7 @@ func TestDescribeFileSystem(t *testing.T) {
 
 				ctx := context.Background()
 				mockEfs.EXPECT().DescribeFileSystems(gomock.Eq(ctx), gomock.Any()).Return(output, nil)
-				res, err := c.DescribeFileSystem(ctx, fsId)
+				res, err := c.DescribeFileSystemById(ctx, fsId)
 				if err != nil {
 					t.Fatalf("Describe File System failed: %v", err)
 				}
@@ -813,7 +813,7 @@ func TestDescribeFileSystem(t *testing.T) {
 
 				ctx := context.Background()
 				mockEfs.EXPECT().DescribeFileSystems(gomock.Eq(ctx), gomock.Any()).Return(output, nil)
-				_, err := c.DescribeFileSystem(ctx, fsId)
+				_, err := c.DescribeFileSystemById(ctx, fsId)
 				if err == nil {
 					t.Fatalf("DescribeFileSystem did not fail")
 				}
@@ -848,7 +848,7 @@ func TestDescribeFileSystem(t *testing.T) {
 
 				ctx := context.Background()
 				mockEfs.EXPECT().DescribeFileSystems(gomock.Eq(ctx), gomock.Any()).Return(output, nil)
-				_, err := c.DescribeFileSystem(ctx, fsId)
+				_, err := c.DescribeFileSystemById(ctx, fsId)
 				if err == nil {
 					t.Fatalf("DescribeFileSystem did not fail")
 				}
@@ -867,7 +867,7 @@ func TestDescribeFileSystem(t *testing.T) {
 					&types.FileSystemNotFound{
 						Message: aws.String("File System not found"),
 					})
-				_, err := c.DescribeFileSystem(ctx, fsId)
+				_, err := c.DescribeFileSystemById(ctx, fsId)
 				if err == nil {
 					t.Fatalf("DescribeFileSystem did not fail")
 				}
@@ -890,7 +890,7 @@ func TestDescribeFileSystem(t *testing.T) {
 						Code:    AccessDeniedException,
 						Message: "Access Denied",
 					})
-				_, err := c.DescribeFileSystem(ctx, fsId)
+				_, err := c.DescribeFileSystemById(ctx, fsId)
 				if err == nil {
 					t.Fatalf("DescribeFileSystem did not fail")
 				}
@@ -909,7 +909,7 @@ func TestDescribeFileSystem(t *testing.T) {
 
 				ctx := context.Background()
 				mockEfs.EXPECT().DescribeFileSystems(gomock.Eq(ctx), gomock.Any()).Return(nil, errors.New("DescribeFileSystem failed"))
-				_, err := c.DescribeFileSystem(ctx, fsId)
+				_, err := c.DescribeFileSystemById(ctx, fsId)
 				if err == nil {
 					t.Fatalf("DescribeFileSystem did not fail")
 				}
@@ -1047,6 +1047,214 @@ func TestDescribeMountTargets(t *testing.T) {
 			testResult(t, "DescribeMountTargets", res, err, tc.expectError)
 
 		})
+	}
+}
+
+func TestDescribeFileSystemByToken(t *testing.T) {
+	var (
+		fsId          = []string{"fs-abcd1234", "fs-efgh5678"}
+		fsArn         = []string{"arn:aws:elasticfilesystem:us-west-2:1111333322228888:file-system/fs-0123456789abcdef8", "arn:aws:elasticfilesystem:us-west-2:1111333322228888:file-system/fs-987654321abcdef0"}
+		creationToken = "efs-for-discovery"
+		az            = "us-east-1a"
+	)
+
+	testCases := []struct {
+		name     string
+		testFunc func(t *testing.T)
+	}{
+		{
+			name: "Success: Normal flow",
+			testFunc: func(t *testing.T) {
+				mockctl := gomock.NewController(t)
+				mockEfs := mocks.NewMockEfs(mockctl)
+				c := &cloud{efs: mockEfs}
+
+				fs := &efs.DescribeFileSystemsOutput{
+					FileSystems: []types.FileSystemDescription{
+						{
+							FileSystemId:         aws.String(fsId[0]),
+							FileSystemArn:        aws.String(fsArn[0]),
+							Encrypted:            aws.Bool(true),
+							CreationToken:        aws.String("efs-for-discovery"),
+							AvailabilityZoneName: aws.String(az),
+							Tags: []types.Tag{
+								{
+									Key:   aws.String("env"),
+									Value: aws.String("prod"),
+								},
+								{
+									Key:   aws.String("owner"),
+									Value: aws.String("avanishpatil23@gmail.com"),
+								},
+							},
+						},
+						{
+							FileSystemId:         aws.String(fsId[1]),
+							FileSystemArn:        aws.String(fsArn[1]),
+							Encrypted:            aws.Bool(true),
+							CreationToken:        aws.String("efs-not-for-discovery"),
+							AvailabilityZoneName: aws.String(az),
+							Tags: []types.Tag{
+								{
+									Key:   aws.String("env"),
+									Value: aws.String("prod"),
+								},
+								{
+									Key:   aws.String("owner"),
+									Value: aws.String("avanishpatil23@gmail.com"),
+								},
+							},
+						},
+					},
+				}
+
+				ctx := context.Background()
+				mockEfs.EXPECT().DescribeFileSystems(gomock.Eq(ctx), gomock.Any()).DoAndReturn(func(ctx context.Context, input *efs.DescribeFileSystemsInput, opts ...func(*efs.Options)) (*efs.DescribeFileSystemsOutput, error) {
+					res := &efs.DescribeFileSystemsOutput{}
+					for _, fileSystem := range fs.FileSystems {
+						if input.CreationToken != nil && *fileSystem.CreationToken == *input.CreationToken {
+							res.FileSystems = append(res.FileSystems, fileSystem)
+						} else if input.CreationToken == nil {
+							res.FileSystems = append(res.FileSystems, fileSystem)
+						}
+					}
+					return res, nil
+				})
+
+				efsList, err := c.DescribeFileSystemByToken(ctx, creationToken)
+				if err != nil {
+					t.Fatalf("DescribeFileSystem failed")
+				}
+				if len(efsList) != 1 {
+					t.Fatalf("Expected 1 fileSystems got %d", len(efsList))
+				}
+				mockctl.Finish()
+			},
+		},
+		{
+			name: "Success: Normal flow without creation token",
+			testFunc: func(t *testing.T) {
+				mockctl := gomock.NewController(t)
+				mockEfs := mocks.NewMockEfs(mockctl)
+				c := &cloud{efs: mockEfs}
+
+				fs := &efs.DescribeFileSystemsOutput{
+					FileSystems: []types.FileSystemDescription{
+						{
+							FileSystemId:         aws.String(fsId[0]),
+							FileSystemArn:        aws.String(fsArn[0]),
+							Encrypted:            aws.Bool(true),
+							CreationToken:        aws.String("efs-for-discovery"),
+							AvailabilityZoneName: aws.String(az),
+							Tags: []types.Tag{
+								{
+									Key:   aws.String("env"),
+									Value: aws.String("prod"),
+								},
+								{
+									Key:   aws.String("owner"),
+									Value: aws.String("avanishpatil23@gmail.com"),
+								},
+							},
+						},
+						{
+							FileSystemId:         aws.String(fsId[1]),
+							FileSystemArn:        aws.String(fsArn[1]),
+							Encrypted:            aws.Bool(true),
+							CreationToken:        aws.String("efs-not-for-discovery"),
+							AvailabilityZoneName: aws.String(az),
+							Tags: []types.Tag{
+								{
+									Key:   aws.String("env"),
+									Value: aws.String("prod"),
+								},
+								{
+									Key:   aws.String("owner"),
+									Value: aws.String("avanishpatil23@gmail.com"),
+								},
+							},
+						},
+					},
+				}
+
+				ctx := context.Background()
+				mockEfs.EXPECT().DescribeFileSystems(gomock.Eq(ctx), gomock.Any()).DoAndReturn(func(ctx context.Context, input *efs.DescribeFileSystemsInput, opts ...func(*efs.Options)) (*efs.DescribeFileSystemsOutput, error) {
+					res := &efs.DescribeFileSystemsOutput{}
+					for _, fileSystem := range fs.FileSystems {
+						if input.CreationToken != nil && *fileSystem.CreationToken == *input.CreationToken {
+							res.FileSystems = append(res.FileSystems, fileSystem)
+						} else if input.CreationToken == nil {
+							res.FileSystems = append(res.FileSystems, fileSystem)
+						}
+					}
+					return res, nil
+				})
+
+				efsList, err := c.DescribeFileSystemByToken(ctx, "")
+				if err != nil {
+					t.Fatalf("DescribeFileSystem failed")
+				}
+				if len(efsList) != len(fs.FileSystems) {
+					t.Fatalf("Expected 1 fileSystems got %d", len(efsList))
+				}
+				for i, fileSystem := range fs.FileSystems {
+					for _, v := range fileSystem.Tags {
+						if val, exists := efsList[i].Tags[*v.Key]; !exists || val != *v.Value {
+							t.Fatalf("Tags list is corrupted, expected %s for %s but got %s", *v.Value, *v.Key, val)
+						}
+					}
+				}
+				mockctl.Finish()
+			},
+		},
+		{
+			name: "Fail: Access Denied",
+			testFunc: func(t *testing.T) {
+				mockctl := gomock.NewController(t)
+				mockEfs := mocks.NewMockEfs(mockctl)
+				c := &cloud{efs: mockEfs}
+
+				ctx := context.Background()
+				mockEfs.EXPECT().DescribeFileSystems(gomock.Eq(ctx), gomock.Any()).Return(nil, &smithy.GenericAPIError{
+					Code:    AccessDeniedException,
+					Message: "Access Denied",
+				})
+
+				_, err := c.DescribeFileSystemByToken(ctx, "efs-discovery")
+				if err == nil {
+					t.Fatalf("DescribeFileSystemByToken did not fail")
+				}
+				if err != ErrAccessDenied {
+					t.Fatalf("Failed. Expected: %v, Actual:%v", ErrAccessDenied, err)
+				}
+				mockctl.Finish()
+			},
+		},
+		{
+			name: "Fail: File System not found",
+			testFunc: func(t *testing.T) {
+				mockctl := gomock.NewController(t)
+				mockEfs := mocks.NewMockEfs(mockctl)
+				c := &cloud{efs: mockEfs}
+
+				ctx := context.Background()
+				mockEfs.EXPECT().DescribeFileSystems(gomock.Eq(ctx), gomock.Any()).Return(nil, &types.FileSystemNotFound{
+					Message: aws.String("File System not found"),
+				})
+
+				_, err := c.DescribeFileSystemByToken(ctx, "efs-discovery")
+				if err == nil {
+					t.Fatalf("DescribeFileSystemByToken did not fail")
+				}
+				if err != ErrNotFound {
+					t.Fatalf("Failed. Expected: %v, Actual:%v", ErrNotFound, err)
+				}
+				mockctl.Finish()
+			},
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, tc.testFunc)
 	}
 }
 

@@ -12,6 +12,7 @@ type FakeCloudProvider struct {
 	fileSystems  map[string]*FileSystem
 	accessPoints map[string]*AccessPoint
 	mountTargets map[string]*MountTarget
+	tags         map[string]map[string]string
 }
 
 func NewFakeCloudProvider() *FakeCloudProvider {
@@ -20,6 +21,7 @@ func NewFakeCloudProvider() *FakeCloudProvider {
 		fileSystems:  make(map[string]*FileSystem),
 		accessPoints: make(map[string]*AccessPoint),
 		mountTargets: make(map[string]*MountTarget),
+		tags:         make(map[string]map[string]string),
 	}
 }
 
@@ -69,7 +71,7 @@ func (c *FakeCloudProvider) DescribeAccessPoint(ctx context.Context, accessPoint
 
 // CreateVolume calls DescribeFileSystem and then CreateAccessPoint.
 // Add file system into the map here to allow CreateVolume sanity tests to succeed.
-func (c *FakeCloudProvider) DescribeFileSystem(ctx context.Context, fileSystemId string) (fileSystem *FileSystem, err error) {
+func (c *FakeCloudProvider) DescribeFileSystemById(ctx context.Context, fileSystemId string) (fileSystem *FileSystem, err error) {
 	if fs, ok := c.fileSystems[fileSystemId]; ok {
 		return fs, nil
 	}
@@ -88,6 +90,37 @@ func (c *FakeCloudProvider) DescribeFileSystem(ctx context.Context, fileSystemId
 
 	c.mountTargets[fileSystemId] = mt
 	return fs, nil
+}
+
+func (c *FakeCloudProvider) DescribeFileSystemByToken(ctx context.Context, creationToken string) (fileSystem []*FileSystem, err error) {
+	var efsList = make([]*FileSystem, 0)
+	if fs, ok := c.fileSystems[creationToken]; ok {
+		efsList = append(efsList, fs)
+		return efsList, nil
+	}
+
+	tags := map[string]string{
+		"env":   "prod",
+		"owner": "avanishpatil23@gmail.com",
+	}
+
+	fs := &FileSystem{
+		FileSystemId:  creationToken,
+		FileSystemArn: "arn:aws:elasticfilesystem:us-west-2:xxxx:file-system/fs-xxxx",
+		Tags:          tags,
+	}
+	c.fileSystems[creationToken] = fs
+
+	mt := &MountTarget{
+		AZName:        "us-east-1a",
+		AZId:          "mock-AZ-id",
+		MountTargetId: "fsmt-abcd1234",
+		IPAddress:     "127.0.0.1",
+	}
+
+	c.mountTargets[creationToken] = mt
+	efsList = append(efsList, c.fileSystems[creationToken])
+	return efsList, nil
 }
 
 func (c *FakeCloudProvider) DescribeMountTargets(ctx context.Context, fileSystemId, az string) (mountTarget *MountTarget, err error) {

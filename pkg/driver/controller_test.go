@@ -78,7 +78,7 @@ func TestCreateVolume(t *testing.T) {
 					AccessPointId: apId,
 					FileSystemId:  fsId,
 				}
-				mockCloud.EXPECT().DescribeFileSystem(gomock.Eq(ctx), gomock.Any()).Return(fileSystem, nil)
+				mockCloud.EXPECT().DescribeFileSystemById(gomock.Eq(ctx), gomock.Any()).Return(fileSystem, nil)
 				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Eq(volumeName), gomock.Any()).Return(accessPoint, nil).
 					Do(func(ctx context.Context, clientToken string, accessPointsOptions *cloud.AccessPointOptions) {
 						if accessPointsOptions.Uid != 1000 {
@@ -145,7 +145,7 @@ func TestCreateVolume(t *testing.T) {
 					AccessPointId: apId,
 					FileSystemId:  fsId,
 				}
-				mockCloud.EXPECT().DescribeFileSystem(gomock.Eq(ctx), gomock.Any()).Return(fileSystem, nil)
+				mockCloud.EXPECT().DescribeFileSystemById(gomock.Eq(ctx), gomock.Any()).Return(fileSystem, nil)
 				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(accessPoint, nil).
 					Do(func(ctx context.Context, clientToken string, accessPointOpts *cloud.AccessPointOptions) {
 						if accessPointOpts.Uid != 1000 {
@@ -1669,7 +1669,7 @@ func TestCreateVolume(t *testing.T) {
 			},
 		},
 		{
-			name: "Fail: Missing Parameter FsId",
+			name: "Fail: FsId and FsDiscovery cannot be missing",
 			testFunc: func(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockCloud := mocks.NewMockCloud(mockCtl)
@@ -2131,7 +2131,7 @@ func TestCreateVolume(t *testing.T) {
 				}
 
 				ctx := context.Background()
-				mockCloud.EXPECT().DescribeFileSystem(gomock.Eq(ctx), gomock.Any()).Return(nil, cloud.ErrNotFound)
+				mockCloud.EXPECT().DescribeFileSystemById(gomock.Eq(ctx), gomock.Any()).Return(nil, cloud.ErrNotFound)
 				_, err := driver.CreateVolume(ctx, req)
 				if err == nil {
 					t.Fatal("CreateVolume did not fail")
@@ -2209,7 +2209,7 @@ func TestCreateVolume(t *testing.T) {
 				}
 
 				ctx := context.Background()
-				mockCloud.EXPECT().DescribeFileSystem(gomock.Eq(ctx), gomock.Any()).Return(nil, cloud.ErrAccessDenied)
+				mockCloud.EXPECT().DescribeFileSystemById(gomock.Eq(ctx), gomock.Any()).Return(nil, cloud.ErrAccessDenied)
 				_, err := driver.CreateVolume(ctx, req)
 				if err == nil {
 					t.Fatal("CreateVolume did not fail")
@@ -2287,7 +2287,7 @@ func TestCreateVolume(t *testing.T) {
 				}
 
 				ctx := context.Background()
-				mockCloud.EXPECT().DescribeFileSystem(gomock.Eq(ctx), gomock.Any()).Return(nil, errors.New("DescribeFileSystem failed"))
+				mockCloud.EXPECT().DescribeFileSystemById(gomock.Eq(ctx), gomock.Any()).Return(nil, errors.New("DescribeFileSystem failed"))
 				_, err := driver.CreateVolume(ctx, req)
 				if err == nil {
 					t.Fatal("CreateVolume did not fail")
@@ -3222,6 +3222,344 @@ func TestControllerGetCapabilities(t *testing.T) {
 	}
 }
 
+func TestDiscoverVolume(t *testing.T) {
+	var (
+		fsId  = []string{"fs-abcd1234", "fs-efgh5678"}
+		fsArn = []string{"arn:aws:elasticfilesystem:us-west-2:1111333322228888:file-system/fs-0123456789abcdef8", "arn:aws:elasticfilesystem:us-west-2:1111333322228888:file-system/fs-987654321abcdef0"}
+		tags  = []map[string]string{
+			{
+				"env":   "prod",
+				"owner": "avanishpatil23@gmail.com",
+			},
+			{
+				"env":   "dev",
+				"owner": "avanishpatil23@gmail.com",
+			},
+		}
+	)
+	testCases := []struct {
+		name     string
+		testFunc func(t *testing.T)
+	}{
+		{
+			name: "Success: Normal flow",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockCloud := mocks.NewMockCloud(mockCtl)
+
+				ctx := context.Background()
+
+				discovery := &FileSystemDiscovery{
+					CreationToken: "efs-discovery",
+					Tags: map[string]string{
+						"env":   "prod",
+						"owner": "avanishpatil23@gmail.com",
+					},
+				}
+
+				fileSystem := []*cloud.FileSystem{
+					{
+						FileSystemId:  fsId[0],
+						FileSystemArn: fsArn[0],
+						Tags:          tags[0],
+					},
+					{
+						FileSystemId:  fsId[1],
+						FileSystemArn: fsArn[1],
+						Tags:          tags[1],
+					},
+				}
+
+				mockCloud.EXPECT().DescribeFileSystemByToken(gomock.Eq(ctx), gomock.Any()).Return(fileSystem, nil)
+
+				efsId, err := discoverVolume(ctx, mockCloud, discovery)
+
+				if err != nil {
+					t.Fatalf("EFS Discovery failed: %v", err)
+				}
+				if *efsId != "fs-abcd1234" {
+					t.Fatalf("Expected fsId to be %s but go %s", fsId[0], *efsId)
+				}
+				mockCtl.Finish()
+			},
+		},
+		{
+			name: "Success: Normal flow without tags",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockCloud := mocks.NewMockCloud(mockCtl)
+
+				ctx := context.Background()
+				discovery := &FileSystemDiscovery{
+					CreationToken: "efs-discovery",
+				}
+				fileSystem := []*cloud.FileSystem{
+					{
+						FileSystemId:  fsId[0],
+						FileSystemArn: fsArn[0],
+						Tags:          tags[0],
+					},
+				}
+				mockCloud.EXPECT().DescribeFileSystemByToken(gomock.Eq(ctx), gomock.Any()).Return(fileSystem, nil)
+				efsId, err := discoverVolume(ctx, mockCloud, discovery)
+
+				if err != nil {
+					t.Fatalf("EFS Discovery failed: %v", err)
+				}
+				if *efsId != "fs-abcd1234" {
+					t.Fatalf("Expected fsId to be %s but got %s", fsId[0], *efsId)
+				}
+				mockCtl.Finish()
+			},
+		},
+		{
+			name: "Fail: Multiple EFS discovered",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockCloud := mocks.NewMockCloud(mockCtl)
+
+				ctx := context.Background()
+
+				discovery := &FileSystemDiscovery{
+					CreationToken: "efs-discovery",
+					Tags: map[string]string{
+						"env":   "prod",
+						"owner": "avanishpatil23@gmail.com",
+					},
+				}
+
+				fileSystem := []*cloud.FileSystem{
+					{
+						FileSystemId:  fsId[0],
+						FileSystemArn: fsArn[0],
+						Tags:          tags[0],
+					},
+					{
+						FileSystemId:  fsId[1],
+						FileSystemArn: fsArn[1],
+						Tags:          tags[0],
+					},
+				}
+
+				expectedErrMsg := "failed to discover volume, found 2 file systems"
+
+				mockCloud.EXPECT().DescribeFileSystemByToken(gomock.Eq(ctx), gomock.Any()).Return(fileSystem, nil)
+
+				efsId, err := discoverVolume(ctx, mockCloud, discovery)
+				if err == nil {
+					t.Fatalf("Expected error during FS Discovery")
+				}
+				if err.Error() != expectedErrMsg {
+					t.Fatalf("Expected error %s but got %s", expectedErrMsg, err.Error())
+				}
+				if efsId != nil {
+					t.Fatalf("Expected fsId to be nil")
+				}
+				mockCtl.Finish()
+			},
+		},
+		{
+			name: "Fail: Multiple EFS discovered without tags",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockCloud := mocks.NewMockCloud(mockCtl)
+
+				ctx := context.Background()
+				discovery := &FileSystemDiscovery{
+					CreationToken: "efs-discovery",
+				}
+				fileSystem := []*cloud.FileSystem{
+					{
+						FileSystemId:  fsId[0],
+						FileSystemArn: fsArn[0],
+						Tags:          tags[0],
+					},
+					{
+						FileSystemId:  fsId[1],
+						FileSystemArn: fsArn[1],
+						Tags:          tags[1],
+					},
+				}
+
+				expectedErrMsg := "failed to discover volume, found 2 file systems"
+
+				mockCloud.EXPECT().DescribeFileSystemByToken(gomock.Eq(ctx), gomock.Any()).Return(fileSystem, nil)
+
+				efsId, err := discoverVolume(ctx, mockCloud, discovery)
+
+				if err == nil {
+					t.Fatalf("Expected error during FS Discovery")
+				}
+				if err.Error() != expectedErrMsg {
+					t.Fatalf("Expected error %s but got %s", expectedErrMsg, err.Error())
+				}
+				if efsId != nil {
+					t.Fatalf("Expected fsId to be nil")
+				}
+				mockCtl.Finish()
+			},
+		},
+		{
+			name: "Fail: No EFS discovered",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockCloud := mocks.NewMockCloud(mockCtl)
+
+				ctx := context.Background()
+
+				discovery := &FileSystemDiscovery{
+					CreationToken: "efs-discovery",
+					Tags: map[string]string{
+						"env":   "prod",
+						"owner": "avanishpatil23@gmail.com",
+					},
+				}
+
+				fileSystem := []*cloud.FileSystem{
+					{
+						FileSystemId:  fsId[0],
+						FileSystemArn: fsArn[0],
+					},
+					{
+						FileSystemId:  fsId[1],
+						FileSystemArn: fsArn[1],
+						Tags:          tags[1],
+					},
+				}
+
+				expectedErrMsg := "failed to discover volume, found 0 file systems"
+
+				mockCloud.EXPECT().DescribeFileSystemByToken(gomock.Eq(ctx), gomock.Any()).Return(fileSystem, nil)
+
+				efsId, err := discoverVolume(ctx, mockCloud, discovery)
+				if err == nil {
+					t.Fatalf("Expected error during FS Discovery")
+				}
+				if err.Error() != expectedErrMsg {
+					t.Fatalf("Expected error %s but got %s", expectedErrMsg, err.Error())
+				}
+				if efsId != nil {
+					t.Fatalf("Expected fsId to be nil")
+				}
+				mockCtl.Finish()
+			},
+		},
+		{
+			name: "Fail: No EFS discovered with more discovery tags",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockCloud := mocks.NewMockCloud(mockCtl)
+
+				ctx := context.Background()
+
+				discovery := &FileSystemDiscovery{
+					CreationToken: "efs-discovery",
+					Tags: map[string]string{
+						"env":    "prod",
+						"budget": "engineering",
+						"owner":  "avanishpatil23@gmail.com",
+					},
+				}
+
+				fileSystem := []*cloud.FileSystem{
+					{
+						FileSystemId:  fsId[0],
+						FileSystemArn: fsArn[0],
+						Tags:          tags[0],
+					},
+					{
+						FileSystemId:  fsId[1],
+						FileSystemArn: fsArn[1],
+						Tags:          tags[1],
+					},
+				}
+
+				expectedErrMsg := "failed to discover volume, found 0 file systems"
+
+				mockCloud.EXPECT().DescribeFileSystemByToken(gomock.Eq(ctx), gomock.Any()).Return(fileSystem, nil)
+
+				efsId, err := discoverVolume(ctx, mockCloud, discovery)
+				if err == nil {
+					t.Fatalf("Expected error during FS Discovery")
+				}
+				if err.Error() != expectedErrMsg {
+					t.Fatalf("Expected error %s but got %s", expectedErrMsg, err.Error())
+				}
+				if efsId != nil {
+					t.Fatalf("Expected fsId to be nil")
+				}
+				mockCtl.Finish()
+			},
+		},
+		{
+			name: "Fail: No EFS found by DescribeFileSystemByToken",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockCloud := mocks.NewMockCloud(mockCtl)
+
+				ctx := context.Background()
+
+				discovery := &FileSystemDiscovery{
+					CreationToken: "efs-discovery",
+					Tags: map[string]string{
+						"env":    "prod",
+						"budget": "engineering",
+						"owner":  "avanishpatil23@gmail.com",
+					},
+				}
+
+				fileSystem := []*cloud.FileSystem{}
+
+				expectedErrMsg := "failed to discover volume, found 0 file systems"
+
+				mockCloud.EXPECT().DescribeFileSystemByToken(gomock.Eq(ctx), gomock.Any()).Return(fileSystem, nil)
+
+				efsId, err := discoverVolume(ctx, mockCloud, discovery)
+				if err == nil {
+					t.Fatalf("Expected error during FS Discovery")
+				}
+				if err.Error() != expectedErrMsg {
+					t.Fatalf("Expected error %s but got %s", expectedErrMsg, err.Error())
+				}
+				if efsId != nil {
+					t.Fatalf("Expected fsId to be nil")
+				}
+				mockCtl.Finish()
+			},
+		},
+		{
+			name: "Fail: Access Denied",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockCloud := mocks.NewMockCloud(mockCtl)
+
+				ctx := context.Background()
+
+				discovery := &FileSystemDiscovery{
+					CreationToken: "efs-discovery",
+					Tags: map[string]string{
+						"env":   "prod",
+						"owner": "avanishpatil23@gmail.com",
+					},
+				}
+
+				mockCloud.EXPECT().DescribeFileSystemByToken(gomock.Eq(ctx), gomock.Any()).Return(nil, cloud.ErrAccessDenied)
+
+				efsId, err := discoverVolume(ctx, mockCloud, discovery)
+				if err == nil {
+					t.Fatalf("Expected error during FS Discovery")
+				}
+				if efsId != nil {
+					t.Fatalf("Expected fsId to be nil")
+				}
+				mockCtl.Finish()
+			},
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, tc.testFunc)
+	}
+}
 func verifyPathWhenUUIDIncluded(pathToVerify string, expectedPathWithoutUUID string) bool {
 	r := regexp.MustCompile("(.*)-([0-9A-fA-F]+-[0-9A-fA-F]+-[0-9A-fA-F]+-[0-9A-fA-F]+-[0-9A-fA-F]+$)")
 	matches := r.FindStringSubmatch(pathToVerify)
