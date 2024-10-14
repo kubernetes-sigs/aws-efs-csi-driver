@@ -20,6 +20,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"sync"
 	"text/template"
 
@@ -285,8 +286,9 @@ func (w *execWatchdog) updateConfig(efsClientSource string) error {
 	// used on Fargate, IMDS queries suffice otherwise
 	region := os.Getenv("AWS_DEFAULT_REGION")
 	fipsEnabled := os.Getenv("FIPS_ENABLED")
-	portRangeUpperBound, found := os.LookupEnv("PORT_RANGE_UPPER_BOUND")
-	if !found {
+	portRangeUpperBound := os.Getenv("PORT_RANGE_UPPER_BOUND")
+	val, err := strconv.Atoi(portRangeUpperBound)
+	if err != nil || val < 21049 {
 		portRangeUpperBound = "21049"
 	}
 	efsCfg := efsUtilsConfig{EfsClientSource: efsClientSource, Region: region, FipsEnabled: fipsEnabled, PortRangeUpperBound: portRangeUpperBound}
