@@ -9,7 +9,7 @@ useFIPS: false
 
 image:
   repository: public.ecr.aws/efs-csi-driver/amazon/aws-efs-csi-driver
-  tag: "v2.0.8"
+  tag: "v2.0.9"
   pullPolicy: IfNotPresent
 
 sidecars:
@@ -19,6 +19,7 @@ sidecars:
       tag: v2.13.0-eks-1-30-8
       pullPolicy: IfNotPresent
     resources: {}
+    additionalArgs: [] # Additional arguments for the liveness probe container
     securityContext:
       readOnlyRootFilesystem: true
       allowPrivilegeEscalation: false
@@ -28,6 +29,7 @@ sidecars:
       tag: v2.11.0-eks-1-30-8
       pullPolicy: IfNotPresent
     resources: {}
+    additionalArgs: [] # Additional arguments for the node driver registrar container
     securityContext:
       readOnlyRootFilesystem: true
       allowPrivilegeEscalation: false
@@ -37,6 +39,7 @@ sidecars:
       tag: v5.0.1-eks-1-30-8
       pullPolicy: IfNotPresent
     resources: {}
+    additionalArgs: [] # Additional arguments for the csi provisioner container
     securityContext:
       readOnlyRootFilesystem: true
       allowPrivilegeEscalation: false
@@ -55,13 +58,13 @@ controller:
   # If set, add pv/pvc metadata to plugin create requests as parameters.
   extraCreateMetadata: true
   # Add additional tags to access points
-  tags:
-    {}
-    # environment: prod
-    # region: us-east-1
+  tags: {}
+  # environment: prod
+  # region: us-east-1
   # Enable if you want the controller to also delete the
   # path on efs when deleteing an access point
   deleteAccessPointRootDir: false
+  additionalArgs: [] # Additional parameters provided by aws-efs-csi-driver controller
   podAnnotations: {}
   podLabel: {}
   hostNetwork: false
@@ -69,25 +72,24 @@ controller:
   dnsPolicy: ClusterFirst
   dnsConfig: {}
   additionalLabels: {}
-  resources:
-    {}
-    # We usually recommend not to specify default resources and to leave this as a conscious
-    # choice for the user. This also increases chances charts run on environments with little
-    # resources, such as Minikube. If you do want to specify resources, uncomment the following
-    # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
-    # limits:
-    #   cpu: 100m
-    #   memory: 128Mi
-    # requests:
-    #   cpu: 100m
-    #   memory: 128Mi
+  resources: {}
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  # limits:
+  #   cpu: 100m
+  #   memory: 128Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
   nodeSelector: {}
   updateStrategy: {}
   tolerations:
-    - key: CriticalAddonsOnly
-      operator: Exists
-    - key: efs.csi.aws.com/agent-not-ready
-      operator: Exists
+  - key: CriticalAddonsOnly
+    operator: Exists
+  - key: efs.csi.aws.com/agent-not-ready
+    operator: Exists
   affinity: {}
   env: []
   volumes: []
@@ -134,53 +136,49 @@ node:
   volMetricsOptIn: false
   volMetricsRefreshPeriod: 240
   volMetricsFsRateLimit: 5
-  hostAliases:
-    {}
-    # For cross VPC EFS, you need to poison or overwrite the DNS for the efs volume as per
-    # https://docs.aws.amazon.com/efs/latest/ug/efs-different-vpc.html#wt6-efs-utils-step3
-    # implementing the suggested solution found here:
-    # https://github.com/kubernetes-sigs/aws-efs-csi-driver/issues/240#issuecomment-676849346
-    # EFS Vol ID, IP, Region
-    # "fs-01234567":
-    #   ip: 10.10.2.2
-    #   region: us-east-2
+  hostAliases: {}
+  # For cross VPC EFS, you need to poison or overwrite the DNS for the efs volume as per
+  # https://docs.aws.amazon.com/efs/latest/ug/efs-different-vpc.html#wt6-efs-utils-step3
+  # implementing the suggested solution found here:
+  # https://github.com/kubernetes-sigs/aws-efs-csi-driver/issues/240#issuecomment-676849346
+  # EFS Vol ID, IP, Region
+  # "fs-01234567":
+  #   ip: 10.10.2.2
+  #   region: us-east-2
   priorityClassName: system-node-critical
   dnsPolicy: ClusterFirst
-  dnsConfig:
-    {}
-    # Example config which uses the AWS nameservers
-    # dnsPolicy: "None"
-    # dnsConfig:
-    #   nameservers:
-    #     - 169.254.169.253
+  dnsConfig: {}
+  # Example config which uses the AWS nameservers
+  # dnsPolicy: "None"
+  # dnsConfig:
+  #   nameservers:
+  #     - 169.254.169.253
   podLabels: {}
   podAnnotations: {}
   additionalLabels: {}
-  resources:
-    {}
-    # limits:
-    #   cpu: 100m
-    #   memory: 128Mi
-    # requests:
-    #   cpu: 100m
-    #   memory: 128Mi
+  resources: {}
+  # limits:
+  #   cpu: 100m
+  #   memory: 128Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
   nodeSelector: {}
-  updateStrategy:
-    {}
-    # Override default strategy (RollingUpdate) to speed up deployment.
-    # This can be useful if helm timeouts are observed.
-    # type: OnDelete
+  updateStrategy: {}
+  # Override default strategy (RollingUpdate) to speed up deployment.
+  # This can be useful if helm timeouts are observed.
+  # type: OnDelete
   tolerations:
-    - operator: Exists
+  - operator: Exists
   affinity:
     nodeAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
         nodeSelectorTerms:
-          - matchExpressions:
-              - key: eks.amazonaws.com/compute-type
-                operator: NotIn
-                values:
-                  - fargate
+        - matchExpressions:
+          - key: eks.amazonaws.com/compute-type
+            operator: NotIn
+            values:
+            - fargate
   # Specifies whether a service account should be created
   serviceAccount:
     create: true
