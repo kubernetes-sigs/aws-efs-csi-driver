@@ -5,15 +5,13 @@
 nameOverride: ""
 fullnameOverride: ""
 
-replicaCount: 2
-
 useFIPS: false
 
 portRangeUpperBound: "21049"
 
 image:
   repository: public.ecr.aws/efs-csi-driver/amazon/aws-efs-csi-driver
-  tag: "v2.0.8"
+  tag: "v2.0.9"
   pullPolicy: IfNotPresent
 
 sidecars:
@@ -52,6 +50,8 @@ imagePullSecrets: []
 controller:
   # Specifies whether a deployment should be created
   create: true
+  # Number of replicas for the CSI controller service deployment
+  replicaCount: 2
   # Number for the log level verbosity
   logLevel: 2
   # If set, add pv/pvc metadata to plugin create requests as parameters.
@@ -115,6 +115,18 @@ controller:
     privileged: true
   leaderElectionRenewDeadline: 10s
   leaderElectionLeaseDuration: 15s
+  # TSCs without the label selector stanza
+  #
+  # Example:
+  #
+  # topologySpreadConstraints:
+  #  - maxSkew: 1
+  #    topologyKey: topology.kubernetes.io/zone
+  #    whenUnsatisfiable: ScheduleAnyway
+  #  - maxSkew: 1
+  #    topologyKey: kubernetes.io/hostname
+  #    whenUnsatisfiable: ScheduleAnyway
+  topologySpreadConstraints: []
 
 ## Node daemonset variables
 
