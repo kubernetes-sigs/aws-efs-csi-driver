@@ -94,7 +94,7 @@ spec:
               value: "true"
             {{- end }}
             - name: PORT_RANGE_UPPER_BOUND
-              value: {{ .Values.portRangeUpperBound }}
+              value: "{{ .Values.portRangeUpperBound }}"
             {{- with .Values.controller.env }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
