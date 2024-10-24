@@ -48,6 +48,10 @@ spec:
         {{- toYaml . | nindent 8 }}
         {{- end }}
       serviceAccountName: {{ .Values.controller.serviceAccount.name }}
+      {{- with .Values.controller.topologySpreadConstraints }}
+      topologySpreadConstraints:
+        {{- tpl (toYaml .) $ | nindent 8 }}
+      {{- end }}
       priorityClassName: {{ .Values.controller.priorityClassName | default "system-cluster-critical" }}
       {{- with .Values.controller.tolerations }}
       tolerations: {{- toYaml . | nindent 8 }}
