@@ -55,7 +55,7 @@ RUN mkdir -p /tmp/rpms && \
 RUN pip3 install --user botocore
 
 # This image is equivalent to the eks-distro-minimal-base-python image but with pip installed as well
-FROM public.ecr.aws/eks-distro-build-tooling/eks-distro-minimal-base-python-builder:3.9-al2 as rpm-installer
+FROM public.ecr.aws/eks-distro-build-tooling/eks-distro-minimal-base-python-builder:3.9.16-al23 as rpm-installer
 
 COPY --from=rpm-provider /tmp/rpms/* /tmp/download/
 
@@ -88,7 +88,7 @@ RUN clean_install amazon-efs-utils true && \
 # Those static files need to be copied back to the config directory when the driver starts up.
 RUN mv /newroot/etc/amazon/efs /newroot/etc/amazon/efs-static-files
 
-FROM public.ecr.aws/eks-distro-build-tooling/eks-distro-minimal-base-python:3.9.14-al2 AS linux-amazon
+FROM public.ecr.aws/eks-distro-build-tooling/eks-distro-minimal-base-python:3.9.16-al23 AS linux-amazon
 
 COPY --from=rpm-installer /newroot /
 COPY --from=rpm-provider /root/.local/lib/python3.9/site-packages/ /usr/lib/python3.9/site-packages/
