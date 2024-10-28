@@ -1,3 +1,7 @@
+# V2.1.0
+* Update CodeQL workflow to v2. ([#1485](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1485),[@mskanth972](https://github.com/mskanth972))
+* Bump side-cars to the latest. ([#1484](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1484),[@mskanth972](https://github.com/mskanth972))
+* Update kubernetes to version 1.27.16 to patch CVE-2024-5321. ([#1475](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1475),[@mselim00](https://github.com/mselim00))
 # V2.0.9
 * Upgrade AL2 version and address CVEs (CVE-2024-34156, CVE-2024-34158)
 * Fix controller template to support replicaCount, resources, topologySpreadConstraints

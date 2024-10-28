@@ -71,6 +71,7 @@ The following sections are Kubernetes specific. If you are a Kubernetes user, us
 | Amazon EFS CSI Driver \ Kubernetes Version | maturity | v1.11 | v1.12 | v1.13 | v1.14 | v1.15 | v1.16 | v1.17+ |
 |--------------------------------------------|----------|-------|-------|-------|-------|-------|-------|--------|
 | master branch                              | GA       | no    | no    | no    | no    | no    | no    | yes    |
+| v2.1.x                                     | GA       | no    | no    | no    | no    | no    | no    | yes    |
 | v2.0.x                                     | GA       | no    | no    | no    | no    | no    | no    | yes    |
 | v1.7.x                                     | GA       | no    | no    | no    | no    | no    | no    | yes    |
 | v1.6.x                                     | GA       | no    | no    | no    | no    | no    | no    | yes    |
@@ -88,6 +89,7 @@ The following sections are Kubernetes specific. If you are a Kubernetes user, us
 | Amazon EFS CSI Driver Version | Image                            |
 |-------------------------------|----------------------------------|
 | master branch                 | amazon/aws-efs-csi-driver:master |
+| v2.1.0                        | amazon/aws-efs-csi-driver:v2.1.0 |
 | v2.0.9                        | amazon/aws-efs-csi-driver:v2.0.9 |
 | v2.0.8                        | amazon/aws-efs-csi-driver:v2.0.8 |
 | v2.0.7                        | amazon/aws-efs-csi-driver:v2.0.7 |
@@ -148,7 +150,7 @@ The following sections are Kubernetes specific. If you are a Kubernetes user, us
 ### ECR Image
 | Driver Version | [ECR](https://gallery.ecr.aws/efs-csi-driver/amazon/aws-efs-csi-driver) Image |
 |----------------|-------------------------------------------------------------------------------|
-| v2.0.9         | public.ecr.aws/efs-csi-driver/amazon/aws-efs-csi-driver:v2.0.9                |
+| v2.1.0         | public.ecr.aws/efs-csi-driver/amazon/aws-efs-csi-driver:v2.1.0                |
 
 **Note**  
 You can find previous efs-csi-driver versions' images from [here](https://gallery.ecr.aws/efs-csi-driver/amazon/aws-efs-csi-driver)
@@ -367,7 +369,7 @@ If you want to update to a specific version, first customize the driver yaml fil
 kubectl kustomize "github.com/kubernetes-sigs/aws-efs-csi-driver/deploy/kubernetes/overlays/stable/?ref=release-2.0" > driver.yaml
 ```
 
-Then, update all lines referencing `image: amazon/aws-efs-csi-driver` to the desired version (e.g., to `image: amazon/aws-efs-csi-driver:v2.0.9`) in the yaml file, and deploy driver yaml again:
+Then, update all lines referencing `image: amazon/aws-efs-csi-driver` to the desired version (e.g., to `image: amazon/aws-efs-csi-driver:v2.1.0`) in the yaml file, and deploy driver yaml again:
 ```sh
 kubectl apply -f driver.yaml
 ```
