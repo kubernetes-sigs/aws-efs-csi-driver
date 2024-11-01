@@ -17,26 +17,24 @@ limitations under the License.
 package metrics
 
 import (
-	"context"
-
 	"github.com/onsi/ginkgo/v2"
 
 	"k8s.io/kubernetes/test/e2e/framework"
 )
 
-func GrabBeforeEach(ctx context.Context, f *framework.Framework) (result *Collection) {
+func GrabBeforeEach(f *framework.Framework) (result *Collection) {
 	gatherMetricsAfterTest := framework.TestContext.GatherMetricsAfterTest == "true" || framework.TestContext.GatherMetricsAfterTest == "master"
 	if !gatherMetricsAfterTest || !framework.TestContext.IncludeClusterAutoscalerMetrics {
 		return nil
 	}
 
 	ginkgo.By("Gathering metrics before test", func() {
-		grabber, err := NewMetricsGrabber(ctx, f.ClientSet, f.KubemarkExternalClusterClientSet, f.ClientConfig(), !framework.ProviderIs("kubemark"), false, false, false, framework.TestContext.IncludeClusterAutoscalerMetrics, false)
+		grabber, err := NewMetricsGrabber(f.ClientSet, f.KubemarkExternalClusterClientSet, f.ClientConfig(), !framework.ProviderIs("kubemark"), false, false, false, framework.TestContext.IncludeClusterAutoscalerMetrics, false)
 		if err != nil {
 			framework.Logf("Failed to create MetricsGrabber (skipping ClusterAutoscaler metrics gathering before test): %v", err)
 			return
 		}
-		metrics, err := grabber.Grab(ctx)
+		metrics, err := grabber.Grab()
 		if err != nil {
 			framework.Logf("MetricsGrabber failed to grab CA metrics before test (skipping metrics gathering): %v", err)
 			return
@@ -48,7 +46,7 @@ func GrabBeforeEach(ctx context.Context, f *framework.Framework) (result *Collec
 	return
 }
 
-func GrabAfterEach(ctx context.Context, f *framework.Framework, before *Collection) {
+func GrabAfterEach(f *framework.Framework, before *Collection) {
 	if framework.TestContext.GatherMetricsAfterTest == "false" {
 		return
 	}
@@ -56,12 +54,12 @@ func GrabAfterEach(ctx context.Context, f *framework.Framework, before *Collecti
 	ginkgo.By("Gathering metrics after test", func() {
 		// Grab apiserver, scheduler, controller-manager metrics and (optionally) nodes' kubelet metrics.
 		grabMetricsFromKubelets := framework.TestContext.GatherMetricsAfterTest != "master" && !framework.ProviderIs("kubemark")
-		grabber, err := NewMetricsGrabber(ctx, f.ClientSet, f.KubemarkExternalClusterClientSet, f.ClientConfig(), grabMetricsFromKubelets, true, true, true, framework.TestContext.IncludeClusterAutoscalerMetrics, false)
+		grabber, err := NewMetricsGrabber(f.ClientSet, f.KubemarkExternalClusterClientSet, f.ClientConfig(), grabMetricsFromKubelets, true, true, true, framework.TestContext.IncludeClusterAutoscalerMetrics, false)
 		if err != nil {
 			framework.Logf("Failed to create MetricsGrabber (skipping metrics gathering): %v", err)
 			return
 		}
-		received, err := grabber.Grab(ctx)
+		received, err := grabber.Grab()
 		if err != nil {
 			framework.Logf("MetricsGrabber failed to grab some of the metrics: %v", err)
 			return

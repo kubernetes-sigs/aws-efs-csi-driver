@@ -54,7 +54,9 @@ type snapshottableStressTest struct {
 	snapshotsMutex sync.Mutex
 
 	// Stop and wait for any async routines.
-	wg sync.WaitGroup
+	ctx    context.Context
+	wg     sync.WaitGroup
+	cancel context.CancelFunc
 }
 
 // InitCustomSnapshottableStressTestSuite returns snapshottableStressTestSuite that implements TestSuite interface
@@ -122,11 +124,12 @@ func (t *snapshottableStressTestSuite) DefineTests(driver storageframework.TestD
 	f := framework.NewDefaultFramework("snapshottable-stress")
 	f.NamespacePodSecurityEnforceLevel = admissionapi.LevelPrivileged
 
-	init := func(ctx context.Context) {
+	init := func() {
 		driverInfo = driver.GetDriverInfo()
 		snapshottableDriver, _ = driver.(storageframework.SnapshottableTestDriver)
 		cs = f.ClientSet
-		config := driver.PrepareTest(ctx, f)
+		config := driver.PrepareTest(f)
+		ctx, cancel := context.WithCancel(context.Background())
 
 		stressTest = &snapshottableStressTest{
 			config:      config,
@@ -134,14 +137,16 @@ func (t *snapshottableStressTestSuite) DefineTests(driver storageframework.TestD
 			snapshots:   []*storageframework.SnapshotResource{},
 			pods:        []*v1.Pod{},
 			testOptions: *driverInfo.VolumeSnapshotStressTestOptions,
+			ctx:         ctx,
+			cancel:      cancel,
 		}
 	}
 
-	createPodsAndVolumes := func(ctx context.Context) {
+	createPodsAndVolumes := func() {
 		for i := 0; i < stressTest.testOptions.NumPods; i++ {
 			framework.Logf("Creating resources for pod %d/%d", i, stressTest.testOptions.NumPods-1)
 
-			volume := storageframework.CreateVolumeResource(ctx, driver, stressTest.config, pattern, t.GetTestSuiteInfo().SupportedSizeRange)
+			volume := storageframework.CreateVolumeResource(driver, stressTest.config, pattern, t.GetTestSuiteInfo().SupportedSizeRange)
 			stressTest.volumes = append(stressTest.volumes, volume)
 
 			podConfig := e2epod.Config{
@@ -163,7 +168,8 @@ func (t *snapshottableStressTestSuite) DefineTests(driver storageframework.TestD
 				defer ginkgo.GinkgoRecover()
 				defer wg.Done()
 
-				if _, err := cs.CoreV1().Pods(pod.Namespace).Create(ctx, pod, metav1.CreateOptions{}); err != nil {
+				if _, err := cs.CoreV1().Pods(pod.Namespace).Create(context.TODO(), pod, metav1.CreateOptions{}); err != nil {
+					stressTest.cancel()
 					framework.Failf("Failed to create pod-%d [%+v]. Error: %v", i, pod, err)
 				}
 			}(i, pod)
@@ -171,14 +177,16 @@ func (t *snapshottableStressTestSuite) DefineTests(driver storageframework.TestD
 		wg.Wait()
 
 		for i, pod := range stressTest.pods {
-			if err := e2epod.WaitForPodRunningInNamespace(ctx, cs, pod); err != nil {
+			if err := e2epod.WaitForPodRunningInNamespace(cs, pod); err != nil {
+				stressTest.cancel()
 				framework.Failf("Failed to wait for pod-%d [%+v] turn into running status. Error: %v", i, pod, err)
 			}
 		}
 	}
 
-	cleanup := func(ctx context.Context) {
+	cleanup := func() {
 		framework.Logf("Stopping and waiting for all test routines to finish")
+		stressTest.cancel()
 		stressTest.wg.Wait()
 
 		var (
@@ -194,7 +202,7 @@ func (t *snapshottableStressTestSuite) DefineTests(driver storageframework.TestD
 				defer wg.Done()
 
 				framework.Logf("Deleting snapshot %s/%s", snapshot.Vs.GetNamespace(), snapshot.Vs.GetName())
-				err := snapshot.CleanupResource(ctx, f.Timeouts)
+				err := snapshot.CleanupResource(f.Timeouts)
 				mu.Lock()
 				defer mu.Unlock()
 				errs = append(errs, err)
@@ -209,7 +217,7 @@ func (t *snapshottableStressTestSuite) DefineTests(driver storageframework.TestD
 				defer wg.Done()
 
 				framework.Logf("Deleting pod %s", pod.Name)
-				err := e2epod.DeletePodWithWait(ctx, cs, pod)
+				err := e2epod.DeletePodWithWait(cs, pod)
 				mu.Lock()
 				defer mu.Unlock()
 				errs = append(errs, err)
@@ -224,7 +232,7 @@ func (t *snapshottableStressTestSuite) DefineTests(driver storageframework.TestD
 				defer wg.Done()
 
 				framework.Logf("Deleting volume %s", volume.Pvc.GetName())
-				err := volume.CleanupResource(ctx)
+				err := volume.CleanupResource()
 				mu.Lock()
 				defer mu.Unlock()
 				errs = append(errs, err)
@@ -237,10 +245,13 @@ func (t *snapshottableStressTestSuite) DefineTests(driver storageframework.TestD
 		framework.ExpectNoError(errors.NewAggregate(errs), "while cleaning up resources")
 	}
 
-	ginkgo.It("should support snapshotting of many volumes repeatedly [Slow] [Serial]", func(ctx context.Context) {
-		init(ctx)
+	ginkgo.BeforeEach(func() {
+		init()
 		ginkgo.DeferCleanup(cleanup)
-		createPodsAndVolumes(ctx)
+		createPodsAndVolumes()
+	})
+
+	ginkgo.It("should support snapshotting of many volumes repeatedly [Slow] [Serial]", func() {
 		// Repeatedly create and delete snapshots of each volume.
 		for i := 0; i < stressTest.testOptions.NumPods; i++ {
 			for j := 0; j < stressTest.testOptions.NumSnapshots; j++ {
@@ -254,20 +265,12 @@ func (t *snapshottableStressTestSuite) DefineTests(driver storageframework.TestD
 					volume := stressTest.volumes[podIndex]
 
 					select {
-					case <-ctx.Done():
-						// This looks like a in the
-						// original test
-						// (https://github.com/kubernetes/kubernetes/blob/21049c2a1234ae3eea57357ed4329ed567a2dab3/test/e2e/storage/testsuites/snapshottable_stress.go#L269):
-						// This early return will never
-						// get reached even if some
-						// other goroutine fails
-						// because the context doesn't
-						// get cancelled.
+					case <-stressTest.ctx.Done():
 						return
 					default:
 						framework.Logf("Pod-%d [%s], Iteration %d/%d", podIndex, pod.Name, snapshotIndex, stressTest.testOptions.NumSnapshots-1)
 						parameters := map[string]string{}
-						snapshot := storageframework.CreateSnapshotResource(ctx, snapshottableDriver, stressTest.config, pattern, volume.Pvc.GetName(), volume.Pvc.GetNamespace(), f.Timeouts, parameters)
+						snapshot := storageframework.CreateSnapshotResource(snapshottableDriver, stressTest.config, pattern, volume.Pvc.GetName(), volume.Pvc.GetNamespace(), f.Timeouts, parameters)
 						stressTest.snapshotsMutex.Lock()
 						defer stressTest.snapshotsMutex.Unlock()
 						stressTest.snapshots = append(stressTest.snapshots, snapshot)

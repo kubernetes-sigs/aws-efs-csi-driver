@@ -57,7 +57,7 @@ ginkgo.AfterEach(func() {
     # Do something with f.ClientSet.
 }
 
-ginkgo.It("test something", func(ctx context.Context) {
+ginkgo.It("test something", func() {
     # The actual test.
 })
 ```

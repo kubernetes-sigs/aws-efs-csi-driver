@@ -17,7 +17,6 @@ limitations under the License.
 package framework
 
 import (
-	"context"
 	"time"
 
 	v1 "k8s.io/api/core/v1"
@@ -50,21 +49,21 @@ type TestDriver interface {
 	// PrepareTest is called at test execution time each time a new test case is about to start.
 	// It sets up all necessary resources and returns the per-test configuration.
 	// Cleanup is handled via ginkgo.DeferCleanup inside PrepareTest.
-	PrepareTest(ctx context.Context, f *framework.Framework) *PerTestConfig
+	PrepareTest(f *framework.Framework) *PerTestConfig
 }
 
 // TestVolume is the result of PreprovisionedVolumeTestDriver.CreateVolume.
 // The only common functionality is to delete it. Individual driver interfaces
 // have additional methods that work with volumes created by them.
 type TestVolume interface {
-	DeleteVolume(ctx context.Context)
+	DeleteVolume()
 }
 
 // PreprovisionedVolumeTestDriver represents an interface for a TestDriver that has pre-provisioned volume
 type PreprovisionedVolumeTestDriver interface {
 	TestDriver
 	// CreateVolume creates a pre-provisioned volume of the desired volume type.
-	CreateVolume(ctx context.Context, config *PerTestConfig, volumeType TestVolType) TestVolume
+	CreateVolume(config *PerTestConfig, volumeType TestVolType) TestVolume
 }
 
 // InlineVolumeTestDriver represents an interface for a TestDriver that supports InlineVolume
@@ -90,12 +89,12 @@ type PreprovisionedPVTestDriver interface {
 type DynamicPVTestDriver interface {
 	TestDriver
 	// GetDynamicProvisionStorageClass returns a StorageClass dynamic provision Persistent Volume.
-	// The StorageClass must have
-	// a unique name because GetDynamicProvisionStorageClass might
+	// The StorageClass must be created in the current test's namespace and have
+	// a unique name inside that namespace because GetDynamicProvisionStorageClass might
 	// be called more than once per test.
 	// It will set fsType to the StorageClass, if TestDriver supports it.
 	// It will return nil, if the TestDriver doesn't support it.
-	GetDynamicProvisionStorageClass(ctx context.Context, config *PerTestConfig, fsType string) *storagev1.StorageClass
+	GetDynamicProvisionStorageClass(config *PerTestConfig, fsType string) *storagev1.StorageClass
 }
 
 // EphemeralTestDriver represents an interface for a TestDriver that supports ephemeral inline volumes.
@@ -127,7 +126,7 @@ type SnapshottableTestDriver interface {
 	TestDriver
 	// GetSnapshotClass returns a SnapshotClass to create snapshot.
 	// It will return nil, if the TestDriver doesn't support it.
-	GetSnapshotClass(ctx context.Context, config *PerTestConfig, parameters map[string]string) *unstructured.Unstructured
+	GetSnapshotClass(config *PerTestConfig, parameters map[string]string) *unstructured.Unstructured
 }
 
 // CustomTimeoutsTestDriver represents an interface fo a TestDriver that supports custom timeouts.
@@ -141,7 +140,7 @@ func GetDriverTimeouts(driver TestDriver) *framework.TimeoutContext {
 	if d, ok := driver.(CustomTimeoutsTestDriver); ok {
 		return d.GetTimeouts()
 	}
-	return framework.NewTimeoutContext()
+	return framework.NewTimeoutContextWithDefaults()
 }
 
 // Capability represents a feature that a volume plugin supports
@@ -184,9 +183,6 @@ const (
 	// for dynamic provisioning exists, the driver is expected to provide
 	// capacity information for it.
 	CapCapacity Capability = "capacity"
-
-	// Anti-capability for drivers that do not support filesystem resizing of PVCs that are cloned or restored from a snapshot.
-	CapFSResizeFromSourceNotSupported Capability = "FSResizeFromSourceNotSupported"
 
 	// To support ReadWriteOncePod, the following CSI sidecars must be
 	// updated to these versions or greater:

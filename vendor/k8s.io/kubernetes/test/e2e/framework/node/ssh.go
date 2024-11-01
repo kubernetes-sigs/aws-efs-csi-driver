@@ -17,7 +17,6 @@ limitations under the License.
 package node
 
 import (
-	"context"
 	"time"
 
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -26,7 +25,7 @@ import (
 )
 
 // WaitForSSHTunnels waits for establishing SSH tunnel to busybox pod.
-func WaitForSSHTunnels(ctx context.Context, namespace string) {
+func WaitForSSHTunnels(namespace string) {
 	framework.Logf("Waiting for SSH tunnels to establish")
 	e2ekubectl.RunKubectl(namespace, "run", "ssh-tunnel-test",
 		"--image=busybox",
@@ -36,7 +35,7 @@ func WaitForSSHTunnels(ctx context.Context, namespace string) {
 	defer e2ekubectl.RunKubectl(namespace, "delete", "pod", "ssh-tunnel-test")
 
 	// allow up to a minute for new ssh tunnels to establish
-	wait.PollImmediateWithContext(ctx, 5*time.Second, time.Minute, func(ctx context.Context) (bool, error) {
+	wait.PollImmediate(5*time.Second, time.Minute, func() (bool, error) {
 		_, err := e2ekubectl.RunKubectl(namespace, "logs", "ssh-tunnel-test")
 		return err == nil, nil
 	})

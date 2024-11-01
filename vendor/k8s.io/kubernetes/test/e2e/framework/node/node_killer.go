@@ -17,7 +17,6 @@ limitations under the License.
 package node
 
 import (
-	"context"
 	"sync"
 	"time"
 
@@ -40,31 +39,31 @@ type NodeKiller struct {
 
 // NewNodeKiller creates new NodeKiller.
 func NewNodeKiller(config framework.NodeKillerConfig, client clientset.Interface, provider string) *NodeKiller {
-	config.NodeKillerStopCtx, config.NodeKillerStop = context.WithCancel(context.Background())
+	config.NodeKillerStopCh = make(chan struct{})
 	return &NodeKiller{config, client, provider}
 }
 
 // Run starts NodeKiller until stopCh is closed.
-func (k *NodeKiller) Run(ctx context.Context) {
+func (k *NodeKiller) Run(stopCh <-chan struct{}) {
 	// wait.JitterUntil starts work immediately, so wait first.
 	time.Sleep(wait.Jitter(k.config.Interval, k.config.JitterFactor))
-	wait.JitterUntilWithContext(ctx, func(ctx context.Context) {
-		nodes := k.pickNodes(ctx)
-		k.kill(ctx, nodes)
-	}, k.config.Interval, k.config.JitterFactor, true)
+	wait.JitterUntil(func() {
+		nodes := k.pickNodes()
+		k.kill(nodes)
+	}, k.config.Interval, k.config.JitterFactor, true, stopCh)
 }
 
-func (k *NodeKiller) pickNodes(ctx context.Context) []v1.Node {
-	nodes, err := GetReadySchedulableNodes(ctx, k.client)
+func (k *NodeKiller) pickNodes() []v1.Node {
+	nodes, err := GetReadySchedulableNodes(k.client)
 	framework.ExpectNoError(err)
 	numNodes := int(k.config.FailureRatio * float64(len(nodes.Items)))
 
-	nodes, err = GetBoundedReadySchedulableNodes(ctx, k.client, numNodes)
+	nodes, err = GetBoundedReadySchedulableNodes(k.client, numNodes)
 	framework.ExpectNoError(err)
 	return nodes.Items
 }
 
-func (k *NodeKiller) kill(ctx context.Context, nodes []v1.Node) {
+func (k *NodeKiller) kill(nodes []v1.Node) {
 	wg := sync.WaitGroup{}
 	wg.Add(len(nodes))
 	for _, node := range nodes {
@@ -74,7 +73,7 @@ func (k *NodeKiller) kill(ctx context.Context, nodes []v1.Node) {
 			defer wg.Done()
 
 			framework.Logf("Stopping docker and kubelet on %q to simulate failure", node.Name)
-			err := e2essh.IssueSSHCommand(ctx, "sudo systemctl stop docker kubelet", k.provider, &node)
+			err := e2essh.IssueSSHCommand("sudo systemctl stop docker kubelet", k.provider, &node)
 			if err != nil {
 				framework.Logf("ERROR while stopping node %q: %v", node.Name, err)
 				return
@@ -83,7 +82,7 @@ func (k *NodeKiller) kill(ctx context.Context, nodes []v1.Node) {
 			time.Sleep(k.config.SimulatedDowntime)
 
 			framework.Logf("Rebooting %q to repair the node", node.Name)
-			err = e2essh.IssueSSHCommand(ctx, "sudo reboot", k.provider, &node)
+			err = e2essh.IssueSSHCommand("sudo reboot", k.provider, &node)
 			if err != nil {
 				framework.Logf("ERROR while rebooting node %q: %v", node.Name, err)
 				return

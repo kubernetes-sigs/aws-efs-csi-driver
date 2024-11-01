@@ -17,7 +17,6 @@ limitations under the License.
 package framework
 
 import (
-	"context"
 	"fmt"
 
 	storagev1 "k8s.io/api/storage/v1"
@@ -37,11 +36,11 @@ func GetDriverNameWithFeatureTags(driver TestDriver) string {
 }
 
 // CreateVolume creates volume for test unless dynamicPV or CSI ephemeral inline volume test
-func CreateVolume(ctx context.Context, driver TestDriver, config *PerTestConfig, volType TestVolType) TestVolume {
+func CreateVolume(driver TestDriver, config *PerTestConfig, volType TestVolType) TestVolume {
 	switch volType {
 	case InlineVolume, PreprovisionedPV:
 		if pDriver, ok := driver.(PreprovisionedVolumeTestDriver); ok {
-			return pDriver.CreateVolume(ctx, config, volType)
+			return pDriver.CreateVolume(config, volType)
 		}
 	case CSIInlineVolume, GenericEphemeralVolume, DynamicPV:
 		// No need to create volume

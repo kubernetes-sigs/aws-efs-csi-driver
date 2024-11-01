@@ -39,17 +39,16 @@ const (
 
 // WaitForAllNodesSchedulable waits up to timeout for all
 // (but TestContext.AllowedNotReadyNodes) to become schedulable.
-func WaitForAllNodesSchedulable(ctx context.Context, c clientset.Interface, timeout time.Duration) error {
+func WaitForAllNodesSchedulable(c clientset.Interface, timeout time.Duration) error {
 	if framework.TestContext.AllowedNotReadyNodes == -1 {
 		return nil
 	}
 
 	framework.Logf("Waiting up to %v for all (but %d) nodes to be schedulable", timeout, framework.TestContext.AllowedNotReadyNodes)
-	return wait.PollImmediateWithContext(
-		ctx,
+	return wait.PollImmediate(
 		30*time.Second,
 		timeout,
-		CheckReadyForTests(ctx, c, framework.TestContext.NonblockingTaints, framework.TestContext.AllowedNotReadyNodes, largeClusterThreshold),
+		CheckReadyForTests(c, framework.TestContext.NonblockingTaints, framework.TestContext.AllowedNotReadyNodes, largeClusterThreshold),
 	)
 }
 
@@ -59,9 +58,9 @@ func AddOrUpdateLabelOnNode(c clientset.Interface, nodeName string, labelKey, la
 }
 
 // ExpectNodeHasLabel expects that the given node has the given label pair.
-func ExpectNodeHasLabel(ctx context.Context, c clientset.Interface, nodeName string, labelKey string, labelValue string) {
+func ExpectNodeHasLabel(c clientset.Interface, nodeName string, labelKey string, labelValue string) {
 	ginkgo.By("verifying the node has the label " + labelKey + " " + labelValue)
-	node, err := c.CoreV1().Nodes().Get(ctx, nodeName, metav1.GetOptions{})
+	node, err := c.CoreV1().Nodes().Get(context.TODO(), nodeName, metav1.GetOptions{})
 	framework.ExpectNoError(err)
 	framework.ExpectEqual(node.Labels[labelKey], labelValue)
 }
@@ -77,17 +76,17 @@ func RemoveLabelOffNode(c clientset.Interface, nodeName string, labelKey string)
 }
 
 // ExpectNodeHasTaint expects that the node has the given taint.
-func ExpectNodeHasTaint(ctx context.Context, c clientset.Interface, nodeName string, taint *v1.Taint) {
+func ExpectNodeHasTaint(c clientset.Interface, nodeName string, taint *v1.Taint) {
 	ginkgo.By("verifying the node has the taint " + taint.ToString())
-	if has, err := NodeHasTaint(ctx, c, nodeName, taint); !has {
+	if has, err := NodeHasTaint(c, nodeName, taint); !has {
 		framework.ExpectNoError(err)
 		framework.Failf("Failed to find taint %s on node %s", taint.ToString(), nodeName)
 	}
 }
 
 // NodeHasTaint returns true if the node has the given taint, else returns false.
-func NodeHasTaint(ctx context.Context, c clientset.Interface, nodeName string, taint *v1.Taint) (bool, error) {
-	node, err := c.CoreV1().Nodes().Get(ctx, nodeName, metav1.GetOptions{})
+func NodeHasTaint(c clientset.Interface, nodeName string, taint *v1.Taint) (bool, error) {
+	node, err := c.CoreV1().Nodes().Get(context.TODO(), nodeName, metav1.GetOptions{})
 	if err != nil {
 		return false, err
 	}
@@ -105,14 +104,14 @@ func NodeHasTaint(ctx context.Context, c clientset.Interface, nodeName string, t
 // TODO: we should change the AllNodesReady call in AfterEach to WaitForAllNodesHealthy,
 // and figure out how to do it in a configurable way, as we can't expect all setups to run
 // default test add-ons.
-func AllNodesReady(ctx context.Context, c clientset.Interface, timeout time.Duration) error {
-	if err := allNodesReady(ctx, c, timeout); err != nil {
-		return fmt.Errorf("checking for ready nodes: %w", err)
+func AllNodesReady(c clientset.Interface, timeout time.Duration) error {
+	if err := allNodesReady(c, timeout); err != nil {
+		return fmt.Errorf("checking for ready nodes: %v", err)
 	}
 	return nil
 }
 
-func allNodesReady(ctx context.Context, c clientset.Interface, timeout time.Duration) error {
+func allNodesReady(c clientset.Interface, timeout time.Duration) error {
 	if framework.TestContext.AllowedNotReadyNodes == -1 {
 		return nil
 	}
@@ -120,10 +119,10 @@ func allNodesReady(ctx context.Context, c clientset.Interface, timeout time.Dura
 	framework.Logf("Waiting up to %v for all (but %d) nodes to be ready", timeout, framework.TestContext.AllowedNotReadyNodes)
 
 	var notReady []*v1.Node
-	err := wait.PollImmediateWithContext(ctx, framework.Poll, timeout, func(ctx context.Context) (bool, error) {
+	err := wait.PollImmediate(framework.Poll, timeout, func() (bool, error) {
 		notReady = nil
 		// It should be OK to list unschedulable Nodes here.
-		nodes, err := c.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
+		nodes, err := c.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
 		if err != nil {
 			return false, err
 		}
