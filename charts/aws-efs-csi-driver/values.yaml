@@ -181,6 +181,7 @@ node:
                 operator: NotIn
                 values:
                   - fargate
+                  - hybrid
   # Specifies whether a service account should be created
   serviceAccount:
     create: true
