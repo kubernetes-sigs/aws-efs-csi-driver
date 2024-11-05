@@ -13,8 +13,10 @@ You must complete the following steps in the same terminal because variables are
 1. Retrieve the VPC ID that your cluster is in and store it in a variable for use in a later step. Replace `my-cluster` with your cluster name.
 
    ```
+   MY_CLUSTER=
+
    vpc_id=$(aws eks describe-cluster \
-       --name my-cluster \
+       --name $MY_CLUSTER \
        --query "cluster.resourcesVpcConfig.vpcId" \
        --output text)
    ```
@@ -22,11 +24,13 @@ You must complete the following steps in the same terminal because variables are
 1. Retrieve the CIDR range for your cluster's VPC and store it in a variable for use in a later step. Replace `region-code` with the AWS Region that your cluster is in.
 
    ```
+   REGION_CODE=
+
    cidr_range=$(aws ec2 describe-vpcs \
        --vpc-ids $vpc_id \
        --query "Vpcs[].CidrBlock" \
        --output text \
-       --region region-code)
+       --region $REGION_CODE)
    ```
 
 1. Create a security group with an inbound rule that allows inbound NFS traffic for your Amazon EFS mount points.
@@ -34,8 +38,10 @@ You must complete the following steps in the same terminal because variables are
    1. Create a security group. Replace the *`example values`* with your own.
 
       ```
+      NEW_SECURITY_GROUP_NAME=
+
       security_group_id=$(aws ec2 create-security-group \
-          --group-name MyEfsSecurityGroup \
+          --group-name $NEW_SECURITY_GROUP_NAME \
           --description "My EFS security group" \
           --vpc-id $vpc_id \
           --output text)
@@ -59,7 +65,7 @@ To further restrict access to your file system, you can use the CIDR for your su
 
       ```
       file_system_id=$(aws efs create-file-system \
-          --region region-code \
+          --region $REGION_CODE \
           --performance-mode generalPurpose \
           --query 'FileSystemId' \
           --output text)
@@ -107,8 +113,10 @@ To further restrict access to your file system, you can use the CIDR for your su
       1. Add mount targets for the subnets that your nodes are in. From the output in the previous two steps, the cluster has one node with an IP address of `192.168.56.0`. That IP address is within the `CidrBlock` of the subnet with the ID `subnet-EXAMPLEe2ba886490`. As a result, the following command creates a mount target for the subnet the node is in. If there were more nodes in the cluster, you'd run the command once for a subnet in each AZ that you had a node in, replacing `subnet-EXAMPLEe2ba886490` with the appropriate subnet ID.
 
          ```
+         DESIRED_SUBNET=
+
          aws efs create-mount-target \
              --file-system-id $file_system_id \
-             --subnet-id subnet-EXAMPLEe2ba886490 \
+             --subnet-id $DESIRED_SUBNET \
              --security-groups $security_group_id
          ```
