@@ -90,6 +90,9 @@ controller:
       operator: Exists
   affinity: {}
   env: []
+  httpProxy: ""
+  httpsProxy: ""
+  noProxy: "localhost,127.0.0.1"
   volumes: []
   volumeMounts: []
   # Specifies whether a service account should be created
