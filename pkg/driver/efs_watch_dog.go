@@ -20,6 +20,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"sync"
 	"text/template"
 
@@ -73,7 +74,7 @@ fips_mode_enabled = {{.FipsEnabled -}}
 
 # Define the port range that the TLS tunnel will choose from
 port_range_lower_bound = 20049
-port_range_upper_bound = 21049
+port_range_upper_bound = {{.PortRangeUpperBound}}
 
 # Optimize read_ahead_kb for Linux 5.4+
 optimize_readahead = true
@@ -179,9 +180,10 @@ type execWatchdog struct {
 }
 
 type efsUtilsConfig struct {
-	EfsClientSource string
-	Region          string
-	FipsEnabled     string
+	EfsClientSource     string
+	Region              string
+	FipsEnabled         string
+	PortRangeUpperBound string
 }
 
 func newExecWatchdog(efsUtilsCfgPath, efsUtilsStaticFilesPath, cmd string, arg ...string) Watchdog {
@@ -284,7 +286,12 @@ func (w *execWatchdog) updateConfig(efsClientSource string) error {
 	// used on Fargate, IMDS queries suffice otherwise
 	region := os.Getenv("AWS_DEFAULT_REGION")
 	fipsEnabled := os.Getenv("FIPS_ENABLED")
-	efsCfg := efsUtilsConfig{EfsClientSource: efsClientSource, Region: region, FipsEnabled: fipsEnabled}
+	portRangeUpperBound := os.Getenv("PORT_RANGE_UPPER_BOUND")
+	val, err := strconv.Atoi(portRangeUpperBound)
+	if err != nil || val < 21049 {
+		portRangeUpperBound = "21049"
+	}
+	efsCfg := efsUtilsConfig{EfsClientSource: efsClientSource, Region: region, FipsEnabled: fipsEnabled, PortRangeUpperBound: portRangeUpperBound}
 	if err = efsCfgTemplate.Execute(f, efsCfg); err != nil {
 		return fmt.Errorf("cannot update config %s for efs-utils. Error: %v", w.efsUtilsCfgPath, err)
 	}
