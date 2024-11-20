@@ -42,6 +42,7 @@ sidecars:
     securityContext:
       readOnlyRootFilesystem: true
       allowPrivilegeEscalation: false
+    additionalArgs: []
 
 imagePullSecrets: []
 
