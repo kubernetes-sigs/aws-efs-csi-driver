@@ -134,6 +134,11 @@ spec:
             {{- if hasKey .Values.controller "leaderElectionLeaseDuration" }}
             - --leader-election-lease-duration={{ .Values.controller.leaderElectionLeaseDuration }}
             {{- end }}
+            {{- if .Values.sidecars.csiProvisioner.additionalArgs }}
+            {{- range .Values.sidecars.csiProvisioner.additionalArgs }}
+            - {{ . }}
+            {{- end }}
+            {{- end }}
           env:
             - name: ADDRESS
               value: /var/lib/csi/sockets/pluginproxy/csi.sock
