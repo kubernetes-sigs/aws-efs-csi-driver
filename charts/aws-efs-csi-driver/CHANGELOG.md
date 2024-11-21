@@ -1,4 +1,6 @@
 # Helm chart
+# v3.1.2
+* add proxy settings as secret
 # v3.1.1
 * Bump app/driver version to `v2.1.0`
 # v3.1.0

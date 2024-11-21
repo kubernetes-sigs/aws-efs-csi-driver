@@ -93,6 +93,23 @@ spec:
             - name: AWS_USE_FIPS_ENDPOINT
               value: "true"
             {{- end }}
+            {{- if .Values.controller.httpProxy }}
+            - name: HTTP_PROXY
+              valueFrom:
+                secretKeyRef:
+                  name: efs-csi-controller-proxy
+                  key: httpProxy
+            - name: HTTPS_PROXY
+              valueFrom:
+                secretKeyRef:
+                  name: efs-csi-controller-proxy
+                  key: httpsProxy
+            - name: NO_PROXY
+              valueFrom:
+                secretKeyRef:
+                  name: efs-csi-controller-proxy
+                  key: noProxy
+            {{- end }}
             {{- with .Values.controller.env }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
