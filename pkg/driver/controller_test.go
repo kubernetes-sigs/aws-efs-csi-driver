@@ -3003,7 +3003,7 @@ func TestDeleteVolume(t *testing.T) {
 			},
 		},
 		{
-			name: "Fail: Access Point is missing in volume Id",
+			name: "Success: Access Point is missing in volume Id",
 			testFunc: func(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockCloud := mocks.NewMockCloud(mockCtl)
@@ -3020,8 +3020,8 @@ func TestDeleteVolume(t *testing.T) {
 
 				ctx := context.Background()
 				_, err := driver.DeleteVolume(ctx, req)
-				if err == nil {
-					t.Fatal("DeleteVolume did not fail")
+				if err != nil {
+					t.Fatalf("DeleteVolume failed: %v", err)
 				}
 				mockCtl.Finish()
 			},
