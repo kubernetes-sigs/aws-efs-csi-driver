@@ -7,6 +7,10 @@ on:
     paths:
       - "charts/**"
 
+permissions:
+  contents: write # Create new release to host chart artifacts
+  pages: write # Publish chart to pages
+
 jobs:
   release:
     runs-on: ubuntu-latest
