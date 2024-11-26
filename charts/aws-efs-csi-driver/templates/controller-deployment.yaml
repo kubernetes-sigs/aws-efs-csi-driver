@@ -3,7 +3,7 @@
 kind: Deployment
 apiVersion: apps/v1
 metadata:
-  name: efs-csi-controller
+  name: {{ .Values.controller.name }}
   labels:
     app.kubernetes.io/name: {{ include "aws-efs-csi-driver.name" . }}
     {{- with .Values.controller.additionalLabels }}
@@ -13,7 +13,7 @@ spec:
   replicas: {{ .Values.controller.replicaCount }}
   selector:
     matchLabels:
-      app: efs-csi-controller
+      app: {{ .Values.controller.name }}
       app.kubernetes.io/name: {{ include "aws-efs-csi-driver.name" . }}
       app.kubernetes.io/instance: {{ .Release.Name }}
   {{- with .Values.controller.updateStrategy }}
@@ -23,7 +23,7 @@ spec:
   template:
     metadata:
       labels:
-        app: efs-csi-controller
+        app: {{ .Values.controller.name }}
         app.kubernetes.io/name: {{ include "aws-efs-csi-driver.name" . }}
         app.kubernetes.io/instance: {{ .Release.Name }}
         {{- with .Values.controller.podLabels }}
