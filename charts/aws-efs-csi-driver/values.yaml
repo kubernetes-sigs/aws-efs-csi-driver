@@ -51,6 +51,8 @@ imagePullSecrets: []
 controller:
   # Specifies whether a deployment should be created
   create: true
+  # Name of the CSI controller service
+  name: efs-csi-controller
   # Number of replicas for the CSI controller service deployment
   replicaCount: 2
   # Number for the log level verbosity
@@ -104,6 +106,12 @@ controller:
     #  eks.amazonaws.com/role-arn: arn:aws:iam::111122223333:role/efs-csi-role
   healthPort: 9909
   regionalStsEndpoints: false
+  # Pod Disruption Budget
+  podDisruptionBudget: 
+    enabled: false
+    # maxUnavailable: 1
+    minAvailable: 1
+    unhealthyPodEvictionPolicy: "Delete"
   # securityContext on the controller pod
   securityContext:
     runAsNonRoot: false
