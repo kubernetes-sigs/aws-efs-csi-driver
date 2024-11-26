@@ -136,7 +136,7 @@ spec:
             {{- if hasKey .Values.controller "leaderElectionLeaseDuration" }}
             - --leader-election-lease-duration={{ .Values.controller.leaderElectionLeaseDuration }}
             {{- end }}
-            {{- range .Values.sidecars.provisioner.additionalArgs }}
+            {{- range .Values.sidecars.csiProvisioner.additionalArgs }}
             - {{ . }}
             {{- end }}
           env:
