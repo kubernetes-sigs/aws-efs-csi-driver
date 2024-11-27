@@ -3,6 +3,7 @@ kind: DaemonSet
 apiVersion: apps/v1
 metadata:
   name: efs-csi-node
+  namespace: {{ .Release.Namespace }}
   labels:
     app.kubernetes.io/name: {{ include "aws-efs-csi-driver.name" . }}
     {{- with .Values.node.additionalLabels }}
