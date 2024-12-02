@@ -23,7 +23,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/moby/sys/mountinfo"
 	"io/fs"
 	"io/ioutil"
 	"os"
@@ -33,6 +32,8 @@ import (
 	"strings"
 	"syscall"
 	"time"
+
+	"github.com/moby/sys/mountinfo"
 
 	"k8s.io/klog/v2"
 	utilexec "k8s.io/utils/exec"
@@ -410,8 +411,8 @@ func (mounter *Mounter) IsLikelyNotMountPoint(file string) (bool, error) {
 	return true, nil
 }
 
-// canSafelySkipMountPointCheck relies on the detected behavior of umount when given a target that is not a mount point.
-func (mounter *Mounter) canSafelySkipMountPointCheck() bool {
+// CanSafelySkipMountPointCheck relies on the detected behavior of umount when given a target that is not a mount point.
+func (mounter *Mounter) CanSafelySkipMountPointCheck() bool {
 	return mounter.withSafeNotMountedBehavior
 }
 
@@ -514,7 +515,8 @@ func (mounter *SafeFormatAndMount) formatAndMountSensitive(source string, target
 		args = append(formatOptions, args...)
 
 		klog.Infof("Disk %q appears to be unformatted, attempting to format as type: %q with options: %v", source, fstype, args)
-		output, err := mounter.Exec.Command("mkfs."+fstype, args...).CombinedOutput()
+
+		output, err := mounter.format(fstype, args)
 		if err != nil {
 			// Do not log sensitiveOptions only options
 			sensitiveOptionsLog := sanitizedOptionsForLogging(options, sensitiveOptions)
@@ -547,6 +549,29 @@ func (mounter *SafeFormatAndMount) formatAndMountSensitive(source string, target
 	}
 
 	return nil
+}
+
+func (mounter *SafeFormatAndMount) format(fstype string, args []string) ([]byte, error) {
+	if mounter.formatSem != nil {
+		done := make(chan struct{})
+		defer close(done)
+
+		mounter.formatSem <- struct{}{}
+
+		go func() {
+			defer func() { <-mounter.formatSem }()
+
+			timeout := time.NewTimer(mounter.formatTimeout)
+			defer timeout.Stop()
+
+			select {
+			case <-done:
+			case <-timeout.C:
+			}
+		}()
+	}
+
+	return mounter.Exec.Command("mkfs."+fstype, args...).CombinedOutput()
 }
 
 func getDiskFormat(exec utilexec.Interface, disk string) (string, error) {

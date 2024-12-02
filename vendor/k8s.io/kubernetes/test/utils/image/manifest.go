@@ -68,12 +68,16 @@ func (i *Config) SetVersion(version string) {
 	i.version = version
 }
 
-func initReg() RegistryList {
+func Init(repoList string) {
+	registry, imageConfigs, originalImageConfigs = readRepoList(repoList)
+}
+
+func readRepoList(repoList string) (RegistryList, map[ImageID]Config, map[ImageID]Config) {
 	registry := initRegistry
 
-	repoList := os.Getenv("KUBE_TEST_REPO_LIST")
 	if repoList == "" {
-		return registry
+		imageConfigs, originalImageConfigs := initImageConfigs(registry)
+		return registry, imageConfigs, originalImageConfigs
 	}
 
 	var fileContent []byte
@@ -94,9 +98,13 @@ func initReg() RegistryList {
 
 	err = yaml.Unmarshal(fileContent, &registry)
 	if err != nil {
-		panic(fmt.Errorf("Error unmarshalling '%v' YAML file: %v", repoList, err))
+		panic(fmt.Errorf("error unmarshalling '%v' YAML file: %v", repoList, err))
 	}
-	return registry
+
+	imageConfigs, originalImageConfigs := initImageConfigs(registry)
+
+	return registry, imageConfigs, originalImageConfigs
+
 }
 
 // Essentially curl url | writer
@@ -135,10 +143,7 @@ var (
 		CloudProviderGcpRegistry: "registry.k8s.io/cloud-provider-gcp",
 	}
 
-	registry = initReg()
-
-	// Preconfigured image configs
-	imageConfigs, originalImageConfigs = initImageConfigs(registry)
+	registry, imageConfigs, originalImageConfigs = readRepoList(os.Getenv("KUBE_TEST_REPO_LIST"))
 )
 
 type ImageID int
@@ -231,7 +236,7 @@ const (
 
 func initImageConfigs(list RegistryList) (map[ImageID]Config, map[ImageID]Config) {
 	configs := map[ImageID]Config{}
-	configs[Agnhost] = Config{list.PromoterE2eRegistry, "agnhost", "2.43"}
+	configs[Agnhost] = Config{list.PromoterE2eRegistry, "agnhost", "2.47"}
 	configs[AgnhostPrivate] = Config{list.PrivateRegistry, "agnhost", "2.6"}
 	configs[AuthenticatedAlpine] = Config{list.GcAuthenticatedRegistry, "alpine", "3.7"}
 	configs[AuthenticatedWindowsNanoServer] = Config{list.GcAuthenticatedRegistry, "windows-nanoserver", "v1"}
@@ -240,8 +245,8 @@ func initImageConfigs(list RegistryList) (map[ImageID]Config, map[ImageID]Config
 	configs[BusyBox] = Config{list.PromoterE2eRegistry, "busybox", "1.29-4"}
 	configs[CudaVectorAdd] = Config{list.PromoterE2eRegistry, "cuda-vector-add", "1.0"}
 	configs[CudaVectorAdd2] = Config{list.PromoterE2eRegistry, "cuda-vector-add", "2.2"}
-	configs[DistrolessIptables] = Config{list.BuildImageRegistry, "distroless-iptables", "v0.4.6"}
-	configs[Etcd] = Config{list.GcEtcdRegistry, "etcd", "3.5.10-0"}
+	configs[DistrolessIptables] = Config{list.BuildImageRegistry, "distroless-iptables", "v0.5.6"}
+	configs[Etcd] = Config{list.GcEtcdRegistry, "etcd", "3.5.12-0"}
 	configs[GlusterDynamicProvisioner] = Config{list.PromoterE2eRegistry, "glusterdynamic-provisioner", "v1.3"}
 	configs[Httpd] = Config{list.PromoterE2eRegistry, "httpd", "2.4.38-4"}
 	configs[HttpdNew] = Config{list.PromoterE2eRegistry, "httpd", "2.4.39-4"}

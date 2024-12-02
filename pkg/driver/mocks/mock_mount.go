@@ -35,6 +35,20 @@ func (m *MockMounter) EXPECT() *MockMounterMockRecorder {
 	return m.recorder
 }
 
+// CanSafelySkipMountPointCheck mocks base method.
+func (m *MockMounter) CanSafelySkipMountPointCheck() bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CanSafelySkipMountPointCheck")
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// CanSafelySkipMountPointCheck indicates an expected call of CanSafelySkipMountPointCheck.
+func (mr *MockMounterMockRecorder) CanSafelySkipMountPointCheck() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CanSafelySkipMountPointCheck", reflect.TypeOf((*MockMounter)(nil).CanSafelySkipMountPointCheck))
+}
+
 // GetDeviceName mocks base method.
 func (m *MockMounter) GetDeviceName(arg0 string) (string, int, error) {
 	m.ctrl.T.Helper()
@@ -193,18 +207,4 @@ func (m *MockMounter) Unmount(arg0 string) error {
 func (mr *MockMounterMockRecorder) Unmount(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Unmount", reflect.TypeOf((*MockMounter)(nil).Unmount), arg0)
-}
-
-// canSafelySkipMountPointCheck mocks base method.
-func (m *MockMounter) canSafelySkipMountPointCheck() bool {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "canSafelySkipMountPointCheck")
-	ret0, _ := ret[0].(bool)
-	return ret0
-}
-
-// canSafelySkipMountPointCheck indicates an expected call of canSafelySkipMountPointCheck.
-func (mr *MockMounterMockRecorder) canSafelySkipMountPointCheck() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "canSafelySkipMountPointCheck", reflect.TypeOf((*MockMounter)(nil).canSafelySkipMountPointCheck))
 }
