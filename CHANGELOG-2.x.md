@@ -1,3 +1,13 @@
+# V2.1.1
+* Fix volume delete failure for static provisioning when accessPointId is empty ([#1507](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1507), [@dankova22](https://github.com/dankova22))
+* Update Go and dependencies to address CVEs ([#1513](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1513), [@andrewjamesbrown](https://github.com/andrewjamesbrown))
+* Add metadata.namespace to chart templates ([#1376](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1376), [@Kellen275](https://github.com/Kellen275))
+* Adding new argument for csi provisioner ([#1512](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1512), [@mskanth972](https://github.com/mskanth972))
+* Add permissions to all GitHub actions ([#1508](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1508), [@mskanth972](https://github.com/mskanth972))
+* Add additional arguments for Side cars ([#1506](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1506), [@mskanth972](https://github.com/mskanth972))
+* Fix controller podLabels typo in values.yaml ([#1445](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1445), [@pvickery-ParamountCommerce](https://github.com/pvickery-ParamountCommerce))
+* Add anti-affinity for incompatible compute types ([#1496](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1496), [@abhinavmpandey08](https://github.com/abhinavmpandey08))
+* Update python base images to newer versions ([#1480](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1480), [@andrewjamesbrown](https://github.com/andrewjamesbrown))
 # V2.1.0
 * Update CodeQL workflow to v2. ([#1485](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1485),[@mskanth972](https://github.com/mskanth972))
 * Bump side-cars to the latest. ([#1484](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1484),[@mskanth972](https://github.com/mskanth972))
