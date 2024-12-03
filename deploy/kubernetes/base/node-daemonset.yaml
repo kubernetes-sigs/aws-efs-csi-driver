@@ -64,6 +64,8 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
+            - name: PORT_RANGE_UPPER_BOUND
+              value: "21049"
           volumeMounts:
             - name: kubelet-dir
               mountPath: /var/lib/kubelet

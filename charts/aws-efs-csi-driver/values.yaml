@@ -7,6 +7,8 @@ fullnameOverride: ""
 
 useFIPS: false
 
+portRangeUpperBound: "21049"
+
 image:
   repository: public.ecr.aws/efs-csi-driver/amazon/aws-efs-csi-driver
   tag: "v2.1.0"
@@ -40,6 +42,7 @@ sidecars:
     securityContext:
       readOnlyRootFilesystem: true
       allowPrivilegeEscalation: false
+    additionalArgs: []
 
 imagePullSecrets: []
 
@@ -48,6 +51,8 @@ imagePullSecrets: []
 controller:
   # Specifies whether a deployment should be created
   create: true
+  # Name of the CSI controller service
+  name: efs-csi-controller
   # Number of replicas for the CSI controller service deployment
   replicaCount: 2
   # Number for the log level verbosity
@@ -63,7 +68,7 @@ controller:
   # path on efs when deleteing an access point
   deleteAccessPointRootDir: false
   podAnnotations: {}
-  podLabel: {}
+  podLabels: {}
   hostNetwork: false
   priorityClassName: system-cluster-critical
   dnsPolicy: ClusterFirst
@@ -101,6 +106,12 @@ controller:
     #  eks.amazonaws.com/role-arn: arn:aws:iam::111122223333:role/efs-csi-role
   healthPort: 9909
   regionalStsEndpoints: false
+  # Pod Disruption Budget
+  podDisruptionBudget: 
+    enabled: false
+    # maxUnavailable: 1
+    minAvailable: 1
+    unhealthyPodEvictionPolicy: "Delete"
   # securityContext on the controller pod
   securityContext:
     runAsNonRoot: false
@@ -181,6 +192,7 @@ node:
                 operator: NotIn
                 values:
                   - fargate
+                  - hybrid
   # Specifies whether a service account should be created
   serviceAccount:
     create: true

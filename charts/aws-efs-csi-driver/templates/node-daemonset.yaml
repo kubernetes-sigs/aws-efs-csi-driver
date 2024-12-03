@@ -3,6 +3,7 @@ kind: DaemonSet
 apiVersion: apps/v1
 metadata:
   name: efs-csi-node
+  namespace: {{ .Release.Namespace }}
   labels:
     app.kubernetes.io/name: {{ include "aws-efs-csi-driver.name" . }}
     {{- with .Values.node.additionalLabels }}
@@ -91,6 +92,8 @@ spec:
             - name: AWS_USE_FIPS_ENDPOINT
               value: "true"
             {{- end }}
+            - name: PORT_RANGE_UPPER_BOUND
+              value: "{{ .Values.portRangeUpperBound }}"
             {{- with .Values.node.env }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
