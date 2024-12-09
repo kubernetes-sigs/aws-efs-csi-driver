@@ -111,7 +111,7 @@ controller:
     enabled: false
     # maxUnavailable: 1
     minAvailable: 1
-    unhealthyPodEvictionPolicy: "Delete"
+    unhealthyPodEvictionPolicy: IfHealthyBudget
   # securityContext on the controller pod
   securityContext:
     runAsNonRoot: false
