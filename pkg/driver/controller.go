@@ -430,76 +430,76 @@ func (d *Driver) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeRequest)
 		return &csi.DeleteVolumeResponse{}, nil
 	}
 
+	if accessPointId == "" {
+		klog.V(5).Infof("DeleteVolume: No Access Point for volume %v, returning success", volId)
+		return &csi.DeleteVolumeResponse{}, nil
+	}
+
 	//TODO: Add Delete File System when FS provisioning is implemented
-	if accessPointId != "" {
-
-		// Delete access point root directory if delete-access-point-root-dir is set.
-		if d.deleteAccessPointRootDir {
-			// Check if Access point exists.
-			// If access point exists, retrieve its root directory and delete it/
-			accessPoint, err := localCloud.DescribeAccessPoint(ctx, accessPointId)
-			if err != nil {
-				if err == cloud.ErrAccessDenied {
-					return nil, status.Errorf(codes.Unauthenticated, "Access Denied. Please ensure you have the right AWS permissions: %v", err)
-				}
-				if err == cloud.ErrNotFound {
-					klog.V(5).Infof("DeleteVolume: Access Point %v not found, returning success", accessPointId)
-					return &csi.DeleteVolumeResponse{}, nil
-				}
-				return nil, status.Errorf(codes.Internal, "Could not get describe Access Point: %v , error: %v", accessPointId, err)
-			}
-
-			//Mount File System at it root and delete access point root directory
-			mountOptions := []string{"tls", "iam"}
-			if roleArn != "" {
-				if crossAccountDNSEnabled {
-					// Connect via dns rather than mounttargetip
-					mountOptions = append(mountOptions, CrossAccount)
-				} else {
-					mountTarget, err := localCloud.DescribeMountTargets(ctx, fileSystemId, "")
-					if err == nil {
-						mountOptions = append(mountOptions, MountTargetIp+"="+mountTarget.IPAddress)
-					} else {
-						klog.Warningf("Failed to describe mount targets for file system %v. Skip using `mounttargetip` mount option: %v", fileSystemId, err)
-					}
-				}
-			}
-
-			target := TempMountPathPrefix + "/" + accessPointId
-			if err := d.mounter.MakeDir(target); err != nil {
-				return nil, status.Errorf(codes.Internal, "Could not create dir %q: %v", target, err)
-			}
-			if err := d.mounter.Mount(fileSystemId, target, "efs", mountOptions); err != nil {
-				os.Remove(target)
-				return nil, status.Errorf(codes.Internal, "Could not mount %q at %q: %v", fileSystemId, target, err)
-			}
-			err = os.RemoveAll(target + accessPoint.AccessPointRootDir)
-			if err != nil {
-				return nil, status.Errorf(codes.Internal, "Could not delete access point root directory %q: %v", accessPoint.AccessPointRootDir, err)
-			}
-			err = d.mounter.Unmount(target)
-			if err != nil {
-				return nil, status.Errorf(codes.Internal, "Could not unmount %q: %v", target, err)
-			}
-			err = os.RemoveAll(target)
-			if err != nil {
-				return nil, status.Errorf(codes.Internal, "Could not delete %q: %v", target, err)
-			}
-		}
-
-		// Delete access point
-		if err = localCloud.DeleteAccessPoint(ctx, accessPointId); err != nil {
+	// Delete access point root directory if delete-access-point-root-dir is set.
+	if d.deleteAccessPointRootDir {
+		// Check if Access point exists.
+		// If access point exists, retrieve its root directory and delete it/
+		accessPoint, err := localCloud.DescribeAccessPoint(ctx, accessPointId)
+		if err != nil {
 			if err == cloud.ErrAccessDenied {
 				return nil, status.Errorf(codes.Unauthenticated, "Access Denied. Please ensure you have the right AWS permissions: %v", err)
 			}
 			if err == cloud.ErrNotFound {
-				klog.V(5).Infof("DeleteVolume: Access Point not found, returning success")
+				klog.V(5).Infof("DeleteVolume: Access Point %v not found, returning success", accessPointId)
 				return &csi.DeleteVolumeResponse{}, nil
 			}
-			return nil, status.Errorf(codes.Internal, "Failed to Delete volume %v: %v", volId, err)
+			return nil, status.Errorf(codes.Internal, "Could not get describe Access Point: %v , error: %v", accessPointId, err)
 		}
-	} else {
-		return nil, status.Errorf(codes.NotFound, "Failed to find access point for volume: %v", volId)
+
+		//Mount File System at it root and delete access point root directory
+		mountOptions := []string{"tls", "iam"}
+		if roleArn != "" {
+			if crossAccountDNSEnabled {
+				// Connect via dns rather than mounttargetip
+				mountOptions = append(mountOptions, CrossAccount)
+			} else {
+				mountTarget, err := localCloud.DescribeMountTargets(ctx, fileSystemId, "")
+				if err == nil {
+					mountOptions = append(mountOptions, MountTargetIp+"="+mountTarget.IPAddress)
+				} else {
+					klog.Warningf("Failed to describe mount targets for file system %v. Skip using `mounttargetip` mount option: %v", fileSystemId, err)
+				}
+			}
+		}
+
+		target := TempMountPathPrefix + "/" + accessPointId
+		if err := d.mounter.MakeDir(target); err != nil {
+			return nil, status.Errorf(codes.Internal, "Could not create dir %q: %v", target, err)
+		}
+		if err := d.mounter.Mount(fileSystemId, target, "efs", mountOptions); err != nil {
+			os.Remove(target)
+			return nil, status.Errorf(codes.Internal, "Could not mount %q at %q: %v", fileSystemId, target, err)
+		}
+		err = os.RemoveAll(target + accessPoint.AccessPointRootDir)
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "Could not delete access point root directory %q: %v", accessPoint.AccessPointRootDir, err)
+		}
+		err = d.mounter.Unmount(target)
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "Could not unmount %q: %v", target, err)
+		}
+		err = os.RemoveAll(target)
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "Could not delete %q: %v", target, err)
+		}
+	}
+
+	// Delete access point
+	if err = localCloud.DeleteAccessPoint(ctx, accessPointId); err != nil {
+		if err == cloud.ErrAccessDenied {
+			return nil, status.Errorf(codes.Unauthenticated, "Access Denied. Please ensure you have the right AWS permissions: %v", err)
+		}
+		if err == cloud.ErrNotFound {
+			klog.V(5).Infof("DeleteVolume: Access Point not found, returning success")
+			return &csi.DeleteVolumeResponse{}, nil
+		}
+		return nil, status.Errorf(codes.Internal, "Failed to Delete volume %v: %v", volId, err)
 	}
 
 	return &csi.DeleteVolumeResponse{}, nil
