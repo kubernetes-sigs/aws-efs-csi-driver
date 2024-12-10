@@ -414,6 +414,7 @@ func (d *Driver) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeRequest)
 	//TODO: Add Delete File System when FS provisioning is implemented
 	// Delete access point root directory if delete-access-point-root-dir is set.
 	if d.deleteAccessPointRootDir {
+		klog.V(4).Infof("DeleteVolume: delete-accesspoint-root-dir is set to true for Access Point %s", accessPointId)
 		// Check if Access point exists.
 		// If access point exists, retrieve its root directory and delete it/
 		accessPoint, err := localCloud.DescribeAccessPoint(ctx, accessPointId)
@@ -422,11 +423,14 @@ func (d *Driver) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeRequest)
 				return nil, status.Errorf(codes.Unauthenticated, "Access Denied. Please ensure you have the right AWS permissions: %v", err)
 			}
 			if err == cloud.ErrNotFound {
-				klog.V(5).Infof("DeleteVolume: Access Point %v not found, returning success", accessPointId)
+				klog.V(4).Infof("DeleteVolume: Access Point %s not found, returning success", accessPointId)
 				return &csi.DeleteVolumeResponse{}, nil
 			}
 			return nil, status.Errorf(codes.Internal, "Could not get describe Access Point: %v , error: %v", accessPointId, err)
 		}
+
+		// Log details about the access point
+		klog.V(5).Infof("DeleteVolume: Access Point %s details - RootDir: %s, FileSystemId: %s", accessPointId, accessPoint.AccessPointRootDir, fileSystemId)
 
 		//Mount File System at it root and delete access point root directory
 		mountOptions := []string{"tls", "iam"}
@@ -445,6 +449,7 @@ func (d *Driver) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeRequest)
 		}
 
 		target := TempMountPathPrefix + "/" + accessPointId
+		klog.V(5).Infof("DeleteVolume: Temporary mount target directory for Access Point %s: %s", accessPointId, target)
 		if err := d.mounter.MakeDir(target); err != nil {
 			return nil, status.Errorf(codes.Internal, "Could not create dir %q: %v", target, err)
 		}
@@ -452,10 +457,16 @@ func (d *Driver) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeRequest)
 			os.Remove(target)
 			return nil, status.Errorf(codes.Internal, "Could not mount %q at %q: %v", fileSystemId, target, err)
 		}
-		err = os.RemoveAll(target + accessPoint.AccessPointRootDir)
+
+		deletePath := target + accessPoint.AccessPointRootDir
+		klog.V(4).Infof("DeleteVolume: Performing deletion of directory: %q", deletePath)
+
+		err = os.RemoveAll(deletePath)
 		if err != nil {
-			return nil, status.Errorf(codes.Internal, "Could not delete access point root directory %q: %v", accessPoint.AccessPointRootDir, err)
+			klog.Errorf("DeleteVolume: Failed to delete directory %q: %v", deletePath, err)
+			return nil, status.Errorf(codes.Internal, "Could not delete directory %q: %v", deletePath, err)
 		}
+		klog.V(4).Infof("DeleteVolume: Successfully deleted directory: %q", deletePath)
 		err = d.mounter.Unmount(target)
 		if err != nil {
 			return nil, status.Errorf(codes.Internal, "Could not unmount %q: %v", target, err)
