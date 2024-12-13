@@ -99,7 +99,7 @@ loudecho "Installing ginkgo to ${BIN_DIR}"
 GINKGO_BIN=${BIN_DIR}/ginkgo
 if [[ ! -e ${GINKGO_BIN} ]]; then
   pushd /tmp
-  GOPATH=${TEST_DIR} GOBIN=${BIN_DIR} GO111MODULE=on go install github.com/onsi/ginkgo/v2/ginkgo@v2.9.0
+  GOPATH=${TEST_DIR} GOBIN=${BIN_DIR} GO111MODULE=on go install github.com/onsi/ginkgo/v2/ginkgo@v2.9.4
   popd
 fi
 
