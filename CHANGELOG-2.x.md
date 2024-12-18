@@ -1,5 +1,3 @@
-# V2.1.2
-* Update k8s dependencies ([#1514](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1514), [@andrewjamesbrown](https://github.com/andrewjamesbrown))
 # V2.1.1
 * Fix volume delete failure for static provisioning when accessPointId is empty ([#1507](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1507), [@dankova22](https://github.com/dankova22))
 * Update Go and dependencies to address CVEs ([#1513](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1513), [@andrewjamesbrown](https://github.com/andrewjamesbrown))
