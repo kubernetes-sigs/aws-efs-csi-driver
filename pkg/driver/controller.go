@@ -460,8 +460,8 @@ func (d *Driver) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeRequest)
 		if err != nil {
 			return nil, status.Errorf(codes.Internal, "Could not unmount %q: %v", target, err)
 		}
-		err = os.RemoveAll(target)
-		if err != nil {
+		err = os.Remove(target)
+		if err != nil && !os.IsNotExist(err) {
 			return nil, status.Errorf(codes.Internal, "Could not delete %q: %v", target, err)
 		}
 	}
