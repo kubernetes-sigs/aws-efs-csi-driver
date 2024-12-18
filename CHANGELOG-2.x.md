@@ -1,4 +1,6 @@
 # V2.1.2
+* Modify delete access point root directory logic to only remove temporary directory if empty ([#1532](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1532), [@jrakas-dev](https://github.com/jrakas-dev))
+* Bump golang.org/x/crypto to v0.31.0 ([#1531](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1531), [@germanparente](https://github.com/germanparente))
 * Update k8s dependencies ([#1514](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1514), [@andrewjamesbrown](https://github.com/andrewjamesbrown))
 # V2.1.1
 * Fix volume delete failure for static provisioning when accessPointId is empty ([#1507](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1507), [@dankova22](https://github.com/dankova22))
