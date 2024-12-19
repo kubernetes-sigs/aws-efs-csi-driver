@@ -1,3 +1,6 @@
+# V2.1.3
+* Fix default value for unhealthyPodEvictionPolicy ([#1524](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1524), [@z0rc](https://github.com/z0rc))
+* Switch to adaptive retry mode to reduce throttling errors ([#1520](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1520), [@dankova22](https://github.com/dankova22))
 # V2.1.2
 * Modify delete access point root directory logic to only remove temporary directory if empty ([#1532](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1532), [@jrakas-dev](https://github.com/jrakas-dev))
 * Bump golang.org/x/crypto to v0.31.0 ([#1531](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1531), [@germanparente](https://github.com/germanparente))
