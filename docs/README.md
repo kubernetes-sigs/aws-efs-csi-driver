@@ -361,6 +361,11 @@ Enabling the vol-metrics-opt-in parameter activates the gathering of inode and d
 ### Upgrading the Amazon EFS CSI Driver
 
 
+### Important Notes on EFS CSI Driver v2 Upgrade
+
+Starting with version 2.X.X, the EFS CSI driver incorporates efs-utils v2.X.X, which introduces a significant change in how TLS encryption for mounts is handled. The previous stunnel component has been replaced by efs-proxy, a custom-built AWS component. To take advantage of the enhanced performance offered by efs-proxy, it's necessary to re-mount any existing file systems after upgrading.
+
+
 #### Upgrade to the latest version:
 If you want to update to latest released version:
 ```sh
