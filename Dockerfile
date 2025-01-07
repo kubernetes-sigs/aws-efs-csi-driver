@@ -77,7 +77,7 @@ RUN clean_install amazon-efs-utils true && \
         /usr/bin/openssl \
         /usr/bin/sed \
         /usr/bin/stat \
-        /usr/bin/stunnel \
+        /usr/bin/stunnel5 \
         /usr/sbin/tcpdump \
         /usr/bin/which && \
     cleanup "efs-csi"
