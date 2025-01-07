@@ -2929,10 +2929,9 @@ func verifyPathWhenUUIDIncluded(pathToVerify string, expectedPathWithoutUUID str
 
 func buildDriver(endpoint string, cloud cloud.Cloud, tags string, mounter Mounter, deleteAccessPointRootDir bool) *Driver {
 	return &Driver{
-		endpoint:                 endpoint,
-		cloud:                    cloud,
-		tags:                     parseTagsFromStr(tags),
-		mounter:                  mounter,
-		deleteAccessPointRootDir: deleteAccessPointRootDir,
+		endpoint:     endpoint,
+		cloud:        cloud,
+		mounter:      mounter,
+		provisioners: getProvisioners(cloud, mounter, parseTagsFromStr(tags), deleteAccessPointRootDir, false),
 	}
 }
