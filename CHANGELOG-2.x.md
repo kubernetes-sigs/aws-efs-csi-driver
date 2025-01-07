@@ -1,3 +1,5 @@
+# V2.1.4
+* Upgrade stunnel to 5 ([#1561](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1561), [@dankova22](https://github.com/dankova22))
 # V2.1.3
 * Fix default value for unhealthyPodEvictionPolicy ([#1524](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1524), [@z0rc](https://github.com/z0rc))
 * Switch to adaptive retry mode to reduce throttling errors ([#1520](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1520), [@dankova22](https://github.com/dankova22))
