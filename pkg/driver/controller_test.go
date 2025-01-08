@@ -21,13 +21,14 @@ import (
 
 func TestCreateVolume(t *testing.T) {
 	var (
-		endpoint            = "endpoint"
-		volumeName          = "volumeName"
-		fsId                = "fs-abcd1234"
-		apId                = "fsap-abcd1234xyz987"
-		volumeId            = "fs-abcd1234::fsap-abcd1234xyz987"
-		capacityRange int64 = 5368709120
-		stdVolCap           = &csi.VolumeCapability{
+		endpoint                      = "endpoint"
+		volumeName                    = "volumeName"
+		fsId                          = "fs-abcd1234"
+		apId                          = "fsap-abcd1234xyz987"
+		volumeId                      = "fs-abcd1234::fsap-abcd1234xyz987"
+		dirProvisioningVolumeId       = "fs-abcd1234:/dynamic/" + volumeName
+		capacityRange           int64 = 5368709120
+		stdVolCap                     = &csi.VolumeCapability{
 			AccessType: &csi.VolumeCapability_Mount{
 				Mount: &csi.VolumeCapability_MountVolume{},
 			},
@@ -46,7 +47,7 @@ func TestCreateVolume(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockCloud := mocks.NewMockCloud(mockCtl)
 
-				driver := buildDriver(endpoint, mockCloud, "", nil, false)
+				driver := buildDriver(endpoint, mockCloud, "", nil, false, false)
 
 				req := &csi.CreateVolumeRequest{
 					Name: volumeName,
@@ -107,7 +108,7 @@ func TestCreateVolume(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockCloud := mocks.NewMockCloud(mockCtl)
 
-				driver := buildDriver(endpoint, mockCloud, "", nil, false)
+				driver := buildDriver(endpoint, mockCloud, "", nil, false, false)
 
 				req := &csi.CreateVolumeRequest{
 					Name: volumeName,
@@ -170,7 +171,7 @@ func TestCreateVolume(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockCloud := mocks.NewMockCloud(mockCtl)
 
-				driver := buildDriver(endpoint, mockCloud, "", nil, false)
+				driver := buildDriver(endpoint, mockCloud, "", nil, false, false)
 
 				req := &csi.CreateVolumeRequest{
 					Name: volumeName,
@@ -248,7 +249,7 @@ func TestCreateVolume(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockCloud := mocks.NewMockCloud(mockCtl)
 
-				driver := buildDriver(endpoint, mockCloud, "", nil, false)
+				driver := buildDriver(endpoint, mockCloud, "", nil, false, false)
 
 				req := &csi.CreateVolumeRequest{
 					Name: volumeName,
@@ -373,7 +374,7 @@ func TestCreateVolume(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockCloud := mocks.NewMockCloud(mockCtl)
 
-				driver := buildDriver(endpoint, mockCloud, "", nil, false)
+				driver := buildDriver(endpoint, mockCloud, "", nil, false, false)
 
 				req := &csi.CreateVolumeRequest{
 					Name: volumeName,
@@ -459,7 +460,7 @@ func TestCreateVolume(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockCloud := mocks.NewMockCloud(mockCtl)
 
-				driver := buildDriver(endpoint, mockCloud, "", nil, false)
+				driver := buildDriver(endpoint, mockCloud, "", nil, false, false)
 
 				req := &csi.CreateVolumeRequest{
 					Name: volumeName,
@@ -509,12 +510,12 @@ func TestCreateVolume(t *testing.T) {
 			},
 		},
 		{
-			name: "Success: Normal flow",
+			name: "Success: Normal flow, Access Point Provisioning",
 			testFunc: func(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockCloud := mocks.NewMockCloud(mockCtl)
 
-				driver := buildDriver(endpoint, mockCloud, "", nil, false)
+				driver := buildDriver(endpoint, mockCloud, "", nil, false, false)
 
 				req := &csi.CreateVolumeRequest{
 					Name: volumeName,
@@ -564,12 +565,57 @@ func TestCreateVolume(t *testing.T) {
 			},
 		},
 		{
+			name: "Success: Normal flow, Directory Provisioning",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockMounter := mocks.NewMockMounter(mockCtl)
+				mockMounter.EXPECT().MakeDir(gomock.Any()).Return(nil)
+				mockMounter.EXPECT().Mount(fsId, gomock.Any(), "efs", gomock.Any()).Return(nil)
+				mockMounter.EXPECT().Unmount(gomock.Any()).Return(nil)
+
+				driver := buildDriver(endpoint, nil, "", mockMounter, false, false)
+
+				req := &csi.CreateVolumeRequest{
+					Name: volumeName,
+					VolumeCapabilities: []*csi.VolumeCapability{
+						stdVolCap,
+					},
+					CapacityRange: &csi.CapacityRange{
+						RequiredBytes: capacityRange,
+					},
+					Parameters: map[string]string{
+						ProvisioningMode: "efs-dir",
+						FsId:             fsId,
+						DirectoryPerms:   "777",
+						BasePath:         "/dynamic",
+					},
+				}
+
+				ctx := context.Background()
+
+				res, err := driver.CreateVolume(ctx, req)
+
+				if err != nil {
+					t.Fatalf("CreateVolume failed: %v", err)
+				}
+
+				if res.Volume == nil {
+					t.Fatal("Volume is nil")
+				}
+
+				if res.Volume.VolumeId != dirProvisioningVolumeId {
+					t.Fatalf("Volume Id mismatched. Expected: %v, Actual: %v", dirProvisioningVolumeId, res.Volume.VolumeId)
+				}
+				mockCtl.Finish()
+			},
+		},
+		{
 			name: "Success: Using Default GID ranges",
 			testFunc: func(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockCloud := mocks.NewMockCloud(mockCtl)
 
-				driver := buildDriver(endpoint, mockCloud, "", nil, false)
+				driver := buildDriver(endpoint, mockCloud, "", nil, false, false)
 
 				req := &csi.CreateVolumeRequest{
 					Name: volumeName,
@@ -621,7 +667,7 @@ func TestCreateVolume(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockCloud := mocks.NewMockCloud(mockCtl)
 
-				driver := buildDriver(endpoint, mockCloud, "cluster:efs", nil, false)
+				driver := buildDriver(endpoint, mockCloud, "cluster:efs", nil, false, false)
 
 				req := &csi.CreateVolumeRequest{
 					Name: volumeName,
@@ -675,7 +721,7 @@ func TestCreateVolume(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockCloud := mocks.NewMockCloud(mockCtl)
 
-				driver := buildDriver(endpoint, mockCloud, "cluster:efs", nil, false)
+				driver := buildDriver(endpoint, mockCloud, "cluster:efs", nil, false, false)
 
 				req := &csi.CreateVolumeRequest{
 					Name: volumeName,
@@ -729,7 +775,7 @@ func TestCreateVolume(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockCloud := mocks.NewMockCloud(mockCtl)
 
-				driver := buildDriver(endpoint, mockCloud, "", nil, false)
+				driver := buildDriver(endpoint, mockCloud, "", nil, false, false)
 
 				pvcNameVal := "test-pvc"
 
@@ -788,7 +834,7 @@ func TestCreateVolume(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockCloud := mocks.NewMockCloud(mockCtl)
 
-				driver := buildDriver(endpoint, mockCloud, "", nil, false)
+				driver := buildDriver(endpoint, mockCloud, "", nil, false, false)
 
 				pvName := "foo"
 				pvcName := "bar"
@@ -853,7 +899,7 @@ func TestCreateVolume(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockCloud := mocks.NewMockCloud(mockCtl)
 
-				driver := buildDriver(endpoint, mockCloud, "", nil, false)
+				driver := buildDriver(endpoint, mockCloud, "", nil, false, false)
 
 				pvcName := "foo"
 				directoryCreated := fmt.Sprintf("/%s", pvcName)
@@ -916,7 +962,7 @@ func TestCreateVolume(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockCloud := mocks.NewMockCloud(mockCtl)
 
-				driver := buildDriver(endpoint, mockCloud, "", nil, false)
+				driver := buildDriver(endpoint, mockCloud, "", nil, false, false)
 
 				pvcName := "foo"
 				basePath := "bash"
@@ -982,7 +1028,7 @@ func TestCreateVolume(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockCloud := mocks.NewMockCloud(mockCtl)
 
-				driver := buildDriver(endpoint, mockCloud, "", nil, false)
+				driver := buildDriver(endpoint, mockCloud, "", nil, false, false)
 
 				pvcName := "foo"
 				basePath := "bash"
@@ -1049,7 +1095,7 @@ func TestCreateVolume(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockCloud := mocks.NewMockCloud(mockCtl)
 
-				driver := buildDriver(endpoint, mockCloud, "", nil, false)
+				driver := buildDriver(endpoint, mockCloud, "", nil, false, false)
 
 				pvcName := "foo"
 				directoryCreated := fmt.Sprintf("/%s", pvcName)
@@ -1113,7 +1159,7 @@ func TestCreateVolume(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockCloud := mocks.NewMockCloud(mockCtl)
 
-				driver := buildDriver(endpoint, mockCloud, "", nil, false)
+				driver := buildDriver(endpoint, mockCloud, "", nil, false, false)
 
 				req := &csi.CreateVolumeRequest{
 					Name: volumeName,
@@ -1173,7 +1219,7 @@ func TestCreateVolume(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockCloud := mocks.NewMockCloud(mockCtl)
 
-				driver := buildDriver(endpoint, mockCloud, "", nil, false)
+				driver := buildDriver(endpoint, mockCloud, "", nil, false, false)
 
 				req := &csi.CreateVolumeRequest{
 					Name: volumeName,
@@ -1234,7 +1280,7 @@ func TestCreateVolume(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockCloud := mocks.NewMockCloud(mockCtl)
 
-				driver := buildDriver(endpoint, mockCloud, "", nil, false)
+				driver := buildDriver(endpoint, mockCloud, "", nil, false, false)
 
 				pvcName := "foo"
 				directoryCreated := fmt.Sprintf("/%s/%s", pvcName, pvcName)
@@ -1297,7 +1343,7 @@ func TestCreateVolume(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockCloud := mocks.NewMockCloud(mockCtl)
 
-				driver := buildDriver(endpoint, mockCloud, "", nil, false)
+				driver := buildDriver(endpoint, mockCloud, "", nil, false, false)
 
 				req := &csi.CreateVolumeRequest{
 					Parameters: map[string]string{
@@ -1321,7 +1367,7 @@ func TestCreateVolume(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockCloud := mocks.NewMockCloud(mockCtl)
 
-				driver := buildDriver(endpoint, mockCloud, "", nil, false)
+				driver := buildDriver(endpoint, mockCloud, "", nil, false, false)
 
 				req := &csi.CreateVolumeRequest{
 					Name: volumeName,
@@ -1346,7 +1392,7 @@ func TestCreateVolume(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockCloud := mocks.NewMockCloud(mockCtl)
 
-				driver := buildDriver(endpoint, mockCloud, "", nil, false)
+				driver := buildDriver(endpoint, mockCloud, "", nil, false, false)
 
 				req := &csi.CreateVolumeRequest{
 					Name: volumeName,
@@ -1374,7 +1420,7 @@ func TestCreateVolume(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockCloud := mocks.NewMockCloud(mockCtl)
 
-				driver := buildDriver(endpoint, mockCloud, "", nil, false)
+				driver := buildDriver(endpoint, mockCloud, "", nil, false, false)
 
 				req := &csi.CreateVolumeRequest{
 					Name: volumeName,
@@ -1412,7 +1458,7 @@ func TestCreateVolume(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockCloud := mocks.NewMockCloud(mockCtl)
 
-				driver := buildDriver(endpoint, mockCloud, "", nil, false)
+				driver := buildDriver(endpoint, mockCloud, "", nil, false, false)
 
 				req := &csi.CreateVolumeRequest{
 					Name: volumeName,
@@ -1455,7 +1501,7 @@ func TestCreateVolume(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockCloud := mocks.NewMockCloud(mockCtl)
 
-				driver := buildDriver(endpoint, mockCloud, "", nil, false)
+				driver := buildDriver(endpoint, mockCloud, "", nil, false, false)
 
 				req := &csi.CreateVolumeRequest{
 					Name: volumeName,
@@ -1493,7 +1539,7 @@ func TestCreateVolume(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockCloud := mocks.NewMockCloud(mockCtl)
 
-				driver := buildDriver(endpoint, mockCloud, "", nil, false)
+				driver := buildDriver(endpoint, mockCloud, "", nil, false, false)
 
 				req := &csi.CreateVolumeRequest{
 					Name: volumeName,
@@ -1524,7 +1570,7 @@ func TestCreateVolume(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockCloud := mocks.NewMockCloud(mockCtl)
 
-				driver := buildDriver(endpoint, mockCloud, "", nil, false)
+				driver := buildDriver(endpoint, mockCloud, "", nil, false, false)
 
 				req := &csi.CreateVolumeRequest{
 					Name: volumeName,
@@ -1554,7 +1600,7 @@ func TestCreateVolume(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockCloud := mocks.NewMockCloud(mockCtl)
 
-				driver := buildDriver(endpoint, mockCloud, "", nil, false)
+				driver := buildDriver(endpoint, mockCloud, "", nil, false, false)
 
 				req := &csi.CreateVolumeRequest{
 					Name: volumeName,
@@ -1584,7 +1630,7 @@ func TestCreateVolume(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockCloud := mocks.NewMockCloud(mockCtl)
 
-				driver := buildDriver(endpoint, mockCloud, "", nil, false)
+				driver := buildDriver(endpoint, mockCloud, "", nil, false, false)
 
 				req := &csi.CreateVolumeRequest{
 					Name: volumeName,
@@ -1615,7 +1661,7 @@ func TestCreateVolume(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockCloud := mocks.NewMockCloud(mockCtl)
 
-				driver := buildDriver(endpoint, mockCloud, "", nil, false)
+				driver := buildDriver(endpoint, mockCloud, "", nil, false, false)
 
 				req := &csi.CreateVolumeRequest{
 					Name: volumeName,
@@ -1647,7 +1693,7 @@ func TestCreateVolume(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockCloud := mocks.NewMockCloud(mockCtl)
 
-				driver := buildDriver(endpoint, mockCloud, "", nil, false)
+				driver := buildDriver(endpoint, mockCloud, "", nil, false, false)
 
 				req := &csi.CreateVolumeRequest{
 					Name: volumeName,
@@ -1679,7 +1725,7 @@ func TestCreateVolume(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockCloud := mocks.NewMockCloud(mockCtl)
 
-				driver := buildDriver(endpoint, mockCloud, "", nil, false)
+				driver := buildDriver(endpoint, mockCloud, "", nil, false, false)
 
 				req := &csi.CreateVolumeRequest{
 					Name: volumeName,
@@ -1711,7 +1757,7 @@ func TestCreateVolume(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockCloud := mocks.NewMockCloud(mockCtl)
 
-				driver := buildDriver(endpoint, mockCloud, "", nil, false)
+				driver := buildDriver(endpoint, mockCloud, "", nil, false, false)
 
 				req := &csi.CreateVolumeRequest{
 					Name: volumeName,
@@ -1743,7 +1789,7 @@ func TestCreateVolume(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockCloud := mocks.NewMockCloud(mockCtl)
 
-				driver := buildDriver(endpoint, mockCloud, "", nil, false)
+				driver := buildDriver(endpoint, mockCloud, "", nil, false, false)
 
 				req := &csi.CreateVolumeRequest{
 					Name: volumeName,
@@ -1775,7 +1821,7 @@ func TestCreateVolume(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockCloud := mocks.NewMockCloud(mockCtl)
 
-				driver := buildDriver(endpoint, mockCloud, "", nil, false)
+				driver := buildDriver(endpoint, mockCloud, "", nil, false, false)
 
 				req := &csi.CreateVolumeRequest{
 					Name: volumeName,
@@ -1807,7 +1853,7 @@ func TestCreateVolume(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockCloud := mocks.NewMockCloud(mockCtl)
 
-				driver := buildDriver(endpoint, mockCloud, "", nil, false)
+				driver := buildDriver(endpoint, mockCloud, "", nil, false, false)
 
 				req := &csi.CreateVolumeRequest{
 					Name: volumeName,
@@ -1840,7 +1886,7 @@ func TestCreateVolume(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockCloud := mocks.NewMockCloud(mockCtl)
 
-				driver := buildDriver(endpoint, mockCloud, "", nil, false)
+				driver := buildDriver(endpoint, mockCloud, "", nil, false, false)
 
 				req := &csi.CreateVolumeRequest{
 					Name: volumeName,
@@ -1873,7 +1919,7 @@ func TestCreateVolume(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockCloud := mocks.NewMockCloud(mockCtl)
 
-				driver := buildDriver(endpoint, mockCloud, "", nil, false)
+				driver := buildDriver(endpoint, mockCloud, "", nil, false, false)
 
 				req := &csi.CreateVolumeRequest{
 					Name: volumeName,
@@ -1905,7 +1951,7 @@ func TestCreateVolume(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockCloud := mocks.NewMockCloud(mockCtl)
 
-				driver := buildDriver(endpoint, mockCloud, "", nil, false)
+				driver := buildDriver(endpoint, mockCloud, "", nil, false, false)
 
 				req := &csi.CreateVolumeRequest{
 					Name: volumeName,
@@ -1937,7 +1983,7 @@ func TestCreateVolume(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockCloud := mocks.NewMockCloud(mockCtl)
 
-				driver := buildDriver(endpoint, mockCloud, "", nil, false)
+				driver := buildDriver(endpoint, mockCloud, "", nil, false, false)
 
 				req := &csi.CreateVolumeRequest{
 					Name: volumeName,
@@ -1973,7 +2019,7 @@ func TestCreateVolume(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockCloud := mocks.NewMockCloud(mockCtl)
 
-				driver := buildDriver(endpoint, mockCloud, "", nil, false)
+				driver := buildDriver(endpoint, mockCloud, "", nil, false, false)
 
 				req := &csi.CreateVolumeRequest{
 					Name: volumeName,
@@ -2007,7 +2053,7 @@ func TestCreateVolume(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockCloud := mocks.NewMockCloud(mockCtl)
 
-				driver := buildDriver(endpoint, mockCloud, "", nil, false)
+				driver := buildDriver(endpoint, mockCloud, "", nil, false, false)
 
 				req := &csi.CreateVolumeRequest{
 					Name: volumeName,
@@ -2043,7 +2089,7 @@ func TestCreateVolume(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockCloud := mocks.NewMockCloud(mockCtl)
 
-				driver := buildDriver(endpoint, mockCloud, "", nil, false)
+				driver := buildDriver(endpoint, mockCloud, "", nil, false, false)
 
 				req := &csi.CreateVolumeRequest{
 					Name: volumeName,
@@ -2077,7 +2123,7 @@ func TestCreateVolume(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockCloud := mocks.NewMockCloud(mockCtl)
 
-				driver := buildDriver(endpoint, mockCloud, "", nil, false)
+				driver := buildDriver(endpoint, mockCloud, "", nil, false, false)
 
 				req := &csi.CreateVolumeRequest{
 					Name: volumeName,
@@ -2113,7 +2159,7 @@ func TestCreateVolume(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockCloud := mocks.NewMockCloud(mockCtl)
 
-				driver := buildDriver(endpoint, mockCloud, "", nil, false)
+				driver := buildDriver(endpoint, mockCloud, "", nil, false, false)
 
 				req := &csi.CreateVolumeRequest{
 					Name: volumeName,
@@ -2147,7 +2193,7 @@ func TestCreateVolume(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockCloud := mocks.NewMockCloud(mockCtl)
 
-				driver := buildDriver(endpoint, mockCloud, "", nil, false)
+				driver := buildDriver(endpoint, mockCloud, "", nil, false, false)
 
 				req := &csi.CreateVolumeRequest{
 					Name: volumeName,
@@ -2182,7 +2228,7 @@ func TestCreateVolume(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockCloud := mocks.NewMockCloud(mockCtl)
 
-				driver := buildDriver(endpoint, mockCloud, "", nil, false)
+				driver := buildDriver(endpoint, mockCloud, "", nil, false, false)
 
 				req := &csi.CreateVolumeRequest{
 					Name: volumeName,
@@ -2217,7 +2263,7 @@ func TestCreateVolume(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockCloud := mocks.NewMockCloud(mockCtl)
 
-				driver := buildDriver(endpoint, mockCloud, "", nil, false)
+				driver := buildDriver(endpoint, mockCloud, "", nil, false, false)
 
 				req := &csi.CreateVolumeRequest{
 					Name: volumeName,
@@ -2272,7 +2318,7 @@ func TestCreateVolume(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockCloud := mocks.NewMockCloud(mockCtl)
 
-				driver := buildDriver(endpoint, mockCloud, "", nil, false)
+				driver := buildDriver(endpoint, mockCloud, "", nil, false, false)
 
 				secrets := map[string]string{}
 				secrets["awsRoleArn"] = "arn:aws:iam::1234567890:role/EFSCrossAccountRole"
@@ -2316,7 +2362,7 @@ func TestCreateVolume(t *testing.T) {
 
 				subPathPattern := "${.PVC.name}/${foo}"
 
-				driver := buildDriver(endpoint, mockCloud, "", nil, false)
+				driver := buildDriver(endpoint, mockCloud, "", nil, false, false)
 
 				req := &csi.CreateVolumeRequest{
 					Name: volumeName,
@@ -2356,7 +2402,7 @@ func TestCreateVolume(t *testing.T) {
 
 				subPathPattern := "this-directory-name-is-far-too-long-for-any-practical-purposes-and-only-serves-to-prove-a-point"
 
-				driver := buildDriver(endpoint, mockCloud, "", nil, false)
+				driver := buildDriver(endpoint, mockCloud, "", nil, false, false)
 
 				req := &csi.CreateVolumeRequest{
 					Name: volumeName,
@@ -2396,7 +2442,7 @@ func TestCreateVolume(t *testing.T) {
 
 				subPathPattern := "a/b/c/d/e/f"
 
-				driver := buildDriver(endpoint, mockCloud, "", nil, false)
+				driver := buildDriver(endpoint, mockCloud, "", nil, false, false)
 
 				req := &csi.CreateVolumeRequest{
 					Name: volumeName,
@@ -2437,10 +2483,11 @@ func TestCreateVolume(t *testing.T) {
 
 func TestDeleteVolume(t *testing.T) {
 	var (
-		apId     = "fsap-abcd1234xyz987"
-		fsId     = "fs-abcd1234"
-		endpoint = "endpoint"
-		volumeId = "fs-abcd1234::fsap-abcd1234xyz987"
+		apId                   = "fsap-abcd1234xyz987"
+		fsId                   = "fs-abcd1234"
+		endpoint               = "endpoint"
+		volumeId               = "fs-abcd1234::fsap-abcd1234xyz987"
+		dirProvisionedVolumeId = "fs-abcd1234:/dynamic/newVolume"
 	)
 
 	testCases := []struct {
@@ -2448,12 +2495,12 @@ func TestDeleteVolume(t *testing.T) {
 		testFunc func(t *testing.T)
 	}{
 		{
-			name: "Success: Normal flow",
+			name: "Success: Normal flow, Access Point Provisioning",
 			testFunc: func(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockCloud := mocks.NewMockCloud(mockCtl)
 
-				driver := buildDriver(endpoint, mockCloud, "", nil, false)
+				driver := buildDriver(endpoint, mockCloud, "", nil, false, false)
 
 				req := &csi.DeleteVolumeRequest{
 					VolumeId: volumeId,
@@ -2469,13 +2516,33 @@ func TestDeleteVolume(t *testing.T) {
 			},
 		},
 		{
+			name: "Success: Normal flow, Directory Provisioning",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockCloud := mocks.NewMockCloud(mockCtl)
+
+				driver := buildDriver(endpoint, mockCloud, "", nil, false, false)
+
+				req := &csi.DeleteVolumeRequest{
+					VolumeId: dirProvisionedVolumeId,
+				}
+
+				ctx := context.Background()
+				_, err := driver.DeleteVolume(ctx, req)
+				if err != nil {
+					t.Fatalf("Delete Volume failed: %v", err)
+				}
+				mockCtl.Finish()
+			},
+		},
+		{
 			name: "Success: Normal flow with deleteAccessPointRootDir",
 			testFunc: func(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockCloud := mocks.NewMockCloud(mockCtl)
 				mockMounter := mocks.NewMockMounter(mockCtl)
 
-				driver := buildDriver(endpoint, mockCloud, "", mockMounter, true)
+				driver := buildDriver(endpoint, mockCloud, "", mockMounter, true, false)
 
 				req := &csi.DeleteVolumeRequest{
 					VolumeId: volumeId,
@@ -2502,13 +2569,37 @@ func TestDeleteVolume(t *testing.T) {
 			},
 		},
 		{
+			name: "Success: Normal flow, Directory Provisioning with deleteProvisionedDir",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockCloud := mocks.NewMockCloud(mockCtl)
+				mockMounter := mocks.NewMockMounter(mockCtl)
+				mockMounter.EXPECT().MakeDir(gomock.Any()).Return(nil)
+				mockMounter.EXPECT().Mount(fsId, gomock.Any(), "efs", gomock.Any()).Return(nil)
+				mockMounter.EXPECT().Unmount(gomock.Any()).Return(nil)
+
+				driver := buildDriver(endpoint, mockCloud, "", mockMounter, false, true)
+
+				req := &csi.DeleteVolumeRequest{
+					VolumeId: dirProvisionedVolumeId,
+				}
+
+				ctx := context.Background()
+				_, err := driver.DeleteVolume(ctx, req)
+				if err != nil {
+					t.Fatalf("Delete Volume failed: %v", err)
+				}
+				mockCtl.Finish()
+			},
+		},
+		{
 			name: "Success: DescribeAccessPoint Access Point Does not exist",
 			testFunc: func(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockCloud := mocks.NewMockCloud(mockCtl)
 				mockMounter := mocks.NewMockMounter(mockCtl)
 
-				driver := buildDriver(endpoint, mockCloud, "", mockMounter, true)
+				driver := buildDriver(endpoint, mockCloud, "", mockMounter, true, false)
 
 				req := &csi.DeleteVolumeRequest{
 					VolumeId: volumeId,
@@ -2530,7 +2621,7 @@ func TestDeleteVolume(t *testing.T) {
 				mockCloud := mocks.NewMockCloud(mockCtl)
 				mockMounter := mocks.NewMockMounter(mockCtl)
 
-				driver := buildDriver(endpoint, mockCloud, "", mockMounter, true)
+				driver := buildDriver(endpoint, mockCloud, "", mockMounter, true, false)
 
 				req := &csi.DeleteVolumeRequest{
 					VolumeId: volumeId,
@@ -2552,7 +2643,7 @@ func TestDeleteVolume(t *testing.T) {
 				mockCloud := mocks.NewMockCloud(mockCtl)
 				mockMounter := mocks.NewMockMounter(mockCtl)
 
-				driver := buildDriver(endpoint, mockCloud, "", mockMounter, true)
+				driver := buildDriver(endpoint, mockCloud, "", mockMounter, true, false)
 
 				req := &csi.DeleteVolumeRequest{
 					VolumeId: volumeId,
@@ -2574,7 +2665,7 @@ func TestDeleteVolume(t *testing.T) {
 				mockCloud := mocks.NewMockCloud(mockCtl)
 				mockMounter := mocks.NewMockMounter(mockCtl)
 
-				driver := buildDriver(endpoint, mockCloud, "", mockMounter, true)
+				driver := buildDriver(endpoint, mockCloud, "", mockMounter, true, false)
 
 				req := &csi.DeleteVolumeRequest{
 					VolumeId: volumeId,
@@ -2604,7 +2695,7 @@ func TestDeleteVolume(t *testing.T) {
 				mockCloud := mocks.NewMockCloud(mockCtl)
 				mockMounter := mocks.NewMockMounter(mockCtl)
 
-				driver := buildDriver(endpoint, mockCloud, "", mockMounter, true)
+				driver := buildDriver(endpoint, mockCloud, "", mockMounter, true, false)
 
 				req := &csi.DeleteVolumeRequest{
 					VolumeId: volumeId,
@@ -2635,7 +2726,7 @@ func TestDeleteVolume(t *testing.T) {
 				mockCloud := mocks.NewMockCloud(mockCtl)
 				mockMounter := mocks.NewMockMounter(mockCtl)
 
-				driver := buildDriver(endpoint, mockCloud, "", mockMounter, true)
+				driver := buildDriver(endpoint, mockCloud, "", mockMounter, true, false)
 
 				req := &csi.DeleteVolumeRequest{
 					VolumeId: volumeId,
@@ -2666,7 +2757,7 @@ func TestDeleteVolume(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockCloud := mocks.NewMockCloud(mockCtl)
 
-				driver := buildDriver(endpoint, mockCloud, "", nil, false)
+				driver := buildDriver(endpoint, mockCloud, "", nil, false, false)
 
 				req := &csi.DeleteVolumeRequest{
 					VolumeId: volumeId,
@@ -2682,12 +2773,28 @@ func TestDeleteVolume(t *testing.T) {
 			},
 		},
 		{
+			name: "Success: Cannot parse details from volumeId",
+			testFunc: func(t *testing.T) {
+				driver := buildDriver(endpoint, nil, "", nil, false, true)
+
+				req := &csi.DeleteVolumeRequest{
+					VolumeId: "foobarbash",
+				}
+
+				ctx := context.Background()
+				_, err := driver.DeleteVolume(ctx, req)
+				if err != nil {
+					t.Fatalf("Expected success but found: %v", err)
+				}
+			},
+		},
+		{
 			name: "Fail: DeleteAccessPoint access denied",
 			testFunc: func(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockCloud := mocks.NewMockCloud(mockCtl)
 
-				driver := buildDriver(endpoint, mockCloud, "", nil, false)
+				driver := buildDriver(endpoint, mockCloud, "", nil, false, false)
 
 				req := &csi.DeleteVolumeRequest{
 					VolumeId: volumeId,
@@ -2708,7 +2815,7 @@ func TestDeleteVolume(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockCloud := mocks.NewMockCloud(mockCtl)
 
-				driver := buildDriver(endpoint, mockCloud, "", nil, false)
+				driver := buildDriver(endpoint, mockCloud, "", nil, false, false)
 
 				req := &csi.DeleteVolumeRequest{
 					VolumeId: volumeId,
@@ -2729,7 +2836,7 @@ func TestDeleteVolume(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockCloud := mocks.NewMockCloud(mockCtl)
 
-				driver := buildDriver(endpoint, mockCloud, "", nil, false)
+				driver := buildDriver(endpoint, mockCloud, "", nil, false, false)
 
 				req := &csi.DeleteVolumeRequest{
 					VolumeId: "fs-abcd1234",
@@ -2749,7 +2856,7 @@ func TestDeleteVolume(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockCloud := mocks.NewMockCloud(mockCtl)
 
-				driver := buildDriver(endpoint, mockCloud, "", nil, false)
+				driver := buildDriver(endpoint, mockCloud, "", nil, false, false)
 
 				secrets := map[string]string{}
 				secrets["awsRoleArn"] = "arn:aws:iam::1234567890:role/EFSCrossAccountRole"
@@ -2808,7 +2915,7 @@ func TestValidateVolumeCapabilities(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockCloud := mocks.NewMockCloud(mockCtl)
 
-				driver := buildDriver(endpoint, mockCloud, "", nil, false)
+				driver := buildDriver(endpoint, mockCloud, "", nil, false, false)
 
 				req := &csi.ValidateVolumeCapabilitiesRequest{
 					VolumeId: volumeId,
@@ -2835,7 +2942,7 @@ func TestValidateVolumeCapabilities(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockCloud := mocks.NewMockCloud(mockCtl)
 
-				driver := buildDriver(endpoint, mockCloud, "", nil, false)
+				driver := buildDriver(endpoint, mockCloud, "", nil, false, false)
 
 				req := &csi.ValidateVolumeCapabilitiesRequest{
 					VolumeId: volumeId,
@@ -2862,7 +2969,7 @@ func TestValidateVolumeCapabilities(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockCloud := mocks.NewMockCloud(mockCtl)
 
-				driver := buildDriver(endpoint, mockCloud, "", nil, false)
+				driver := buildDriver(endpoint, mockCloud, "", nil, false, false)
 
 				req := &csi.ValidateVolumeCapabilitiesRequest{
 					VolumeCapabilities: []*csi.VolumeCapability{
@@ -2884,7 +2991,7 @@ func TestValidateVolumeCapabilities(t *testing.T) {
 				mockCtl := gomock.NewController(t)
 				mockCloud := mocks.NewMockCloud(mockCtl)
 
-				driver := buildDriver(endpoint, mockCloud, "", nil, false)
+				driver := buildDriver(endpoint, mockCloud, "", nil, false, false)
 
 				req := &csi.ValidateVolumeCapabilitiesRequest{
 					VolumeId: volumeId,
@@ -2896,6 +3003,20 @@ func TestValidateVolumeCapabilities(t *testing.T) {
 					t.Fatal("ValidateVolumeCapabilities did not fail")
 				}
 				mockCtl.Finish()
+			},
+		},
+		{
+			name: "Fail: volumeId not provided",
+			testFunc: func(t *testing.T) {
+				driver := buildDriver(endpoint, nil, "", nil, false, true)
+
+				req := &csi.DeleteVolumeRequest{}
+
+				ctx := context.Background()
+				_, err := driver.DeleteVolume(ctx, req)
+				if err == nil {
+					t.Fatal("Expected failure but operation succeeded")
+				}
 			},
 		},
 	}
@@ -2910,7 +3031,7 @@ func TestControllerGetCapabilities(t *testing.T) {
 	mockCtl := gomock.NewController(t)
 	mockCloud := mocks.NewMockCloud(mockCtl)
 
-	driver := buildDriver(endpoint, mockCloud, "", nil, false)
+	driver := buildDriver(endpoint, mockCloud, "", nil, false, false)
 
 	ctx := context.Background()
 	_, err := driver.ControllerGetCapabilities(ctx, &csi.ControllerGetCapabilitiesRequest{})
@@ -2927,11 +3048,11 @@ func verifyPathWhenUUIDIncluded(pathToVerify string, expectedPathWithoutUUID str
 	return err == nil && doesPathMatchWithUuid
 }
 
-func buildDriver(endpoint string, cloud cloud.Cloud, tags string, mounter Mounter, deleteAccessPointRootDir bool) *Driver {
+func buildDriver(endpoint string, cloud cloud.Cloud, tags string, mounter Mounter, deleteAccessPointRootDir bool, deleteProvisionedDir bool) *Driver {
 	return &Driver{
 		endpoint:     endpoint,
 		cloud:        cloud,
 		mounter:      mounter,
-		provisioners: getProvisioners(cloud, mounter, parseTagsFromStr(tags), deleteAccessPointRootDir, false, &FakeOsClient{}, false),
+		provisioners: getProvisioners(cloud, mounter, parseTagsFromStr(tags), deleteAccessPointRootDir, false, &FakeOsClient{}, deleteProvisionedDir),
 	}
 }
