@@ -28,7 +28,7 @@ ENV EFS_CLIENT_SOURCE=$client_source
 
 RUN OS=${TARGETOS} ARCH=${TARGETARCH} make $TARGETOS/$TARGETARCH
 
-FROM public.ecr.aws/eks-distro-build-tooling/python:3.9.14-gcc-al2 as rpm-provider
+FROM public.ecr.aws/eks-distro-build-tooling/python:3.11-gcc-al23 as rpm-provider
 
 # Install efs-utils from github by default. It can be overriden to `yum` with --build-arg when building the Docker image.
 # If value of `EFSUTILSSOURCE` build arg is overriden with `yum`, docker will install efs-utils from Amazon Linux 2's yum repo.
@@ -55,7 +55,7 @@ RUN mkdir -p /tmp/rpms && \
 RUN pip3 install --user botocore
 
 # This image is equivalent to the eks-distro-minimal-base-python image but with pip installed as well
-FROM public.ecr.aws/eks-distro-build-tooling/eks-distro-minimal-base-python-builder:3.9.14-al2 as rpm-installer
+FROM public.ecr.aws/eks-distro-build-tooling/eks-distro-minimal-base-python-builder:3.11-al23 as rpm-installer
 
 COPY --from=rpm-provider /tmp/rpms/* /tmp/download/
 
@@ -69,6 +69,7 @@ RUN clean_install amazon-efs-utils true && \
         /usr/bin/env \
         /usr/bin/find \
         /usr/bin/grep \
+        /usr/bin/ln \
         /usr/bin/ls \
         /usr/bin/mount \
         /usr/bin/umount \
@@ -76,7 +77,7 @@ RUN clean_install amazon-efs-utils true && \
         /usr/bin/openssl \
         /usr/bin/sed \
         /usr/bin/stat \
-        /usr/bin/stunnel5 \
+        /usr/bin/stunnel \
         /usr/sbin/tcpdump \
         /usr/bin/which && \
     cleanup "efs-csi"
@@ -88,12 +89,15 @@ RUN clean_install amazon-efs-utils true && \
 # Those static files need to be copied back to the config directory when the driver starts up.
 RUN mv /newroot/etc/amazon/efs /newroot/etc/amazon/efs-static-files
 
-FROM public.ecr.aws/eks-distro-build-tooling/eks-distro-minimal-base-python:3.9.14-al2 AS linux-amazon
+FROM public.ecr.aws/eks-distro-build-tooling/eks-distro-minimal-base-python:3.11-al23 AS linux-amazon
 
 COPY --from=rpm-installer /newroot /
-COPY --from=rpm-provider /root/.local/lib/python3.9/site-packages/ /usr/lib/python3.9/site-packages/
+COPY --from=rpm-provider /root/.local/lib/python3.11/site-packages/ /usr/lib/python3.11/site-packages/
 
 COPY --from=go-builder /go/src/github.com/kubernetes-sigs/aws-efs-csi-driver/bin/aws-efs-csi-driver /bin/aws-efs-csi-driver
 COPY THIRD-PARTY /
+
+# Create a symbolic link for stunnel5 to stunnel (for backward compatibility)
+RUN if [ -f /usr/bin/stunnel ]; then ln -s /usr/bin/stunnel /usr/bin/stunnel5; fi
 
 ENTRYPOINT ["/bin/aws-efs-csi-driver"]
