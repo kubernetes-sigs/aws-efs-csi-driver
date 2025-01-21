@@ -82,7 +82,7 @@ func TestCreateAccessPoint(t *testing.T) {
 				}
 
 				ctx := context.Background()
-				mockEfs.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Any()).Return(output, nil)
+				mockEfs.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(output, nil)
 				res, err := c.CreateAccessPoint(ctx, clientToken, req)
 
 				if err != nil {
@@ -119,7 +119,7 @@ func TestCreateAccessPoint(t *testing.T) {
 				}
 
 				ctx := context.Background()
-				mockEfs.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Any()).Return(nil, errors.New("CreateAccessPoint failed"))
+				mockEfs.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(nil, errors.New("CreateAccessPoint failed"))
 				_, err := c.CreateAccessPoint(ctx, clientToken, req)
 				if err == nil {
 					t.Fatalf("CreateAccessPoint did not fail")
@@ -143,7 +143,7 @@ func TestCreateAccessPoint(t *testing.T) {
 				}
 
 				ctx := context.Background()
-				mockEfs.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Any()).Return(nil,
+				mockEfs.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(nil,
 					&smithy.GenericAPIError{
 						Code:    AccessDeniedException,
 						Message: "Access Denied",
@@ -182,7 +182,7 @@ func TestDeleteAccessPoint(t *testing.T) {
 
 				output := &efs.DeleteAccessPointOutput{}
 				ctx := context.Background()
-				mockEfs.EXPECT().DeleteAccessPoint(gomock.Eq(ctx), gomock.Any()).Return(output, nil)
+				mockEfs.EXPECT().DeleteAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(output, nil)
 				err := c.DeleteAccessPoint(ctx, accessPointId)
 				if err != nil {
 					t.Fatalf("Delete Access Point failed: %v", err)
@@ -198,7 +198,7 @@ func TestDeleteAccessPoint(t *testing.T) {
 				mockEfs := mocks.NewMockEfs(mockctl)
 				c := &cloud{efs: mockEfs}
 				ctx := context.Background()
-				mockEfs.EXPECT().DeleteAccessPoint(gomock.Eq(ctx), gomock.Any()).Return(nil,
+				mockEfs.EXPECT().DeleteAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(nil,
 					&types.AccessPointNotFound{
 						Message: aws.String("Access Point not found"),
 					})
@@ -219,7 +219,7 @@ func TestDeleteAccessPoint(t *testing.T) {
 				mockEfs := mocks.NewMockEfs(mockctl)
 				c := &cloud{efs: mockEfs}
 				ctx := context.Background()
-				mockEfs.EXPECT().DeleteAccessPoint(gomock.Eq(ctx), gomock.Any()).Return(nil,
+				mockEfs.EXPECT().DeleteAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(nil,
 					&smithy.GenericAPIError{
 						Code:    AccessDeniedException,
 						Message: "Access Denied",
@@ -242,7 +242,7 @@ func TestDeleteAccessPoint(t *testing.T) {
 				c := &cloud{efs: mockEfs}
 
 				ctx := context.Background()
-				mockEfs.EXPECT().DeleteAccessPoint(gomock.Eq(ctx), gomock.Any()).Return(nil, errors.New("DeleteAccessPoint failed"))
+				mockEfs.EXPECT().DeleteAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(nil, errors.New("DeleteAccessPoint failed"))
 				err := c.DeleteAccessPoint(ctx, accessPointId)
 				if err == nil {
 					t.Fatalf("DeleteAccessPoint did not fail")
@@ -302,7 +302,7 @@ func TestDescribeAccessPoint(t *testing.T) {
 					NextToken: nil,
 				}
 				ctx := context.Background()
-				mockEfs.EXPECT().DescribeAccessPoints(gomock.Eq(ctx), gomock.Any()).Return(output, nil)
+				mockEfs.EXPECT().DescribeAccessPoints(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(output, nil)
 				res, err := c.DescribeAccessPoint(ctx, accessPointId)
 				if err != nil {
 					t.Fatalf("Describe Access Point failed: %v", err)
@@ -350,7 +350,7 @@ func TestDescribeAccessPoint(t *testing.T) {
 					NextToken: nil,
 				}
 				ctx := context.Background()
-				mockEfs.EXPECT().DescribeAccessPoints(gomock.Eq(ctx), gomock.Any()).Return(output, nil)
+				mockEfs.EXPECT().DescribeAccessPoints(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(output, nil)
 				res, err := c.DescribeAccessPoint(ctx, accessPointId)
 				if err != nil {
 					t.Fatalf("Describe Access Point failed: %v", err)
@@ -382,7 +382,7 @@ func TestDescribeAccessPoint(t *testing.T) {
 					NextToken:    nil,
 				}
 				ctx := context.Background()
-				mockEfs.EXPECT().DescribeAccessPoints(gomock.Eq(ctx), gomock.Any()).Return(output, nil)
+				mockEfs.EXPECT().DescribeAccessPoints(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(output, nil)
 				_, err := c.DescribeAccessPoint(ctx, accessPointId)
 				if err == nil {
 					t.Fatalf("DescribeAccessPoint did not fail")
@@ -441,7 +441,7 @@ func TestDescribeAccessPoint(t *testing.T) {
 					NextToken: nil,
 				}
 				ctx := context.Background()
-				mockEfs.EXPECT().DescribeAccessPoints(gomock.Eq(ctx), gomock.Any()).Return(output, nil)
+				mockEfs.EXPECT().DescribeAccessPoints(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(output, nil)
 				_, err := c.DescribeAccessPoint(ctx, accessPointId)
 				if err == nil {
 					t.Fatalf("DescribeAccessPoint did not fail")
@@ -457,7 +457,7 @@ func TestDescribeAccessPoint(t *testing.T) {
 				c := &cloud{efs: mockEfs}
 
 				ctx := context.Background()
-				mockEfs.EXPECT().DescribeAccessPoints(gomock.Eq(ctx), gomock.Any()).Return(nil,
+				mockEfs.EXPECT().DescribeAccessPoints(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(nil,
 					&types.AccessPointNotFound{
 						Message: aws.String("Access Point not found"),
 					})
@@ -479,7 +479,7 @@ func TestDescribeAccessPoint(t *testing.T) {
 				c := &cloud{efs: mockEfs}
 
 				ctx := context.Background()
-				mockEfs.EXPECT().DescribeAccessPoints(gomock.Eq(ctx), gomock.Any()).Return(nil,
+				mockEfs.EXPECT().DescribeAccessPoints(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(nil,
 					&smithy.GenericAPIError{
 						Code:    AccessDeniedException,
 						Message: "Access Denied",
@@ -502,7 +502,7 @@ func TestDescribeAccessPoint(t *testing.T) {
 				c := &cloud{efs: mockEfs}
 
 				ctx := context.Background()
-				mockEfs.EXPECT().DescribeAccessPoints(gomock.Eq(ctx), gomock.Any()).Return(nil, errors.New("DescribeAccessPoint failed"))
+				mockEfs.EXPECT().DescribeAccessPoints(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(nil, errors.New("DescribeAccessPoint failed"))
 				_, err := c.DescribeAccessPoint(ctx, accessPointId)
 				if err == nil {
 					t.Fatalf("DescribeAccessPoint did not fail")
@@ -555,7 +555,7 @@ func TestFindAccessPointByClientToken(t *testing.T) {
 				}
 
 				ctx := context.Background()
-				mockEfs.EXPECT().DescribeAccessPoints(gomock.Eq(ctx), gomock.Any()).Return(output, nil)
+				mockEfs.EXPECT().DescribeAccessPoints(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(output, nil)
 				res, err := c.FindAccessPointByClientToken(ctx, clientToken, fsId)
 				if err != nil {
 					t.Fatalf("Find Access Point by Client Token failed: %v", err)
@@ -594,7 +594,7 @@ func TestFindAccessPointByClientToken(t *testing.T) {
 				}
 
 				ctx := context.Background()
-				mockEfs.EXPECT().DescribeAccessPoints(gomock.Eq(ctx), gomock.Any()).Return(output, nil)
+				mockEfs.EXPECT().DescribeAccessPoints(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(output, nil)
 				res, err := c.FindAccessPointByClientToken(ctx, clientToken, fsId)
 				if err != nil {
 					t.Fatalf("Find Access Point by Client Token failed: %v", err)
@@ -614,7 +614,7 @@ func TestFindAccessPointByClientToken(t *testing.T) {
 				mockEfs := mocks.NewMockEfs(mockctl)
 				c := &cloud{efs: mockEfs}
 				ctx := context.Background()
-				mockEfs.EXPECT().DescribeAccessPoints(gomock.Eq(ctx), gomock.Any()).Return(nil,
+				mockEfs.EXPECT().DescribeAccessPoints(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(nil,
 					&smithy.GenericAPIError{
 						Code:    AccessDeniedException,
 						Message: "Access Denied",
@@ -666,7 +666,7 @@ func TestListAccessPoints(t *testing.T) {
 				}
 
 				ctx := context.Background()
-				mockEfs.EXPECT().DescribeAccessPoints(gomock.Eq(ctx), gomock.Any()).Return(output, nil)
+				mockEfs.EXPECT().DescribeAccessPoints(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(output, nil)
 				res, err := c.ListAccessPoints(ctx, fsId)
 				if err != nil {
 					t.Fatalf("List Access Points failed: %v", err)
@@ -713,7 +713,7 @@ func TestListAccessPoints(t *testing.T) {
 				}
 
 				ctx := context.Background()
-				mockEfs.EXPECT().DescribeAccessPoints(gomock.Eq(ctx), gomock.Any()).Return(output, nil)
+				mockEfs.EXPECT().DescribeAccessPoints(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(output, nil)
 				res, err := c.ListAccessPoints(ctx, fsId)
 				if err != nil {
 					t.Fatalf("List Access Points failed: %v", err)
@@ -737,7 +737,7 @@ func TestListAccessPoints(t *testing.T) {
 				mockEfs := mocks.NewMockEfs(mockctl)
 				c := &cloud{efs: mockEfs}
 				ctx := context.Background()
-				mockEfs.EXPECT().DescribeAccessPoints(gomock.Eq(ctx), gomock.Any()).Return(nil,
+				mockEfs.EXPECT().DescribeAccessPoints(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(nil,
 					&smithy.GenericAPIError{
 						Code:    AccessDeniedException,
 						Message: "Access Denied",
@@ -784,8 +784,8 @@ func TestDescribeFileSystem(t *testing.T) {
 				}
 
 				ctx := context.Background()
-				mockEfs.EXPECT().DescribeFileSystems(gomock.Eq(ctx), gomock.Any()).Return(output, nil)
-				res, err := c.DescribeFileSystemById(ctx, fsId)
+				mockEfs.EXPECT().DescribeFileSystems(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(output, nil)
+				res, err := c.DescribeFileSystem(ctx, fsId)
 				if err != nil {
 					t.Fatalf("Describe File System failed: %v", err)
 				}
@@ -812,8 +812,8 @@ func TestDescribeFileSystem(t *testing.T) {
 				}
 
 				ctx := context.Background()
-				mockEfs.EXPECT().DescribeFileSystems(gomock.Eq(ctx), gomock.Any()).Return(output, nil)
-				_, err := c.DescribeFileSystemById(ctx, fsId)
+				mockEfs.EXPECT().DescribeFileSystems(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(output, nil)
+				_, err := c.DescribeFileSystem(ctx, fsId)
 				if err == nil {
 					t.Fatalf("DescribeFileSystem did not fail")
 				}
@@ -847,8 +847,8 @@ func TestDescribeFileSystem(t *testing.T) {
 				}
 
 				ctx := context.Background()
-				mockEfs.EXPECT().DescribeFileSystems(gomock.Eq(ctx), gomock.Any()).Return(output, nil)
-				_, err := c.DescribeFileSystemById(ctx, fsId)
+				mockEfs.EXPECT().DescribeFileSystems(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(output, nil)
+				_, err := c.DescribeFileSystem(ctx, fsId)
 				if err == nil {
 					t.Fatalf("DescribeFileSystem did not fail")
 				}
@@ -863,7 +863,7 @@ func TestDescribeFileSystem(t *testing.T) {
 				c := &cloud{efs: mockEfs}
 
 				ctx := context.Background()
-				mockEfs.EXPECT().DescribeFileSystems(gomock.Eq(ctx), gomock.Any()).Return(nil,
+				mockEfs.EXPECT().DescribeFileSystems(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(nil,
 					&types.FileSystemNotFound{
 						Message: aws.String("File System not found"),
 					})
@@ -885,7 +885,7 @@ func TestDescribeFileSystem(t *testing.T) {
 				c := &cloud{efs: mockEfs}
 
 				ctx := context.Background()
-				mockEfs.EXPECT().DescribeFileSystems(gomock.Eq(ctx), gomock.Any()).Return(nil,
+				mockEfs.EXPECT().DescribeFileSystems(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(nil,
 					&smithy.GenericAPIError{
 						Code:    AccessDeniedException,
 						Message: "Access Denied",
@@ -908,8 +908,8 @@ func TestDescribeFileSystem(t *testing.T) {
 				c := &cloud{efs: mockEfs}
 
 				ctx := context.Background()
-				mockEfs.EXPECT().DescribeFileSystems(gomock.Eq(ctx), gomock.Any()).Return(nil, errors.New("DescribeFileSystem failed"))
-				_, err := c.DescribeFileSystemById(ctx, fsId)
+				mockEfs.EXPECT().DescribeFileSystems(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(nil, errors.New("DescribeFileSystem failed"))
+				_, err := c.DescribeFileSystem(ctx, fsId)
 				if err == nil {
 					t.Fatalf("DescribeFileSystem did not fail")
 				}
@@ -1305,12 +1305,12 @@ func Test_findAccessPointByPath(t *testing.T) {
 		wantErr         bool
 	}{
 		{name: "Expected_ClientToken_Not_Found", args: args{clientToken, &AccessPointOptions{FileSystemId: fsId, DirectoryPath: dirPath}}, prepare: func(mockEfs *mocks.MockEfs) {
-			mockEfs.EXPECT().DescribeAccessPoints(gomock.Any(), gomock.Any()).Return(&efs.DescribeAccessPointsOutput{
+			mockEfs.EXPECT().DescribeAccessPoints(gomock.Any(), gomock.Any(), gomock.Any()).Return(&efs.DescribeAccessPointsOutput{
 				AccessPoints: []types.AccessPointDescription{{FileSystemId: aws.String(fsId), ClientToken: diffClientToken, AccessPointId: aws.String(expectedSingleAP.AccessPointId), RootDirectory: &types.RootDirectory{Path: aws.String("differentPath")}}},
 			}, nil)
 		}, wantAccessPoint: nil, wantErr: false},
 		{name: "Expected_Path_Found_In_Multiple_APs_And_One_AP_Filtered_By_ClientToken", args: args{clientToken, &AccessPointOptions{FileSystemId: fsId, DirectoryPath: dirPath}}, prepare: func(mockEfs *mocks.MockEfs) {
-			mockEfs.EXPECT().DescribeAccessPoints(gomock.Any(), gomock.Any()).Return(&efs.DescribeAccessPointsOutput{
+			mockEfs.EXPECT().DescribeAccessPoints(gomock.Any(), gomock.Any(), gomock.Any()).Return(&efs.DescribeAccessPointsOutput{
 				AccessPoints: []types.AccessPointDescription{
 					{FileSystemId: aws.String(fsId), ClientToken: diffClientToken, AccessPointId: aws.String("differentApId"), RootDirectory: &types.RootDirectory{Path: aws.String(expectedSingleAP.AccessPointRootDir)}},
 					{FileSystemId: aws.String(fsId), ClientToken: &clientToken, AccessPointId: aws.String(expectedSingleAP.AccessPointId), RootDirectory: &types.RootDirectory{Path: aws.String(expectedSingleAP.AccessPointRootDir)}},
@@ -1318,7 +1318,7 @@ func Test_findAccessPointByPath(t *testing.T) {
 			}, nil)
 		}, wantAccessPoint: expectedSingleAP, wantErr: false},
 		{name: "Fail_DescribeAccessPoints", args: args{clientToken, &AccessPointOptions{FileSystemId: fsId, DirectoryPath: dirPath}}, prepare: func(mockEfs *mocks.MockEfs) {
-			mockEfs.EXPECT().DescribeAccessPoints(gomock.Any(), gomock.Any()).Return(nil, errors.New("access_denied"))
+			mockEfs.EXPECT().DescribeAccessPoints(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("access_denied"))
 		}, wantAccessPoint: nil, wantErr: true},
 	}
 	for _, tt := range tests {

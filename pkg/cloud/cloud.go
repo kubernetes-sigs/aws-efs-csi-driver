@@ -115,21 +115,22 @@ type Cloud interface {
 type cloud struct {
 	metadata MetadataService
 	efs      Efs
+	rm       *retryManager
 }
 
 // NewCloud returns a new instance of AWS cloud
 // It panics if session is invalid
-func NewCloud() (Cloud, error) {
-	return createCloud("")
+func NewCloud(adaptiveRetryMode bool) (Cloud, error) {
+	return createCloud("", adaptiveRetryMode)
 }
 
 // NewCloudWithRole returns a new instance of AWS cloud after assuming an aws role
 // It panics if driver does not have permissions to assume role.
-func NewCloudWithRole(awsRoleArn string) (Cloud, error) {
-	return createCloud(awsRoleArn)
+func NewCloudWithRole(awsRoleArn string, adaptiveRetryMode bool) (Cloud, error) {
+	return createCloud(awsRoleArn, adaptiveRetryMode)
 }
 
-func createCloud(awsRoleArn string) (Cloud, error) {
+func createCloud(awsRoleArn string, adaptiveRetryMode bool) (Cloud, error) {
 	cfg, err := config.LoadDefaultConfig(context.TODO())
 	if err != nil {
 		klog.Warningf("Could not load config: %v", err)
@@ -152,12 +153,15 @@ func createCloud(awsRoleArn string) (Cloud, error) {
 		return nil, fmt.Errorf("could not get metadata: %v", err)
 	}
 
+	rm := newRetryManager(adaptiveRetryMode)
+
 	efs_client := createEfsClient(awsRoleArn, metadata)
 	klog.V(5).Infof("EFS Client created using the following endpoint: %+v", cfg.BaseEndpoint)
 
 	return &cloud{
 		metadata: metadata,
 		efs:      efs_client,
+		rm:       rm,
 	}, nil
 }
 
@@ -196,7 +200,9 @@ func (c *cloud) CreateAccessPoint(ctx context.Context, clientToken string, acces
 	}
 
 	klog.V(5).Infof("Calling Create AP with input: %+v", *createAPInput)
-	res, err := c.efs.CreateAccessPoint(ctx, createAPInput)
+	res, err := c.efs.CreateAccessPoint(ctx, createAPInput, func(o *efs.Options) {
+		o.Retryer = c.rm.createAccessPointRetryer
+	})
 	if err != nil {
 		if isAccessDenied(err) {
 			return nil, ErrAccessDenied
@@ -214,7 +220,9 @@ func (c *cloud) CreateAccessPoint(ctx context.Context, clientToken string, acces
 
 func (c *cloud) DeleteAccessPoint(ctx context.Context, accessPointId string) (err error) {
 	deleteAccessPointInput := &efs.DeleteAccessPointInput{AccessPointId: &accessPointId}
-	_, err = c.efs.DeleteAccessPoint(ctx, deleteAccessPointInput)
+	_, err = c.efs.DeleteAccessPoint(ctx, deleteAccessPointInput, func(o *efs.Options) {
+		o.Retryer = c.rm.deleteAccessPointRetryer
+	})
 	if err != nil {
 		if isAccessDenied(err) {
 			return ErrAccessDenied
@@ -232,7 +240,9 @@ func (c *cloud) DescribeAccessPoint(ctx context.Context, accessPointId string) (
 	describeAPInput := &efs.DescribeAccessPointsInput{
 		AccessPointId: &accessPointId,
 	}
-	res, err := c.efs.DescribeAccessPoints(ctx, describeAPInput)
+	res, err := c.efs.DescribeAccessPoints(ctx, describeAPInput, func(o *efs.Options) {
+		o.Retryer = c.rm.describeAccessPointsRetryer
+	})
 	if err != nil {
 		if isAccessDenied(err) {
 			return nil, ErrAccessDenied
@@ -262,7 +272,9 @@ func (c *cloud) FindAccessPointByClientToken(ctx context.Context, clientToken, f
 		FileSystemId: &fileSystemId,
 		MaxResults:   aws.Int32(AccessPointPerFsLimit),
 	}
-	res, err := c.efs.DescribeAccessPoints(ctx, describeAPInput)
+	res, err := c.efs.DescribeAccessPoints(ctx, describeAPInput, func(o *efs.Options) {
+		o.Retryer = c.rm.describeAccessPointsRetryer
+	})
 	if err != nil {
 		if isAccessDenied(err) {
 			return nil, ErrAccessDenied
@@ -292,7 +304,9 @@ func (c *cloud) ListAccessPoints(ctx context.Context, fileSystemId string) (acce
 		FileSystemId: &fileSystemId,
 		MaxResults:   aws.Int32(AccessPointPerFsLimit),
 	}
-	res, err := c.efs.DescribeAccessPoints(ctx, describeAPInput)
+	res, err := c.efs.DescribeAccessPoints(ctx, describeAPInput, func(o *efs.Options) {
+		o.Retryer = c.rm.describeAccessPointsRetryer
+	})
 	if err != nil {
 		if isAccessDenied(err) {
 			return nil, ErrAccessDenied
@@ -362,7 +376,9 @@ func (c *cloud) DescribeFileSystemByToken(ctx context.Context, creationToken str
 func (c *cloud) DescribeFileSystemById(ctx context.Context, fileSystemId string) (fs *FileSystem, err error) {
 	describeFsInput := &efs.DescribeFileSystemsInput{FileSystemId: &fileSystemId}
 	klog.V(5).Infof("Calling DescribeFileSystems with input: %+v", *describeFsInput)
-	res, err := c.efs.DescribeFileSystems(ctx, describeFsInput)
+	res, err := c.efs.DescribeFileSystems(ctx, describeFsInput, func(o *efs.Options) {
+		o.Retryer = c.rm.describeFileSystemsRetryer
+	})
 	if err != nil {
 		if isAccessDenied(err) {
 			return nil, ErrAccessDenied
@@ -385,7 +401,9 @@ func (c *cloud) DescribeFileSystemById(ctx context.Context, fileSystemId string)
 func (c *cloud) DescribeMountTargets(ctx context.Context, fileSystemId, azName string) (fs *MountTarget, err error) {
 	describeMtInput := &efs.DescribeMountTargetsInput{FileSystemId: &fileSystemId}
 	klog.V(5).Infof("Calling DescribeMountTargets with input: %+v", *describeMtInput)
-	res, err := c.efs.DescribeMountTargets(ctx, describeMtInput)
+	res, err := c.efs.DescribeMountTargets(ctx, describeMtInput, func(o *efs.Options) {
+		o.Retryer = c.rm.describeMountTargetsRetryer
+	})
 	if err != nil {
 		if isAccessDenied(err) {
 			return nil, ErrAccessDenied

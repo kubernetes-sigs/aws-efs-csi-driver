@@ -484,8 +484,8 @@ func (d *Driver) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeRequest)
 		if err != nil {
 			return nil, status.Errorf(codes.Internal, "Could not unmount %q: %v", target, err)
 		}
-		err = os.RemoveAll(target)
-		if err != nil {
+		err = os.Remove(target)
+		if err != nil && !os.IsNotExist(err) {
 			return nil, status.Errorf(codes.Internal, "Could not delete %q: %v", target, err)
 		}
 	}
@@ -606,7 +606,7 @@ func getCloud(secrets map[string]string, driver *Driver) (cloud.Cloud, string, b
 	}
 
 	if roleArn != "" {
-		localCloud, err = cloud.NewCloudWithRole(roleArn)
+		localCloud, err = cloud.NewCloudWithRole(roleArn, driver.adaptiveRetryMode)
 		if err != nil {
 			return nil, "", false, status.Errorf(codes.Unauthenticated, "Unable to initialize aws cloud: %v. Please verify role has the correct AWS permissions for cross account mount", err)
 		}
