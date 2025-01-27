@@ -77,6 +77,8 @@ spec:
             - --feature-gates=Topology=true
             - --extra-create-metadata
             - --leader-election
+            - --worker-threads=100
+            - --timeout=15s
           env:
             - name: ADDRESS
               value: /var/lib/csi/sockets/pluginproxy/csi.sock
