@@ -572,7 +572,7 @@ func TestDirectoryProvisioner_GetMountOptions_NoRoleArnGivesStandardOptions(t *t
 	ctx := context.Background()
 	expectedOptions := []string{"tls", "iam"}
 
-	options, _ := getMountOptions(ctx, mockCloud, fileSystemId, "", false)
+	options, _, _ := getMountOptions(ctx, mockCloud, fileSystemId, "", false, "")
 
 	if !reflect.DeepEqual(options, expectedOptions) {
 		t.Fatalf("Expected returned options to be %v but was %v", expectedOptions, options)
@@ -589,14 +589,18 @@ func TestDirectoryProvisioner_GetMountOptions_RoleArnAddsMountTargetIp(t *testin
 		IPAddress:     "8.8.8.8",
 	}
 	ctx := context.Background()
-	mockCloud.EXPECT().DescribeMountTargets(ctx, fileSystemId, "").Return(&fakeMountTarget, nil)
+	mockCloud.EXPECT().DescribeMountTargets(ctx, fileSystemId, "foo").Return(&fakeMountTarget, nil)
 
 	expectedOptions := []string{"tls", "iam", MountTargetIp + "=" + fakeMountTarget.IPAddress}
 
-	options, _ := getMountOptions(ctx, mockCloud, fileSystemId, "roleArn", false)
+	options, mountTargetAddress, _ := getMountOptions(ctx, mockCloud, fileSystemId, "roleArn", false, "foo")
 
 	if !reflect.DeepEqual(options, expectedOptions) {
 		t.Fatalf("Expected returned options to be %v but was %v", expectedOptions, options)
+	}
+
+	if mountTargetAddress != fakeMountTarget.IPAddress {
+		t.Fatalf("Expected returned mountTargetAddress to be %v but was %v", fakeMountTarget.IPAddress, mountTargetAddress)
 	}
 }
 
@@ -607,7 +611,7 @@ func TestDirectoryProvisioner_GetMountOptions_RoleArnCross(t *testing.T) {
 
 	expectedOptions := []string{"tls", "iam", CrossAccount}
 
-	options, _ := getMountOptions(ctx, mockCloud, fileSystemId, "roleArn", true)
+	options, _, _ := getMountOptions(ctx, mockCloud, fileSystemId, "roleArn", true, "")
 
 	if !reflect.DeepEqual(options, expectedOptions) {
 		t.Fatalf("Expected returned options to be %v but was %v", expectedOptions, options)
