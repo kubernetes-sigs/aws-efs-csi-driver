@@ -42,7 +42,12 @@ func (d *DirectoryProvisioner) Provision(ctx context.Context, req *csi.CreateVol
 		return nil, err
 	}
 
-	mountOptions, err := getMountOptions(ctx, localCloud, fileSystemId, roleArn, crossAccountDNSEnabled)
+	var azName string
+	if value, ok := volumeParams[AzName]; ok {
+		azName = value
+	}
+
+	mountOptions, mountTargetAddress, err := getMountOptions(ctx, localCloud, fileSystemId, roleArn, crossAccountDNSEnabled, azName)
 	if err != nil {
 		return nil, err
 	}
@@ -108,15 +113,8 @@ func (d *DirectoryProvisioner) Provision(ctx context.Context, req *csi.CreateVol
 			// not be used as a mount option in this case.
 			volContext[CrossAccount] = strconv.FormatBool(true)
 		} else {
-			var azName string
-			if value, ok := volumeParams[AzName]; ok {
-				azName = value
-			}
-			mountTarget, err := localCloud.DescribeMountTargets(ctx, fileSystemId, azName)
-			if err != nil {
-				klog.Warningf("Failed to describe mount targets for file system %v. Skip using `mounttargetip` mount option: %v", fileSystemId, err)
-			} else {
-				volContext[MountTargetIp] = mountTarget.IPAddress
+			if mountTargetAddress != "" {
+				volContext[MountTargetIp] = mountTargetAddress
 			}
 
 		}
@@ -141,7 +139,7 @@ func (d *DirectoryProvisioner) Delete(ctx context.Context, req *csi.DeleteVolume
 		return err
 	}
 
-	mountOptions, err := getMountOptions(ctx, localCloud, fileSystemId, roleArn, crossAccountDNSEnabled)
+	mountOptions, _, err := getMountOptions(ctx, localCloud, fileSystemId, roleArn, crossAccountDNSEnabled, "")
 	if err != nil {
 		return err
 	}
@@ -186,20 +184,22 @@ func (d *DirectoryProvisioner) Delete(ctx context.Context, req *csi.DeleteVolume
 	return nil
 }
 
-func getMountOptions(ctx context.Context, cloud cloud.Cloud, fileSystemId string, roleArn string, crossAccountDNSEnabled bool) ([]string, error) {
+func getMountOptions(ctx context.Context, cloud cloud.Cloud, fileSystemId string, roleArn string, crossAccountDNSEnabled bool, azName string) ([]string, string, error) {
 	mountOptions := []string{"tls", "iam"}
+	mountTargetAddress := ""
 	if roleArn != "" {
 		if crossAccountDNSEnabled {
 			// Connect via dns rather than mounttargetip
 			mountOptions = append(mountOptions, CrossAccount)
 		} else {
-			mountTarget, err := cloud.DescribeMountTargets(ctx, fileSystemId, "")
+			mountTarget, err := cloud.DescribeMountTargets(ctx, fileSystemId, azName)
 			if err == nil {
-				mountOptions = append(mountOptions, MountTargetIp+"="+mountTarget.IPAddress)
+				mountTargetAddress = mountTarget.IPAddress
+				mountOptions = append(mountOptions, MountTargetIp+"="+mountTargetAddress)
 			} else {
 				klog.Warningf("Failed to describe mount targets for file system %v. Skip using `mounttargetip` mount option: %v", fileSystemId, err)
 			}
 		}
 	}
-	return mountOptions, nil
+	return mountOptions, mountTargetAddress, nil
 }
