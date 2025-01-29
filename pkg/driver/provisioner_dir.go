@@ -185,7 +185,7 @@ func (d *DirectoryProvisioner) Delete(ctx context.Context, req *csi.DeleteVolume
 		} else {
 			// If it is nil then it's safe to try and delete the directory as it should now be empty
 			klog.V(5).Infof("Deleting temporary directory at '%s'", target)
-			if err := d.osClient.RemoveAll(target); err != nil {
+			if err := d.osClient.Remove(target); err != nil && !os.IsNotExist(err) {
 				e = status.Errorf(codes.Internal, "Could not delete %q: %v", target, err)
 			}
 		}
