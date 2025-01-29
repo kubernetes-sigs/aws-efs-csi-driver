@@ -132,7 +132,7 @@ func (a AccessPointProvisioner) Provision(ctx context.Context, req *csi.CreateVo
 			if err != nil {
 				return nil, status.Errorf(codes.InvalidArgument, "Failed to parse invalid %v: %v", Gid, err)
 			}
-			if uid < 0 {
+			if gid < 0 {
 				return nil, status.Errorf(codes.InvalidArgument, "%v must be greater or equal than 0", Gid)
 			}
 		}
