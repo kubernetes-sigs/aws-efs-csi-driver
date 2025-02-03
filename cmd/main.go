@@ -41,7 +41,8 @@ func main() {
 		volMetricsFsRateLimit    = flag.Int("vol-metrics-fs-rate-limit", 5, "Volume metrics routines rate limiter per file system")
 		deleteAccessPointRootDir = flag.Bool("delete-access-point-root-dir", false,
 			"Opt in to delete access point root directory by DeleteVolume. By default, DeleteVolume will delete the access point behind Persistent Volume and deleting access point will not delete the access point root directory or its contents.")
-		tags = flag.String("tags", "", "Space separated key:value pairs which will be added as tags for EFS resources. For example, 'environment:prod region:us-east-1'")
+		adaptiveRetryMode = flag.Bool("adaptive-retry-mode", true, "Opt out to use standard sdk retry configuration. By default, adaptive retry mode will be used to more heavily client side rate limit EFS API requests.")
+		tags              = flag.String("tags", "", "Space separated key:value pairs which will be added as tags for EFS resources. For example, 'environment:prod region:us-east-1'")
 	)
 	klog.InitFlags(nil)
 	flag.Parse()
@@ -60,7 +61,7 @@ func main() {
 	if err != nil {
 		klog.Fatalln(err)
 	}
-	drv := driver.NewDriver(*endpoint, etcAmazonEfs, *efsUtilsStaticFilesPath, *tags, *volMetricsOptIn, *volMetricsRefreshPeriod, *volMetricsFsRateLimit, *deleteAccessPointRootDir)
+	drv := driver.NewDriver(*endpoint, etcAmazonEfs, *efsUtilsStaticFilesPath, *tags, *volMetricsOptIn, *volMetricsRefreshPeriod, *volMetricsFsRateLimit, *deleteAccessPointRootDir, *adaptiveRetryMode)
 	if err := drv.Run(); err != nil {
 		klog.Fatalln(err)
 	}

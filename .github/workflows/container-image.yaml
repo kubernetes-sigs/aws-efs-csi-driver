@@ -1,6 +1,11 @@
 name: Container Images
 
 on: push
+
+permissions:
+  contents: read
+  security-events: write
+
 jobs:
   build:
     # this is to prevent the job to run at forked projects
