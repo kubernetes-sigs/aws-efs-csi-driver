@@ -121,7 +121,7 @@ func (d *DirectoryProvisioner) Provision(ctx context.Context, req *csi.CreateVol
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "Could not unmount %q: %v", target, err)
 	}
-	err = d.osClient.RemoveAll(target)
+	err = d.osClient.Remove(target)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "Could not delete %q: %v", target, err)
 	}
