@@ -181,12 +181,12 @@ func (d *DirectoryProvisioner) Delete(ctx context.Context, req *csi.DeleteVolume
 		// If that fails then track the error but don't do anything else
 		if unmountErr != nil {
 			klog.V(5).Infof("Unmount failed at '%s'", target)
-			e = status.Errorf(codes.Internal, "Could not unmount %q: %v", target, err)
+			e = status.Errorf(codes.Internal, "Could not unmount %q: %v (prev error: %v)", target, unmountErr, e)
 		} else {
 			// If it is nil then it's safe to try and delete the directory as it should now be empty
 			klog.V(5).Infof("Deleting temporary directory at '%s'", target)
 			if err := d.osClient.Remove(target); err != nil && !os.IsNotExist(err) {
-				e = status.Errorf(codes.Internal, "Could not delete %q: %v", target, err)
+				e = status.Errorf(codes.Internal, "Could not delete %q: %v (prev error: %v)", target, err, e)
 			}
 		}
 	}()
