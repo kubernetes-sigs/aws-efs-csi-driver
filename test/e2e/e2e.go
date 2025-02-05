@@ -363,11 +363,11 @@ var _ = ginkgo.Describe("[efs-csi] EFS CSI", func() {
 			testEncryptInTransit(f, &encryptInTransit)
 		})
 
-		ginkgo.It("should successfully perform dynamic provisioning", func() {
+		testPerformDynamicProvisioning := func(mode string) {
 
 			ginkgo.By("Creating EFS Storage Class, PVC and associated PV")
 			params := map[string]string{
-				"provisioningMode":      "efs-ap",
+				"provisioningMode":      mode,
 				"fileSystemId":          FileSystemId,
 				"subPathPattern":        "${.PVC.name}",
 				"directoryPerms":        "700",
@@ -416,7 +416,14 @@ var _ = ginkgo.Describe("[efs-csi] EFS CSI", func() {
 			if output != testData {
 				ginkgo.Fail("Read data does not match write data.")
 			}
-		})
+		}
+
+		for _, mode := range []string{"efs-ap", "efs-dir"} {
+			testName := fmt.Sprintf("should successfully perform dynamic provisioning in %s mode", mode)
+			ginkgo.It(testName, func() {
+				testPerformDynamicProvisioning(mode)
+			})
+		}
 
 		createProvisionedDirectory := func(f *framework.Framework, basePath string, pvcName string) (*v1.PersistentVolumeClaim, *storagev1.StorageClass) {
 			immediateBinding := storagev1.VolumeBindingImmediate
