@@ -1,5 +1,6 @@
 # V2.1.5
-* Upgrade golang.net (v0.25.0 -> v0.33.0) (https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1562)
+* Upgrade golang.net (v0.25.0 -> v0.33.0) ([#1562]https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1562)
+* Updated Python distribution to latest version and add symlink to stunnel5 to ensure compatibility ([#1569]https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1569/files)
 # V2.1.4
 * Upgrade stunnel to 5 ([#1561](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1561), [@dankova22](https://github.com/dankova22))
 # V2.1.3
