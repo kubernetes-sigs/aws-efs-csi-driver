@@ -21,6 +21,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"sync"
 	"text/template"
 
@@ -149,6 +150,7 @@ retention_in_days = 14
 `
 
 	efsUtilsConfigFileName = "efs-utils.conf"
+	efsStateDir            = "/var/run/efs"
 )
 
 // Watchdog defines the interface for process monitoring and supervising
@@ -199,6 +201,10 @@ func newExecWatchdog(efsUtilsCfgPath, efsUtilsStaticFilesPath, cmd string, arg .
 func (w *execWatchdog) start() error {
 	if err := w.setup(GetVersion().EfsClientSource); err != nil {
 		return err
+	}
+
+	if err := w.removeLibwrapOption(efsStateDir); err != nil {
+		klog.Warningf("Error removing libwrap option from state files: %v", err)
 	}
 
 	go w.runLoop(w.stopCh)
@@ -344,6 +350,46 @@ func (w *execWatchdog) exec() error {
 	w.mu.Unlock()
 
 	return cmd.Wait()
+}
+
+/*
+If upgrading directly from older 1.x version of driver without application pod deployment,
+users may have existing mounts using stunnel instead of efs-proxy.
+If their stunnel state files have explicitly set the libwrap option as no,
+the newer stunnel binaries will fail to run as this option is no longer supported in al23.
+To avoid any errors, we check for this config and remove it directly on startup.
+*/
+func (w *execWatchdog) removeLibwrapOption(stateDir string) error {
+	stunnelFiles, err := ioutil.ReadDir(stateDir)
+	if err != nil {
+		return fmt.Errorf("error reading directory %s: %v", efsStateDir, err)
+	}
+
+	for _, file := range stunnelFiles {
+		if strings.HasPrefix(file.Name(), "stunnel-config.") {
+			filePath := filepath.Join(stateDir, file.Name())
+			if err := removeLibwrapFromFile(filePath); err != nil {
+				klog.Warningf("Error proccessing stunnel file %s: %v", filePath, err)
+			}
+		}
+	}
+	return nil
+}
+
+func removeLibwrapFromFile(configFile string) error {
+	stunnelConfigData, err := os.ReadFile(configFile)
+	if err != nil {
+		return fmt.Errorf("failed to read stunnel config: %v", err)
+	}
+
+	newStunnelConfigData := strings.Replace(string(stunnelConfigData), "libwrap = no", "", -1)
+
+	err = os.WriteFile(configFile, []byte(newStunnelConfigData), 0644)
+	if err != nil {
+		return fmt.Errorf("failed to update stunnel config: %v", err)
+	}
+
+	return nil
 }
 
 type logRedirect struct {
