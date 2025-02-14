@@ -3,17 +3,18 @@
 kind: Deployment
 apiVersion: apps/v1
 metadata:
-  name: efs-csi-controller
+  name: {{ .Values.controller.name }}
+  namespace: {{ .Release.Namespace }}
   labels:
     app.kubernetes.io/name: {{ include "aws-efs-csi-driver.name" . }}
     {{- with .Values.controller.additionalLabels }}
     {{ toYaml . | nindent 4 }}
     {{- end }}
 spec:
-  replicas: {{ .Values.replicaCount }}
+  replicas: {{ .Values.controller.replicaCount }}
   selector:
     matchLabels:
-      app: efs-csi-controller
+      app: {{ .Values.controller.name }}
       app.kubernetes.io/name: {{ include "aws-efs-csi-driver.name" . }}
       app.kubernetes.io/instance: {{ .Release.Name }}
   {{- with .Values.controller.updateStrategy }}
@@ -23,7 +24,7 @@ spec:
   template:
     metadata:
       labels:
-        app: efs-csi-controller
+        app: {{ .Values.controller.name }}
         app.kubernetes.io/name: {{ include "aws-efs-csi-driver.name" . }}
         app.kubernetes.io/instance: {{ .Release.Name }}
         {{- with .Values.controller.podLabels }}
@@ -93,6 +94,8 @@ spec:
             - name: AWS_USE_FIPS_ENDPOINT
               value: "true"
             {{- end }}
+            - name: PORT_RANGE_UPPER_BOUND
+              value: "{{ .Values.portRangeUpperBound }}"
             {{- with .Values.controller.env }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
@@ -138,6 +141,11 @@ spec:
             - --metrics-address=:{{ .Values.controller.metrics.port }}
             - --metrics-path={{ .Values.controller.metrics.path }}
             {{- end }}
+            {{- if .Values.sidecars.csiProvisioner.additionalArgs }}
+            {{- range .Values.sidecars.csiProvisioner.additionalArgs }}
+            - {{ . }}
+            {{- end }}
+            {{- end }}
           env:
             - name: ADDRESS
               value: /var/lib/csi/sockets/pluginproxy/csi.sock
@@ -151,6 +159,7 @@ spec:
               protocol: TCP
           {{- end }}
           {{- with .Values.sidecars.csiProvisioner.resources }}
+          {{- with default .Values.controller.resources .Values.sidecars.csiProvisioner.resources }}
           resources: {{ toYaml . | nindent 12 }}
           {{- end }}
           {{- with .Values.sidecars.csiProvisioner.securityContext }}
@@ -169,7 +178,7 @@ spec:
             {{- with .Values.controller.volumeMounts }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
-          {{- with .Values.sidecars.livenessProbe.resources }}
+          {{- with default .Values.controller.resources .Values.sidecars.livenessProbe.resources }}
           resources: {{ toYaml . | nindent 12 }}
           {{- end }}
           {{- with .Values.sidecars.livenessProbe.securityContext }}
@@ -184,5 +193,14 @@ spec:
         {{- end }}
       {{- with .Values.controller.affinity }}
       affinity: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if .Values.controller.topologySpreadConstraints }}
+      {{- $tscLabelSelector := dict "labelSelector" ( dict "matchLabels" ( dict "app" "efs-csi-controller" ) ) }}
+      {{- $constraints := list }}
+      {{- range .Values.controller.topologySpreadConstraints }}
+        {{- $constraints = mustAppend $constraints (mergeOverwrite . $tscLabelSelector) }}
+      {{- end }}
+      topologySpreadConstraints:
+        {{- $constraints | toYaml | nindent 8 }}
       {{- end }}
 {{- end }}

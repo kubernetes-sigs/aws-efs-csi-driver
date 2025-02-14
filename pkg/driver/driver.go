@@ -51,11 +51,12 @@ type Driver struct {
 	volStatter               VolStatter
 	gidAllocator             GidAllocator
 	deleteAccessPointRootDir bool
+	adaptiveRetryMode        bool
 	tags                     map[string]string
 }
 
-func NewDriver(endpoint, efsUtilsCfgPath, efsUtilsStaticFilesPath, tags string, volMetricsOptIn bool, volMetricsRefreshPeriod float64, volMetricsFsRateLimit int, deleteAccessPointRootDir bool) *Driver {
-	cloud, err := cloud.NewCloud()
+func NewDriver(endpoint, efsUtilsCfgPath, efsUtilsStaticFilesPath, tags string, volMetricsOptIn bool, volMetricsRefreshPeriod float64, volMetricsFsRateLimit int, deleteAccessPointRootDir bool, adaptiveRetryMode bool) *Driver {
+	cloud, err := cloud.NewCloud(adaptiveRetryMode)
 	if err != nil {
 		klog.Fatalln(err)
 	}
@@ -75,6 +76,7 @@ func NewDriver(endpoint, efsUtilsCfgPath, efsUtilsStaticFilesPath, tags string, 
 		volMetricsFsRateLimit:    volMetricsFsRateLimit,
 		gidAllocator:             NewGidAllocator(),
 		deleteAccessPointRootDir: deleteAccessPointRootDir,
+		adaptiveRetryMode:        adaptiveRetryMode,
 		tags:                     parseTagsFromStr(strings.TrimSpace(tags)),
 	}
 }

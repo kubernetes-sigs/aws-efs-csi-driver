@@ -144,21 +144,8 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 		return nil, status.Errorf(codes.InvalidArgument, "Missing %v parameter", ProvisioningMode)
 	}
 
-	// Create tags
-	tags := map[string]string{
-		DefaultTagKey: DefaultTagValue,
-	}
-
-	// Append input tags to default tag
-	if len(d.tags) != 0 {
-		for k, v := range d.tags {
-			tags[k] = v
-		}
-	}
-
 	accessPointsOptions := &cloud.AccessPointOptions{
 		CapacityGiB: volSize,
-		Tags:        tags,
 	}
 
 	if value, ok := volumeParams[FsId]; ok {
@@ -170,162 +157,197 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 		return nil, status.Errorf(codes.InvalidArgument, "Missing %v parameter", FsId)
 	}
 
-	uid = -1
-	if value, ok := volumeParams[Uid]; ok {
-		uid, err = strconv.ParseInt(value, 10, 64)
-		if err != nil {
-			return nil, status.Errorf(codes.InvalidArgument, "Failed to parse invalid %v: %v", Uid, err)
-		}
-		if uid < 0 {
-			return nil, status.Errorf(codes.InvalidArgument, "%v must be greater or equal than 0", Uid)
-		}
-	}
-
-	gid = -1
-	if value, ok := volumeParams[Gid]; ok {
-		gid, err = strconv.ParseInt(value, 10, 64)
-		if err != nil {
-			return nil, status.Errorf(codes.InvalidArgument, "Failed to parse invalid %v: %v", Gid, err)
-		}
-		if gid < 0 {
-			return nil, status.Errorf(codes.InvalidArgument, "%v must be greater or equal than 0", Gid)
-		}
-	}
-
-	if value, ok := volumeParams[GidMin]; ok {
-		gidMin, err = strconv.ParseInt(value, 10, 64)
-		if err != nil {
-			return nil, status.Errorf(codes.InvalidArgument, "Failed to parse invalid %v: %v", GidMin, err)
-		}
-		if gidMin <= 0 {
-			return nil, status.Errorf(codes.InvalidArgument, "%v must be greater than 0", GidMin)
-		}
-	}
-
-	if value, ok := volumeParams[GidMax]; ok {
-		// Ensure GID min is provided with GID max
-		if gidMin == 0 {
-			return nil, status.Errorf(codes.InvalidArgument, "Missing %v parameter", GidMin)
-		}
-		gidMax, err = strconv.ParseInt(value, 10, 64)
-		if err != nil {
-			return nil, status.Errorf(codes.InvalidArgument, "Failed to parse invalid %v: %v", GidMax, err)
-		}
-		if gidMax <= gidMin {
-			return nil, status.Errorf(codes.InvalidArgument, "%v must be greater than %v", GidMax, GidMin)
-		}
-	} else {
-		// Ensure GID max is provided with GID min
-		if gidMin != 0 {
-			return nil, status.Errorf(codes.InvalidArgument, "Missing %v parameter", GidMax)
-		}
-	}
-
-	// Assign default GID ranges if not provided
-	if gidMin == 0 && gidMax == 0 {
-		gidMin = DefaultGidMin
-		gidMax = DefaultGidMax
-	}
-
-	if value, ok := volumeParams[DirectoryPerms]; ok {
-		accessPointsOptions.DirectoryPerms = value
-	}
-
-	// Storage class parameter `az` will be used to fetch preferred mount target for cross account mount.
-	// If the `az` storage class parameter is not provided, a random mount target will be picked for mounting.
-	// This storage class parameter different from `az` mount option provided by efs-utils https://github.com/aws/efs-utils/blob/v1.31.1/src/mount_efs/__init__.py#L195
-	// The `az` mount option provided by efs-utils is used for cross az mount or to provide az of efs one zone file system mount within the same aws-account.
-	// To make use of the `az` mount option, add it under storage class's `mountOptions` section. https://kubernetes.io/docs/concepts/storage/storage-classes/#mount-options
-	if value, ok := volumeParams[AzName]; ok {
-		azName = value
-	}
-
 	localCloud, roleArn, crossAccountDNSEnabled, err = getCloud(req.GetSecrets(), d)
 	if err != nil {
 		return nil, err
 	}
 
-	// Check if file system exists. Describe FS or List APs handle appropriate error codes
-	// With dynamic uid/gid provisioning we can save a call to describe FS, as list APs fails if FS ID does not exist
-	var accessPoints []*cloud.AccessPoint
-	if uid == -1 || gid == -1 {
-		accessPoints, err = localCloud.ListAccessPoints(ctx, accessPointsOptions.FileSystemId)
-	} else {
-		_, err = localCloud.DescribeFileSystem(ctx, accessPointsOptions.FileSystemId)
-	}
-	if err != nil {
-		if err == cloud.ErrAccessDenied {
-			return nil, status.Errorf(codes.Unauthenticated, "Access Denied. Please ensure you have the right AWS permissions: %v", err)
-		}
-		if err == cloud.ErrNotFound {
-			return nil, status.Errorf(codes.InvalidArgument, "File System does not exist: %v", err)
-		}
-		return nil, status.Errorf(codes.Internal, "Failed to fetch Access Points or Describe File System: %v", err)
-	}
-
-	var allocatedGid int64
-	if uid == -1 || gid == -1 {
-		allocatedGid, err = d.gidAllocator.getNextGid(accessPointsOptions.FileSystemId, accessPoints, gidMin, gidMax)
+	var accessPoint *cloud.AccessPoint
+	//if reuseAccessPoint is true, check for AP with same Root Directory exists in efs
+	// if found reuse that AP
+	if reuseAccessPoint {
+		existingAP, err := localCloud.FindAccessPointByClientToken(ctx, clientToken, accessPointsOptions.FileSystemId)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to find access point: %v", err)
+		}
+		if existingAP != nil {
+			//AP path already exists
+			klog.V(2).Infof("Existing AccessPoint found : %+v", existingAP)
+			accessPoint = &cloud.AccessPoint{
+				AccessPointId: existingAP.AccessPointId,
+				FileSystemId:  existingAP.FileSystemId,
+				CapacityGiB:   accessPointsOptions.CapacityGiB,
+			}
 		}
 	}
-	if uid == -1 {
-		uid = allocatedGid
-	}
-	if gid == -1 {
-		gid = allocatedGid
-	}
 
-	if value, ok := volumeParams[BasePath]; ok {
-		basePath = value
-	}
+	if accessPoint == nil {
+		// Create tags
+		tags := map[string]string{
+			DefaultTagKey: DefaultTagValue,
+		}
 
-	rootDirName := volName
-	// Check if a custom structure should be imposed on the access point directory
-	if value, ok := volumeParams[SubPathPattern]; ok {
-		// Try and construct the root directory and check it only contains supported components
-		val, err := interpolateRootDirectoryName(value, volumeParams)
-		if err == nil {
-			klog.Infof("Using user-specified structure for access point directory.")
-			rootDirName = val
-			if value, ok := volumeParams[EnsureUniqueDirectory]; ok {
-				if ensureUniqueDirectory, err := strconv.ParseBool(value); !ensureUniqueDirectory && err == nil {
-					klog.Infof("Not appending PVC UID to path.")
+		// Append input tags to default tag
+		if len(d.tags) != 0 {
+			for k, v := range d.tags {
+				tags[k] = v
+			}
+		}
+
+		accessPointsOptions.Tags = tags
+
+		uid = -1
+		if value, ok := volumeParams[Uid]; ok {
+			uid, err = strconv.ParseInt(value, 10, 64)
+			if err != nil {
+				return nil, status.Errorf(codes.InvalidArgument, "Failed to parse invalid %v: %v", Uid, err)
+			}
+			if uid < 0 {
+				return nil, status.Errorf(codes.InvalidArgument, "%v must be greater or equal than 0", Uid)
+			}
+		}
+
+		gid = -1
+		if value, ok := volumeParams[Gid]; ok {
+			gid, err = strconv.ParseInt(value, 10, 64)
+			if err != nil {
+				return nil, status.Errorf(codes.InvalidArgument, "Failed to parse invalid %v: %v", Gid, err)
+			}
+			if uid < 0 {
+				return nil, status.Errorf(codes.InvalidArgument, "%v must be greater or equal than 0", Gid)
+			}
+		}
+
+		if value, ok := volumeParams[GidMin]; ok {
+			gidMin, err = strconv.ParseInt(value, 10, 64)
+			if err != nil {
+				return nil, status.Errorf(codes.InvalidArgument, "Failed to parse invalid %v: %v", GidMin, err)
+			}
+			if gidMin <= 0 {
+				return nil, status.Errorf(codes.InvalidArgument, "%v must be greater than 0", GidMin)
+			}
+		}
+
+		if value, ok := volumeParams[GidMax]; ok {
+			// Ensure GID min is provided with GID max
+			if gidMin == 0 {
+				return nil, status.Errorf(codes.InvalidArgument, "Missing %v parameter", GidMin)
+			}
+			gidMax, err = strconv.ParseInt(value, 10, 64)
+			if err != nil {
+				return nil, status.Errorf(codes.InvalidArgument, "Failed to parse invalid %v: %v", GidMax, err)
+			}
+			if gidMax <= gidMin {
+				return nil, status.Errorf(codes.InvalidArgument, "%v must be greater than %v", GidMax, GidMin)
+			}
+		} else {
+			// Ensure GID max is provided with GID min
+			if gidMin != 0 {
+				return nil, status.Errorf(codes.InvalidArgument, "Missing %v parameter", GidMax)
+			}
+		}
+
+		// Assign default GID ranges if not provided
+		if gidMin == 0 && gidMax == 0 {
+			gidMin = DefaultGidMin
+			gidMax = DefaultGidMax
+		}
+
+		if value, ok := volumeParams[DirectoryPerms]; ok {
+			accessPointsOptions.DirectoryPerms = value
+		}
+
+		// Storage class parameter `az` will be used to fetch preferred mount target for cross account mount.
+		// If the `az` storage class parameter is not provided, a random mount target will be picked for mounting.
+		// This storage class parameter different from `az` mount option provided by efs-utils https://github.com/aws/efs-utils/blob/v1.31.1/src/mount_efs/__init__.py#L195
+		// The `az` mount option provided by efs-utils is used for cross az mount or to provide az of efs one zone file system mount within the same aws-account.
+		// To make use of the `az` mount option, add it under storage class's `mountOptions` section. https://kubernetes.io/docs/concepts/storage/storage-classes/#mount-options
+		if value, ok := volumeParams[AzName]; ok {
+			azName = value
+		}
+
+		// Check if file system exists. Describe FS or List APs handle appropriate error codes
+		// With dynamic uid/gid provisioning we can save a call to describe FS, as list APs fails if FS ID does not exist
+		var accessPoints []*cloud.AccessPoint
+		if uid == -1 || gid == -1 {
+			accessPoints, err = localCloud.ListAccessPoints(ctx, accessPointsOptions.FileSystemId)
+		} else {
+			_, err = localCloud.DescribeFileSystem(ctx, accessPointsOptions.FileSystemId)
+		}
+		if err != nil {
+			if err == cloud.ErrAccessDenied {
+				return nil, status.Errorf(codes.Unauthenticated, "Access Denied. Please ensure you have the right AWS permissions: %v", err)
+			}
+			if err == cloud.ErrNotFound {
+				return nil, status.Errorf(codes.InvalidArgument, "File System does not exist: %v", err)
+			}
+			return nil, status.Errorf(codes.Internal, "Failed to fetch Access Points or Describe File System: %v", err)
+		}
+
+		var allocatedGid int64
+		if uid == -1 || gid == -1 {
+			allocatedGid, err = d.gidAllocator.getNextGid(accessPointsOptions.FileSystemId, accessPoints, gidMin, gidMax)
+			if err != nil {
+				return nil, err
+			}
+		}
+		if uid == -1 {
+			uid = allocatedGid
+		}
+		if gid == -1 {
+			gid = allocatedGid
+		}
+
+		if value, ok := volumeParams[BasePath]; ok {
+			basePath = value
+		}
+
+		rootDirName := volName
+		// Check if a custom structure should be imposed on the access point directory
+		if value, ok := volumeParams[SubPathPattern]; ok {
+			// Try and construct the root directory and check it only contains supported components
+			val, err := interpolateRootDirectoryName(value, volumeParams)
+			if err == nil {
+				klog.Infof("Using user-specified structure for access point directory.")
+				rootDirName = val
+				if value, ok := volumeParams[EnsureUniqueDirectory]; ok {
+					if ensureUniqueDirectory, err := strconv.ParseBool(value); !ensureUniqueDirectory && err == nil {
+						klog.Infof("Not appending PVC UID to path.")
+					} else {
+						klog.Infof("Appending PVC UID to path.")
+						rootDirName = fmt.Sprintf("%s-%s", val, uuid.New().String())
+					}
 				} else {
 					klog.Infof("Appending PVC UID to path.")
 					rootDirName = fmt.Sprintf("%s-%s", val, uuid.New().String())
 				}
 			} else {
-				klog.Infof("Appending PVC UID to path.")
-				rootDirName = fmt.Sprintf("%s-%s", val, uuid.New().String())
+				return nil, err
 			}
 		} else {
+			klog.Infof("Using PV name for access point directory.")
+		}
+
+		rootDir := path.Join("/", basePath, rootDirName)
+		if ok, err := validateEfsPathRequirements(rootDir); !ok {
 			return nil, err
 		}
-	} else {
-		klog.Infof("Using PV name for access point directory.")
-	}
+		klog.Infof("Using %v as the access point directory.", rootDir)
 
-	rootDir := path.Join("/", basePath, rootDirName)
-	if ok, err := validateEfsPathRequirements(rootDir); !ok {
-		return nil, err
-	}
-	klog.Infof("Using %v as the access point directory.", rootDir)
+		accessPointsOptions.Uid = uid
+		accessPointsOptions.Gid = gid
+		accessPointsOptions.DirectoryPath = rootDir
 
-	accessPointsOptions.Uid = uid
-	accessPointsOptions.Gid = gid
-	accessPointsOptions.DirectoryPath = rootDir
-
-	accessPointId, err := localCloud.CreateAccessPoint(ctx, clientToken, accessPointsOptions, reuseAccessPoint)
-	if err != nil {
-		if err == cloud.ErrAccessDenied {
-			return nil, status.Errorf(codes.Unauthenticated, "Access Denied. Please ensure you have the right AWS permissions: %v", err)
+		accessPoint, err = localCloud.CreateAccessPoint(ctx, clientToken, accessPointsOptions)
+		if err != nil {
+			if err == cloud.ErrAccessDenied {
+				return nil, status.Errorf(codes.Unauthenticated, "Access Denied. Please ensure you have the right AWS permissions: %v", err)
+			}
+			if err == cloud.ErrAlreadyExists {
+				return nil, status.Errorf(codes.AlreadyExists, "Access Point already exists")
+			}
+			return nil, status.Errorf(codes.Internal, "Failed to create Access point in File System %v : %v", accessPointsOptions.FileSystemId, err)
 		}
-		if err == cloud.ErrAlreadyExists {
-			return nil, status.Errorf(codes.AlreadyExists, "Access Point already exists")
-		}
-		return nil, status.Errorf(codes.Internal, "Failed to create Access point in File System %v : %v", accessPointsOptions.FileSystemId, err)
 	}
 
 	volContext := map[string]string{}
@@ -352,7 +374,7 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 	return &csi.CreateVolumeResponse{
 		Volume: &csi.Volume{
 			CapacityBytes: volSize,
-			VolumeId:      accessPointsOptions.FileSystemId + "::" + accessPointId.AccessPointId,
+			VolumeId:      accessPointsOptions.FileSystemId + "::" + accessPoint.AccessPointId,
 			VolumeContext: volContext,
 		},
 	}, nil
@@ -384,76 +406,76 @@ func (d *Driver) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeRequest)
 		return &csi.DeleteVolumeResponse{}, nil
 	}
 
+	if accessPointId == "" {
+		klog.V(5).Infof("DeleteVolume: No Access Point for volume %v, returning success", volId)
+		return &csi.DeleteVolumeResponse{}, nil
+	}
+
 	//TODO: Add Delete File System when FS provisioning is implemented
-	if accessPointId != "" {
-
-		// Delete access point root directory if delete-access-point-root-dir is set.
-		if d.deleteAccessPointRootDir {
-			// Check if Access point exists.
-			// If access point exists, retrieve its root directory and delete it/
-			accessPoint, err := localCloud.DescribeAccessPoint(ctx, accessPointId)
-			if err != nil {
-				if err == cloud.ErrAccessDenied {
-					return nil, status.Errorf(codes.Unauthenticated, "Access Denied. Please ensure you have the right AWS permissions: %v", err)
-				}
-				if err == cloud.ErrNotFound {
-					klog.V(5).Infof("DeleteVolume: Access Point %v not found, returning success", accessPointId)
-					return &csi.DeleteVolumeResponse{}, nil
-				}
-				return nil, status.Errorf(codes.Internal, "Could not get describe Access Point: %v , error: %v", accessPointId, err)
-			}
-
-			//Mount File System at it root and delete access point root directory
-			mountOptions := []string{"tls", "iam"}
-			if roleArn != "" {
-				if crossAccountDNSEnabled {
-					// Connect via dns rather than mounttargetip
-					mountOptions = append(mountOptions, CrossAccount)
-				} else {
-					mountTarget, err := localCloud.DescribeMountTargets(ctx, fileSystemId, "")
-					if err == nil {
-						mountOptions = append(mountOptions, MountTargetIp+"="+mountTarget.IPAddress)
-					} else {
-						klog.Warningf("Failed to describe mount targets for file system %v. Skip using `mounttargetip` mount option: %v", fileSystemId, err)
-					}
-				}
-			}
-
-			target := TempMountPathPrefix + "/" + accessPointId
-			if err := d.mounter.MakeDir(target); err != nil {
-				return nil, status.Errorf(codes.Internal, "Could not create dir %q: %v", target, err)
-			}
-			if err := d.mounter.Mount(fileSystemId, target, "efs", mountOptions); err != nil {
-				os.Remove(target)
-				return nil, status.Errorf(codes.Internal, "Could not mount %q at %q: %v", fileSystemId, target, err)
-			}
-			err = os.RemoveAll(target + accessPoint.AccessPointRootDir)
-			if err != nil {
-				return nil, status.Errorf(codes.Internal, "Could not delete access point root directory %q: %v", accessPoint.AccessPointRootDir, err)
-			}
-			err = d.mounter.Unmount(target)
-			if err != nil {
-				return nil, status.Errorf(codes.Internal, "Could not unmount %q: %v", target, err)
-			}
-			err = os.RemoveAll(target)
-			if err != nil {
-				return nil, status.Errorf(codes.Internal, "Could not delete %q: %v", target, err)
-			}
-		}
-
-		// Delete access point
-		if err = localCloud.DeleteAccessPoint(ctx, accessPointId); err != nil {
+	// Delete access point root directory if delete-access-point-root-dir is set.
+	if d.deleteAccessPointRootDir {
+		// Check if Access point exists.
+		// If access point exists, retrieve its root directory and delete it/
+		accessPoint, err := localCloud.DescribeAccessPoint(ctx, accessPointId)
+		if err != nil {
 			if err == cloud.ErrAccessDenied {
 				return nil, status.Errorf(codes.Unauthenticated, "Access Denied. Please ensure you have the right AWS permissions: %v", err)
 			}
 			if err == cloud.ErrNotFound {
-				klog.V(5).Infof("DeleteVolume: Access Point not found, returning success")
+				klog.V(5).Infof("DeleteVolume: Access Point %v not found, returning success", accessPointId)
 				return &csi.DeleteVolumeResponse{}, nil
 			}
-			return nil, status.Errorf(codes.Internal, "Failed to Delete volume %v: %v", volId, err)
+			return nil, status.Errorf(codes.Internal, "Could not get describe Access Point: %v , error: %v", accessPointId, err)
 		}
-	} else {
-		return nil, status.Errorf(codes.NotFound, "Failed to find access point for volume: %v", volId)
+
+		//Mount File System at it root and delete access point root directory
+		mountOptions := []string{"tls", "iam"}
+		if roleArn != "" {
+			if crossAccountDNSEnabled {
+				// Connect via dns rather than mounttargetip
+				mountOptions = append(mountOptions, CrossAccount)
+			} else {
+				mountTarget, err := localCloud.DescribeMountTargets(ctx, fileSystemId, "")
+				if err == nil {
+					mountOptions = append(mountOptions, MountTargetIp+"="+mountTarget.IPAddress)
+				} else {
+					klog.Warningf("Failed to describe mount targets for file system %v. Skip using `mounttargetip` mount option: %v", fileSystemId, err)
+				}
+			}
+		}
+
+		target := TempMountPathPrefix + "/" + accessPointId
+		if err := d.mounter.MakeDir(target); err != nil {
+			return nil, status.Errorf(codes.Internal, "Could not create dir %q: %v", target, err)
+		}
+		if err := d.mounter.Mount(fileSystemId, target, "efs", mountOptions); err != nil {
+			os.Remove(target)
+			return nil, status.Errorf(codes.Internal, "Could not mount %q at %q: %v", fileSystemId, target, err)
+		}
+		err = os.RemoveAll(target + accessPoint.AccessPointRootDir)
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "Could not delete access point root directory %q: %v", accessPoint.AccessPointRootDir, err)
+		}
+		err = d.mounter.Unmount(target)
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "Could not unmount %q: %v", target, err)
+		}
+		err = os.Remove(target)
+		if err != nil && !os.IsNotExist(err) {
+			return nil, status.Errorf(codes.Internal, "Could not delete %q: %v", target, err)
+		}
+	}
+
+	// Delete access point
+	if err = localCloud.DeleteAccessPoint(ctx, accessPointId); err != nil {
+		if err == cloud.ErrAccessDenied {
+			return nil, status.Errorf(codes.Unauthenticated, "Access Denied. Please ensure you have the right AWS permissions: %v", err)
+		}
+		if err == cloud.ErrNotFound {
+			klog.V(5).Infof("DeleteVolume: Access Point not found, returning success")
+			return &csi.DeleteVolumeResponse{}, nil
+		}
+		return nil, status.Errorf(codes.Internal, "Failed to Delete volume %v: %v", volId, err)
 	}
 
 	return &csi.DeleteVolumeResponse{}, nil
@@ -560,7 +582,7 @@ func getCloud(secrets map[string]string, driver *Driver) (cloud.Cloud, string, b
 	}
 
 	if roleArn != "" {
-		localCloud, err = cloud.NewCloudWithRole(roleArn)
+		localCloud, err = cloud.NewCloudWithRole(roleArn, driver.adaptiveRetryMode)
 		if err != nil {
 			return nil, "", false, status.Errorf(codes.Unauthenticated, "Unable to initialize aws cloud: %v. Please verify role has the correct AWS permissions for cross account mount", err)
 		}

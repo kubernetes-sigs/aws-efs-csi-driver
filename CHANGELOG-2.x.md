@@ -1,3 +1,54 @@
+# V2.1.5
+* Upgrade golang.net (v0.25.0 -> v0.33.0) ([#1562]https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1562)
+* Updated Python distribution to latest version and add symlink to stunnel5 to ensure compatibility ([#1569]https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1569/files)
+# V2.1.4
+* Upgrade stunnel to 5 ([#1561](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1561), [@dankova22](https://github.com/dankova22))
+# V2.1.3
+* Fix default value for unhealthyPodEvictionPolicy ([#1524](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1524), [@z0rc](https://github.com/z0rc))
+* Switch to adaptive retry mode to reduce throttling errors ([#1520](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1520), [@dankova22](https://github.com/dankova22))
+# V2.1.2
+* Modify delete access point root directory logic to only remove temporary directory if empty ([#1532](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1532), [@jrakas-dev](https://github.com/jrakas-dev))
+* Bump golang.org/x/crypto to v0.31.0 ([#1531](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1531), [@germanparente](https://github.com/germanparente))
+* Update k8s dependencies ([#1514](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1514), [@andrewjamesbrown](https://github.com/andrewjamesbrown))
+# V2.1.1
+* Fix volume delete failure for static provisioning when accessPointId is empty ([#1507](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1507), [@dankova22](https://github.com/dankova22))
+* Update Go and dependencies to address CVEs ([#1513](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1513), [@andrewjamesbrown](https://github.com/andrewjamesbrown))
+* Add metadata.namespace to chart templates ([#1376](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1376), [@Kellen275](https://github.com/Kellen275))
+* Adding new argument for csi provisioner ([#1512](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1512), [@mskanth972](https://github.com/mskanth972))
+* Add permissions to all GitHub actions ([#1508](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1508), [@mskanth972](https://github.com/mskanth972))
+* Add additional arguments for Side cars ([#1506](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1506), [@mskanth972](https://github.com/mskanth972))
+* Fix controller podLabels typo in values.yaml ([#1445](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1445), [@pvickery-ParamountCommerce](https://github.com/pvickery-ParamountCommerce))
+* Add anti-affinity for incompatible compute types ([#1496](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1496), [@abhinavmpandey08](https://github.com/abhinavmpandey08))
+* Update python base images to newer versions ([#1480](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1480), [@andrewjamesbrown](https://github.com/andrewjamesbrown))
+# V2.1.0
+* Update CodeQL workflow to v2. ([#1485](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1485),[@mskanth972](https://github.com/mskanth972))
+* Bump side-cars to the latest. ([#1484](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1484),[@mskanth972](https://github.com/mskanth972))
+* Update kubernetes to version 1.27.16 to patch CVE-2024-5321. ([#1475](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1475),[@mselim00](https://github.com/mselim00))
+# V2.0.9
+* Upgrade AL2 version and address CVEs (CVE-2024-34156, CVE-2024-34158)
+* Fix controller template to support replicaCount, resources, topologySpreadConstraints
+* Migrate to aws-sdk-go-v2. ([#1458](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1458), [@avanish23](https://github.com/avanish23))
+# V2.0.8
+* Update K8s dependencies. ([#1440](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1440), [@retornam](https://github.com/retornam))
+* Add flag that enables CSI driver to be added without using helm hooks ([#1074](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1074), [@woehrl01](https://github.com/woehrl01))
+* Add new region DNS suffixes to watchdog ([#1455](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1455), [@jdwtf](https://github.com/jdwtf))
+* Use protobuf content type instead of JSON for K8s client ([#1451](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1451), [@bhavi-koduru](https://github.com/bhavi-koduru))
+# V2.0.7
+* Update GO version from 1.20 to 1.22.5 to mitigate CVEs. ([#1427](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1427),[@mskanth972](https://github.com/mskanth972))
+# V2.0.6
+* Updated the docker file to install the latest version of Rust. ([#1414](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1414),[@mskanth972](https://github.com/mskanth972))
+* Increase the default Port Range from 400 to 1000. ([#1402](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1402),[@mskanth972](https://github.com/mskanth972))
+* Update statefulset example ([#1400](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1400) [@seanzatzdev-amazon](https://github.com/seanzatzdev-amazon))
+* Add additionalLabels to node-daemonset ([#1394](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1394) [@omerap12](https://github.com/omerap12))
+* Set fips_mode_enabled in efs-utils.conf ([#1344](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1344) [@mpatlasov](https://github.com/mpatlasov))
+* make sure the startup taint will eventually being removed after efs driver ready ([#1287](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1287) [@abbshr](https://github.com/abbshr))
+* Refactor re-use Access Point ([#1233](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1233) [@otorreno](https://github.com/otorreno))
+# V2.0.5
+* Add a note to not proceed to the next step until pv STATUS is Bound ([#1075](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1075),[@wafuwafu13](https://github.com/wafuwafu13))
+* Add Pod Identity Support ([#1254](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/12541),[@askulkarni2](https://github.com/askulkarni2))
+* Add Pod Identity Documentation ([#1381](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1381),[@arnavgup1](https://github.com/arnavgup1))
+* Bump Side-cars and add Patch verbs ([#1387](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1387),[@mskanth972](https://github.com/mskanth972))
+* Update k8s dependencies ([#1384](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1384),[@mskanth972](https://github.com/mskanth972))
 # V2.0.4
 * Reap efs-proxy zombie processes. ([#1364](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1364),[@mskanth972](https://github.com/mskanth972))
 * Sanitize CSI RPC request logs. ([#1363](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1363),[@mskanth972](https://github.com/mskanth972))

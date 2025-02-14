@@ -5,20 +5,20 @@
 nameOverride: ""
 fullnameOverride: ""
 
-replicaCount: 2
-
 useFIPS: false
+
+portRangeUpperBound: "21049"
 
 image:
   repository: public.ecr.aws/efs-csi-driver/amazon/aws-efs-csi-driver
-  tag: "v2.0.4"
+  tag: "v2.1.5"
   pullPolicy: IfNotPresent
 
 sidecars:
   livenessProbe:
     image:
       repository: public.ecr.aws/eks-distro/kubernetes-csi/livenessprobe
-      tag: v2.12.0-eks-1-29-7
+      tag: v2.14.0-eks-1-31-5
       pullPolicy: IfNotPresent
     resources: {}
     securityContext:
@@ -27,7 +27,7 @@ sidecars:
   nodeDriverRegistrar:
     image:
       repository: public.ecr.aws/eks-distro/kubernetes-csi/node-driver-registrar
-      tag: v2.10.0-eks-1-29-7
+      tag: v2.12.0-eks-1-31-5
       pullPolicy: IfNotPresent
     resources: {}
     securityContext:
@@ -36,12 +36,13 @@ sidecars:
   csiProvisioner:
     image:
       repository: public.ecr.aws/eks-distro/kubernetes-csi/external-provisioner
-      tag: v4.0.0-eks-1-29-7
+      tag: v5.1.0-eks-1-31-5
       pullPolicy: IfNotPresent
     resources: {}
     securityContext:
       readOnlyRootFilesystem: true
       allowPrivilegeEscalation: false
+    additionalArgs: []
 
 imagePullSecrets: []
 
@@ -50,6 +51,10 @@ imagePullSecrets: []
 controller:
   # Specifies whether a deployment should be created
   create: true
+  # Name of the CSI controller service
+  name: efs-csi-controller
+  # Number of replicas for the CSI controller service deployment
+  replicaCount: 2
   # Number for the log level verbosity
   logLevel: 2
   # If set, add pv/pvc metadata to plugin create requests as parameters.
@@ -63,7 +68,7 @@ controller:
   # path on efs when deleteing an access point
   deleteAccessPointRootDir: false
   podAnnotations: {}
-  podLabel: {}
+  podLabels: {}
   hostNetwork: false
   priorityClassName: system-cluster-critical
   dnsPolicy: ClusterFirst
@@ -101,6 +106,12 @@ controller:
     #  eks.amazonaws.com/role-arn: arn:aws:iam::111122223333:role/efs-csi-role
   healthPort: 9909
   regionalStsEndpoints: false
+  # Pod Disruption Budget
+  podDisruptionBudget: 
+    enabled: false
+    # maxUnavailable: 1
+    minAvailable: 1
+    unhealthyPodEvictionPolicy: IfHealthyBudget
   # securityContext on the controller pod
   securityContext:
     runAsNonRoot: false
@@ -118,7 +129,18 @@ controller:
     enabled: false
     port: 8080
     path: /metrics
-
+  # TSCs without the label selector stanza
+  #
+  # Example:
+  #
+  # topologySpreadConstraints:
+  #  - maxSkew: 1
+  #    topologyKey: topology.kubernetes.io/zone
+  #    whenUnsatisfiable: ScheduleAnyway
+  #  - maxSkew: 1
+  #    topologyKey: kubernetes.io/hostname
+  #    whenUnsatisfiable: ScheduleAnyway
+  topologySpreadConstraints: []
 
 ## Node daemonset variables
 
@@ -149,6 +171,7 @@ node:
     #     - 169.254.169.253
   podLabels: {}
   podAnnotations: {}
+  additionalLabels: {}
   resources:
     {}
     # limits:
@@ -158,7 +181,8 @@ node:
     #   cpu: 100m
     #   memory: 128Mi
   nodeSelector: {}
-  updateStrategy: {}
+  updateStrategy:
+    {}
     # Override default strategy (RollingUpdate) to speed up deployment.
     # This can be useful if helm timeouts are observed.
     # type: OnDelete
@@ -173,6 +197,7 @@ node:
                 operator: NotIn
                 values:
                   - fargate
+                  - hybrid
   # Specifies whether a service account should be created
   serviceAccount:
     create: true
@@ -191,6 +216,7 @@ node:
   env: []
   volumes: []
   volumeMounts: []
+  kubeletPath: /var/lib/kubelet
 
 storageClasses: []
 # Add StorageClass resources like:
@@ -211,3 +237,6 @@ storageClasses: []
 #     ensureUniqueDirectory: true
 #   reclaimPolicy: Delete
 #   volumeBindingMode: Immediate
+
+# Specifies wether to use helm hooks to apply the CSI driver
+useHelmHooksForCSIDriver: true

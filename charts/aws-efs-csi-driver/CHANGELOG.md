@@ -1,4 +1,26 @@
 # Helm chart
+# v3.1.6
+* Bump app/driver version to `v2.1.5`
+# v3.1.5
+* Bump app/driver version to `v2.1.4`
+# v3.1.4
+* Bump app/driver version to `v2.1.3`
+# v3.1.3
+* Bump app/driver version to `v2.1.2`
+# v3.1.2
+* Bump app/driver version to `v2.1.1`
+# v3.1.1
+* Bump app/driver version to `v2.1.0`
+# v3.1.0
+* Bump app/driver version to `v2.0.9`
+# v3.0.9
+* Bump app/driver version to `v2.0.8`
+# v3.0.8
+* Bump app/driver version to `v2.0.7`
+# v3.0.7
+* Bump app/driver version to `v2.0.6`
+# v3.0.6
+* Bump app/driver version to `v2.0.5`
 # v3.0.5
 * Bump app/driver version to `v2.0.4`
 # v3.0.4

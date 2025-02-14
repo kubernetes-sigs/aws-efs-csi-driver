@@ -20,6 +20,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"sync"
 	"text/template"
 
@@ -64,9 +65,16 @@ stunnel_check_cert_hostname = true
 # Use OCSP to check certificate validity. This option is not supported by certain stunnel versions.
 stunnel_check_cert_validity = false
 
+# Enable FIPS mode. stunnel complains if FIPS is available and enabled system-wide, but not set here.
+{{if .FipsEnabled -}}
+fips_mode_enabled = {{.FipsEnabled -}}
+{{else -}}
+#fips_mode_enabled = false
+{{- end}}
+
 # Define the port range that the TLS tunnel will choose from
 port_range_lower_bound = 20049
-port_range_upper_bound = 20449
+port_range_upper_bound = {{.PortRangeUpperBound}}
 
 # Optimize read_ahead_kb for Linux 5.4+
 optimize_readahead = true
@@ -80,7 +88,6 @@ disable_fetch_ec2_metadata_token = false
 
 [mount.cn-north-1]
 dns_name_suffix = amazonaws.com.cn
-
 
 [mount.cn-northwest-1]
 dns_name_suffix = amazonaws.com.cn
@@ -99,6 +106,18 @@ stunnel_cafile = /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
 
 [mount.us-isob-east-1]
 dns_name_suffix = sc2s.sgov.gov
+stunnel_cafile = /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
+
+[mount.us-isof-east-1]
+dns_name_suffix = csp.hci.ic.gov
+stunnel_cafile = /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
+
+[mount.us-isof-south-1]
+dns_name_suffix = csp.hci.ic.gov
+stunnel_cafile = /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
+
+[mount.eu-isoe-west-1]
+dns_name_suffix = cloud.adc-e.uk
 stunnel_cafile = /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
 
 [mount-watchdog]
@@ -161,8 +180,10 @@ type execWatchdog struct {
 }
 
 type efsUtilsConfig struct {
-	EfsClientSource string
-	Region          string
+	EfsClientSource     string
+	Region              string
+	FipsEnabled         string
+	PortRangeUpperBound string
 }
 
 func newExecWatchdog(efsUtilsCfgPath, efsUtilsStaticFilesPath, cmd string, arg ...string) Watchdog {
@@ -264,7 +285,13 @@ func (w *execWatchdog) updateConfig(efsClientSource string) error {
 	defer f.Close()
 	// used on Fargate, IMDS queries suffice otherwise
 	region := os.Getenv("AWS_DEFAULT_REGION")
-	efsCfg := efsUtilsConfig{EfsClientSource: efsClientSource, Region: region}
+	fipsEnabled := os.Getenv("FIPS_ENABLED")
+	portRangeUpperBound := os.Getenv("PORT_RANGE_UPPER_BOUND")
+	val, err := strconv.Atoi(portRangeUpperBound)
+	if err != nil || val < 21049 {
+		portRangeUpperBound = "21049"
+	}
+	efsCfg := efsUtilsConfig{EfsClientSource: efsClientSource, Region: region, FipsEnabled: fipsEnabled, PortRangeUpperBound: portRangeUpperBound}
 	if err = efsCfgTemplate.Execute(f, efsCfg); err != nil {
 		return fmt.Errorf("cannot update config %s for efs-utils. Error: %v", w.efsUtilsCfgPath, err)
 	}

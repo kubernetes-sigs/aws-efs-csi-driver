@@ -71,6 +71,7 @@ The following sections are Kubernetes specific. If you are a Kubernetes user, us
 | Amazon EFS CSI Driver \ Kubernetes Version | maturity | v1.11 | v1.12 | v1.13 | v1.14 | v1.15 | v1.16 | v1.17+ |
 |--------------------------------------------|----------|-------|-------|-------|-------|-------|-------|--------|
 | master branch                              | GA       | no    | no    | no    | no    | no    | no    | yes    |
+| v2.1.x                                     | GA       | no    | no    | no    | no    | no    | no    | yes    |
 | v2.0.x                                     | GA       | no    | no    | no    | no    | no    | no    | yes    |
 | v1.7.x                                     | GA       | no    | no    | no    | no    | no    | no    | yes    |
 | v1.6.x                                     | GA       | no    | no    | no    | no    | no    | no    | yes    |
@@ -88,6 +89,17 @@ The following sections are Kubernetes specific. If you are a Kubernetes user, us
 | Amazon EFS CSI Driver Version | Image                            |
 |-------------------------------|----------------------------------|
 | master branch                 | amazon/aws-efs-csi-driver:master |
+| v2.1.5                        | amazon/aws-efs-csi-driver:v2.1.5 |
+| v2.1.4                        | amazon/aws-efs-csi-driver:v2.1.4 |
+| v2.1.3                        | amazon/aws-efs-csi-driver:v2.1.3 |
+| v2.1.2                        | amazon/aws-efs-csi-driver:v2.1.2 |
+| v2.1.1                        | amazon/aws-efs-csi-driver:v2.1.1 |
+| v2.1.0                        | amazon/aws-efs-csi-driver:v2.1.0 |
+| v2.0.9                        | amazon/aws-efs-csi-driver:v2.0.9 |
+| v2.0.8                        | amazon/aws-efs-csi-driver:v2.0.8 |
+| v2.0.7                        | amazon/aws-efs-csi-driver:v2.0.7 |
+| v2.0.6                        | amazon/aws-efs-csi-driver:v2.0.6 |
+| v2.0.5                        | amazon/aws-efs-csi-driver:v2.0.5 |
 | v2.0.4                        | amazon/aws-efs-csi-driver:v2.0.4 |
 | v2.0.3                        | amazon/aws-efs-csi-driver:v2.0.3 |
 | v2.0.2                        | amazon/aws-efs-csi-driver:v2.0.2 |
@@ -143,7 +155,7 @@ The following sections are Kubernetes specific. If you are a Kubernetes user, us
 ### ECR Image
 | Driver Version | [ECR](https://gallery.ecr.aws/efs-csi-driver/amazon/aws-efs-csi-driver) Image |
 |----------------|-------------------------------------------------------------------------------|
-| v2.0.4         | public.ecr.aws/efs-csi-driver/amazon/aws-efs-csi-driver:v2.0.4                |
+| v2.1.5         | public.ecr.aws/efs-csi-driver/amazon/aws-efs-csi-driver:v2.1.5                |
 
 **Note**  
 You can find previous efs-csi-driver versions' images from [here](https://gallery.ecr.aws/efs-csi-driver/amazon/aws-efs-csi-driver)
@@ -184,7 +196,8 @@ A Pod running on AWS Fargate automatically mounts an Amazon EFS file system, wit
 
 #### Set up driver permission
 The driver requires IAM permission to talk to Amazon EFS to manage the volume on user's behalf. There are several methods to grant driver IAM permission:
-* Using IAM role for service account (recommended if you're using Amazon EKS) – Create an [IAM Role for service accounts](https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts.html) with the required permissions in [iam-policy-example.json](./iam-policy-example.json). Uncomment annotations and put the IAM role ARN in the [service-account manifest](../deploy/kubernetes/base/controller-serviceaccount.yaml). For example steps, see [Create an IAM policy and role for Amazon EKS](./iam-policy-create.md).
+* Using the EKS Pod Identity Add-on - [Install the EKS Pod Identity add-on to your EKS cluster](https://docs.aws.amazon.com/eks/latest/userguide/pod-id-agent-setup.html). This doesn't need the efs-csi-driver to be installed through EKS add-on, it can be used no matter the method of installation of the efs-csi-driver. If this installation method is used, the ```AmazonEFSCSIDriverPolicy``` policy has to be added to the cluster's node group's IAM role. 
+* Using IAM role for service account – Create an [IAM Role for service accounts](https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts.html) with the required permissions in [iam-policy-example.json](./iam-policy-example.json). Uncomment annotations and put the IAM role ARN in the [service-account manifest](../deploy/kubernetes/base/controller-serviceaccount.yaml). For example steps, see [Create an IAM policy and role for Amazon EKS](./iam-policy-create.md).
 * Using IAM [instance profile](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_use_switch-role-ec2_instance-profiles.html) – Grant all the worker nodes with [required permissions](./iam-policy-example.json) by attaching the policy to the instance profile of the worker.
 
 ------
@@ -345,8 +358,14 @@ Enabling the vol-metrics-opt-in parameter activates the gathering of inode and d
 | Parameters                  | Values | Default | Optional | Description                                                                                                                                                                                                                            |
 |-----------------------------|--------|---------|----------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | delete-access-point-root-dir|        | false  | true     | Opt in to delete access point root directory by DeleteVolume. By default, DeleteVolume will delete the access point behind Persistent Volume and deleting access point will not delete the access point root directory or its contents. |
+| adaptive-retry-mode         |        | true   | true     | Opt out to use standard sdk retry mode for EFS API calls. By default, Driver will use adaptive mode for the sdk retry configuration which heavily rate limits EFS API requests to reduce throttling if throttling is observed.           |
 | tags                         |       |         | true     | Space separated key:value pairs which will be added as tags for Amazon EFS resources. For example, '--tags=name:efs-tag-test date:Jan24'                                                                                               |
 ### Upgrading the Amazon EFS CSI Driver
+
+
+### Important Notes on EFS CSI Driver v2 Upgrade
+
+Starting with version 2.X.X, the EFS CSI driver incorporates efs-utils v2.X.X, which introduces a significant change in how TLS encryption for mounts is handled. The previous stunnel component has been replaced by efs-proxy, a custom-built AWS component. To take advantage of the enhanced performance offered by efs-proxy, it's necessary to re-mount any existing file systems after upgrading.
 
 
 #### Upgrade to the latest version:
@@ -361,7 +380,7 @@ If you want to update to a specific version, first customize the driver yaml fil
 kubectl kustomize "github.com/kubernetes-sigs/aws-efs-csi-driver/deploy/kubernetes/overlays/stable/?ref=release-2.0" > driver.yaml
 ```
 
-Then, update all lines referencing `image: amazon/aws-efs-csi-driver` to the desired version (e.g., to `image: amazon/aws-efs-csi-driver:v2.0.4`) in the yaml file, and deploy driver yaml again:
+Then, update all lines referencing `image: amazon/aws-efs-csi-driver` to the desired version (e.g., to `image: amazon/aws-efs-csi-driver:v2.1.5`) in the yaml file, and deploy driver yaml again:
 ```sh
 kubectl apply -f driver.yaml
 ```
