@@ -13,7 +13,6 @@ import (
 
 // MockMounter is a mock of Mounter interface.
 type MockMounter struct {
-	mount_utils.Interface
 	ctrl     *gomock.Controller
 	recorder *MockMounterMockRecorder
 }
@@ -195,7 +194,7 @@ func (mr *MockMounterMockRecorder) MountSensitiveWithoutSystemdWithMountFlags(ar
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MountSensitiveWithoutSystemdWithMountFlags", reflect.TypeOf((*MockMounter)(nil).MountSensitiveWithoutSystemdWithMountFlags), arg0, arg1, arg2, arg3, arg4, arg5)
 }
 
-// Unmount_utils mocks base method.
+// Unmount mocks base method.
 func (m *MockMounter) Unmount(arg0 string) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Unmount", arg0)
@@ -203,7 +202,7 @@ func (m *MockMounter) Unmount(arg0 string) error {
 	return ret0
 }
 
-// Unmount_utils indicates an expected call of Unmount_utils.
+// Unmount indicates an expected call of Unmount.
 func (mr *MockMounterMockRecorder) Unmount(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Unmount", reflect.TypeOf((*MockMounter)(nil).Unmount), arg0)
