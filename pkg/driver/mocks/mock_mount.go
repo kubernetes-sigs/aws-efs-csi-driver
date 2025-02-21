@@ -5,6 +5,8 @@
 package mocks
 
 import (
+	"os"
+	"time"
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
@@ -21,6 +23,35 @@ type MockMounter struct {
 // MockMounterMockRecorder is the mock recorder for MockMounter.
 type MockMounterMockRecorder struct {
 	mock *MockMounter
+}
+
+// Mock struct used for stat
+type MockFileInfo struct {
+    name    string
+    size    int64
+    mode    os.FileMode
+    modTime time.Time
+    isDir   bool
+    sys     interface{}
+}
+
+func (m MockFileInfo) Name() string       { return m.name }
+func (m MockFileInfo) Size() int64        { return m.size }
+func (m MockFileInfo) Mode() os.FileMode  { return m.mode }
+func (m MockFileInfo) ModTime() time.Time { return m.modTime }
+func (m MockFileInfo) IsDir() bool        { return m.isDir }
+func (m MockFileInfo) Sys() interface{}   { return m.sys }
+
+// NewMockFileInfo creates a new mock file info structure for Stat
+func NewMockFileInfo(name string, size int64, mode os.FileMode, modTime time.Time, isDir bool, sys interface{}) MockFileInfo {
+    return MockFileInfo{
+        name:    name,
+        size:    size,
+        mode:    mode,
+        modTime: modTime,
+        isDir:   isDir,
+        sys:     sys,
+    }
 }
 
 // NewMockMounter creates a new mock instance.
@@ -137,6 +168,21 @@ func (m *MockMounter) MakeDir(arg0 string) error {
 func (mr *MockMounterMockRecorder) MakeDir(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MakeDir", reflect.TypeOf((*MockMounter)(nil).MakeDir), arg0)
+}
+
+// Stat mocks base method.
+func (m *MockMounter) Stat(arg0 string) (os.FileInfo, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Stat", arg0)
+	ret0, _ := ret[0].(os.FileInfo)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Stat indicates an expected call of MakeDir.
+func (mr *MockMounterMockRecorder) Stat(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Stat", reflect.TypeOf((*MockMounter)(nil).Stat), arg0)
 }
 
 // Mount mocks base method.

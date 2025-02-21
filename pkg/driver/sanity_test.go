@@ -80,6 +80,7 @@ func TestSanityEFSCSI(t *testing.T) {
 		volMetricsOptIn: true,
 		volStatter:      NewVolStatter(),
 		gidAllocator:    NewGidAllocator(),
+		lockManager:     NewLockManagerMap(),
 	}
 	defer func() {
 		if r := recover(); r != nil {

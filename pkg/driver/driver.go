@@ -53,6 +53,7 @@ type Driver struct {
 	deleteAccessPointRootDir bool
 	adaptiveRetryMode        bool
 	tags                     map[string]string
+	lockManager		    	 LockManagerMap
 }
 
 func NewDriver(endpoint, efsUtilsCfgPath, efsUtilsStaticFilesPath, tags string, volMetricsOptIn bool, volMetricsRefreshPeriod float64, volMetricsFsRateLimit int, deleteAccessPointRootDir bool, adaptiveRetryMode bool) *Driver {
@@ -78,6 +79,7 @@ func NewDriver(endpoint, efsUtilsCfgPath, efsUtilsStaticFilesPath, tags string, 
 		deleteAccessPointRootDir: deleteAccessPointRootDir,
 		adaptiveRetryMode:        adaptiveRetryMode,
 		tags:                     parseTagsFromStr(strings.TrimSpace(tags)),
+		lockManager:              NewLockManagerMap(),
 	}
 }
 

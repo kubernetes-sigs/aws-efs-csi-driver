@@ -4,9 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math/rand"
 	"regexp"
 	"strconv"
+	"sync"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"google.golang.org/grpc/codes"
@@ -50,6 +54,7 @@ func TestCreateVolume(t *testing.T) {
 					endpoint:     endpoint,
 					cloud:        mockCloud,
 					gidAllocator: NewGidAllocator(),
+					lockManager:  NewLockManagerMap(),
 				}
 
 				req := &csi.CreateVolumeRequest{
@@ -115,6 +120,7 @@ func TestCreateVolume(t *testing.T) {
 					endpoint:     endpoint,
 					cloud:        mockCloud,
 					gidAllocator: NewGidAllocator(),
+					lockManager:  NewLockManagerMap(),
 				}
 
 				req := &csi.CreateVolumeRequest{
@@ -182,6 +188,7 @@ func TestCreateVolume(t *testing.T) {
 					endpoint:     endpoint,
 					cloud:        mockCloud,
 					gidAllocator: NewGidAllocator(),
+					lockManager:  NewLockManagerMap(),
 				}
 
 				req := &csi.CreateVolumeRequest{
@@ -264,6 +271,7 @@ func TestCreateVolume(t *testing.T) {
 					endpoint:     endpoint,
 					cloud:        mockCloud,
 					gidAllocator: NewGidAllocator(),
+					lockManager:  NewLockManagerMap(),
 				}
 
 				req := &csi.CreateVolumeRequest{
@@ -393,6 +401,7 @@ func TestCreateVolume(t *testing.T) {
 					endpoint:     endpoint,
 					cloud:        mockCloud,
 					gidAllocator: NewGidAllocator(),
+					lockManager:  NewLockManagerMap(),
 				}
 
 				req := &csi.CreateVolumeRequest{
@@ -483,6 +492,7 @@ func TestCreateVolume(t *testing.T) {
 					endpoint:     endpoint,
 					cloud:        mockCloud,
 					gidAllocator: NewGidAllocator(),
+					lockManager:  NewLockManagerMap(),
 				}
 
 				req := &csi.CreateVolumeRequest{
@@ -542,6 +552,7 @@ func TestCreateVolume(t *testing.T) {
 					endpoint:     endpoint,
 					cloud:        mockCloud,
 					gidAllocator: NewGidAllocator(),
+					lockManager:  NewLockManagerMap(),
 					tags:         parseTagsFromStr(""),
 				}
 
@@ -593,6 +604,127 @@ func TestCreateVolume(t *testing.T) {
 			},
 		},
 		{
+			name: "Success: Race Normal flow",
+			testFunc: func(t *testing.T) {
+				numGoRoutines := 100
+				rand.Seed(time.Now().UnixNano())
+				mockCtl := gomock.NewController(t)
+				mockCloud := mocks.NewMockCloud(mockCtl)
+
+				driver := &Driver{
+					endpoint:     endpoint,
+					cloud:        mockCloud,
+					gidAllocator: NewGidAllocator(),
+					lockManager:  NewLockManagerMap(),
+					tags:         parseTagsFromStr(""),
+				}
+
+				req := &csi.CreateVolumeRequest{
+					Name: volumeName,
+					VolumeCapabilities: []*csi.VolumeCapability{
+						stdVolCap,
+					},
+					CapacityRange: &csi.CapacityRange{
+						RequiredBytes: capacityRange,
+					},
+					Parameters: map[string]string{
+						ProvisioningMode: "efs-ap",
+						FsId:             fsId,
+						GidMin:           "1000",
+						GidMax:           "2000",
+						DirectoryPerms:   "777",
+						AzName:           "us-east-1a",
+					},
+				}
+
+				ctx := context.Background()
+				// Generate random access points so we can return a new one every time
+				accessPointArr := make([]*cloud.AccessPoint, numGoRoutines)
+				for i := range accessPointArr {
+					accessPointArr[i] = &cloud.AccessPoint{
+						AccessPointId: fmt.Sprintf("fsap-%s", randStringBytes(12)),
+						FileSystemId:  fsId,
+						PosixUser: &cloud.PosixUser{
+							Gid: 1000,
+							Uid: 1000,
+						},
+					}
+				}
+
+				// Don't need to return any access points, but don't return any errors so the filesystems shows up as found
+				mockCloud.EXPECT().ListAccessPoints(gomock.Eq(ctx), gomock.Any()).Return(nil, nil).Times(numGoRoutines)
+
+				// Return a different generated access point every time this function is called
+				var createCounter int32 = 0
+				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Eq(volumeName), gomock.Any()).DoAndReturn(
+					func(_ context.Context, _ interface{}, _ interface{}) (*cloud.AccessPoint, error) {
+						current := atomic.AddInt32(&createCounter, 1) - 1
+						return accessPointArr[current], nil
+					},
+				).Times(numGoRoutines)
+
+				// Lock the volume mutex to hold threads until they are all scheduled
+				driver.lockManager.lockMutex(apId)
+
+				var wg sync.WaitGroup
+				resultChan := make(chan struct {
+					index int
+					resp *csi.CreateVolumeResponse
+					err error
+				}, numGoRoutines)
+
+				for i := 0; i < numGoRoutines; i++ {
+					wg.Add(1)
+					go func(index int) {
+						defer wg.Done()
+						resp, err := driver.CreateVolume(ctx, req)
+						resultChan <- struct {
+							index int
+							resp *csi.CreateVolumeResponse
+							err error
+						}{index, resp, err}
+					}(i)
+				}
+
+				// Unlock the mutex to force a race
+				driver.lockManager.unlockMutex(apId)
+
+				go func() {
+					wg.Wait()
+					close(resultChan)
+				}()
+
+				for result := range resultChan {
+					if result.err != nil {
+						t.Fatalf("CreateVolume failed: %v", result.err)
+					}
+	
+					if result.resp.Volume == nil {
+						t.Fatal("Volume is nil")
+					}
+
+					found := false
+					for _, ap := range accessPointArr {
+						if result.resp.Volume.VolumeId == fmt.Sprintf("%s::%s", ap.FileSystemId, ap.AccessPointId) {
+							found = true
+							break
+						}
+					}
+
+					if !found {
+						t.Fatalf("Volume Id %v was not found in the access point array", result.resp.Volume.VolumeId)
+					}
+				}
+
+				// Ensure all keys were properly deleted from the lock manager
+				keys, _ := driver.lockManager.GetLockCount()
+				if keys > 0 {
+					t.Fatalf("%d Keys are still in the lockManager", keys)
+				}
+				mockCtl.Finish()
+			},
+		},
+		{
 			name: "Success: Using Default GID ranges",
 			testFunc: func(t *testing.T) {
 				mockCtl := gomock.NewController(t)
@@ -602,6 +734,7 @@ func TestCreateVolume(t *testing.T) {
 					endpoint:     endpoint,
 					cloud:        mockCloud,
 					gidAllocator: NewGidAllocator(),
+					lockManager:  NewLockManagerMap(),
 				}
 
 				req := &csi.CreateVolumeRequest{
@@ -658,6 +791,7 @@ func TestCreateVolume(t *testing.T) {
 					endpoint:     endpoint,
 					cloud:        mockCloud,
 					gidAllocator: NewGidAllocator(),
+					lockManager:  NewLockManagerMap(),
 					tags:         parseTagsFromStr("cluster:efs"),
 				}
 
@@ -717,6 +851,7 @@ func TestCreateVolume(t *testing.T) {
 					endpoint:     endpoint,
 					cloud:        mockCloud,
 					gidAllocator: NewGidAllocator(),
+					lockManager:  NewLockManagerMap(),
 					tags:         parseTagsFromStr("cluster-efs"),
 				}
 
@@ -776,6 +911,7 @@ func TestCreateVolume(t *testing.T) {
 					endpoint:     endpoint,
 					cloud:        mockCloud,
 					gidAllocator: NewGidAllocator(),
+					lockManager:  NewLockManagerMap(),
 					tags:         parseTagsFromStr(""),
 				}
 				pvcNameVal := "test-pvc"
@@ -830,6 +966,176 @@ func TestCreateVolume(t *testing.T) {
 			},
 		},
 		{
+			name: "Success: reuseAccessPointName is true with existing access point not found",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockCloud := mocks.NewMockCloud(mockCtl)
+
+				driver := &Driver{
+					endpoint:     endpoint,
+					cloud:        mockCloud,
+					gidAllocator: NewGidAllocator(),
+					lockManager:  NewLockManagerMap(),
+					tags:         parseTagsFromStr(""),
+				}
+				pvcNameVal := "test-pvc"
+
+				req := &csi.CreateVolumeRequest{
+					Name: volumeName,
+					VolumeCapabilities: []*csi.VolumeCapability{
+						stdVolCap,
+					},
+					CapacityRange: &csi.CapacityRange{
+						RequiredBytes: capacityRange,
+					},
+					Parameters: map[string]string{
+						ProvisioningMode:    "efs-ap",
+						FsId:                fsId,
+						GidMin:              "1000",
+						GidMax:              "2000",
+						DirectoryPerms:      "777",
+						AzName:              "us-east-1a",
+						ReuseAccessPointKey: "true",
+						PvcNameKey:          pvcNameVal,
+					},
+				}
+
+				ctx := context.Background()
+
+				accessPoint := &cloud.AccessPoint{
+					AccessPointId: apId,
+					FileSystemId:  fsId,
+					PosixUser: &cloud.PosixUser{
+						Gid: 1000,
+						Uid: 1000,
+					},
+				}
+				mockCloud.EXPECT().FindAccessPointByClientToken(gomock.Eq(ctx), gomock.Any(), gomock.Eq(fsId)).Return(nil, nil)
+				// When createVolume can't find existing access point name, it should create a new one
+				accessPoints := []*cloud.AccessPoint{accessPoint}
+				mockCloud.EXPECT().ListAccessPoints(gomock.Eq(ctx), gomock.Any()).Return(accessPoints, nil)
+				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(accessPoint, nil)
+
+				res, err := driver.CreateVolume(ctx, req)
+
+				if err != nil {
+					t.Fatalf("CreateVolume failed: %v", err)
+				}
+
+				if res.Volume == nil {
+					t.Fatal("Volume is nil")
+				}
+
+				if res.Volume.VolumeId != volumeId {
+					t.Fatalf("Volume Id mismatched. Expected: %v, Actual: %v", volumeId, res.Volume.VolumeId)
+				}
+
+				mockCtl.Finish()
+			},
+		},
+		{
+			name: "Success: Race with reuseAccessPointName is true",
+			testFunc: func(t *testing.T) {
+				const numGoRoutines = 100
+				mockCtl := gomock.NewController(t)
+				mockCloud := mocks.NewMockCloud(mockCtl)
+
+				driver := &Driver{
+					endpoint:     endpoint,
+					cloud:        mockCloud,
+					gidAllocator: NewGidAllocator(),
+					lockManager:  NewLockManagerMap(),
+					tags:         parseTagsFromStr(""),
+				}
+				pvcNameVal := "test-pvc"
+
+				req := &csi.CreateVolumeRequest{
+					Name: volumeName,
+					VolumeCapabilities: []*csi.VolumeCapability{
+						stdVolCap,
+					},
+					CapacityRange: &csi.CapacityRange{
+						RequiredBytes: capacityRange,
+					},
+					Parameters: map[string]string{
+						ProvisioningMode:    "efs-ap",
+						FsId:                fsId,
+						GidMin:              "1000",
+						GidMax:              "2000",
+						DirectoryPerms:      "777",
+						AzName:              "us-east-1a",
+						ReuseAccessPointKey: "true",
+						PvcNameKey:          pvcNameVal,
+					},
+				}
+
+				ctx := context.Background()
+
+				accessPoint := &cloud.AccessPoint{
+					AccessPointId: apId,
+					FileSystemId:  fsId,
+					PosixUser: &cloud.PosixUser{
+						Gid: 1000,
+						Uid: 1000,
+					},
+				}
+				mockCloud.EXPECT().FindAccessPointByClientToken(gomock.Eq(ctx), gomock.Any(), gomock.Eq(fsId)).Return(accessPoint, nil).Times(numGoRoutines)
+
+				// Lock the volume mutex to hold threads until they are all scheduled
+				driver.lockManager.lockMutex(apId)
+
+				var wg sync.WaitGroup
+				resultChan := make(chan struct {
+					index int
+					resp *csi.CreateVolumeResponse
+					err error
+				}, numGoRoutines)
+
+				for i := 0; i < numGoRoutines; i++ {
+					wg.Add(1)
+					go func(index int) {
+						defer wg.Done()
+						resp, err := driver.CreateVolume(ctx, req)
+						resultChan <- struct {
+							index int
+							resp *csi.CreateVolumeResponse
+							err error
+						}{index, resp, err}
+					}(i)
+				}
+
+				// Unlock the mutex to force a race
+				driver.lockManager.unlockMutex(apId)
+
+				go func() {
+					wg.Wait()
+					close(resultChan)
+				}()
+
+				for result := range resultChan {
+					if result.err != nil {
+						t.Fatalf("CreateVolume failed: %v", result.err)
+					}
+	
+					if result.resp.Volume == nil {
+						t.Fatal("Volume is nil")
+					}
+	
+					if result.resp.Volume.VolumeId != volumeId {
+						t.Fatalf("Volume Id mismatched. Expected: %v, Actual: %v", volumeId, result.resp.Volume.VolumeId)
+					}
+				}
+
+				// Ensure all keys were properly deleted from the lock manager
+				keys, _ := driver.lockManager.GetLockCount()
+				if keys > 0 {
+					t.Fatalf("%d Keys are still in the lockManager", keys)
+				}
+
+				mockCtl.Finish()
+			},
+		},
+		{
 			name: "Success: Normal flow with a valid directory structure set",
 			testFunc: func(t *testing.T) {
 				mockCtl := gomock.NewController(t)
@@ -839,6 +1145,7 @@ func TestCreateVolume(t *testing.T) {
 					endpoint:     endpoint,
 					cloud:        mockCloud,
 					gidAllocator: NewGidAllocator(),
+					lockManager:  NewLockManagerMap(),
 					tags:         parseTagsFromStr(""),
 				}
 
@@ -909,6 +1216,7 @@ func TestCreateVolume(t *testing.T) {
 					endpoint:     endpoint,
 					cloud:        mockCloud,
 					gidAllocator: NewGidAllocator(),
+					lockManager:  NewLockManagerMap(),
 					tags:         parseTagsFromStr(""),
 				}
 
@@ -977,6 +1285,7 @@ func TestCreateVolume(t *testing.T) {
 					endpoint:     endpoint,
 					cloud:        mockCloud,
 					gidAllocator: NewGidAllocator(),
+					lockManager:  NewLockManagerMap(),
 					tags:         parseTagsFromStr(""),
 				}
 
@@ -1048,6 +1357,7 @@ func TestCreateVolume(t *testing.T) {
 					endpoint:     endpoint,
 					cloud:        mockCloud,
 					gidAllocator: NewGidAllocator(),
+					lockManager:  NewLockManagerMap(),
 					tags:         parseTagsFromStr(""),
 				}
 
@@ -1120,6 +1430,7 @@ func TestCreateVolume(t *testing.T) {
 					endpoint:     endpoint,
 					cloud:        mockCloud,
 					gidAllocator: NewGidAllocator(),
+					lockManager:  NewLockManagerMap(),
 					tags:         parseTagsFromStr(""),
 				}
 
@@ -1189,6 +1500,7 @@ func TestCreateVolume(t *testing.T) {
 					endpoint:     endpoint,
 					cloud:        mockCloud,
 					gidAllocator: NewGidAllocator(),
+					lockManager:  NewLockManagerMap(),
 					tags:         parseTagsFromStr(""),
 				}
 
@@ -1254,6 +1566,7 @@ func TestCreateVolume(t *testing.T) {
 					endpoint:     endpoint,
 					cloud:        mockCloud,
 					gidAllocator: NewGidAllocator(),
+					lockManager:  NewLockManagerMap(),
 					tags:         parseTagsFromStr(""),
 				}
 
@@ -1320,6 +1633,7 @@ func TestCreateVolume(t *testing.T) {
 					endpoint:     endpoint,
 					cloud:        mockCloud,
 					gidAllocator: NewGidAllocator(),
+					lockManager:  NewLockManagerMap(),
 					tags:         parseTagsFromStr(""),
 				}
 
@@ -2658,10 +2972,12 @@ func TestCreateVolume(t *testing.T) {
 
 func TestDeleteVolume(t *testing.T) {
 	var (
-		apId     = "fsap-abcd1234xyz987"
-		fsId     = "fs-abcd1234"
-		endpoint = "endpoint"
-		volumeId = "fs-abcd1234::fsap-abcd1234xyz987"
+		apId      = "fsap-abcd1234xyz987"
+		apId2     = "fsap-abcd1234xyz988"
+		fsId      = "fs-abcd1234"
+		endpoint  = "endpoint"
+		volumeId  = "fs-abcd1234::fsap-abcd1234xyz987"
+		volumeId2 = "fs-abcd1234::fsap-abcd1234xyz988"
 	)
 
 	testCases := []struct {
@@ -2678,6 +2994,7 @@ func TestDeleteVolume(t *testing.T) {
 					endpoint:     endpoint,
 					cloud:        mockCloud,
 					gidAllocator: NewGidAllocator(),
+					lockManager:  NewLockManagerMap(),
 				}
 
 				req := &csi.DeleteVolumeRequest{
@@ -2705,6 +3022,7 @@ func TestDeleteVolume(t *testing.T) {
 					cloud:                    mockCloud,
 					mounter:                  mockMounter,
 					gidAllocator:             NewGidAllocator(),
+					lockManager:              NewLockManagerMap(),
 					deleteAccessPointRootDir: true,
 				}
 
@@ -2715,20 +3033,278 @@ func TestDeleteVolume(t *testing.T) {
 				accessPoint := &cloud.AccessPoint{
 					AccessPointId:      apId,
 					FileSystemId:       fsId,
-					AccessPointRootDir: "",
+					AccessPointRootDir: "/testDir",
 					CapacityGiB:        0,
 				}
+
+				dirPresent := mocks.NewMockFileInfo(
+					"testFile",
+					0,
+					0755,
+					time.Now(),
+					true,
+					nil,
+				)
 
 				ctx := context.Background()
 				mockMounter.EXPECT().MakeDir(gomock.Any()).Return(nil)
 				mockMounter.EXPECT().Mount(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 				mockMounter.EXPECT().Unmount(gomock.Any()).Return(nil)
+				mockMounter.EXPECT().Stat(gomock.Any()).Return(dirPresent, nil)
+				mockMounter.EXPECT().IsLikelyNotMountPoint(gomock.Any()).Return(true, nil)
 				mockCloud.EXPECT().DescribeAccessPoint(gomock.Eq(ctx), gomock.Eq(apId)).Return(accessPoint, nil)
 				mockCloud.EXPECT().DeleteAccessPoint(gomock.Eq(ctx), gomock.Eq(apId)).Return(nil)
 				_, err := driver.DeleteVolume(ctx, req)
 				if err != nil {
 					t.Fatalf("Delete Volume failed: %v", err)
 				}
+				mockCtl.Finish()
+			},
+		},
+		{
+			name: "Success: Race Delete with deleteAccessPointRootDir",
+			testFunc: func(t *testing.T) {
+				const numGoRoutines = 100
+				mockCtl := gomock.NewController(t)
+				mockCloud := mocks.NewMockCloud(mockCtl)
+				mockMounter := mocks.NewMockMounter(mockCtl)
+
+				driver := &Driver{
+					endpoint:                 endpoint,
+					cloud:                    mockCloud,
+					mounter:                  mockMounter,
+					gidAllocator:             NewGidAllocator(),
+					lockManager:              NewLockManagerMap(),
+					deleteAccessPointRootDir: true,
+				}
+
+				req := &csi.DeleteVolumeRequest{
+					VolumeId: volumeId,
+				}
+
+				accessPoint := &cloud.AccessPoint{
+					AccessPointId:      apId,
+					FileSystemId:       fsId,
+					AccessPointRootDir: "/testDir",
+					CapacityGiB:        0,
+				}
+
+				dirPresent := mocks.NewMockFileInfo(
+					"testFile",
+					0,
+					0755,
+					time.Now(),
+					true,
+					nil,
+				)
+
+				ctx := context.Background()
+				// Expect the deletion scenario to only happen once
+				mockMounter.EXPECT().MakeDir(gomock.Any()).Return(nil).Times(1)
+				mockMounter.EXPECT().Mount(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+				mockMounter.EXPECT().Unmount(gomock.Any()).Return(nil).Times(1)
+				mockMounter.EXPECT().Stat(gomock.Any()).Return(dirPresent, nil).Times(1)
+				mockCloud.EXPECT().DeleteAccessPoint(gomock.Eq(ctx), gomock.Eq(apId)).Return(nil).Times(1)
+
+				mockMounter.EXPECT().IsLikelyNotMountPoint(gomock.Any()).Return(true, nil).Times(numGoRoutines)
+				
+				// Expect the first describe call to see the access point, then subsequent calls to see it as deleted
+				var describeCallCount int32 = 0
+				mockCloud.EXPECT().DescribeAccessPoint(gomock.Eq(ctx), gomock.Eq(apId)).
+					DoAndReturn(func(ctx, accessPointId interface{}) (*cloud.AccessPoint, error) {
+						current := atomic.AddInt32(&describeCallCount, 1)
+						if current == 1 {
+							return accessPoint, nil
+						}
+						return accessPoint, cloud.ErrNotFound
+					}).Times(numGoRoutines)
+
+				// Lock the volume mutex to hold threads until they are all scheduled
+				driver.lockManager.lockMutex(apId)
+
+				var wg sync.WaitGroup
+				resultChan := make(chan struct {
+					index int
+					resp *csi.DeleteVolumeResponse
+					err error
+				}, numGoRoutines)
+
+				for i := 0; i < numGoRoutines; i++ {
+					wg.Add(1)
+					go func(index int) {
+						defer wg.Done()
+						resp, err := driver.DeleteVolume(ctx, req)
+						resultChan <- struct {
+							index int
+							resp *csi.DeleteVolumeResponse
+							err error
+						}{index, resp, err}
+					}(i)
+				}
+
+				// Unlock the mutex to force a race
+				driver.lockManager.unlockMutex(apId)
+
+				go func() {
+					wg.Wait()
+					close(resultChan)
+				}()
+
+				for result := range resultChan {
+					if result.err != nil {
+						t.Fatalf("Delete Volume failed on routine %d: %v", result.index, result.err)
+					}
+				}
+
+				// Ensure all keys were properly deleted from the lock manager
+				keys, _ := driver.lockManager.GetLockCount()
+				if keys > 0 {
+					t.Fatalf("%d Keys are still in the lockManager", keys)
+				}
+
+				mockCtl.Finish()
+			},
+		},
+		{
+			name: "Success: Race Delete different access points with deleteAccessPointRootDir",
+			testFunc: func(t *testing.T) {
+				const numGoRoutines = 100
+				mockCtl := gomock.NewController(t)
+				mockCloud := mocks.NewMockCloud(mockCtl)
+				mockMounter := mocks.NewMockMounter(mockCtl)
+
+				driver := &Driver{
+					endpoint:                 endpoint,
+					cloud:                    mockCloud,
+					mounter:                  mockMounter,
+					gidAllocator:             NewGidAllocator(),
+					lockManager:              NewLockManagerMap(),
+					deleteAccessPointRootDir: true,
+				}
+
+				req := &csi.DeleteVolumeRequest{
+					VolumeId: volumeId,
+				}
+
+				req2 := &csi.DeleteVolumeRequest{
+					VolumeId: volumeId2,
+				}
+
+				accessPoint1 := &cloud.AccessPoint{
+					AccessPointId:      apId,
+					FileSystemId:       fsId,
+					AccessPointRootDir: "/ap1",
+					CapacityGiB:        0,
+				}
+
+				accessPoint2 := &cloud.AccessPoint{
+					AccessPointId:      apId2,
+					FileSystemId:       fsId,
+					AccessPointRootDir: "/ap2",
+					CapacityGiB:        0,
+				}
+
+				dirPresent := mocks.NewMockFileInfo(
+					"testFile",
+					0,
+					0755,
+					time.Now(),
+					true,
+					nil,
+				)
+
+				ctx := context.Background()
+				// Expect the deletion scenario to only happen once per access point
+				mockMounter.EXPECT().MakeDir(gomock.Any()).Return(nil).Times(2)
+				mockMounter.EXPECT().Mount(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(2)
+				mockMounter.EXPECT().Unmount(gomock.Any()).Return(nil).Times(2)
+				mockMounter.EXPECT().Stat(gomock.Any()).Return(dirPresent, nil).Times(2)
+				mockCloud.EXPECT().DeleteAccessPoint(gomock.Eq(ctx), gomock.Eq(apId)).Return(nil).Times(1)
+				mockCloud.EXPECT().DeleteAccessPoint(gomock.Eq(ctx), gomock.Eq(apId2)).Return(nil).Times(1)
+
+				mockMounter.EXPECT().IsLikelyNotMountPoint(gomock.Any()).Return(true, nil).Times(2 * numGoRoutines)
+				
+				// Expect the first describe call to see the access point, then subsequent calls to see it as deleted
+				describeCallCountAp1 := 0
+				mockCloud.EXPECT().DescribeAccessPoint(gomock.Eq(ctx), gomock.Eq(apId)).
+					DoAndReturn(func(ctx, accessPointId interface{}) (*cloud.AccessPoint, error) {
+						describeCallCountAp1++
+						if describeCallCountAp1 == 1 {
+							return accessPoint1, nil
+						}
+						return accessPoint1, cloud.ErrNotFound
+					}).Times(numGoRoutines)
+
+				describeCallCountAp2 := 0
+				mockCloud.EXPECT().DescribeAccessPoint(gomock.Eq(ctx), gomock.Eq(apId2)).
+					DoAndReturn(func(ctx, accessPointId interface{}) (*cloud.AccessPoint, error) {
+						describeCallCountAp2++
+						if describeCallCountAp2 == 1 {
+							return accessPoint2, nil
+						}
+						return accessPoint2, cloud.ErrNotFound
+					}).Times(numGoRoutines)
+
+				// Lock the volume mutex to hold threads until they are all scheduled
+				driver.lockManager.lockMutex(apId)
+				driver.lockManager.lockMutex(apId2)
+
+				var wg sync.WaitGroup
+				resultChan := make(chan struct {
+					index int
+					resp *csi.DeleteVolumeResponse
+					err error
+				}, numGoRoutines)
+
+				// Add apId1 threads
+				for i := 0; i < numGoRoutines; i++ {
+					wg.Add(1)
+					go func(index int) {
+						defer wg.Done()
+						resp, err := driver.DeleteVolume(ctx, req)
+						resultChan <- struct {
+							index int
+							resp *csi.DeleteVolumeResponse
+							err error
+						}{index, resp, err}
+					}(i)
+				}
+
+				// Add apId2 threads
+				for i := 0; i < numGoRoutines; i++ {
+					wg.Add(1)
+					go func(index int) {
+						defer wg.Done()
+						resp, err := driver.DeleteVolume(ctx, req2)
+						resultChan <- struct {
+							index int
+							resp *csi.DeleteVolumeResponse
+							err error
+						}{index, resp, err}
+					}(i)
+				}
+
+				// Unlock the mutex to force a race
+				driver.lockManager.unlockMutex(apId)
+				driver.lockManager.unlockMutex(apId2)
+
+				go func() {
+					wg.Wait()
+					close(resultChan)
+				}()
+
+				for result := range resultChan {
+					if result.err != nil {
+						t.Fatalf("Delete Volume failed on routine %d: %v", result.index, result.err)
+					}
+				}
+
+				// Ensure all keys were properly deleted from the lock manager
+				keys, _ := driver.lockManager.GetLockCount()
+				if keys > 0 {
+					t.Fatalf("%d Keys are still in the lockManager", keys)
+				}
+
 				mockCtl.Finish()
 			},
 		},
@@ -2744,6 +3320,7 @@ func TestDeleteVolume(t *testing.T) {
 					cloud:                    mockCloud,
 					mounter:                  mockMounter,
 					gidAllocator:             NewGidAllocator(),
+					lockManager:              NewLockManagerMap(),
 					deleteAccessPointRootDir: true,
 				}
 
@@ -2752,6 +3329,7 @@ func TestDeleteVolume(t *testing.T) {
 				}
 
 				ctx := context.Background()
+				mockMounter.EXPECT().IsLikelyNotMountPoint(gomock.Any()).Return(true, nil)
 				mockCloud.EXPECT().DescribeAccessPoint(gomock.Eq(ctx), gomock.Eq(apId)).Return(nil, cloud.ErrNotFound)
 				_, err := driver.DeleteVolume(ctx, req)
 				if err != nil {
@@ -2772,6 +3350,7 @@ func TestDeleteVolume(t *testing.T) {
 					cloud:                    mockCloud,
 					mounter:                  mockMounter,
 					gidAllocator:             NewGidAllocator(),
+					lockManager:              NewLockManagerMap(),
 					deleteAccessPointRootDir: true,
 				}
 
@@ -2780,6 +3359,7 @@ func TestDeleteVolume(t *testing.T) {
 				}
 
 				ctx := context.Background()
+				mockMounter.EXPECT().IsLikelyNotMountPoint(gomock.Any()).Return(true, nil)
 				mockCloud.EXPECT().DescribeAccessPoint(gomock.Eq(ctx), gomock.Eq(apId)).Return(nil, cloud.ErrAccessDenied)
 				_, err := driver.DeleteVolume(ctx, req)
 				if err == nil {
@@ -2800,6 +3380,7 @@ func TestDeleteVolume(t *testing.T) {
 					cloud:                    mockCloud,
 					mounter:                  mockMounter,
 					gidAllocator:             NewGidAllocator(),
+					lockManager:              NewLockManagerMap(),
 					deleteAccessPointRootDir: true,
 				}
 
@@ -2808,6 +3389,7 @@ func TestDeleteVolume(t *testing.T) {
 				}
 
 				ctx := context.Background()
+				mockMounter.EXPECT().IsLikelyNotMountPoint(gomock.Any()).Return(true, nil)
 				mockCloud.EXPECT().DescribeAccessPoint(gomock.Eq(ctx), gomock.Eq(apId)).Return(nil, errors.New("Describe Access Point failed"))
 				_, err := driver.DeleteVolume(ctx, req)
 				if err == nil {
@@ -2828,6 +3410,7 @@ func TestDeleteVolume(t *testing.T) {
 					cloud:                    mockCloud,
 					mounter:                  mockMounter,
 					gidAllocator:             NewGidAllocator(),
+					lockManager:              NewLockManagerMap(),
 					deleteAccessPointRootDir: true,
 				}
 
@@ -2844,6 +3427,7 @@ func TestDeleteVolume(t *testing.T) {
 
 				ctx := context.Background()
 				mockMounter.EXPECT().MakeDir(gomock.Any()).Return(errors.New("Failed to makeDir"))
+				mockMounter.EXPECT().IsLikelyNotMountPoint(gomock.Any()).Return(true, nil)
 				mockCloud.EXPECT().DescribeAccessPoint(gomock.Eq(ctx), gomock.Eq(apId)).Return(accessPoint, nil)
 				_, err := driver.DeleteVolume(ctx, req)
 				if err == nil {
@@ -2864,6 +3448,7 @@ func TestDeleteVolume(t *testing.T) {
 					cloud:                    mockCloud,
 					mounter:                  mockMounter,
 					gidAllocator:             NewGidAllocator(),
+					lockManager:              NewLockManagerMap(),
 					deleteAccessPointRootDir: true,
 				}
 
@@ -2881,6 +3466,7 @@ func TestDeleteVolume(t *testing.T) {
 				ctx := context.Background()
 				mockMounter.EXPECT().MakeDir(gomock.Any()).Return(nil)
 				mockMounter.EXPECT().Mount(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New("Failed to mount"))
+				mockMounter.EXPECT().IsLikelyNotMountPoint(gomock.Any()).Return(true, nil).Times(2)
 				mockCloud.EXPECT().DescribeAccessPoint(gomock.Eq(ctx), gomock.Eq(apId)).Return(accessPoint, nil)
 				_, err := driver.DeleteVolume(ctx, req)
 				if err == nil {
@@ -2901,6 +3487,7 @@ func TestDeleteVolume(t *testing.T) {
 					cloud:                    mockCloud,
 					mounter:                  mockMounter,
 					gidAllocator:             NewGidAllocator(),
+					lockManager:              NewLockManagerMap(),
 					deleteAccessPointRootDir: true,
 				}
 
@@ -2915,10 +3502,21 @@ func TestDeleteVolume(t *testing.T) {
 					CapacityGiB:        0,
 				}
 
+				dirPresent := mocks.NewMockFileInfo(
+					"test",
+					0,
+					0755,
+					time.Now(),
+					true,
+					nil,
+				)
+
 				ctx := context.Background()
 				mockMounter.EXPECT().MakeDir(gomock.Any()).Return(nil)
 				mockMounter.EXPECT().Mount(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 				mockMounter.EXPECT().Unmount(gomock.Any()).Return(errors.New("Failed to unmount"))
+				mockMounter.EXPECT().Stat(gomock.Any()).Return(dirPresent, nil).Times(1)
+				mockMounter.EXPECT().IsLikelyNotMountPoint(gomock.Any()).Return(true, nil).Times(2)
 				mockCloud.EXPECT().DescribeAccessPoint(gomock.Eq(ctx), gomock.Eq(apId)).Return(accessPoint, nil)
 				_, err := driver.DeleteVolume(ctx, req)
 				if err == nil {
@@ -2937,6 +3535,7 @@ func TestDeleteVolume(t *testing.T) {
 					endpoint:     endpoint,
 					cloud:        mockCloud,
 					gidAllocator: NewGidAllocator(),
+					lockManager:  NewLockManagerMap(),
 				}
 
 				req := &csi.DeleteVolumeRequest{
@@ -2962,6 +3561,7 @@ func TestDeleteVolume(t *testing.T) {
 					endpoint:     endpoint,
 					cloud:        mockCloud,
 					gidAllocator: NewGidAllocator(),
+					lockManager:  NewLockManagerMap(),
 				}
 
 				req := &csi.DeleteVolumeRequest{
@@ -2987,6 +3587,7 @@ func TestDeleteVolume(t *testing.T) {
 					endpoint:     endpoint,
 					cloud:        mockCloud,
 					gidAllocator: NewGidAllocator(),
+					lockManager:  NewLockManagerMap(),
 				}
 
 				req := &csi.DeleteVolumeRequest{
@@ -3012,6 +3613,7 @@ func TestDeleteVolume(t *testing.T) {
 					endpoint:     endpoint,
 					cloud:        mockCloud,
 					gidAllocator: NewGidAllocator(),
+					lockManager:  NewLockManagerMap(),
 				}
 
 				req := &csi.DeleteVolumeRequest{
@@ -3036,6 +3638,7 @@ func TestDeleteVolume(t *testing.T) {
 					endpoint:     endpoint,
 					cloud:        mockCloud,
 					gidAllocator: NewGidAllocator(),
+					lockManager:  NewLockManagerMap(),
 					tags:         parseTagsFromStr(""),
 				}
 
@@ -3055,6 +3658,340 @@ func TestDeleteVolume(t *testing.T) {
 					t.Fatalf("DeleteVolume did not fail")
 				}
 
+				mockCtl.Finish()
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, tc.testFunc)
+	}
+}
+
+func TestCreateDeleteVolumeRace(t *testing.T) {
+	var (
+		apId                = "fsap-abcd1234xyz987"
+		fsId                = "fs-abcd1234"
+		endpoint            = "endpoint"
+		volumeId            = "fs-abcd1234::fsap-abcd1234xyz987"
+		volumeName          = "volumeName"
+		capacityRange int64 = 5368709120
+		stdVolCap           = &csi.VolumeCapability{
+			AccessType: &csi.VolumeCapability_Mount{
+				Mount: &csi.VolumeCapability_MountVolume{},
+			},
+			AccessMode: &csi.VolumeCapability_AccessMode{
+				Mode: csi.VolumeCapability_AccessMode_MULTI_NODE_MULTI_WRITER,
+			},
+		}
+	)
+
+	testCases := []struct {
+		name     string
+		testFunc func(t *testing.T)
+	}{
+		{
+			name: "Success: Race Create with reused access point while Deleting with deleteAccessPointRootDir",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockCloud := mocks.NewMockCloud(mockCtl)
+				mockMounter := mocks.NewMockMounter(mockCtl)
+
+				driver := &Driver{
+					endpoint:     endpoint,
+					cloud:        mockCloud,
+					mounter:                  mockMounter,
+					gidAllocator: NewGidAllocator(),
+					lockManager:  NewLockManagerMap(),
+					tags:         parseTagsFromStr(""),
+					deleteAccessPointRootDir: true,
+				}
+				pvcNameVal := "test-pvc"
+
+				createReq := &csi.CreateVolumeRequest{
+					Name: volumeName,
+					VolumeCapabilities: []*csi.VolumeCapability{
+						stdVolCap,
+					},
+					CapacityRange: &csi.CapacityRange{
+						RequiredBytes: capacityRange,
+					},
+					Parameters: map[string]string{
+						ProvisioningMode:    "efs-ap",
+						FsId:                fsId,
+						GidMin:              "1000",
+						GidMax:              "2000",
+						DirectoryPerms:      "777",
+						AzName:              "us-east-1a",
+						ReuseAccessPointKey: "true",
+						PvcNameKey:          pvcNameVal,
+					},
+				}
+
+				deleteReq := &csi.DeleteVolumeRequest{
+					VolumeId: volumeId,
+				}
+
+				ctx := context.Background()
+
+				accessPoint := &cloud.AccessPoint{
+					AccessPointId: apId,
+					FileSystemId:  fsId,
+					PosixUser: &cloud.PosixUser{
+						Gid: 1000,
+						Uid: 1000,
+					},
+					AccessPointRootDir: "/testDir",
+					CapacityGiB:        0,
+				}
+
+				dirPresent := mocks.NewMockFileInfo(
+					"testFile",
+					0,
+					0755,
+					time.Now(),
+					true,
+					nil,
+				)
+
+				// Expected create function calls
+				mockCloud.EXPECT().DescribeAccessPoint(gomock.Eq(ctx), gomock.Eq(apId)).Return(accessPoint, nil)
+				mockCloud.EXPECT().FindAccessPointByClientToken(gomock.Eq(ctx), gomock.Any(), gomock.Eq(fsId)).Return(accessPoint, nil)
+
+				// Expected delete function calls
+				mockMounter.EXPECT().MakeDir(gomock.Any()).Return(nil).Times(1)
+				mockMounter.EXPECT().Mount(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+				mockMounter.EXPECT().Unmount(gomock.Any()).Return(nil).Times(1)
+				mockMounter.EXPECT().Stat(gomock.Any()).Return(dirPresent, nil).Times(1)
+				mockCloud.EXPECT().DeleteAccessPoint(gomock.Eq(ctx), gomock.Eq(apId)).Return(nil).Times(1)
+
+				mockMounter.EXPECT().IsLikelyNotMountPoint(gomock.Any()).Return(true, nil).Times(1)
+
+				// Lock the volume mutex to hold threads until they are all scheduled
+				driver.lockManager.lockMutex(apId)
+
+				var wg sync.WaitGroup
+				deleteResultChan := make(chan struct {
+					resp *csi.DeleteVolumeResponse
+					err error
+				})
+
+				// Schedule delete volume first
+				wg.Add(1)
+				go func() {
+					defer wg.Done()
+					resp, err := driver.DeleteVolume(ctx, deleteReq)
+					deleteResultChan <- struct {
+						resp *csi.DeleteVolumeResponse
+						err error
+					}{resp, err}
+				}()
+
+				// Let the deletion thread settle on the lock to ensure it goes first
+				time.Sleep(100 * time.Millisecond)
+
+				createResultChan := make(chan struct {
+					resp *csi.CreateVolumeResponse
+					err error
+				})
+
+				// Schedule the volume create second
+				wg.Add(1)
+				go func() {
+					defer wg.Done()
+					resp, err := driver.CreateVolume(ctx, createReq)
+					createResultChan <- struct {
+						resp *csi.CreateVolumeResponse
+						err error
+					}{resp, err}
+				}()
+
+				// Let the threads settle to force the race
+				time.Sleep(100 * time.Millisecond)
+
+				driver.lockManager.unlockMutex(apId)
+
+				go func() {
+					wg.Wait()
+					close(createResultChan)
+					close(deleteResultChan)
+				}()
+
+				createResult := <-createResultChan
+				if createResult.err != nil {
+					t.Fatalf("CreateVolume failed: %v", createResult.err)
+				}
+
+				if createResult.resp.Volume == nil {
+					t.Fatal("Volume is nil")
+				}
+
+				if createResult.resp.Volume.VolumeId != volumeId {
+					t.Fatalf("Volume Id mismatched. Expected: %v, Actual: %v", volumeId, createResult.resp.Volume.VolumeId)
+				}
+
+				deleteResult := <-deleteResultChan
+				if deleteResult.err != nil {
+					t.Fatalf("Delete Volume failed: %v", deleteResult.err)
+				}
+
+				// Ensure all keys were properly deleted from the lock manager
+				keys, _ := driver.lockManager.GetLockCount()
+				if keys > 0 {
+					t.Fatalf("%d Keys are still in the lockManager", keys)
+				}
+				mockCtl.Finish()
+			},
+		},
+		{
+			name: "Success: Race Delete with deleteAccessPointRootDir while creating volume with reused access point",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockCloud := mocks.NewMockCloud(mockCtl)
+				mockMounter := mocks.NewMockMounter(mockCtl)
+
+				driver := &Driver{
+					endpoint:     endpoint,
+					cloud:        mockCloud,
+					mounter:                  mockMounter,
+					gidAllocator: NewGidAllocator(),
+					lockManager:  NewLockManagerMap(),
+					tags:         parseTagsFromStr(""),
+					deleteAccessPointRootDir: true,
+				}
+				pvcNameVal := "test-pvc"
+
+				createReq := &csi.CreateVolumeRequest{
+					Name: volumeName,
+					VolumeCapabilities: []*csi.VolumeCapability{
+						stdVolCap,
+					},
+					CapacityRange: &csi.CapacityRange{
+						RequiredBytes: capacityRange,
+					},
+					Parameters: map[string]string{
+						ProvisioningMode:    "efs-ap",
+						FsId:                fsId,
+						GidMin:              "1000",
+						GidMax:              "2000",
+						DirectoryPerms:      "777",
+						AzName:              "us-east-1a",
+						ReuseAccessPointKey: "true",
+						PvcNameKey:          pvcNameVal,
+					},
+				}
+
+				deleteReq := &csi.DeleteVolumeRequest{
+					VolumeId: volumeId,
+				}
+
+				ctx := context.Background()
+
+				accessPoint := &cloud.AccessPoint{
+					AccessPointId: apId,
+					FileSystemId:  fsId,
+					PosixUser: &cloud.PosixUser{
+						Gid: 1000,
+						Uid: 1000,
+					},
+					AccessPointRootDir: "/testDir",
+					CapacityGiB:        0,
+				}
+
+				dirPresent := mocks.NewMockFileInfo(
+					"testFile",
+					0,
+					0755,
+					time.Now(),
+					true,
+					nil,
+				)
+
+				// Expected create function calls
+				mockCloud.EXPECT().DescribeAccessPoint(gomock.Eq(ctx), gomock.Eq(apId)).Return(accessPoint, nil)
+				mockCloud.EXPECT().FindAccessPointByClientToken(gomock.Eq(ctx), gomock.Any(), gomock.Eq(fsId)).Return(accessPoint, nil)
+
+				// Expected delete function calls
+				mockMounter.EXPECT().MakeDir(gomock.Any()).Return(nil).Times(1)
+				mockMounter.EXPECT().Mount(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+				mockMounter.EXPECT().Unmount(gomock.Any()).Return(nil).Times(1)
+				mockMounter.EXPECT().Stat(gomock.Any()).Return(dirPresent, nil).Times(1)
+				mockMounter.EXPECT().IsLikelyNotMountPoint(gomock.Any()).Return(true, nil).Times(1)
+				mockCloud.EXPECT().DeleteAccessPoint(gomock.Eq(ctx), gomock.Eq(apId)).Return(nil).Times(1)
+
+				// Lock the volume mutex to hold threads until they are all scheduled
+				driver.lockManager.lockMutex(apId)
+
+				var wg sync.WaitGroup
+				createResultChan := make(chan struct {
+					resp *csi.CreateVolumeResponse
+					err error
+				})
+
+				// Schedule the volume create first
+				wg.Add(1)
+				go func() {
+					defer wg.Done()
+					resp, err := driver.CreateVolume(ctx, createReq)
+					createResultChan <- struct {
+						resp *csi.CreateVolumeResponse
+						err error
+					}{resp, err}
+				}()
+
+				// Let the creation thread settle on the lock to ensure it goes first
+				time.Sleep(100 * time.Millisecond)
+
+				// Schedule the delete volume function
+				deleteResultChan := make(chan struct {
+					resp *csi.DeleteVolumeResponse
+					err error
+				})
+
+				wg.Add(1)
+				go func() {
+					defer wg.Done()
+					resp, err := driver.DeleteVolume(ctx, deleteReq)
+					deleteResultChan <- struct {
+						resp *csi.DeleteVolumeResponse
+						err error
+					}{resp, err}
+				}()
+
+				// Let the threads settle to force the race
+				time.Sleep(100 * time.Millisecond)
+
+				driver.lockManager.unlockMutex(apId)
+
+				go func() {
+					wg.Wait()
+					close(createResultChan)
+					close(deleteResultChan)
+				}()
+
+				createResult := <-createResultChan
+				if createResult.err != nil {
+					t.Fatalf("CreateVolume failed: %v", createResult.err)
+				}
+
+				if createResult.resp.Volume == nil {
+					t.Fatal("Volume is nil")
+				}
+
+				if createResult.resp.Volume.VolumeId != volumeId {
+					t.Fatalf("Volume Id mismatched. Expected: %v, Actual: %v", volumeId, createResult.resp.Volume.VolumeId)
+				}
+
+				deleteResult := <-deleteResultChan
+				if deleteResult.err != nil {
+					t.Fatalf("Delete Volume failed: %v", deleteResult.err)
+				}
+
+				// Ensure all keys were properly deleted from the lock manager
+				keys, _ := driver.lockManager.GetLockCount()
+				if keys > 0 {
+					t.Fatalf("%d Keys are still in the lockManager", keys)
+				}
 				mockCtl.Finish()
 			},
 		},
@@ -3228,4 +4165,14 @@ func verifyPathWhenUUIDIncluded(pathToVerify string, expectedPathWithoutUUID str
 	doesPathMatchWithUuid := matches[1] == expectedPathWithoutUUID
 	_, err := uuid.Parse(matches[2])
 	return err == nil && doesPathMatchWithUuid
+}
+
+// Helper function to return a random string of a specified length. Useful when generating random apIds
+func randStringBytes(n int) string {
+    const chars = "abcdefghijklmnopqrstuvwxyz0123456789"
+    b := make([]byte, n)
+    for i := range b {
+        b[i] = chars[rand.Intn(len(chars))]
+    }
+    return string(b)
 }
