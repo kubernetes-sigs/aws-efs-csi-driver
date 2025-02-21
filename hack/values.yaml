@@ -1,8 +1,8 @@
 controller:
   create: true
   logLevel: 5
+  serviceAccount:
+    create: true
+  deleteProvisionedDir: true
 node:
   logLevel: 5
-serviceAccount:
-  controller:
-    create: true
