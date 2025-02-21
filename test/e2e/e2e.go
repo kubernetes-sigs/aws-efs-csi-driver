@@ -229,14 +229,14 @@ var _ = ginkgo.Describe("[efs-csi] EFS CSI", func() {
 	})
 
 	driver := InitEFSCSIDriver()
-	ginkgo.Context(storageframework.GetDriverNameWithFeatureTags(driver), func() {
+	ginkgo.Context(storageframework.GetDriverNameWithFeatureTags(driver)[0].(string), func() {
 		storageframework.DefineTestSuites(driver, csiTestSuites)
 	})
 
 	f := framework.NewDefaultFramework("efs")
 	f.NamespacePodSecurityEnforceLevel = admissionapi.LevelPrivileged
 
-	ginkgo.Context(storageframework.GetDriverNameWithFeatureTags(driver), func() {
+	ginkgo.Context(storageframework.GetDriverNameWithFeatureTags(driver)[0].(string), func() {
 		ginkgo.It("should mount different paths on same volume on same node", func() {
 			ginkgo.By(fmt.Sprintf("Creating efs pvc & pv with no subpath"))
 			pvcRoot, pvRoot, err := createEFSPVCPV(f.ClientSet, f.Namespace.Name, f.Namespace.Name+"-root", "/", map[string]string{})
@@ -436,7 +436,7 @@ func makeEFSPVCDynamicProvisioning(namespace, name string, storageClassName stri
 		},
 		Spec: v1.PersistentVolumeClaimSpec{
 			AccessModes: []v1.PersistentVolumeAccessMode{v1.ReadWriteMany},
-			Resources: v1.ResourceRequirements{
+			Resources: v1.VolumeResourceRequirements{
 				Requests: v1.ResourceList{
 					v1.ResourceStorage: resource.MustParse("1Gi"),
 				},
@@ -495,7 +495,7 @@ func makeEFSPVC(namespace, name string) *v1.PersistentVolumeClaim {
 		},
 		Spec: v1.PersistentVolumeClaimSpec{
 			AccessModes: []v1.PersistentVolumeAccessMode{v1.ReadWriteMany},
-			Resources: v1.ResourceRequirements{
+			Resources: v1.VolumeResourceRequirements{
 				Requests: v1.ResourceList{
 					v1.ResourceStorage: resource.MustParse("1Gi"),
 				},
