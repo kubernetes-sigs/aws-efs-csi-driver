@@ -388,7 +388,7 @@ kubectl apply -f driver.yaml
 
 ### Uninstalling the Amazon EFS CSI Driver
 
-Note: While the aws-efs-csi-driver daemonsets and controller are deleted from the cluster, no new EFS PVCs will be able to be created, and new pods that are created which use an EFS PV volume will not function (because the PV will not mount) until the driver is successfully re-installed (either manually, or through the [EKS add-on system](https://docs.aws.amazon.com/eks/latest/userguide/efs-csi.html#efs-install-driver)).
+Note: While the aws-efs-csi-driver daemonsets and controller are deleted from the cluster no new EFS PVCs will be able to be created, new pods that are created which use an EFS PV volume will not function (because the PV will not mount), and any existing pods with mounted PVs will not be able to access EFS until the driver is successfully re-installed (either manually, or through the [EKS add-on system](https://docs.aws.amazon.com/eks/latest/userguide/efs-csi.html#efs-install-driver)).
 
 Uninstall the self-managed EFS CSI Driver with either Helm or Kustomize, depending on your installation method. If you are using the driver as a managed EKS add-on, see the [EKS Documentation](https://docs.aws.amazon.com/eks/latest/userguide/efs-csi.html#efs-install-driver).
 
