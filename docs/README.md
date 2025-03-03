@@ -43,9 +43,9 @@ The following CSI interfaces are implemented:
 **Note**
 * We suggest the following settings for each provisioning mode:
   * `efs-ap` -> `directoryPerms: 770`, with `gidRangeStart` and `gidRangeEnd` set to sensible values
-  * `efs-dir` -> `directoryPerms: 777` and omit `gidRangeStart` and `gidRangeEnd`
+  * `efs-dir` -> `directoryPerms: 770` with static `gid`
   * This ensures that important system utilities will still be to access to the directories created
-  * All parameters are available in all modes but please think very carefully about what you're doing otherwise directories could be created that no-one can read or write to.
+  * All parameters are available in all modes but please think very carefully about what you're doing otherwise directories could be created that no-one can read or write to. For more information on directoryPerms for efs-dir mode, see the [Permission Management Considerations](#permission-management-considerations) section.
 * Custom Posix group Id range for Access Point root directory must include both `gidRangeStart` and `gidRangeEnd` parameters. These parameters are optional only if both are omitted. If you specify one, the other becomes mandatory.
 * When using a custom Posix group ID range, there is a possibility for the driver to run out of available POSIX group Ids. We suggest ensuring custom group ID range is large enough or create a new storage class with a new file system to provision additional volumes. 
 * `az` under storage class parameter is not be confused with efs-utils mount option `az`. The `az` mount option is used for cross-az mount or efs one zone file system mount within the same aws account as the cluster.
@@ -177,6 +177,20 @@ You can find previous efs-csi-driver versions' images from [here](https://galler
 
 **Note**  
 Since Amazon EFS is an elastic file system, it doesn't really enforce any file system capacity. The actual storage capacity value in persistent volume and persistent volume claim is not used when creating the file system. However, since the storage capacity is a required field by Kubernetes, you must specify the value and you can use any valid value for the capacity.
+
+### Directory Provisioning Mode
+
+The EFS CSI Driver supports directory provisioning mode as an alternative to the access point provisioning. To use directory provisioning, set the `provisioningMode` parameter in your StorageClass to `efs-dir`
+
+#### <a name="permission-management-considerations"></a>Permission Management Considerations
+
+When using directory provisioning mode, carefully consider how to manage permissions for provisioned directories. The EFS CSI Driver supports setting static uid and gid for newly provisioned directories. This is achieved by specifying `uid` and `gid` parameters in the StorageClass definition. When these parameters are set, the driver will use them to set the ownership of new directories created during volume provisioning. 
+
+The `directoryPerms` parameter sets the permissions for newly created directories. In order to ensure volumes are accessible, users must manage pod security contexts to align with the uid/gid and permissions set on the provisioned directories.  Be aware that using the same supplemental group grants access to the root directory but may not automatically provide access to newly created subdirectories.
+
+Users can opt to use Kubernetes' fsGroup mechanism by setting the [fsGroupPolicy](https://kubernetes-csi.github.io/docs/support-fsgroup.html) on the CSI driver. **If using fsGroup, ensure all pods accessing the same volume use identical fsGroup values to prevent permission conflicts**. It's recommended to set the fsGroupChangePolicy to "OnRootMismatch" for better performance.
+
+For more information on pod security practices, see [Configure a Security Context for a Pod or Container](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/) in the Kubernetes documentation. 
 
 ### Installation
 
