@@ -11,6 +11,7 @@ import (
 	"time"
 
 	ginkgo "github.com/onsi/ginkgo/v2"
+	"github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/kubernetes/test/e2e/framework/kubectl"
 
@@ -474,7 +475,7 @@ var _ = ginkgo.Describe("[efs-csi] EFS CSI", func() {
 			perms, _, err := e2evolume.PodExec(f, pod, "stat -c \"%a\" "+provisionedPath)
 			framework.ExpectNoError(err, "ran stat command in /mnt/volume1 to get folder permissions")
 			framework.Logf("Perms Output: %s", perms)
-			framework.ExpectEqual(perms, fmt.Sprintf("%d", 777), "Checking File Permissions of mounted folder")
+			gomega.Expect(perms).To(gomega.Equal(fmt.Sprintf("%d", 777)), "Checking File Permissions of mounted folder")
 
 			_ = f.ClientSet.CoreV1().Pods(f.Namespace.Name).Delete(context.TODO(), pod.Name, metav1.DeleteOptions{})
 		})
