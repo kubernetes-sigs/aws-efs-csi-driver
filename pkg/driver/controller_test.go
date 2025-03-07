@@ -1136,6 +1136,91 @@ func TestCreateVolume(t *testing.T) {
 			},
 		},
 		{
+			name: "Fail: create volume mutex timeout",
+			testFunc: func(t *testing.T) {
+				const timeout = 3 * time.Second
+				mockCtl := gomock.NewController(t)
+				mockCloud := mocks.NewMockCloud(mockCtl)
+
+				driver := &Driver{
+					endpoint:     endpoint,
+					cloud:        mockCloud,
+					gidAllocator: NewGidAllocator(),
+					lockManager:  NewLockManagerMap(),
+					tags:         parseTagsFromStr(""),
+				}
+				pvcNameVal := "test-pvc"
+
+				req := &csi.CreateVolumeRequest{
+					Name: volumeName,
+					VolumeCapabilities: []*csi.VolumeCapability{
+						stdVolCap,
+					},
+					CapacityRange: &csi.CapacityRange{
+						RequiredBytes: capacityRange,
+					},
+					Parameters: map[string]string{
+						ProvisioningMode:    "efs-ap",
+						FsId:                fsId,
+						GidMin:              "1000",
+						GidMax:              "2000",
+						DirectoryPerms:      "777",
+						AzName:              "us-east-1a",
+						ReuseAccessPointKey: "true",
+						PvcNameKey:          pvcNameVal,
+					},
+				}
+
+				ctx := context.Background()
+
+				accessPoint := &cloud.AccessPoint{
+					AccessPointId: apId,
+					FileSystemId:  fsId,
+					PosixUser: &cloud.PosixUser{
+						Gid: 1000,
+						Uid: 1000,
+					},
+				}
+				mockCloud.EXPECT().FindAccessPointByClientToken(gomock.Eq(ctx), gomock.Any(), gomock.Eq(fsId)).Return(accessPoint, nil).Times(1)
+
+				// Lock the volume mutex to hold threads to force a timeout
+				driver.lockManager.lockMutex(apId)
+
+				start := time.Now()
+				resp, err := driver.CreateVolume(ctx, req)
+				elapsed := time.Since(start)
+
+				// Check that it waited for at least the timeout duration
+				if elapsed < timeout {
+					t.Errorf("lockMutex returned before timeout. Expected to wait %v, but waited %v", timeout, elapsed)
+				}
+
+				// Check that it didn't wait too much longer than the timeout
+				// We'll allow a 100ms buffer for system scheduling variations
+				if elapsed > timeout + 100*time.Millisecond {
+					t.Errorf("lockMutex waited too long. Expected to wait %v, but waited %v", timeout, elapsed)
+				}
+
+				if err == nil {
+					t.Fatalf("CreateVolume should have failed")
+				}
+	
+				if resp != nil {
+					t.Fatal("Response should have been nil")
+				}
+
+				driver.lockManager.unlockMutex(apId)
+
+				// Ensure all keys were properly deleted from the lock manager even with a timeout
+				keys, _ := driver.lockManager.GetLockCount()
+				if keys > 0 {
+					t.Fatalf("%d Keys are still in the lockManager", keys)
+				}
+
+				mockCtl.Finish()
+			},
+		},
+		{
 			name: "Success: Normal flow with a valid directory structure set",
 			testFunc: func(t *testing.T) {
 				mockCtl := gomock.NewController(t)
@@ -3300,6 +3385,66 @@ func TestDeleteVolume(t *testing.T) {
 				}
 
 				// Ensure all keys were properly deleted from the lock manager
+				keys, _ := driver.lockManager.GetLockCount()
+				if keys > 0 {
+					t.Fatalf("%d Keys are still in the lockManager", keys)
+				}
+
+				mockCtl.Finish()
+			},
+		},
+		{
+			name: "Fail: Delete volume mutex timeout",
+			testFunc: func(t *testing.T) {
+				const timeout = 3 * time.Second
+				mockCtl := gomock.NewController(t)
+				mockCloud := mocks.NewMockCloud(mockCtl)
+				mockMounter := mocks.NewMockMounter(mockCtl)
+
+				driver := &Driver{
+					endpoint:                 endpoint,
+					cloud:                    mockCloud,
+					mounter:                  mockMounter,
+					gidAllocator:             NewGidAllocator(),
+					lockManager:              NewLockManagerMap(),
+					deleteAccessPointRootDir: true,
+				}
+
+				req := &csi.DeleteVolumeRequest{
+					VolumeId: volumeId,
+				}
+
+				ctx := context.Background()
+
+				// Lock the volume mutex to hold thread and force it to timeout
+				driver.lockManager.lockMutex(apId)
+
+				start := time.Now()
+				resp, err := driver.DeleteVolume(ctx, req)
+				elapsed := time.Since(start)
+
+				// Check that it waited for at least the timeout duration
+				if elapsed < timeout {
+					t.Errorf("lockMutex returned before timeout. Expected to wait %v, but waited %v", timeout, elapsed)
+				}
+
+				// Check that it didn't wait too much longer than the timeout
+				// We'll allow a 100ms buffer for system scheduling variations
+				if elapsed > timeout + 100*time.Millisecond {
+					t.Errorf("lockMutex waited too long. Expected to wait %v, but waited %v", timeout, elapsed)
+				}
+
+				if resp != nil {
+					t.Errorf("Expected resp to be nil, but got %v", resp)
+				}
+
+				if err == nil {
+					t.Errorf("Expected err to not be nil, but got %v", err)
+				}
+
+				driver.lockManager.unlockMutex(apId)
+
+				// Ensure all keys were properly deleted from the lock manager even with a timeout
 				keys, _ := driver.lockManager.GetLockCount()
 				if keys > 0 {
 					t.Fatalf("%d Keys are still in the lockManager", keys)

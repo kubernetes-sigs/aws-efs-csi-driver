@@ -25,6 +25,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -62,6 +63,7 @@ const (
 	ReuseAccessPointKey   = "reuseAccessPoint"
 	PvcNameKey            = "csi.storage.k8s.io/pvc/name"
 	CrossAccount          = "crossaccount"
+	ApLockWaitTimeSec     = 3
 )
 
 var (
@@ -180,8 +182,11 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 			}
 
 			// Take the lock to prevent this access point from being deleted while creating volume
-			d.lockManager.lockMutex(accessPoint.AccessPointId)
-			defer d.lockManager.unlockMutex(accessPoint.AccessPointId)
+			if d.lockManager.lockMutex(accessPoint.AccessPointId, ApLockWaitTimeSec * time.Second) {
+				defer d.lockManager.unlockMutex(accessPoint.AccessPointId)
+			} else {
+				return nil, status.Errorf(codes.Internal, "Could not take the lock for existing access point: %v", accessPoint.AccessPointId)
+			}
 		}
 	}
 
@@ -354,8 +359,11 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 		}
 
 		// Lock on the new access point to prevent accidental deletion before creation is done
-		d.lockManager.lockMutex(accessPoint.AccessPointId)
-		defer d.lockManager.unlockMutex(accessPoint.AccessPointId)
+		if d.lockManager.lockMutex(accessPoint.AccessPointId, ApLockWaitTimeSec * time.Second) {
+			defer d.lockManager.unlockMutex(accessPoint.AccessPointId)
+		} else {
+			return nil, status.Errorf(codes.Internal, "Could not take the lock after creating access point: %v", accessPoint.AccessPointId)
+		}
 	}
 
 	volContext := map[string]string{}
@@ -420,8 +428,11 @@ func (d *Driver) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeRequest)
 	}
 
 	// Lock on the access point ID to ensure a retry won't race with the in-progress deletion
-	d.lockManager.lockMutex(accessPointId)
-	defer d.lockManager.unlockMutex(accessPointId)
+	if d.lockManager.lockMutex(accessPointId, ApLockWaitTimeSec * time.Second) {
+		defer d.lockManager.unlockMutex(accessPointId)
+	} else {
+		return nil, status.Errorf(codes.Internal, "Could not take the lock to delete access point: %v", accessPointId)
+	}
 
 	//TODO: Add Delete File System when FS provisioning is implemented
 	// Delete access point root directory if delete-access-point-root-dir is set.
