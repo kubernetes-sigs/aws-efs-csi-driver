@@ -1,3 +1,9 @@
+# V2.1.7
+* Adding additional checks and multi threaded testing to ensure concurrent createVolume and deleteVolume calls are handled correctly ([#1592] (https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1592), [@dluthcke](https://github.com/dluthcke))
+* Clarifying Note when uninstalling CSI driver ([#1599] (https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1599), [@dluthcke](https://github.com/dluthcke))
+* Update README.md to include uninstall instructions ([#1597] (https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1596), [@dluthcke](https://github.com/dluthcke))
+* Updating sidecar versions ([#1596](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1596), [@dluthcke](https://github.com/dluthcke))
+* Update K8s version to mitigate CVE-2025-0426 ([#1594](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1594), [@mskanth97](https://github.com/mskanth972))
 # V2.1.6
 Remove libwrap=no from stunnel config on startup for newer stunnel compatibility ([#1586](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1586/commits/5151feef34da86595a9ccc7e3c960aea537a61dc), [@dankova22](https://github.com/dankova22))
 # V2.1.5
