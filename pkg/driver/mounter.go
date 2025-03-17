@@ -23,7 +23,9 @@ import (
 type Mounter interface {
 	mount_utils.Interface
 	MakeDir(pathname string) error
+	Stat(pathname string) (os.FileInfo, error)
 	GetDeviceName(mountPath string) (string, int, error)
+	IsLikelyNotMountPoint(target string) (bool, error)
 }
 
 type NodeMounter struct {
@@ -46,6 +48,21 @@ func (m *NodeMounter) MakeDir(pathname string) error {
 	return nil
 }
 
+func (m *NodeMounter) Stat(pathname string) (os.FileInfo, error) {
+	return os.Stat(pathname)
+}
+
 func (m *NodeMounter) GetDeviceName(mountPath string) (string, int, error) {
 	return mount_utils.GetDeviceNameFromMount(m, mountPath)
+}
+
+func (m *NodeMounter) IsLikelyNotMountPoint(target string) (bool, error) {
+	notMnt, err := m.Interface.IsLikelyNotMountPoint(target)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return false, nil
+		}
+		return false, err
+	}
+	return notMnt, nil
 }
