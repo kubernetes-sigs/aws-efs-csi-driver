@@ -229,7 +229,7 @@ storageClasses: []
 #     gidRangeEnd: "2000"
 #     basePath: "/dynamic_provisioning"
 #     subPathPattern: "/subPath"
-#     ensureUniqueDirectory: true
+#     ensureUniqueDirectory: "true"
 #   reclaimPolicy: Delete
 #   volumeBindingMode: Immediate
 
