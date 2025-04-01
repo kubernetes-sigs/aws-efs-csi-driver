@@ -623,7 +623,8 @@ func TestCreateVolume(t *testing.T) {
 
 				// Lock the volume mutex to hold threads until they are all scheduled
 				for _, ap := range accessPointArr {
-					driver.lockManager.lockMutex(ap.AccessPointId)
+					provisioner, _ := driver.provisioners["efs-ap"].(*AccessPointProvisioner)
+					provisioner.lockManager.lockMutex(ap.AccessPointId)
 				}
 
 				var wg sync.WaitGroup
@@ -648,7 +649,8 @@ func TestCreateVolume(t *testing.T) {
 
 				// Unlock the mutex to force a race
 				for _, ap := range accessPointArr {
-					driver.lockManager.unlockMutex(ap.AccessPointId)
+					provisioner, _ := driver.provisioners["efs-ap"].(*AccessPointProvisioner)
+					provisioner.lockManager.unlockMutex(ap.AccessPointId)
 				}
 
 				go func() {
@@ -679,7 +681,8 @@ func TestCreateVolume(t *testing.T) {
 				}
 
 				// Ensure all keys were properly deleted from the lock manager
-				keys, _ := driver.lockManager.GetLockCount()
+				provisioner, _ := driver.provisioners["efs-ap"].(*AccessPointProvisioner)
+				keys, _ := provisioner.lockManager.GetLockCount()
 				if keys > 0 {
 					t.Fatalf("%d Keys are still in the lockManager", keys)
 				}
@@ -1009,7 +1012,8 @@ func TestCreateVolume(t *testing.T) {
 				mockCloud.EXPECT().FindAccessPointByClientToken(gomock.Eq(ctx), gomock.Any(), gomock.Eq(fsId)).Return(accessPoint, nil).Times(numGoRoutines)
 
 				// Lock the volume mutex to hold threads until they are all scheduled
-				driver.lockManager.lockMutex(apId)
+				provisioner, _ := driver.provisioners["efs-ap"].(*AccessPointProvisioner)
+				provisioner.lockManager.lockMutex(apId)
 
 				var wg sync.WaitGroup
 				resultChan := make(chan struct {
@@ -1032,7 +1036,7 @@ func TestCreateVolume(t *testing.T) {
 				}
 
 				// Unlock the mutex to force a race
-				driver.lockManager.unlockMutex(apId)
+				provisioner.lockManager.unlockMutex(apId)
 
 				go func() {
 					wg.Wait()
@@ -1054,7 +1058,7 @@ func TestCreateVolume(t *testing.T) {
 				}
 
 				// Ensure all keys were properly deleted from the lock manager
-				keys, _ := driver.lockManager.GetLockCount()
+				keys, _ := provisioner.lockManager.GetLockCount()
 				if keys > 0 {
 					t.Fatalf("%d Keys are still in the lockManager", keys)
 				}
@@ -1105,7 +1109,9 @@ func TestCreateVolume(t *testing.T) {
 				mockCloud.EXPECT().FindAccessPointByClientToken(gomock.Eq(ctx), gomock.Any(), gomock.Eq(fsId)).Return(accessPoint, nil).Times(1)
 
 				// Lock the volume mutex to hold threads to force a timeout
-				driver.lockManager.lockMutex(apId)
+
+				provisioner, _ := driver.provisioners["efs-ap"].(*AccessPointProvisioner)
+				provisioner.lockManager.lockMutex(apId)
 
 				start := time.Now()
 				resp, err := driver.CreateVolume(ctx, req)
@@ -1130,10 +1136,10 @@ func TestCreateVolume(t *testing.T) {
 					t.Fatal("Response should have been nil")
 				}
 
-				driver.lockManager.unlockMutex(apId)
+				provisioner.lockManager.unlockMutex(apId)
 
 				// Ensure all keys were properly deleted from the lock manager even with a timeout
-				keys, _ := driver.lockManager.GetLockCount()
+				keys, _ := provisioner.lockManager.GetLockCount()
 				if keys > 0 {
 					t.Fatalf("%d Keys are still in the lockManager", keys)
 				}
@@ -2925,7 +2931,8 @@ func TestDeleteVolume(t *testing.T) {
 					}).Times(numGoRoutines)
 
 				// Lock the volume mutex to hold threads until they are all scheduled
-				driver.lockManager.lockMutex(apId)
+				provisioner, _ := driver.provisioners["efs-ap"].(*AccessPointProvisioner)
+				provisioner.lockManager.lockMutex(apId)
 
 				var wg sync.WaitGroup
 				resultChan := make(chan struct {
@@ -2948,7 +2955,7 @@ func TestDeleteVolume(t *testing.T) {
 				}
 
 				// Unlock the mutex to force a race
-				driver.lockManager.unlockMutex(apId)
+				provisioner.lockManager.unlockMutex(apId)
 
 				go func() {
 					wg.Wait()
@@ -2962,7 +2969,7 @@ func TestDeleteVolume(t *testing.T) {
 				}
 
 				// Ensure all keys were properly deleted from the lock manager
-				keys, _ := driver.lockManager.GetLockCount()
+				keys, _ := provisioner.lockManager.GetLockCount()
 				if keys > 0 {
 					t.Fatalf("%d Keys are still in the lockManager", keys)
 				}
@@ -3044,8 +3051,9 @@ func TestDeleteVolume(t *testing.T) {
 					}).Times(numGoRoutines)
 
 				// Lock the volume mutex to hold threads until they are all scheduled
-				driver.lockManager.lockMutex(apId)
-				driver.lockManager.lockMutex(apId2)
+				provisioner, _ := driver.provisioners["efs-ap"].(*AccessPointProvisioner)
+				provisioner.lockManager.lockMutex(apId)
+				provisioner.lockManager.lockMutex(apId2)
 
 				var wg sync.WaitGroup
 				resultChan := make(chan struct {
@@ -3083,8 +3091,8 @@ func TestDeleteVolume(t *testing.T) {
 				}
 
 				// Unlock the mutex to force a race
-				driver.lockManager.unlockMutex(apId)
-				driver.lockManager.unlockMutex(apId2)
+				provisioner.lockManager.unlockMutex(apId)
+				provisioner.lockManager.unlockMutex(apId2)
 
 				go func() {
 					wg.Wait()
@@ -3098,7 +3106,7 @@ func TestDeleteVolume(t *testing.T) {
 				}
 
 				// Ensure all keys were properly deleted from the lock manager
-				keys, _ := driver.lockManager.GetLockCount()
+				keys, _ := provisioner.lockManager.GetLockCount()
 				if keys > 0 {
 					t.Fatalf("%d Keys are still in the lockManager", keys)
 				}
@@ -3123,7 +3131,8 @@ func TestDeleteVolume(t *testing.T) {
 				ctx := context.Background()
 
 				// Lock the volume mutex to hold thread and force it to timeout
-				driver.lockManager.lockMutex(apId)
+				provisioner, _ := driver.provisioners["efs-ap"].(*AccessPointProvisioner)
+				provisioner.lockManager.lockMutex(apId)
 
 				start := time.Now()
 				resp, err := driver.DeleteVolume(ctx, req)
@@ -3148,10 +3157,10 @@ func TestDeleteVolume(t *testing.T) {
 					t.Errorf("Expected err to not be nil, but got %v", err)
 				}
 
-				driver.lockManager.unlockMutex(apId)
+				provisioner.lockManager.unlockMutex(apId)
 
 				// Ensure all keys were properly deleted from the lock manager even with a timeout
-				keys, _ := driver.lockManager.GetLockCount()
+				keys, _ := provisioner.lockManager.GetLockCount()
 				if keys > 0 {
 					t.Fatalf("%d Keys are still in the lockManager", keys)
 				}
@@ -3543,7 +3552,8 @@ func TestCreateDeleteVolumeRace(t *testing.T) {
 				mockMounter.EXPECT().IsLikelyNotMountPoint(gomock.Any()).Return(true, nil).Times(1)
 
 				// Lock the volume mutex to hold threads until they are all scheduled
-				driver.lockManager.lockMutex(apId)
+				provisioner, _ := driver.provisioners["efs-ap"].(*AccessPointProvisioner)
+				provisioner.lockManager.lockMutex(apId)
 
 				var wg sync.WaitGroup
 				deleteResultChan := make(chan struct {
@@ -3584,7 +3594,7 @@ func TestCreateDeleteVolumeRace(t *testing.T) {
 				// Let the threads settle to force the race
 				time.Sleep(100 * time.Millisecond)
 
-				driver.lockManager.unlockMutex(apId)
+				provisioner.lockManager.unlockMutex(apId)
 
 				go func() {
 					wg.Wait()
@@ -3611,7 +3621,7 @@ func TestCreateDeleteVolumeRace(t *testing.T) {
 				}
 
 				// Ensure all keys were properly deleted from the lock manager
-				keys, _ := driver.lockManager.GetLockCount()
+				keys, _ := provisioner.lockManager.GetLockCount()
 				if keys > 0 {
 					t.Fatalf("%d Keys are still in the lockManager", keys)
 				}
@@ -3687,7 +3697,8 @@ func TestCreateDeleteVolumeRace(t *testing.T) {
 				mockCloud.EXPECT().DeleteAccessPoint(gomock.Eq(ctx), gomock.Eq(apId)).Return(nil).Times(1)
 
 				// Lock the volume mutex to hold threads until they are all scheduled
-				driver.lockManager.lockMutex(apId)
+				provisioner, _ := driver.provisioners["efs-ap"].(*AccessPointProvisioner)
+				provisioner.lockManager.lockMutex(apId)
 
 				var wg sync.WaitGroup
 				createResultChan := make(chan struct {
@@ -3728,7 +3739,7 @@ func TestCreateDeleteVolumeRace(t *testing.T) {
 				// Let the threads settle to force the race
 				time.Sleep(100 * time.Millisecond)
 
-				driver.lockManager.unlockMutex(apId)
+				provisioner.lockManager.unlockMutex(apId)
 
 				go func() {
 					wg.Wait()
@@ -3755,7 +3766,7 @@ func TestCreateDeleteVolumeRace(t *testing.T) {
 				}
 
 				// Ensure all keys were properly deleted from the lock manager
-				keys, _ := driver.lockManager.GetLockCount()
+				keys, _ := provisioner.lockManager.GetLockCount()
 				if keys > 0 {
 					t.Fatalf("%d Keys are still in the lockManager", keys)
 				}
@@ -3931,10 +3942,9 @@ func randStringBytes(n int) string {
 
 func buildDriver(endpoint string, cloud cloud.Cloud, tags string, mounter Mounter, deleteAccessPointRootDir bool) *Driver {
 	return &Driver{
-		endpoint:                 endpoint,
-		cloud:                    cloud,
-		tags:                     parseTagsFromStr(tags),
-		mounter:                  mounter,
-		deleteAccessPointRootDir: deleteAccessPointRootDir,
+		endpoint:     endpoint,
+		cloud:        cloud,
+		mounter:      mounter,
+		provisioners: getProvisioners(cloud, mounter, parseTagsFromStr(tags), deleteAccessPointRootDir, false),
 	}
 }
