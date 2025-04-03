@@ -3945,6 +3945,6 @@ func buildDriver(endpoint string, cloud cloud.Cloud, tags string, mounter Mounte
 		endpoint:     endpoint,
 		cloud:        cloud,
 		mounter:      mounter,
-		provisioners: getProvisioners(cloud, mounter, parseTagsFromStr(tags), deleteAccessPointRootDir, false),
+		provisioners: getProvisioners(cloud, mounter, parseTagsFromStr(tags), deleteAccessPointRootDir, false, &FakeOsClient{}, false),
 	}
 }

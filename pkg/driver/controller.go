@@ -40,6 +40,7 @@ const (
 	DefaultTagKey         = "efs.csi.aws.com/cluster"
 	DefaultTagValue       = "true"
 	DirectoryPerms        = "directoryPerms"
+	DirectoryMode         = "efs-dir"
 	EnsureUniqueDirectory = "ensureUniqueDirectory"
 	FsId                  = "fileSystemId"
 	Gid                   = "gid"
@@ -121,19 +122,25 @@ func (d *Driver) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeRequest)
 		return nil, status.Error(codes.InvalidArgument, "Volume ID not provided")
 	}
 
-	_, _, accessPointId, err := parseVolumeId(volId)
+	_, subpath, accessPointId, err := parseVolumeId(volId)
 	if err != nil {
 		//Returning success for an invalid volume ID. See here - https://github.com/kubernetes-csi/csi-test/blame/5deb83d58fea909b2895731d43e32400380aae3c/pkg/sanity/controller.go#L733
 		klog.V(5).Infof("DeleteVolume: Failed to parse volumeID: %v, err: %v, returning success", volId, err)
 		return &csi.DeleteVolumeResponse{}, nil
 	}
 
-	if accessPointId == "" {
-		klog.V(5).Infof("DeleteVolume: No Access Point for volume %v, returning success", volId)
+	var provisioningMode string
+	if accessPointId != "" {
+		provisioningMode = AccessPointMode
+	} else if subpath != "" {
+		provisioningMode = DirectoryMode
+	} else {
+		klog.V(5).Infof("DeleteVolume: No Access Point or subpath for volume %v, returning success", volId)
 		return &csi.DeleteVolumeResponse{}, nil
 	}
 
-	err = d.provisioners[AccessPointMode].Delete(ctx, req)
+	klog.V(5).Infof("DeleteVolume: provisioningMode %v", provisioningMode)
+	err = d.provisioners[provisioningMode].Delete(ctx, req)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "Failed to Delete volume %v: %v", volId, err)
 	}

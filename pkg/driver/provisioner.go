@@ -22,7 +22,7 @@ type BaseProvisioner struct {
 	lockManager       LockManagerMap
 }
 
-func getProvisioners(cloud cloud.Cloud, mounter Mounter, tags map[string]string, deleteAccessPointRootDir bool, adaptiveRetryMode bool) map[string]Provisioner {
+func getProvisioners(cloud cloud.Cloud, mounter Mounter, tags map[string]string, deleteAccessPointRootDir bool, adaptiveRetryMode bool, osClient OsClient, deleteProvisionedDir bool) map[string]Provisioner {
 	return map[string]Provisioner{
 		AccessPointMode: &AccessPointProvisioner{
 			BaseProvisioner: BaseProvisioner{
@@ -34,6 +34,14 @@ func getProvisioners(cloud cloud.Cloud, mounter Mounter, tags map[string]string,
 			tags:                     tags,
 			gidAllocator:             NewGidAllocator(),
 			deleteAccessPointRootDir: deleteAccessPointRootDir,
+		},
+		DirectoryMode: &DirectoryProvisioner{
+			BaseProvisioner: BaseProvisioner{
+				cloud:   cloud,
+				mounter: mounter,
+			},
+			osClient:             osClient,
+			deleteProvisionedDir: deleteProvisionedDir,
 		},
 	}
 }
