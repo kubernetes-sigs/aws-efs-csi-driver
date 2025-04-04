@@ -87,3 +87,27 @@ func (o *FakeOsClient) RemoveAll(_ string) error {
 func (o *FakeOsClient) GetPerms(_ string) (os.FileMode, error) {
 	return 0, nil
 }
+
+// Broken OsClient
+
+type BrokenOsClient struct{}
+
+func (o *BrokenOsClient) MkDirAllWithPerms(_ string, _ os.FileMode, _, _ int) error {
+	return &os.PathError{}
+}
+
+func (o *BrokenOsClient) MkDirAllWithPermsNoOwnership(_ string, _ os.FileMode) error {
+	return &os.PathError{}
+}
+
+func (o *BrokenOsClient) Remove(_ string) error {
+	return &os.PathError{}
+}
+
+func (o *BrokenOsClient) RemoveAll(_ string) error {
+	return &os.PathError{}
+}
+
+func (o *BrokenOsClient) GetPerms(path string) (os.FileMode, error) {
+	return 0, &os.PathError{}
+}
