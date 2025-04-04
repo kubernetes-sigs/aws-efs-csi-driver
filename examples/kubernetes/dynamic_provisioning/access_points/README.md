@@ -24,7 +24,7 @@ This example requires Kubernetes 1.17 or later and a driver version of 1.2.0 or 
    2. Download a `StorageClass` manifest for Amazon EFS.
 
       ```sh
-      curl -O https://raw.githubusercontent.com/kubernetes-sigs/aws-efs-csi-driver/master/examples/kubernetes/dynamic_provisioning/specs/storageclass.yaml
+      curl -O https://raw.githubusercontent.com/kubernetes-sigs/aws-efs-csi-driver/master/examples/kubernetes/dynamic_provisioning/access_points/specs/storageclass.yaml
       ```
 
    3. Edit [the file](./specs/storageclass.yaml). Find the following line, and replace the value for `fileSystemId` with your file system ID.
@@ -33,7 +33,6 @@ This example requires Kubernetes 1.17 or later and a driver version of 1.2.0 or 
       fileSystemId: fs-582a03f3
       ```
       Modify the other values as needed:
-      * `provisioningMode` - The type of volume to be provisioned by Amazon EFS. Currently, only access point based provisioning is supported (`efs-ap`).
       * `fileSystemId` - The file system under which the access point is created.
       * `directoryPerms` - The directory permissions of the root directory created by the access point.
       * `gidRangeStart` (Optional) - The starting range of the Posix group ID to be applied onto the root directory of the access point. The default value is `50000`. 
@@ -57,7 +56,7 @@ This example requires Kubernetes 1.17 or later and a driver version of 1.2.0 or 
    1. Download a manifest that deploys a Pod and a PVC.
 
       ```sh
-      curl -O https://raw.githubusercontent.com/kubernetes-sigs/aws-efs-csi-driver/master/examples/kubernetes/dynamic_provisioning/specs/pod.yaml
+      curl -O https://raw.githubusercontent.com/kubernetes-sigs/aws-efs-csi-driver/master/examples/kubernetes/dynamic_provisioning/access_points/specs/pod.yaml
       ```
 
    2. Deploy the Pod with a sample app and the PVC used by the Pod.

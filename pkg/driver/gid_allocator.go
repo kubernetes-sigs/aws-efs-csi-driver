@@ -20,8 +20,8 @@ type GidAllocator struct {
 	mu sync.Mutex
 }
 
-func NewGidAllocator() GidAllocator {
-	return GidAllocator{}
+func NewGidAllocator() *GidAllocator {
+	return &GidAllocator{}
 }
 
 // Retrieves the next available GID

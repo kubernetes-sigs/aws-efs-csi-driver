@@ -3,12 +3,15 @@ package e2e
 import (
 	"context"
 	"fmt"
+	e2epv "k8s.io/kubernetes/test/e2e/framework/pv"
+	e2evolume "k8s.io/kubernetes/test/e2e/framework/volume"
 	"os"
 	"strconv"
 	"strings"
 	"time"
 
 	ginkgo "github.com/onsi/ginkgo/v2"
+	"github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/kubernetes/test/e2e/framework/kubectl"
 
@@ -361,11 +364,11 @@ var _ = ginkgo.Describe("[efs-csi] EFS CSI", func() {
 			testEncryptInTransit(f, &encryptInTransit)
 		})
 
-		ginkgo.It("should successfully perform dynamic provisioning", func() {
+		testPerformDynamicProvisioning := func(mode string) {
 
 			ginkgo.By("Creating EFS Storage Class, PVC and associated PV")
 			params := map[string]string{
-				"provisioningMode":      "efs-ap",
+				"provisioningMode":      mode,
 				"fileSystemId":          FileSystemId,
 				"subPathPattern":        "${.PVC.name}",
 				"directoryPerms":        "700",
@@ -414,6 +417,100 @@ var _ = ginkgo.Describe("[efs-csi] EFS CSI", func() {
 			if output != testData {
 				ginkgo.Fail("Read data does not match write data.")
 			}
+		}
+
+		for _, mode := range []string{"efs-ap", "efs-dir"} {
+			testName := fmt.Sprintf("should successfully perform dynamic provisioning in %s mode", mode)
+			ginkgo.It(testName, func() {
+				testPerformDynamicProvisioning(mode)
+			})
+		}
+
+		createProvisionedDirectory := func(f *framework.Framework, basePath string, pvcName string) (*v1.PersistentVolumeClaim, *storagev1.StorageClass) {
+			immediateBinding := storagev1.VolumeBindingImmediate
+			sc := storageframework.GetStorageClass("efs.csi.aws.com", map[string]string{
+				"provisioningMode": "efs-dir",
+				"fileSystemId":     FileSystemId,
+				"basePath":         basePath,
+			}, &immediateBinding, f.Namespace.Name)
+			sc, err := f.ClientSet.StorageV1().StorageClasses().Create(context.TODO(), sc, metav1.CreateOptions{})
+			framework.Logf("Created StorageClass %s", sc.Name)
+			framework.ExpectNoError(err, "creating dynamic provisioning storage class")
+			pvc := makeEFSPVC(f.Namespace.Name, pvcName, sc.Name)
+			pvc, err = f.ClientSet.CoreV1().PersistentVolumeClaims(f.Namespace.Name).Create(context.TODO(), pvc, metav1.CreateOptions{})
+			err = e2epv.WaitForPersistentVolumeClaimPhase(context.TODO(), v1.ClaimBound, f.ClientSet, f.Namespace.Name, pvc.Name,
+				time.Second*5, time.Minute)
+			framework.ExpectNoError(err, "waiting for pv to be provisioned and bound")
+			pvc, err = f.ClientSet.CoreV1().PersistentVolumeClaims(f.Namespace.Name).Get(context.TODO(), pvc.Name, metav1.GetOptions{})
+
+			framework.Logf("Created PVC %s, bound to PV %s by dynamic provisioning", sc.Name, pvc.Name, pvc.Spec.VolumeName)
+			return pvc, sc
+		}
+
+		ginkgo.It("should create a directory with the correct permissions when in directory provisioning mode", func() {
+			basePath := "dynamic_provisioning"
+			dynamicPvc, sc := createProvisionedDirectory(f, basePath, "directory-pvc-1")
+			defer func() {
+				err := f.ClientSet.StorageV1().StorageClasses().Delete(context.TODO(), sc.Name, metav1.DeleteOptions{})
+				framework.ExpectNoError(err, "removing provisioned StorageClass")
+				framework.Logf("Deleted StorageClass %s", sc.Name)
+			}()
+
+			pvc, pv, err := createEFSPVCPV(f.ClientSet, f.Namespace.Name, "root-dir-pvc-create", "/", map[string]string{})
+			defer func() {
+				_ = f.ClientSet.CoreV1().PersistentVolumeClaims(f.Namespace.Name).Delete(context.TODO(), pvc.Name, metav1.DeleteOptions{})
+				_ = f.ClientSet.CoreV1().PersistentVolumes().Delete(context.TODO(), pv.Name, metav1.DeleteOptions{})
+			}()
+			framework.ExpectNoError(err, "creating root mounted pv, pvc to check")
+
+			podSpec := e2epod.MakePod(f.Namespace.Name, nil, []*v1.PersistentVolumeClaim{pvc}, admissionapi.LevelBaseline, "")
+			podSpec.Spec.RestartPolicy = v1.RestartPolicyNever
+			pod, err := f.ClientSet.CoreV1().Pods(f.Namespace.Name).Create(context.TODO(), podSpec, metav1.CreateOptions{})
+			framework.ExpectNoError(err, "creating pod")
+			err = e2epod.WaitForPodRunningInNamespace(context.TODO(), f.ClientSet, pod)
+			framework.ExpectNoError(err, "pod started running successfully")
+
+			provisionedPath := fmt.Sprintf("/mnt/volume1/%s/%s", basePath, dynamicPvc.Spec.VolumeName)
+
+			perms, _, err := e2evolume.PodExec(f, pod, "stat -c \"%a\" "+provisionedPath)
+			framework.ExpectNoError(err, "ran stat command in /mnt/volume1 to get folder permissions")
+			framework.Logf("Perms Output: %s", perms)
+			gomega.Expect(perms).To(gomega.Equal(fmt.Sprintf("%d", 777)), "Checking File Permissions of mounted folder")
+
+			_ = f.ClientSet.CoreV1().Pods(f.Namespace.Name).Delete(context.TODO(), pod.Name, metav1.DeleteOptions{})
+		})
+
+		ginkgo.It("should delete a directory provisioned in directory provisioning mode", func() {
+			basePath := "dynamic_provisioning_delete"
+			pvc, sc := createProvisionedDirectory(f, basePath, "directory-pvc-2")
+			defer func() {
+				err := f.ClientSet.StorageV1().StorageClasses().Delete(context.TODO(), sc.Name, metav1.DeleteOptions{})
+				framework.ExpectNoError(err, "removing provisioned StorageClass")
+				framework.Logf("Deleted StorageClass %s", sc.Name)
+			}()
+			volumeName := pvc.Spec.VolumeName
+
+			err := f.ClientSet.CoreV1().PersistentVolumeClaims(f.Namespace.Name).Delete(context.TODO(), pvc.Name,
+				metav1.DeleteOptions{})
+			framework.ExpectNoError(err, "deleting pvc")
+
+			pvc, pv, err := createEFSPVCPV(f.ClientSet, f.Namespace.Name, "root-dir-pvc-delete", "/", map[string]string{})
+			defer func() {
+				_ = f.ClientSet.CoreV1().PersistentVolumeClaims(f.Namespace.Name).Delete(context.TODO(), pvc.Name, metav1.DeleteOptions{})
+				_ = f.ClientSet.CoreV1().PersistentVolumes().Delete(context.TODO(), pv.Name, metav1.DeleteOptions{})
+			}()
+			framework.ExpectNoError(err, "creating root mounted pv, pvc to check")
+
+			podSpec := e2epod.MakePod(f.Namespace.Name, nil, []*v1.PersistentVolumeClaim{pvc}, admissionapi.LevelBaseline, "")
+			podSpec.Spec.RestartPolicy = v1.RestartPolicyNever
+			pod, err := f.ClientSet.CoreV1().Pods(f.Namespace.Name).Create(context.TODO(), podSpec, metav1.CreateOptions{})
+			framework.ExpectNoError(err, "creating pod")
+			err = e2epod.WaitForPodRunningInNamespace(context.TODO(), f.ClientSet, pod)
+			framework.ExpectNoError(err, "pod started running successfully")
+
+			e2evolume.VerifyExecInPodFail(f, pod, "test -d "+"/mnt/volume1/"+basePath+"/"+volumeName, 1)
+
+			_ = f.ClientSet.CoreV1().Pods(f.Namespace.Name).Delete(context.TODO(), pod.Name, metav1.DeleteOptions{})
 		})
 
 	})
@@ -476,7 +573,7 @@ func createEFSPVCPV(c clientset.Interface, namespace, name, path string, volumeA
 }
 
 func makeEFSPVCPV(namespace, name, path string, volumeAttributes map[string]string) (*v1.PersistentVolumeClaim, *v1.PersistentVolume) {
-	pvc := makeEFSPVC(namespace, name)
+	pvc := makeEFSPVC(namespace, name, "")
 	pv := makeEFSPV(name, path, volumeAttributes)
 	pvc.Spec.VolumeName = pv.Name
 	pv.Spec.ClaimRef = &v1.ObjectReference{
@@ -486,8 +583,7 @@ func makeEFSPVCPV(namespace, name, path string, volumeAttributes map[string]stri
 	return pvc, pv
 }
 
-func makeEFSPVC(namespace, name string) *v1.PersistentVolumeClaim {
-	storageClassName := ""
+func makeEFSPVC(namespace, name string, storageClassName string) *v1.PersistentVolumeClaim {
 	return &v1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,

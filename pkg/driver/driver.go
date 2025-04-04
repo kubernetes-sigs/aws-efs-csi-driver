@@ -38,25 +38,21 @@ const (
 )
 
 type Driver struct {
-	endpoint                 string
-	nodeID                   string
-	srv                      *grpc.Server
-	mounter                  Mounter
-	efsWatchdog              Watchdog
-	cloud                    cloud.Cloud
-	nodeCaps                 []csi.NodeServiceCapability_RPC_Type
-	volMetricsOptIn          bool
-	volMetricsRefreshPeriod  float64
-	volMetricsFsRateLimit    int
-	volStatter               VolStatter
-	gidAllocator             GidAllocator
-	deleteAccessPointRootDir bool
-	adaptiveRetryMode        bool
-	tags                     map[string]string
-	lockManager              LockManagerMap
+	endpoint                string
+	nodeID                  string
+	srv                     *grpc.Server
+	mounter                 Mounter
+	efsWatchdog             Watchdog
+	cloud                   cloud.Cloud
+	nodeCaps                []csi.NodeServiceCapability_RPC_Type
+	volMetricsOptIn         bool
+	volMetricsRefreshPeriod float64
+	volMetricsFsRateLimit   int
+	volStatter              VolStatter
+	provisioners            map[string]Provisioner
 }
 
-func NewDriver(endpoint, efsUtilsCfgPath, efsUtilsStaticFilesPath, tags string, volMetricsOptIn bool, volMetricsRefreshPeriod float64, volMetricsFsRateLimit int, deleteAccessPointRootDir bool, adaptiveRetryMode bool) *Driver {
+func NewDriver(endpoint, efsUtilsCfgPath, efsUtilsStaticFilesPath, tags string, volMetricsOptIn bool, volMetricsRefreshPeriod float64, volMetricsFsRateLimit int, deleteAccessPointRootDir bool, adaptiveRetryMode bool, deleteProvisionedDir bool) *Driver {
 	cloud, err := cloud.NewCloud(adaptiveRetryMode)
 	if err != nil {
 		klog.Fatalln(err)
@@ -64,22 +60,21 @@ func NewDriver(endpoint, efsUtilsCfgPath, efsUtilsStaticFilesPath, tags string, 
 
 	nodeCaps := SetNodeCapOptInFeatures(volMetricsOptIn)
 	watchdog := newExecWatchdog(efsUtilsCfgPath, efsUtilsStaticFilesPath, "amazon-efs-mount-watchdog")
+	mounter := newNodeMounter()
+	parsedTags := parseTagsFromStr(strings.TrimSpace(tags))
+	provisioners := getProvisioners(cloud, mounter, parsedTags, deleteAccessPointRootDir, adaptiveRetryMode, &RealOsClient{}, deleteProvisionedDir)
 	return &Driver{
-		endpoint:                 endpoint,
-		nodeID:                   cloud.GetMetadata().GetInstanceID(),
-		mounter:                  newNodeMounter(),
-		efsWatchdog:              watchdog,
-		cloud:                    cloud,
-		nodeCaps:                 nodeCaps,
-		volStatter:               NewVolStatter(),
-		volMetricsOptIn:          volMetricsOptIn,
-		volMetricsRefreshPeriod:  volMetricsRefreshPeriod,
-		volMetricsFsRateLimit:    volMetricsFsRateLimit,
-		gidAllocator:             NewGidAllocator(),
-		deleteAccessPointRootDir: deleteAccessPointRootDir,
-		adaptiveRetryMode:        adaptiveRetryMode,
-		tags:                     parseTagsFromStr(strings.TrimSpace(tags)),
-		lockManager:              NewLockManagerMap(),
+		endpoint:                endpoint,
+		nodeID:                  cloud.GetMetadata().GetInstanceID(),
+		mounter:                 newNodeMounter(),
+		efsWatchdog:             watchdog,
+		cloud:                   cloud,
+		nodeCaps:                nodeCaps,
+		volStatter:              NewVolStatter(),
+		volMetricsOptIn:         volMetricsOptIn,
+		volMetricsRefreshPeriod: volMetricsRefreshPeriod,
+		volMetricsFsRateLimit:   volMetricsFsRateLimit,
+		provisioners:            provisioners,
 	}
 }
 
@@ -140,6 +135,14 @@ func (d *Driver) Run() error {
 
 	klog.Infof("Listening for connections on address: %#v", listener.Addr())
 	return d.srv.Serve(listener)
+}
+
+func (d *Driver) getProvisioningModes() []string {
+	var keys []string
+	for k := range d.provisioners {
+		keys = append(keys, k)
+	}
+	return keys
 }
 
 func parseTagsFromStr(tagStr string) map[string]string {
