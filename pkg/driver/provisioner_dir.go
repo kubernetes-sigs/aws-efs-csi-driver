@@ -78,10 +78,34 @@ func (d *DirectoryProvisioner) Provision(ctx context.Context, req *csi.CreateVol
 		}
 	}
 
-	klog.V(5).Infof("Provisioning directory with permissions %s", perms)
+	var uid int
+	if value, ok := volumeParams[Uid]; ok {
+		id, err := strconv.ParseInt(value, 10, 32)
+		if err != nil {
+			return nil, status.Errorf(codes.InvalidArgument, "Failed to parse invalid %v: %v", Uid, err)
+		}
+		if id < 0 {
+			return nil, status.Errorf(codes.InvalidArgument, "%v must be greater or equal than 0", Uid)
+		}
+		uid = int(id)
+	}
+
+	var gid int
+	if value, ok := volumeParams[Gid]; ok {
+		id, err := strconv.ParseInt(value, 10, 32)
+		if err != nil {
+			return nil, status.Errorf(codes.InvalidArgument, "Failed to parse invalid %v: %v", Gid, err)
+		}
+		if id < 0 {
+			return nil, status.Errorf(codes.InvalidArgument, "%v must be greater or equal than 0", Gid)
+		}
+		gid = int(id)
+	}
+
+	klog.V(5).Infof("Provisioning directory with permissions %s, uid %d, gid %d", perms, uid, gid)
 
 	provisionedDirectory := path.Join(target, provisionedPath)
-	err = d.osClient.MkDirAllWithPermsNoOwnership(provisionedDirectory, perms)
+	err = d.osClient.MkDirAllWithPerms(provisionedDirectory, perms, uid, gid)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "Could not provision directory: %v", err)
 	}
