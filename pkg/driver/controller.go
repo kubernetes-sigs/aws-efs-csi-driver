@@ -351,11 +351,23 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 		if err != nil {
 			if err == cloud.ErrAccessDenied {
 				return nil, status.Errorf(codes.Unauthenticated, "Access Denied. Please ensure you have the right AWS permissions: %v", err)
+			} else if err == cloud.ErrAlreadyExists {
+				klog.V(4).Infof("Access point already exists for client token %s. Retrieving existing access point details.", clientToken)
+				existingAccessPoint, err := localCloud.FindAccessPointByClientToken(ctx, clientToken, accessPointsOptions.FileSystemId)
+				if err != nil {
+					return nil, fmt.Errorf("Error attempting to retrieve existing access point for client token %s: %v", clientToken, err)
+				}
+				if existingAccessPoint == nil {
+					return nil, fmt.Errorf("No access point for client token %s was returned: %v", clientToken, err)
+				}
+				err = validateExistingAccessPoint(existingAccessPoint, basePath, gidMin, gidMax)
+				if err != nil {
+					return nil, status.Errorf(codes.AlreadyExists, "Invalid existing access point: %v", err)
+				}
+				accessPoint = existingAccessPoint
+			} else {
+				return nil, status.Errorf(codes.Internal, "Failed to create Access point in File System %v : %v", accessPointsOptions.FileSystemId, err)
 			}
-			if err == cloud.ErrAlreadyExists {
-				return nil, status.Errorf(codes.AlreadyExists, "Access Point already exists")
-			}
-			return nil, status.Errorf(codes.Internal, "Failed to create Access point in File System %v : %v", accessPointsOptions.FileSystemId, err)
 		}
 
 		// Lock on the new access point to prevent accidental deletion before creation is done
@@ -710,4 +722,27 @@ func get64LenHash(text string) string {
 	h := sha256.New()
 	h.Write([]byte(text))
 	return fmt.Sprintf("%x", h.Sum(nil))
+}
+
+func validateExistingAccessPoint(existingAccessPoint *cloud.AccessPoint, basePath string, gidMin int64, gidMax int64) error {
+
+	normalizedBasePath := strings.TrimPrefix(basePath, "/")
+	normalizedAccessPointPath := strings.TrimPrefix(existingAccessPoint.AccessPointRootDir, "/")
+	if !strings.HasPrefix(normalizedAccessPointPath, normalizedBasePath) {
+		return fmt.Errorf("Access point found but has different base path than what's specified in storage class")
+	}
+
+	if existingAccessPoint.PosixUser == nil {
+		return fmt.Errorf("Access point found but PosixUser is nil")
+	}
+
+	if existingAccessPoint.PosixUser.Gid < gidMin || existingAccessPoint.PosixUser.Gid > gidMax {
+		return fmt.Errorf("Access point found but its GID is outside the specified range")
+	}
+
+	if existingAccessPoint.PosixUser.Uid < gidMin || existingAccessPoint.PosixUser.Uid > gidMax {
+		return fmt.Errorf("Access point found but its UID is outside the specified range")
+	}
+
+	return nil
 }
