@@ -104,6 +104,53 @@ func TestCreateAccessPoint(t *testing.T) {
 			},
 		},
 		{
+			name: "Success: Access Point Already Exists",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockEfs := mocks.NewMockEfs(mockCtl)
+				c := &cloud{efs: mockEfs}
+
+				req := &AccessPointOptions{
+					FileSystemId:   fsId,
+					Uid:           uid,
+					Gid:           gid,
+					DirectoryPerms: directoryPerms,
+					DirectoryPath:  directoryPath,
+				}
+
+				// CreateAccessPoint call returns AccessPointAlreadyExists
+				mockEfs.EXPECT().CreateAccessPoint(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil,
+					&smithy.GenericAPIError{
+						Code:    AccessPointAlreadyExists,
+						Message: "Access point already exists",
+					})
+
+				// DescribeAccessPoints call with client token to find existing access point succeeds
+				mockEfs.EXPECT().DescribeAccessPoints(gomock.Any(), gomock.Any(), gomock.Any()).Return(
+					&efs.DescribeAccessPointsOutput{
+						AccessPoints: []types.AccessPointDescription{
+							{
+								AccessPointId:  aws.String(accessPointId),
+								FileSystemId:   aws.String(fsId),
+								ClientToken:    aws.String(clientToken),
+								RootDirectory: &types.RootDirectory{
+									Path: aws.String(directoryPath),
+								},
+							},
+						},
+					}, nil)
+
+				res, err := c.CreateAccessPoint(context.Background(), clientToken, req)
+				if err != nil {
+					t.Fatalf("Expected no error, got: %v", err)
+				}
+				if res.AccessPointId != accessPointId {
+					t.Fatalf("Expected AccessPointId %s, got %s", accessPointId, res.AccessPointId)
+				}
+				mockCtl.Finish()
+			},
+		},
+		{
 			name: "Fail",
 			testFunc: func(t *testing.T) {
 				mockCtl := gomock.NewController(t)
@@ -158,6 +205,79 @@ func TestCreateAccessPoint(t *testing.T) {
 				mockCtl.Finish()
 			},
 		},
+		{
+			name: "Fail: Access Point exists but wasn't returned",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockEfs := mocks.NewMockEfs(mockCtl)
+				c := &cloud{efs: mockEfs}
+
+				req := &AccessPointOptions{
+					FileSystemId:   fsId,
+					Uid:           uid,
+					Gid:           gid,
+					DirectoryPerms: directoryPerms,
+					DirectoryPath:  directoryPath,
+				}
+
+				mockEfs.EXPECT().CreateAccessPoint(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil,
+					&smithy.GenericAPIError{
+						Code:    AccessPointAlreadyExists,
+						Message: "Access point already exists",
+					})
+
+				mockEfs.EXPECT().DescribeAccessPoints(gomock.Any(), gomock.Any(), gomock.Any()).Return(
+					&efs.DescribeAccessPointsOutput{
+						AccessPoints: []types.AccessPointDescription{},
+					}, nil)
+
+				_, err := c.CreateAccessPoint(context.Background(), clientToken, req)
+				if err == nil {
+					t.Fatal("Expected error but got nil")
+				}
+				expectedErr := "No access point for client token " + clientToken + " was returned"
+				if err.Error() != expectedErr {
+					t.Fatalf("Expected error %q, got %q", expectedErr, err.Error())
+				}
+				mockCtl.Finish()
+			},
+		},
+		{
+			name: "Fail: Access Point exists but there was error retrieving it",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockEfs := mocks.NewMockEfs(mockCtl)
+				c := &cloud{efs: mockEfs}
+
+				req := &AccessPointOptions{
+					FileSystemId:   fsId,
+					Uid:           uid,
+					Gid:           gid,
+					DirectoryPerms: directoryPerms,
+					DirectoryPath:  directoryPath,
+				}
+
+				mockEfs.EXPECT().CreateAccessPoint(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil,
+					&smithy.GenericAPIError{
+						Code:    AccessPointAlreadyExists,
+						Message: "Access point already exists",
+					})
+
+				mockEfs.EXPECT().DescribeAccessPoints(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil,
+					errors.New("internal error"))
+
+				_, err := c.CreateAccessPoint(context.Background(), clientToken, req)
+				if err == nil {
+					t.Fatal("Expected error but got nil")
+				}
+				expectedErr := "Error attempting to retrieve existing access point: failed to list Access Points of efs = " + fsId + " : internal error"
+				if err.Error() != expectedErr {
+					t.Fatalf("Expected error %q, got %q", expectedErr, err.Error())
+				}
+				mockCtl.Finish()
+			},
+		},
+
 	}
 
 	for _, tc := range testCases {

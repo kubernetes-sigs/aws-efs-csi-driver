@@ -201,11 +201,22 @@ func (c *cloud) CreateAccessPoint(ctx context.Context, clientToken string, acces
 		o.Retryer = c.rm.createAccessPointRetryer
 	})
 	if err != nil {
-		if isAccessDenied(err) {
-			return nil, ErrAccessDenied
-		}
-		return nil, fmt.Errorf("Failed to create access point: %v", err)
-	}
+        if isAccessPointAlreadyExists(err) {
+            klog.V(4).Infof("Access point already exists for client token %s. Retrieving existing access point details.", clientToken)
+            existingAccessPoint, err := c.FindAccessPointByClientToken(ctx, clientToken, *createAPInput.FileSystemId)
+            if err != nil {
+                return nil, fmt.Errorf("Error attempting to retrieve existing access point: %v", err)
+            }
+            if existingAccessPoint == nil {
+                return nil, fmt.Errorf("No access point for client token %s was returned", clientToken)
+            }
+            return existingAccessPoint, nil
+        } else if isAccessDenied(err) {
+            return nil, ErrAccessDenied
+        } else {
+            return nil, fmt.Errorf("Failed to create access point: %v", err)
+        }
+    }
 	klog.V(5).Infof("Create AP response : %+v", res)
 
 	return &AccessPoint{
@@ -431,6 +442,16 @@ func isAccessDenied(err error) bool {
 		if apiErr.ErrorCode() == AccessDeniedException {
 			return true
 		}
+	}
+	return false
+}
+
+func isAccessPointAlreadyExists(err error) bool {
+	var apiErr smithy.APIError
+	if errors.As(err, &apiErr) {
+			if apiErr.ErrorCode() ==  AccessPointAlreadyExists  {
+					return true
+			}
 	}
 	return false
 }

@@ -352,9 +352,6 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 			if err == cloud.ErrAccessDenied {
 				return nil, status.Errorf(codes.Unauthenticated, "Access Denied. Please ensure you have the right AWS permissions: %v", err)
 			}
-			if err == cloud.ErrAlreadyExists {
-				return nil, status.Errorf(codes.AlreadyExists, "Access Point already exists")
-			}
 			return nil, status.Errorf(codes.Internal, "Failed to create Access point in File System %v : %v", accessPointsOptions.FileSystemId, err)
 		}
 
