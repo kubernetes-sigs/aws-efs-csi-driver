@@ -1,3 +1,8 @@
+# V2.1.8
+* Remove unused workflow that publishes images to dockerhub ([#1621](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1621), [@jrakas-dev](https://github.com/jrakas-dev))
+*  Return existing access point if one already exists during create workflow ([#1620](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1620), [@jrakas-dev](https://github.com/jrakas-dev))
+* Clean install openssl and standardize eks distro ([#1619](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1619), [@dankova22](https://github.com/dankova22))
+* Fix centos image in pod config examples ([#1611](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1611), [@thakurmi](https://github.com/thakurmi))
 # V2.1.7
 * Adding additional checks and multi threaded testing to ensure concurrent createVolume and deleteVolume calls are handled correctly ([#1592] (https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1592), [@dluthcke](https://github.com/dluthcke))
 * Clarifying Note when uninstalling CSI driver ([#1599] (https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1599), [@dluthcke](https://github.com/dluthcke))
