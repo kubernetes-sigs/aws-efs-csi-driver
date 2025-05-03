@@ -158,6 +158,38 @@ func TestCreateAccessPoint(t *testing.T) {
 				mockCtl.Finish()
 			},
 		},
+		{
+			name: "Error: Access Point already exists",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockEfs := mocks.NewMockEfs(mockCtl)
+				c := &cloud{efs: mockEfs}
+
+				req := &AccessPointOptions{
+					FileSystemId:   fsId,
+					Uid:            uid,
+					Gid:            gid,
+					DirectoryPerms: directoryPerms,
+					DirectoryPath:  directoryPath,
+				}
+
+				ctx := context.Background()
+				mockEfs.EXPECT().CreateAccessPoint(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil,
+					&smithy.GenericAPIError{
+						Code:    AccessPointAlreadyExists,
+						Message: "Access point already exists",
+					})
+
+				_, err := c.CreateAccessPoint(ctx, clientToken, req)
+				if err == nil {
+					t.Fatalf("CreateAccessPoint did not return error")
+				}
+				if err != ErrAlreadyExists {
+					t.Fatalf("Failed. Expected: %v, Actual:%v", ErrAlreadyExists, err)
+				}
+				mockCtl.Finish()
+			},
+		},
 	}
 
 	for _, tc := range testCases {
@@ -1085,6 +1117,16 @@ func Test_findAccessPointByPath(t *testing.T) {
 		FileSystemId:       fsId,
 	}
 
+	expectedSingleAPWithPosixUser := &AccessPoint{
+		AccessPointId:      "testApId",
+		AccessPointRootDir: dirPath,
+		PosixUser: &PosixUser{
+			Uid: 1000,
+			Gid: 1000,
+		},
+		FileSystemId: fsId,
+	}
+
 	type args struct {
 		clientToken     string
 		accessPointOpts *AccessPointOptions
@@ -1105,10 +1147,16 @@ func Test_findAccessPointByPath(t *testing.T) {
 			mockEfs.EXPECT().DescribeAccessPoints(gomock.Any(), gomock.Any(), gomock.Any()).Return(&efs.DescribeAccessPointsOutput{
 				AccessPoints: []types.AccessPointDescription{
 					{FileSystemId: aws.String(fsId), ClientToken: diffClientToken, AccessPointId: aws.String("differentApId"), RootDirectory: &types.RootDirectory{Path: aws.String(expectedSingleAP.AccessPointRootDir)}},
-					{FileSystemId: aws.String(fsId), ClientToken: &clientToken, AccessPointId: aws.String(expectedSingleAP.AccessPointId), RootDirectory: &types.RootDirectory{Path: aws.String(expectedSingleAP.AccessPointRootDir)}},
+					{
+						FileSystemId:  aws.String(fsId),
+						ClientToken:   &clientToken,
+						AccessPointId: aws.String(expectedSingleAPWithPosixUser.AccessPointId),
+						RootDirectory: &types.RootDirectory{Path: aws.String(expectedSingleAPWithPosixUser.AccessPointRootDir)},
+						PosixUser:     &types.PosixUser{Gid: aws.Int64(1000), Uid: aws.Int64(1000)},
+					},
 				},
 			}, nil)
-		}, wantAccessPoint: expectedSingleAP, wantErr: false},
+		}, wantAccessPoint: expectedSingleAPWithPosixUser, wantErr: false},
 		{name: "Fail_DescribeAccessPoints", args: args{clientToken, &AccessPointOptions{FileSystemId: fsId, DirectoryPath: dirPath}}, prepare: func(mockEfs *mocks.MockEfs) {
 			mockEfs.EXPECT().DescribeAccessPoints(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("access_denied"))
 		}, wantAccessPoint: nil, wantErr: true},
