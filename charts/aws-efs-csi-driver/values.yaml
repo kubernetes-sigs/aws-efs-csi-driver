@@ -124,6 +124,10 @@ controller:
     privileged: true
   leaderElectionRenewDeadline: 10s
   leaderElectionLeaseDuration: 15s
+  # Timeout for Create/DeleteVolume calls to Controller. We recommend increasing for high concurrency workloads
+  timeout: 15s
+  # Number of concurrent threads controller will handle at once.
+  workerThreads: 100 
   # TSCs without the label selector stanza
   #
   # Example:
