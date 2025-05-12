@@ -20,11 +20,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math/rand"
+	"time"
+
+	"os"
 
 	"github.com/aws/smithy-go"
-	"math/rand"
-	"os"
-	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -106,7 +107,7 @@ type Cloud interface {
 	FindAccessPointByClientToken(ctx context.Context, clientToken, fileSystemId string) (accessPoint *AccessPoint, err error)
 	ListAccessPoints(ctx context.Context, fileSystemId string) (accessPoints []*AccessPoint, err error)
 	DescribeFileSystem(ctx context.Context, fileSystemId string) (fs *FileSystem, err error)
-	DescribeMountTargets(ctx context.Context, fileSystemId, az string) (fs *MountTarget, err error)
+	DescribeMountTargets(ctx context.Context, fileSystemId, az string) (fs []*MountTarget, err error)
 }
 
 type cloud struct {
@@ -368,7 +369,7 @@ func (c *cloud) DescribeFileSystem(ctx context.Context, fileSystemId string) (fs
 	}, nil
 }
 
-func (c *cloud) DescribeMountTargets(ctx context.Context, fileSystemId, azName string) (fs *MountTarget, err error) {
+func (c *cloud) DescribeMountTargets(ctx context.Context, fileSystemId, azName string) (fs []*MountTarget, err error) {
 	describeMtInput := &efs.DescribeMountTargetsInput{FileSystemId: &fileSystemId}
 	klog.V(5).Infof("Calling DescribeMountTargets with input: %+v", *describeMtInput)
 	res, err := c.efs.DescribeMountTargets(ctx, describeMtInput, func(o *efs.Options) {
@@ -395,6 +396,20 @@ func (c *cloud) DescribeMountTargets(ctx context.Context, fileSystemId, azName s
 		return nil, fmt.Errorf("No mount target for file system %v is in available state. Please retry in 5 minutes.", fileSystemId)
 	}
 
+	var returneMountTargets []*MountTarget
+	if azName == "multi" {
+		// Return all available mount targets
+		for _, mt := range availableMountTargets {
+			returneMountTargets = append(returneMountTargets, &MountTarget{
+				AZName:        *mt.AvailabilityZoneName,
+				AZId:          *mt.AvailabilityZoneId,
+				MountTargetId: *mt.MountTargetId,
+				IPAddress:     *mt.IpAddress,
+			})
+		}
+		return returneMountTargets, nil
+	}
+
 	var mountTarget *types.MountTargetDescription
 	if azName != "" {
 		mountTarget = getMountTargetForAz(availableMountTargets, azName)
@@ -408,11 +423,13 @@ func (c *cloud) DescribeMountTargets(ctx context.Context, fileSystemId, azName s
 		mountTarget = &availableMountTargets[rand.Intn(len(availableMountTargets))]
 	}
 
-	return &MountTarget{
-		AZName:        *mountTarget.AvailabilityZoneName,
-		AZId:          *mountTarget.AvailabilityZoneId,
-		MountTargetId: *mountTarget.MountTargetId,
-		IPAddress:     *mountTarget.IpAddress,
+	return []*MountTarget{
+		{
+			AZName:        *mountTarget.AvailabilityZoneName,
+			AZId:          *mountTarget.AvailabilityZoneId,
+			MountTargetId: *mountTarget.MountTargetId,
+			IPAddress:     *mountTarget.IpAddress,
+		},
 	}, nil
 }
 

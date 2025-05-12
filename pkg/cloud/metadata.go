@@ -19,6 +19,7 @@ package cloud
 import (
 	"context"
 	"fmt"
+
 	"github.com/aws/aws-sdk-go-v2/feature/ec2/imds"
 
 	"k8s.io/client-go/kubernetes"
@@ -34,12 +35,14 @@ type MetadataService interface {
 	GetInstanceID() string
 	GetRegion() string
 	GetAvailabilityZone() string
+	GetAvailabilityZoneID() string
 }
 
 type metadata struct {
-	instanceID       string
-	region           string
-	availabilityZone string
+	instanceID         string
+	region             string
+	availabilityZone   string
+	availabilityZoneID string
 }
 
 var _ MetadataService = &metadata{}
@@ -59,6 +62,11 @@ func (m *metadata) GetRegion() string {
 // GetAvailabilityZone returns the Availability Zone which the instance is in.
 func (m *metadata) GetAvailabilityZone() string {
 	return m.availabilityZone
+}
+
+// GetAvailabilityZoneID returns the Availability Zone Id which the instance is in.
+func (m *metadata) GetAvailabilityZoneID() string {
+	return m.availabilityZoneID
 }
 
 // GetNewMetadataProvider returns a MetadataProvider on which can be invoked getMetadata() to extract the metadata.
