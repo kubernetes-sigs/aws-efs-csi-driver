@@ -137,6 +137,12 @@ spec:
             {{- if hasKey .Values.controller "leaderElectionLeaseDuration" }}
             - --leader-election-lease-duration={{ .Values.controller.leaderElectionLeaseDuration }}
             {{- end }}
+            {{- if hasKey .Values.controller "workerThreads" }}
+            - --worker-threads={{ .Values.controller.workerThreads }}
+            {{- end }}
+            {{- if hasKey .Values.controller "timeout" }}
+            - --timeout={{ .Values.controller.timeout }}
+            {{- end }}
             {{- range .Values.sidecars.csiProvisioner.additionalArgs }}
             - {{ . }}
             {{- end }}
