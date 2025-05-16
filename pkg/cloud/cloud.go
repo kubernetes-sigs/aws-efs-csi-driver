@@ -396,18 +396,18 @@ func (c *cloud) DescribeMountTargets(ctx context.Context, fileSystemId, azName s
 		return nil, fmt.Errorf("No mount target for file system %v is in available state. Please retry in 5 minutes.", fileSystemId)
 	}
 
-	var returneMountTargets []*MountTarget
 	if azName == "multi" {
 		// Return all available mount targets
+		var multiAzMountTargets []*MountTarget
 		for _, mt := range availableMountTargets {
-			returneMountTargets = append(returneMountTargets, &MountTarget{
+			multiAzMountTargets = append(multiAzMountTargets, &MountTarget{
 				AZName:        *mt.AvailabilityZoneName,
 				AZId:          *mt.AvailabilityZoneId,
 				MountTargetId: *mt.MountTargetId,
 				IPAddress:     *mt.IpAddress,
 			})
 		}
-		return returneMountTargets, nil
+		return multiAzMountTargets, nil
 	}
 
 	var mountTarget *types.MountTargetDescription
