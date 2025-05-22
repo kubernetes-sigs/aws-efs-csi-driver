@@ -93,6 +93,8 @@ spec:
             {{- if .Values.useFIPS }}
             - name: AWS_USE_FIPS_ENDPOINT
               value: "true"
+            - name: FIPS_ENABLED
+              value: "true"
             {{- end }}
             - name: PORT_RANGE_UPPER_BOUND
               value: "{{ .Values.portRangeUpperBound }}"

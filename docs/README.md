@@ -254,7 +254,7 @@ This procedure requires Helm V3 or later. To install or upgrade Helm, see [Using
 
    To force the Amazon EFS CSI driver to use FIPS for mounting the file system, add the following argument.
    ```sh
-   --set useFips=true
+   --set useFIPS=true
    ```
 **Note**  
 `hostNetwork: true` (should be added under spec/deployment on kubernetes installations where AWS metadata is not reachable from pod network. To fix the following error `NoCredentialProviders: no valid providers in chain` this parameter should be added.)
