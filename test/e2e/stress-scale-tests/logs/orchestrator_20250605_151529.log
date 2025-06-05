@@ -1,7 +1,0 @@
-2025-06-05 15:15:29,738 - tests.orchestrator - INFO - EFS CSI Orchestrator initialized
-2025-06-05 15:15:29,948 - tests.orchestrator - ERROR - Error checking namespace: (401)
-Reason: Unauthorized
-HTTP response headers: HTTPHeaderDict({'Audit-Id': '95b9f34d-de93-4da4-99dd-fc17111bd0ce', 'Cache-Control': 'no-cache, private', 'Content-Type': 'application/json', 'Date': 'Thu, 05 Jun 2025 15:15:29 GMT', 'Content-Length': '129'})
-HTTP response body: {"kind":"Status","apiVersion":"v1","metadata":{},"status":"Failure","message":"Unauthorized","reason":"Unauthorized","code":401}
-
-
