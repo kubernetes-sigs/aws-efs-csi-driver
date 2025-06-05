@@ -1,0 +1,94 @@
+2025-06-03 20:44:33,955 - tests.orchestrator - INFO - EFS CSI Orchestrator initialized
+2025-06-03 20:44:33,956 - tests.orchestrator - INFO - Starting orchestrator test for 300 seconds
+2025-06-03 20:44:34,200 - tests.orchestrator - INFO - StorageClass 'efs-sc' already exists
+2025-06-03 20:44:34,200 - tests.orchestrator - INFO - Selected operation: _attach_pod
+2025-06-03 20:44:34,201 - tests.orchestrator - INFO - No PVCs available, skipping pod attachment
+2025-06-03 20:44:35,201 - tests.orchestrator - INFO - Selected operation: _verify_readwrite
+2025-06-03 20:44:35,201 - tests.orchestrator - INFO - No shared PVCs with multiple pods for read/write test
+2025-06-03 20:44:36,201 - tests.orchestrator - INFO - Selected operation: _run_specific_scenario
+2025-06-03 20:44:36,201 - tests.orchestrator - INFO - Running specific scenario: _scenario_concurrent_pvc
+2025-06-03 20:44:36,201 - tests.orchestrator - INFO - Running scenario: Rapid PVC operations
+2025-06-03 20:44:36,202 - tests.orchestrator - INFO - Creating 4 PVCs in quick succession
+2025-06-03 20:44:36,496 - tests.orchestrator - ERROR - Failed to create PVC concurrent-pvc-de3117b2 concurrently: (404)
+Reason: Not Found
+HTTP response headers: HTTPHeaderDict({'Audit-Id': '6de3c195-b2f2-4b32-8ecf-97264e52a31c', 'Cache-Control': 'no-cache, private', 'Content-Type': 'application/json', 'X-Kubernetes-Pf-Flowschema-Uid': 'a278f63c-a854-47c8-82d3-d9efaaac2f24', 'X-Kubernetes-Pf-Prioritylevel-Uid': '6f082086-057e-4745-9def-b60972ad437b', 'Date': 'Tue, 03 Jun 2025 20:44:36 GMT', 'Content-Length': '210'})
+HTTP response body: {"kind":"Status","apiVersion":"v1","metadata":{},"status":"Failure","message":"namespaces \"efs-stress-test\" not found","reason":"NotFound","details":{"name":"efs-stress-test","kind":"namespaces"},"code":404}
+
+
+2025-06-03 20:44:36,629 - tests.orchestrator - ERROR - Failed to create PVC concurrent-pvc-85b7f827 concurrently: (404)
+Reason: Not Found
+HTTP response headers: HTTPHeaderDict({'Audit-Id': 'c0386aa9-45b5-4f3c-a98b-030be2caf4ee', 'Cache-Control': 'no-cache, private', 'Content-Type': 'application/json', 'X-Kubernetes-Pf-Flowschema-Uid': 'a278f63c-a854-47c8-82d3-d9efaaac2f24', 'X-Kubernetes-Pf-Prioritylevel-Uid': '6f082086-057e-4745-9def-b60972ad437b', 'Date': 'Tue, 03 Jun 2025 20:44:36 GMT', 'Content-Length': '210'})
+HTTP response body: {"kind":"Status","apiVersion":"v1","metadata":{},"status":"Failure","message":"namespaces \"efs-stress-test\" not found","reason":"NotFound","details":{"name":"efs-stress-test","kind":"namespaces"},"code":404}
+
+
+2025-06-03 20:44:36,761 - tests.orchestrator - ERROR - Failed to create PVC concurrent-pvc-0fd0fcb2 concurrently: (404)
+Reason: Not Found
+HTTP response headers: HTTPHeaderDict({'Audit-Id': '8b45ed55-a0d9-42cf-8f9e-49802dd09685', 'Cache-Control': 'no-cache, private', 'Content-Type': 'application/json', 'X-Kubernetes-Pf-Flowschema-Uid': 'a278f63c-a854-47c8-82d3-d9efaaac2f24', 'X-Kubernetes-Pf-Prioritylevel-Uid': '6f082086-057e-4745-9def-b60972ad437b', 'Date': 'Tue, 03 Jun 2025 20:44:36 GMT', 'Content-Length': '210'})
+HTTP response body: {"kind":"Status","apiVersion":"v1","metadata":{},"status":"Failure","message":"namespaces \"efs-stress-test\" not found","reason":"NotFound","details":{"name":"efs-stress-test","kind":"namespaces"},"code":404}
+
+
+2025-06-03 20:44:36,894 - tests.orchestrator - ERROR - Failed to create PVC concurrent-pvc-70957dd1 concurrently: (404)
+Reason: Not Found
+HTTP response headers: HTTPHeaderDict({'Audit-Id': 'eb053268-dd23-487f-a943-fe937d3e637c', 'Cache-Control': 'no-cache, private', 'Content-Type': 'application/json', 'X-Kubernetes-Pf-Flowschema-Uid': 'a278f63c-a854-47c8-82d3-d9efaaac2f24', 'X-Kubernetes-Pf-Prioritylevel-Uid': '6f082086-057e-4745-9def-b60972ad437b', 'Date': 'Tue, 03 Jun 2025 20:44:36 GMT', 'Content-Length': '210'})
+HTTP response body: {"kind":"Status","apiVersion":"v1","metadata":{},"status":"Failure","message":"namespaces \"efs-stress-test\" not found","reason":"NotFound","details":{"name":"efs-stress-test","kind":"namespaces"},"code":404}
+
+
+2025-06-03 20:44:36,894 - tests.orchestrator - WARNING - Failed to create enough PVCs, only created 0
+2025-06-03 20:44:37,895 - tests.orchestrator - INFO - Selected operation: _attach_pod
+2025-06-03 20:44:37,895 - tests.orchestrator - INFO - No PVCs available, skipping pod attachment
+2025-06-03 20:44:38,895 - tests.orchestrator - INFO - Selected operation: _delete_pvc
+2025-06-03 20:44:38,895 - tests.orchestrator - INFO - No PVCs to delete
+2025-06-03 20:44:39,895 - tests.orchestrator - INFO - Selected operation: _create_pvc
+2025-06-03 20:44:39,896 - tests.orchestrator - INFO - Creating PVC: test-pvc-a59e84da
+2025-06-03 20:44:40,030 - tests.orchestrator - ERROR - Failed to create PVC: (404)
+Reason: Not Found
+HTTP response headers: HTTPHeaderDict({'Audit-Id': '024a4209-6aa7-489a-8bef-e93376c42c84', 'Cache-Control': 'no-cache, private', 'Content-Type': 'application/json', 'X-Kubernetes-Pf-Flowschema-Uid': 'a278f63c-a854-47c8-82d3-d9efaaac2f24', 'X-Kubernetes-Pf-Prioritylevel-Uid': '6f082086-057e-4745-9def-b60972ad437b', 'Date': 'Tue, 03 Jun 2025 20:44:39 GMT', 'Content-Length': '210'})
+HTTP response body: {"kind":"Status","apiVersion":"v1","metadata":{},"status":"Failure","message":"namespaces \"efs-stress-test\" not found","reason":"NotFound","details":{"name":"efs-stress-test","kind":"namespaces"},"code":404}
+
+
+2025-06-03 20:44:41,030 - tests.orchestrator - INFO - Selected operation: _delete_pvc
+2025-06-03 20:44:41,030 - tests.orchestrator - INFO - No PVCs to delete
+2025-06-03 20:44:42,030 - tests.orchestrator - INFO - Selected operation: _create_pvc
+2025-06-03 20:44:42,031 - tests.orchestrator - INFO - Creating PVC: test-pvc-f2989ffe
+2025-06-03 20:44:42,163 - tests.orchestrator - ERROR - Failed to create PVC: (404)
+Reason: Not Found
+HTTP response headers: HTTPHeaderDict({'Audit-Id': 'baeae3c9-acf2-4389-8ecd-6a83618aecd7', 'Cache-Control': 'no-cache, private', 'Content-Type': 'application/json', 'X-Kubernetes-Pf-Flowschema-Uid': 'a278f63c-a854-47c8-82d3-d9efaaac2f24', 'X-Kubernetes-Pf-Prioritylevel-Uid': '6f082086-057e-4745-9def-b60972ad437b', 'Date': 'Tue, 03 Jun 2025 20:44:42 GMT', 'Content-Length': '210'})
+HTTP response body: {"kind":"Status","apiVersion":"v1","metadata":{},"status":"Failure","message":"namespaces \"efs-stress-test\" not found","reason":"NotFound","details":{"name":"efs-stress-test","kind":"namespaces"},"code":404}
+
+
+2025-06-03 20:44:43,164 - tests.orchestrator - INFO - Selected operation: _delete_pvc
+2025-06-03 20:44:43,164 - tests.orchestrator - INFO - No PVCs to delete
+2025-06-03 20:44:44,164 - tests.orchestrator - INFO - Selected operation: _create_pvc
+2025-06-03 20:44:44,164 - tests.orchestrator - INFO - Creating PVC: test-pvc-53fee8c6
+2025-06-03 20:44:44,298 - tests.orchestrator - ERROR - Failed to create PVC: (404)
+Reason: Not Found
+HTTP response headers: HTTPHeaderDict({'Audit-Id': 'df53a974-5bea-4379-89b2-408d521a999c', 'Cache-Control': 'no-cache, private', 'Content-Type': 'application/json', 'X-Kubernetes-Pf-Flowschema-Uid': 'a278f63c-a854-47c8-82d3-d9efaaac2f24', 'X-Kubernetes-Pf-Prioritylevel-Uid': '6f082086-057e-4745-9def-b60972ad437b', 'Date': 'Tue, 03 Jun 2025 20:44:44 GMT', 'Content-Length': '210'})
+HTTP response body: {"kind":"Status","apiVersion":"v1","metadata":{},"status":"Failure","message":"namespaces \"efs-stress-test\" not found","reason":"NotFound","details":{"name":"efs-stress-test","kind":"namespaces"},"code":404}
+
+
+2025-06-03 20:44:45,298 - tests.orchestrator - INFO - Selected operation: _delete_pod
+2025-06-03 20:44:45,299 - tests.orchestrator - INFO - No pods to delete
+2025-06-03 20:44:46,299 - tests.orchestrator - INFO - Selected operation: _delete_pod
+2025-06-03 20:44:46,299 - tests.orchestrator - INFO - No pods to delete
+2025-06-03 20:44:47,299 - tests.orchestrator - INFO - Selected operation: _delete_pod
+2025-06-03 20:44:47,299 - tests.orchestrator - INFO - No pods to delete
+2025-06-03 20:44:48,299 - tests.orchestrator - INFO - Selected operation: _delete_pod
+2025-06-03 20:44:48,300 - tests.orchestrator - INFO - No pods to delete
+2025-06-03 20:44:48,747 - tests.orchestrator - INFO - Test interrupted by user
+2025-06-03 20:44:48,747 - tests.orchestrator - INFO - Test completed in 14.79 seconds
+2025-06-03 20:44:48,747 - tests.orchestrator - INFO - Cleaning up resources...
+2025-06-03 20:44:48,747 - tests.orchestrator - INFO - Cleanup completed
+2025-06-03 20:44:48,747 - tests.orchestrator - INFO - ===== EFS CSI Driver Test Summary =====
+2025-06-03 20:44:48,747 - tests.orchestrator - INFO - --- Operations ---
+2025-06-03 20:44:48,747 - tests.orchestrator - INFO - create_pvc: 0 succeeded, 7 failed (0.0%)
+2025-06-03 20:44:48,747 - tests.orchestrator - INFO - attach_pod: 0 succeeded, 0 failed (0.0%)
+2025-06-03 20:44:48,747 - tests.orchestrator - INFO - delete_pod: 0 succeeded, 0 failed (0.0%)
+2025-06-03 20:44:48,747 - tests.orchestrator - INFO - delete_pvc: 0 succeeded, 0 failed (0.0%)
+2025-06-03 20:44:48,747 - tests.orchestrator - INFO - verify_read_write: Writes 0 succeeded, 0 failed (0.0%)
+2025-06-03 20:44:48,747 - tests.orchestrator - INFO - verify_read_write: Reads 0 succeeded, 0 failed (0.0%)
+2025-06-03 20:44:48,748 - tests.orchestrator - INFO - --- Scenarios ---
+2025-06-03 20:44:48,748 - tests.orchestrator - INFO - shared_volume_rw: No runs
+2025-06-03 20:44:48,748 - tests.orchestrator - INFO - many_to_one: No runs
+2025-06-03 20:44:48,748 - tests.orchestrator - INFO - one_to_one: No runs
+2025-06-03 20:44:48,748 - tests.orchestrator - INFO - concurrent_pvc: 0 succeeded, 1 failed out of 1 runs (0.0%)
+2025-06-03 20:44:48,748 - tests.orchestrator - INFO - =========================================

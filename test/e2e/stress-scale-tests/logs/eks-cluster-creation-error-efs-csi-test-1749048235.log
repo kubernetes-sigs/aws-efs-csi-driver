@@ -1,0 +1,17 @@
+STDOUT:
+2025-06-04 14:43:56 [▶]  Setting credentials expiry window to 30 minutes
+2025-06-04 14:43:56 [▶]  role ARN for the current session is "arn:aws:sts::745939127895:assumed-role/Admin/ibhard-Isengard"
+2025-06-04 14:43:56 [ℹ]  eksctl version 0.208.0
+2025-06-04 14:43:56 [ℹ]  using region us-west-2
+2025-06-04 14:43:56 [!]  Amazon EKS will no longer publish EKS-optimized Amazon Linux 2 (AL2) AMIs after November 26th, 2025. Additionally, Kubernetes version 1.32 is the last version for which Amazon EKS will release AL2 AMIs. From version 1.33 onwards, Amazon EKS will continue to release AL2023 and Bottlerocket based AMIs. The default AMI family when creating clusters and nodegroups in Eksctl will be changed to AL2023 in the future.
+2025-06-04 14:43:56 [▶]  determining availability zones
+2025-06-04 14:43:57 [ℹ]  setting availability zones to [us-west-2d us-west-2a us-west-2b]
+2025-06-04 14:43:57 [▶]  VPC CIDR (192.168.0.0/16) was divided into 8 subnets [192.168.0.0/19 192.168.32.0/19 192.168.64.0/19 192.168.96.0/19 192.168.128.0/19 192.168.160.0/19 192.168.192.0/19 192.168.224.0/19]
+2025-06-04 14:43:57 [ℹ]  subnets for us-west-2d - public:192.168.0.0/19 private:192.168.96.0/19
+2025-06-04 14:43:57 [ℹ]  subnets for us-west-2a - public:192.168.32.0/19 private:192.168.128.0/19
+2025-06-04 14:43:57 [ℹ]  subnets for us-west-2b - public:192.168.64.0/19 private:192.168.160.0/19
+2025-06-04 14:43:57 [▶]  resolving AMI using SSM Parameter resolver for region us-west-2, instanceType t3.large and imageFamily AmazonLinux2
+
+
+STDERR:
+Error: unable to determine AMI to use: error getting AMI from SSM Parameter Store: operation error SSM: GetParameter, https response error StatusCode: 400, RequestID: a443a5ad-af0e-4afb-b46f-a021532755a5, ParameterNotFound: . please verify that AMI Family is supported

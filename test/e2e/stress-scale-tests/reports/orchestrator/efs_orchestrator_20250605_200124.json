@@ -1,0 +1,59 @@
+{
+  "test_duration": 1749153684.7552128,
+  "operations": {
+    "create_pvc": {
+      "success": 13,
+      "fail": 0,
+      "success_rate": 100.0
+    },
+    "attach_pod": {
+      "success": 9,
+      "fail": 0,
+      "success_rate": 100.0
+    },
+    "delete_pod": {
+      "success": 9,
+      "fail": 0,
+      "success_rate": 100.0
+    },
+    "delete_pvc": {
+      "success": 13,
+      "fail": 0,
+      "success_rate": 100.0
+    },
+    "verify_read_write": {
+      "write_success": 2,
+      "write_fail": 0,
+      "read_success": 2,
+      "read_fail": 0,
+      "write_success_rate": 100.0,
+      "read_success_rate": 100.0
+    }
+  },
+  "scenarios": {
+    "shared_volume_rw": {
+      "runs": 2,
+      "success": 2,
+      "fail": 0,
+      "success_rate": 100.0
+    },
+    "many_to_one": {
+      "runs": 0,
+      "success": 0,
+      "fail": 0,
+      "success_rate": 0
+    },
+    "one_to_one": {
+      "runs": 0,
+      "success": 0,
+      "fail": 0,
+      "success_rate": 0
+    },
+    "concurrent_pvc": {
+      "runs": 2,
+      "success": 2,
+      "fail": 0,
+      "success_rate": 100.0
+    }
+  }
+}

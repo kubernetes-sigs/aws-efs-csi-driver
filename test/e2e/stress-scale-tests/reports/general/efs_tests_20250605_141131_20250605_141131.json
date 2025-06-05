@@ -1,0 +1,104 @@
+{
+  "test_name": "efs_tests_20250605_141131",
+  "test_type": "general",
+  "timestamp": "20250605_141131",
+  "system_info": {
+    "hostname": "dev-dsk-ibhard-1d-b948589c.us-east-1.amazon.com",
+    "platform": "Linux-5.10.236-209.935.amzn2int.x86_64-x86_64-with-glibc2.26",
+    "python_version": "3.12.10",
+    "cpu_count": 8,
+    "memory_total_gb": 30.88,
+    "timestamp": "2025-06-05T14:11:31.212354",
+    "kubernetes_version": "Unknown",
+    "aws_region": "Unknown",
+    "efs_filesystem_id": "Unknown"
+  },
+  "results": {
+    "orchestrator": {
+      "test_duration": 1749132691.2088823,
+      "operations": {
+        "create_pvc": {
+          "success": 2,
+          "fail": 0,
+          "success_rate": 100.0
+        },
+        "attach_pod": {
+          "success": 7,
+          "fail": 0,
+          "success_rate": 100.0
+        },
+        "delete_pod": {
+          "success": 7,
+          "fail": 0,
+          "success_rate": 100.0
+        },
+        "delete_pvc": {
+          "success": 6,
+          "fail": 0,
+          "success_rate": 100.0
+        },
+        "verify_read_write": {
+          "write_success": 0,
+          "write_fail": 1,
+          "read_success": 0,
+          "read_fail": 1,
+          "write_success_rate": 0.0,
+          "read_success_rate": 0.0
+        }
+      },
+      "scenarios": {
+        "shared_volume_rw": {
+          "runs": 1,
+          "success": 0,
+          "fail": 1,
+          "success_rate": 0.0
+        },
+        "many_to_one": {
+          "runs": 0,
+          "success": 0,
+          "fail": 0,
+          "success_rate": 0
+        },
+        "one_to_one": {
+          "runs": 1,
+          "success": 0,
+          "fail": 1,
+          "success_rate": 0.0
+        },
+        "concurrent_pvc": {
+          "runs": 0,
+          "success": 0,
+          "fail": 0,
+          "success_rate": 0
+        }
+      }
+    },
+    "metrics": {
+      "operations": {},
+      "system": {},
+      "kubernetes": {},
+      "csi": {},
+      "controller": {
+        "request_latency": {},
+        "operation_counts": {},
+        "success_rates": {},
+        "volume_attach_timing": {}
+      },
+      "node": {
+        "mount_timing": {},
+        "mount_errors": {},
+        "resource_utilization": {}
+      },
+      "efs": {
+        "access_point_timing": {},
+        "mount_completion_timing": {},
+        "api_throttling_incidents": []
+      },
+      "k8s_events": {
+        "volume_events": [],
+        "binding_times": {},
+        "pod_startup_delays": {}
+      }
+    }
+  }
+}

@@ -1,0 +1,40 @@
+================================================================================
+EFS CSI DRIVER TEST REPORT: EFS_TESTS_20250602_210512
+================================================================================
+
+SYSTEM INFORMATION
+--------------------------------------------------------------------------------
+Hostname: dev-dsk-ibhard-1d-b948589c.us-east-1.amazon.com
+Platform: Linux-5.10.236-209.935.amzn2int.x86_64-x86_64-with-glibc2.26
+Python Version: 3.12.10
+CPU Count: 8
+Memory Total: 30.88 GB
+Kubernetes Version: Unknown
+AWS Region: us-west-1
+EFS Filesystem ID: fs-02b74eafb14930828
+Test Timestamp: 2025-06-02T21:05:12.619174
+
+TEST RESULTS
+--------------------------------------------------------------------------------
+
+CONCURRENT_API RESULTS
+----------------------------------------
+
+Sequential Write Test:
+  Status: running
+  Duration: 184.9669418334961 seconds
+
+Random Write Test:
+  Status: running
+  Duration: 185.1048445701599 seconds
+
+Mixed I/O Test:
+  Status: running
+  Duration: 180.83833074569702 seconds
+
+METRICS RESULTS
+----------------------------------------
+
+================================================================================
+END OF REPORT: 2025-06-02T21:05:12.663439
+================================================================================

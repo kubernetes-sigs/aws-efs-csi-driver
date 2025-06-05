@@ -1,0 +1,8 @@
+STDOUT:
+2025-06-04 14:03:04 [▶]  Setting credentials expiry window to 30 minutes
+2025-06-04 14:03:05 [▶]  role ARN for the current session is "arn:aws:sts::745939127895:assumed-role/Admin/ibhard-Isengard"
+
+
+STDERR:
+Error: resolving cluster version: invalid version, 1.25 is no longer supported, supported values: 1.26, 1.27, 1.28, 1.29, 1.30, 1.31, 1.32, 1.33
+see also: https://docs.aws.amazon.com/eks/latest/userguide/kubernetes-versions.html

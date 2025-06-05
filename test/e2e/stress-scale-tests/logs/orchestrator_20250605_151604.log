@@ -1,0 +1,42 @@
+2025-06-05 15:16:04,962 - tests.orchestrator - INFO - EFS CSI Orchestrator initialized
+2025-06-05 15:16:05,167 - tests.orchestrator - INFO - Namespace 'efs-stress-test' already exists
+2025-06-05 15:16:05,168 - tests.orchestrator - INFO - Starting orchestrator test for 300 seconds
+2025-06-05 15:16:05,359 - tests.orchestrator - INFO - StorageClass 'efs-sc' already exists
+2025-06-05 15:16:05,359 - tests.orchestrator - INFO - Running each operation type once to ensure coverage
+2025-06-05 15:16:05,359 - tests.orchestrator - INFO - Creating PVC: test-pvc-20f868e5
+2025-06-05 15:16:05,438 - tests.orchestrator - INFO - Created PVC: test-pvc-20f868e5
+2025-06-05 15:16:05,438 - tests.orchestrator - INFO - Waiting for PVC test-pvc-20f868e5 to be bound
+2025-06-05 15:16:07,570 - tests.orchestrator - INFO - PVC test-pvc-20f868e5 is bound
+2025-06-05 15:16:07,570 - tests.orchestrator - INFO - Creating PVC: test-pvc-48e3d2d9
+2025-06-05 15:16:07,639 - tests.orchestrator - INFO - Created PVC: test-pvc-48e3d2d9
+2025-06-05 15:16:07,639 - tests.orchestrator - INFO - Waiting for PVC test-pvc-48e3d2d9 to be bound
+2025-06-05 15:16:09,773 - tests.orchestrator - INFO - PVC test-pvc-48e3d2d9 is bound
+2025-06-05 15:16:09,773 - tests.orchestrator - INFO - Creating pod test-pod-03b0f7fd on PVC test-pvc-20f868e5
+2025-06-05 15:16:09,857 - tests.orchestrator - INFO - Created pod: test-pod-03b0f7fd using PVC: test-pvc-20f868e5
+2025-06-05 15:16:09,857 - tests.orchestrator - INFO - Waiting for pod test-pod-03b0f7fd to be ready
+2025-06-05 15:16:09,926 - tests.orchestrator - INFO - Pod test-pod-03b0f7fd phase: Pending
+2025-06-05 15:16:40,974 - tests.orchestrator - INFO - Pod test-pod-03b0f7fd taking longer than expected to become ready (31.1s). Collecting diagnostics...
+2025-06-05 15:16:40,974 - tests.orchestrator - INFO - ===== DIAGNOSTICS FOR POD test-pod-03b0f7fd =====
+2025-06-05 15:16:41,041 - tests.orchestrator - INFO - No container statuses available
+2025-06-05 15:16:41,124 - tests.orchestrator - INFO - Pod events:
+2025-06-05 15:16:41,125 - tests.orchestrator - INFO -   [2025-06-05 15:16:09+00:00] Warning/FailedScheduling: 0/2 nodes are available: 2 node(s) didn't match Pod's node affinity/selector. preemption: 0/2 nodes are available: 2 Preemption is not helpful for scheduling.
+2025-06-05 15:16:41,199 - tests.orchestrator - INFO - No logs available
+2025-06-05 15:16:41,199 - tests.orchestrator - INFO - Pod volumes:
+2025-06-05 15:16:41,199 - tests.orchestrator - INFO -   - efs-volume: {'type': 'PVC', 'claim_name': 'test-pvc-20f868e5'}
+2025-06-05 15:16:41,199 - tests.orchestrator - INFO -   - kube-api-access-f6t7l: {}
+2025-06-05 15:16:41,199 - tests.orchestrator - INFO - ===== END DIAGNOSTICS FOR POD test-pod-03b0f7fd =====
+2025-06-05 15:17:10,102 - tests.orchestrator - WARNING - Timeout waiting for pod test-pod-03b0f7fd to be ready after 60s
+2025-06-05 15:17:10,102 - tests.orchestrator - INFO - ===== DIAGNOSTICS FOR POD test-pod-03b0f7fd =====
+2025-06-05 15:17:10,172 - tests.orchestrator - INFO - No container statuses available
+2025-06-05 15:17:10,245 - tests.orchestrator - INFO - Pod events:
+2025-06-05 15:17:10,245 - tests.orchestrator - INFO -   [2025-06-05 15:16:09+00:00] Warning/FailedScheduling: 0/2 nodes are available: 2 node(s) didn't match Pod's node affinity/selector. preemption: 0/2 nodes are available: 2 Preemption is not helpful for scheduling.
+2025-06-05 15:17:10,312 - tests.orchestrator - INFO - No logs available
+2025-06-05 15:17:10,312 - tests.orchestrator - INFO - Pod volumes:
+2025-06-05 15:17:10,312 - tests.orchestrator - INFO -   - efs-volume: {'type': 'PVC', 'claim_name': 'test-pvc-20f868e5'}
+2025-06-05 15:17:10,312 - tests.orchestrator - INFO -   - kube-api-access-f6t7l: {}
+2025-06-05 15:17:10,312 - tests.orchestrator - INFO - ===== END DIAGNOSTICS FOR POD test-pod-03b0f7fd =====
+2025-06-05 15:17:10,313 - tests.orchestrator - WARNING - Timeout waiting for pod test-pod-03b0f7fd to be ready
+2025-06-05 15:17:10,313 - tests.orchestrator - INFO - Creating pod test-pod-264015e0 on PVC test-pvc-20f868e5
+2025-06-05 15:17:10,399 - tests.orchestrator - INFO - Created pod: test-pod-264015e0 using PVC: test-pvc-20f868e5
+2025-06-05 15:17:10,399 - tests.orchestrator - INFO - Waiting for pod test-pod-264015e0 to be ready
+2025-06-05 15:17:10,467 - tests.orchestrator - INFO - Pod test-pod-264015e0 phase: Pending

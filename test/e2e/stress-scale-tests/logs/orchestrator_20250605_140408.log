@@ -1,0 +1,138 @@
+2025-06-05 14:04:08,567 - tests.orchestrator - INFO - EFS CSI Orchestrator initialized
+2025-06-05 14:04:08,780 - tests.orchestrator - INFO - Namespace 'efs-stress-test' already exists
+2025-06-05 14:04:08,780 - tests.orchestrator - INFO - Starting orchestrator test for 300 seconds
+2025-06-05 14:04:08,972 - tests.orchestrator - INFO - StorageClass 'efs-sc' already exists
+2025-06-05 14:04:08,972 - tests.orchestrator - INFO - Running each operation type once to ensure coverage
+2025-06-05 14:04:08,972 - tests.orchestrator - INFO - Creating PVC: test-pvc-847a8a56
+2025-06-05 14:04:09,057 - tests.orchestrator - INFO - Created PVC: test-pvc-847a8a56
+2025-06-05 14:04:09,057 - tests.orchestrator - INFO - Waiting for PVC test-pvc-847a8a56 to be bound
+2025-06-05 14:04:11,188 - tests.orchestrator - INFO - PVC test-pvc-847a8a56 is bound
+2025-06-05 14:04:11,189 - tests.orchestrator - INFO - Creating PVC: test-pvc-9dee4752
+2025-06-05 14:04:11,257 - tests.orchestrator - INFO - Created PVC: test-pvc-9dee4752
+2025-06-05 14:04:11,258 - tests.orchestrator - INFO - Waiting for PVC test-pvc-9dee4752 to be bound
+2025-06-05 14:04:13,391 - tests.orchestrator - INFO - PVC test-pvc-9dee4752 is bound
+2025-06-05 14:04:13,391 - tests.orchestrator - INFO - Creating pod test-pod-d215a119 on PVC test-pvc-9dee4752
+2025-06-05 14:04:13,474 - tests.orchestrator - INFO - Created pod: test-pod-d215a119 using PVC: test-pvc-9dee4752
+2025-06-05 14:04:13,474 - tests.orchestrator - INFO - Waiting for pod test-pod-d215a119 to be ready
+2025-06-05 14:05:15,521 - tests.orchestrator - WARNING - Timeout waiting for pod test-pod-d215a119 to be ready after 60s
+2025-06-05 14:05:15,521 - tests.orchestrator - WARNING - Timeout waiting for pod test-pod-d215a119 to be ready
+2025-06-05 14:05:15,522 - tests.orchestrator - INFO - Creating pod test-pod-54364ba6 on PVC test-pvc-9dee4752
+2025-06-05 14:05:15,608 - tests.orchestrator - INFO - Created pod: test-pod-54364ba6 using PVC: test-pvc-9dee4752
+2025-06-05 14:05:15,608 - tests.orchestrator - INFO - Waiting for pod test-pod-54364ba6 to be ready
+2025-06-05 14:06:15,655 - tests.orchestrator - WARNING - Timeout waiting for pod test-pod-54364ba6 to be ready after 60s
+2025-06-05 14:06:15,655 - tests.orchestrator - WARNING - Timeout waiting for pod test-pod-54364ba6 to be ready
+2025-06-05 14:06:15,655 - tests.orchestrator - INFO - Creating pod test-pod-98a62ebf on PVC test-pvc-9dee4752
+2025-06-05 14:06:15,742 - tests.orchestrator - INFO - Created pod: test-pod-98a62ebf using PVC: test-pvc-9dee4752
+2025-06-05 14:06:15,742 - tests.orchestrator - INFO - Waiting for pod test-pod-98a62ebf to be ready
+2025-06-05 14:07:15,768 - tests.orchestrator - WARNING - Timeout waiting for pod test-pod-98a62ebf to be ready after 60s
+2025-06-05 14:07:15,769 - tests.orchestrator - WARNING - Timeout waiting for pod test-pod-98a62ebf to be ready
+2025-06-05 14:07:15,769 - tests.orchestrator - INFO - Testing read/write between pods test-pod-d215a119 and test-pod-98a62ebf sharing PVC test-pvc-9dee4752
+2025-06-05 14:07:15,836 - tests.orchestrator - ERROR - Failed in read/write verification: (400)
+Reason: Bad Request
+HTTP response headers: HTTPHeaderDict({'Audit-Id': '0fd252b7-6182-4f97-9a5a-1503836973da', 'Cache-Control': 'no-cache, private', 'Content-Type': 'application/json', 'Date': 'Thu, 05 Jun 2025 14:07:15 GMT', 'Content-Length': '166'})
+HTTP response body: {"kind":"Status","apiVersion":"v1","metadata":{},"status":"Failure","message":"pod test-pod-d215a119 does not have a host assigned","reason":"BadRequest","code":400}
+
+
+2025-06-05 14:07:15,836 - tests.orchestrator - INFO - Running specific scenario: _scenario_one_to_one
+2025-06-05 14:07:15,836 - tests.orchestrator - INFO - Running scenario: One pod per PVC
+2025-06-05 14:07:15,836 - tests.orchestrator - INFO - Creating 4 PVC-pod pairs
+2025-06-05 14:07:15,913 - tests.orchestrator - INFO - Waiting for PVC one2one-71f9fc22 to be bound
+2025-06-05 14:07:18,066 - tests.orchestrator - INFO - PVC one2one-71f9fc22 is bound
+2025-06-05 14:07:18,066 - tests.orchestrator - INFO - Creating pod test-pod-78c97483 on PVC one2one-71f9fc22
+2025-06-05 14:07:18,197 - tests.orchestrator - INFO - Created pod: test-pod-78c97483 using PVC: one2one-71f9fc22
+2025-06-05 14:07:18,197 - tests.orchestrator - INFO - Waiting for pod test-pod-78c97483 to be ready
+2025-06-05 14:08:18,229 - tests.orchestrator - WARNING - Timeout waiting for pod test-pod-78c97483 to be ready after 60s
+2025-06-05 14:08:18,229 - tests.orchestrator - WARNING - Timeout waiting for pod test-pod-78c97483 to be ready
+2025-06-05 14:08:18,310 - tests.orchestrator - INFO - Waiting for PVC one2one-d55f8841 to be bound
+2025-06-05 14:08:20,442 - tests.orchestrator - INFO - PVC one2one-d55f8841 is bound
+2025-06-05 14:08:20,442 - tests.orchestrator - INFO - Creating pod test-pod-a400277a on PVC one2one-d55f8841
+2025-06-05 14:08:20,518 - tests.orchestrator - INFO - Created pod: test-pod-a400277a using PVC: one2one-d55f8841
+2025-06-05 14:08:20,519 - tests.orchestrator - INFO - Waiting for pod test-pod-a400277a to be ready
+2025-06-05 14:09:22,561 - tests.orchestrator - WARNING - Timeout waiting for pod test-pod-a400277a to be ready after 60s
+2025-06-05 14:09:22,561 - tests.orchestrator - WARNING - Timeout waiting for pod test-pod-a400277a to be ready
+2025-06-05 14:09:22,638 - tests.orchestrator - INFO - Waiting for PVC one2one-f3257be9 to be bound
+2025-06-05 14:09:24,772 - tests.orchestrator - INFO - PVC one2one-f3257be9 is bound
+2025-06-05 14:09:24,773 - tests.orchestrator - INFO - Creating pod test-pod-1bfbc8b3 on PVC one2one-f3257be9
+2025-06-05 14:09:24,850 - tests.orchestrator - INFO - Created pod: test-pod-1bfbc8b3 using PVC: one2one-f3257be9
+2025-06-05 14:09:24,850 - tests.orchestrator - INFO - Waiting for pod test-pod-1bfbc8b3 to be ready
+2025-06-05 14:10:26,912 - tests.orchestrator - WARNING - Timeout waiting for pod test-pod-1bfbc8b3 to be ready after 60s
+2025-06-05 14:10:26,913 - tests.orchestrator - WARNING - Timeout waiting for pod test-pod-1bfbc8b3 to be ready
+2025-06-05 14:10:26,992 - tests.orchestrator - INFO - Waiting for PVC one2one-d2044d7d to be bound
+2025-06-05 14:10:29,127 - tests.orchestrator - INFO - PVC one2one-d2044d7d is bound
+2025-06-05 14:10:29,127 - tests.orchestrator - INFO - Creating pod test-pod-6edcdac8 on PVC one2one-d2044d7d
+2025-06-05 14:10:29,203 - tests.orchestrator - INFO - Created pod: test-pod-6edcdac8 using PVC: one2one-d2044d7d
+2025-06-05 14:10:29,203 - tests.orchestrator - INFO - Waiting for pod test-pod-6edcdac8 to be ready
+2025-06-05 14:11:29,292 - tests.orchestrator - WARNING - Timeout waiting for pod test-pod-6edcdac8 to be ready after 60s
+2025-06-05 14:11:29,293 - tests.orchestrator - WARNING - Timeout waiting for pod test-pod-6edcdac8 to be ready
+2025-06-05 14:11:29,293 - tests.orchestrator - WARNING - Failed to create enough PVC-pod pairs, only created 0
+2025-06-05 14:11:29,293 - tests.orchestrator - INFO - Deleting pod: test-pod-54364ba6 from PVC: test-pvc-9dee4752
+2025-06-05 14:11:29,378 - tests.orchestrator - INFO - Waiting for pod test-pod-54364ba6 to be deleted
+2025-06-05 14:11:29,443 - tests.orchestrator - INFO - Pod test-pod-54364ba6 has been deleted
+2025-06-05 14:11:29,443 - tests.orchestrator - INFO - Deleted pod: test-pod-54364ba6
+2025-06-05 14:11:29,443 - tests.orchestrator - INFO - Deleting PVC: one2one-71f9fc22
+2025-06-05 14:11:29,443 - tests.orchestrator - INFO - Deleting 1 pods using PVC one2one-71f9fc22
+2025-06-05 14:11:29,443 - tests.orchestrator - INFO - Deleting pod: test-pod-78c97483 from PVC: one2one-71f9fc22
+2025-06-05 14:11:29,521 - tests.orchestrator - INFO - Waiting for pod test-pod-78c97483 to be deleted
+2025-06-05 14:11:29,588 - tests.orchestrator - INFO - Pod test-pod-78c97483 has been deleted
+2025-06-05 14:11:29,588 - tests.orchestrator - INFO - Deleted pod: test-pod-78c97483
+2025-06-05 14:11:29,666 - tests.orchestrator - INFO - Waiting for PVC one2one-71f9fc22 to be deleted
+2025-06-05 14:11:29,733 - tests.orchestrator - INFO - PVC one2one-71f9fc22 has been deleted
+2025-06-05 14:11:29,733 - tests.orchestrator - INFO - Deleted PVC: one2one-71f9fc22
+2025-06-05 14:11:29,733 - tests.orchestrator - INFO - Completed initial operation sequence, continuing with randomized operations
+2025-06-05 14:11:29,733 - tests.orchestrator - INFO - Test completed in 440.95 seconds
+2025-06-05 14:11:29,733 - tests.orchestrator - INFO - Cleaning up resources...
+2025-06-05 14:11:29,733 - tests.orchestrator - INFO - Deleting pod: test-pod-d215a119 from PVC: test-pvc-9dee4752
+2025-06-05 14:11:29,832 - tests.orchestrator - INFO - Waiting for pod test-pod-d215a119 to be deleted
+2025-06-05 14:11:29,897 - tests.orchestrator - INFO - Pod test-pod-d215a119 has been deleted
+2025-06-05 14:11:29,897 - tests.orchestrator - INFO - Deleted pod: test-pod-d215a119
+2025-06-05 14:11:29,897 - tests.orchestrator - INFO - Deleting pod: test-pod-98a62ebf from PVC: test-pvc-9dee4752
+2025-06-05 14:11:29,977 - tests.orchestrator - INFO - Waiting for pod test-pod-98a62ebf to be deleted
+2025-06-05 14:11:30,044 - tests.orchestrator - INFO - Pod test-pod-98a62ebf has been deleted
+2025-06-05 14:11:30,044 - tests.orchestrator - INFO - Deleted pod: test-pod-98a62ebf
+2025-06-05 14:11:30,044 - tests.orchestrator - INFO - Deleting pod: test-pod-a400277a from PVC: one2one-d55f8841
+2025-06-05 14:11:30,134 - tests.orchestrator - INFO - Waiting for pod test-pod-a400277a to be deleted
+2025-06-05 14:11:30,199 - tests.orchestrator - INFO - Pod test-pod-a400277a has been deleted
+2025-06-05 14:11:30,199 - tests.orchestrator - INFO - Deleted pod: test-pod-a400277a
+2025-06-05 14:11:30,199 - tests.orchestrator - INFO - Deleting pod: test-pod-1bfbc8b3 from PVC: one2one-f3257be9
+2025-06-05 14:11:30,279 - tests.orchestrator - INFO - Waiting for pod test-pod-1bfbc8b3 to be deleted
+2025-06-05 14:11:30,346 - tests.orchestrator - INFO - Pod test-pod-1bfbc8b3 has been deleted
+2025-06-05 14:11:30,346 - tests.orchestrator - INFO - Deleted pod: test-pod-1bfbc8b3
+2025-06-05 14:11:30,346 - tests.orchestrator - INFO - Deleting pod: test-pod-6edcdac8 from PVC: one2one-d2044d7d
+2025-06-05 14:11:30,432 - tests.orchestrator - INFO - Waiting for pod test-pod-6edcdac8 to be deleted
+2025-06-05 14:11:30,500 - tests.orchestrator - INFO - Pod test-pod-6edcdac8 has been deleted
+2025-06-05 14:11:30,500 - tests.orchestrator - INFO - Deleted pod: test-pod-6edcdac8
+2025-06-05 14:11:30,500 - tests.orchestrator - INFO - Deleting PVC: test-pvc-847a8a56
+2025-06-05 14:11:30,572 - tests.orchestrator - INFO - Waiting for PVC test-pvc-847a8a56 to be deleted
+2025-06-05 14:11:30,642 - tests.orchestrator - INFO - PVC test-pvc-847a8a56 has been deleted
+2025-06-05 14:11:30,642 - tests.orchestrator - INFO - Deleted PVC: test-pvc-847a8a56
+2025-06-05 14:11:30,642 - tests.orchestrator - INFO - Deleting PVC: test-pvc-9dee4752
+2025-06-05 14:11:30,715 - tests.orchestrator - INFO - Waiting for PVC test-pvc-9dee4752 to be deleted
+2025-06-05 14:11:30,782 - tests.orchestrator - INFO - PVC test-pvc-9dee4752 has been deleted
+2025-06-05 14:11:30,782 - tests.orchestrator - INFO - Deleted PVC: test-pvc-9dee4752
+2025-06-05 14:11:30,782 - tests.orchestrator - INFO - Deleting PVC: one2one-d55f8841
+2025-06-05 14:11:30,860 - tests.orchestrator - INFO - Waiting for PVC one2one-d55f8841 to be deleted
+2025-06-05 14:11:30,927 - tests.orchestrator - INFO - PVC one2one-d55f8841 has been deleted
+2025-06-05 14:11:30,927 - tests.orchestrator - INFO - Deleted PVC: one2one-d55f8841
+2025-06-05 14:11:30,928 - tests.orchestrator - INFO - Deleting PVC: one2one-f3257be9
+2025-06-05 14:11:30,999 - tests.orchestrator - INFO - Waiting for PVC one2one-f3257be9 to be deleted
+2025-06-05 14:11:31,068 - tests.orchestrator - INFO - PVC one2one-f3257be9 has been deleted
+2025-06-05 14:11:31,068 - tests.orchestrator - INFO - Deleted PVC: one2one-f3257be9
+2025-06-05 14:11:31,068 - tests.orchestrator - INFO - Deleting PVC: one2one-d2044d7d
+2025-06-05 14:11:31,142 - tests.orchestrator - INFO - Waiting for PVC one2one-d2044d7d to be deleted
+2025-06-05 14:11:31,208 - tests.orchestrator - INFO - PVC one2one-d2044d7d has been deleted
+2025-06-05 14:11:31,208 - tests.orchestrator - INFO - Deleted PVC: one2one-d2044d7d
+2025-06-05 14:11:31,208 - tests.orchestrator - INFO - Cleanup completed
+2025-06-05 14:11:31,208 - tests.orchestrator - INFO - ===== EFS CSI Driver Test Summary =====
+2025-06-05 14:11:31,208 - tests.orchestrator - INFO - --- Operations ---
+2025-06-05 14:11:31,209 - tests.orchestrator - INFO - create_pvc: 2 succeeded, 0 failed (100.0%)
+2025-06-05 14:11:31,209 - tests.orchestrator - INFO - attach_pod: 7 succeeded, 0 failed (100.0%)
+2025-06-05 14:11:31,209 - tests.orchestrator - INFO - delete_pod: 7 succeeded, 0 failed (100.0%)
+2025-06-05 14:11:31,209 - tests.orchestrator - INFO - delete_pvc: 6 succeeded, 0 failed (100.0%)
+2025-06-05 14:11:31,209 - tests.orchestrator - INFO - verify_read_write: Writes 0 succeeded, 1 failed (0.0%)
+2025-06-05 14:11:31,209 - tests.orchestrator - INFO - verify_read_write: Reads 0 succeeded, 1 failed (0.0%)
+2025-06-05 14:11:31,209 - tests.orchestrator - INFO - --- Scenarios ---
+2025-06-05 14:11:31,209 - tests.orchestrator - INFO - shared_volume_rw: 0 succeeded, 1 failed out of 1 runs (0.0%)
+2025-06-05 14:11:31,209 - tests.orchestrator - INFO - many_to_one: No runs
+2025-06-05 14:11:31,209 - tests.orchestrator - INFO - one_to_one: 0 succeeded, 1 failed out of 1 runs (0.0%)
+2025-06-05 14:11:31,209 - tests.orchestrator - INFO - concurrent_pvc: No runs
+2025-06-05 14:11:31,209 - tests.orchestrator - INFO - =========================================

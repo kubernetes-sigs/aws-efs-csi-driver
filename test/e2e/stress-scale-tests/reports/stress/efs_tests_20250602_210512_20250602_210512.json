@@ -1,0 +1,79 @@
+{
+  "test_name": "efs_tests_20250602_210512",
+  "test_type": "stress",
+  "timestamp": "20250602_210512",
+  "system_info": {
+    "hostname": "dev-dsk-ibhard-1d-b948589c.us-east-1.amazon.com",
+    "platform": "Linux-5.10.236-209.935.amzn2int.x86_64-x86_64-with-glibc2.26",
+    "python_version": "3.12.10",
+    "cpu_count": 8,
+    "memory_total_gb": 30.88,
+    "timestamp": "2025-06-02T21:05:12.574471",
+    "kubernetes_version": "Unknown",
+    "aws_region": "us-west-1",
+    "efs_filesystem_id": "fs-02b74eafb14930828"
+  },
+  "results": {
+    "concurrent_api": {
+      "single_pvc": {
+        "operation": "concurrent_mount_single_pvc",
+        "duration": 5.6173036098480225,
+        "pods": 20,
+        "pods_created": 20
+      },
+      "multi_pvc": {
+        "operation": "concurrent_mount_multiple_pvc",
+        "duration": 8.005990028381348,
+        "pvcs_created": 10,
+        "pods_created": 20,
+        "total_pods": 20
+      },
+      "sequential_write": {
+        "status": "running",
+        "duration": 184.9669418334961,
+        "pod": "sequential-write-test-pod",
+        "pvc": "io-test-pvc-sequential-write"
+      },
+      "random_write": {
+        "status": "running",
+        "duration": 185.1048445701599,
+        "pod": "random-write-test-pod",
+        "pvc": "io-test-pvc-random-write"
+      },
+      "mixed_io": {
+        "status": "running",
+        "duration": 180.83833074569702,
+        "pod": "mixed-io-test-pod",
+        "pvc": "io-test-pvc-mixed-io"
+      },
+      "total_duration": 552.9123649597168
+    },
+    "metrics": {
+      "operations": {},
+      "system": {},
+      "kubernetes": {},
+      "csi": {},
+      "controller": {
+        "request_latency": {},
+        "operation_counts": {},
+        "success_rates": {},
+        "volume_attach_timing": {}
+      },
+      "node": {
+        "mount_timing": {},
+        "mount_errors": {},
+        "resource_utilization": {}
+      },
+      "efs": {
+        "access_point_timing": {},
+        "mount_completion_timing": {},
+        "api_throttling_incidents": []
+      },
+      "k8s_events": {
+        "volume_events": [],
+        "binding_times": {},
+        "pod_startup_delays": {}
+      }
+    }
+  }
+}

@@ -1,0 +1,58 @@
+{
+  "test_name": "efs_tests_20250602_183718",
+  "test_type": "stress",
+  "timestamp": "20250602_183718",
+  "system_info": {
+    "hostname": "dev-dsk-ibhard-1d-b948589c.us-east-1.amazon.com",
+    "platform": "Linux-5.10.236-209.935.amzn2int.x86_64-x86_64-with-glibc2.26",
+    "python_version": "3.12.10",
+    "cpu_count": 8,
+    "memory_total_gb": 30.88,
+    "timestamp": "2025-06-02T18:37:18.745829",
+    "kubernetes_version": "Unknown",
+    "aws_region": "us-west-1",
+    "efs_filesystem_id": "fs-02b74eafb14930828"
+  },
+  "results": {
+    "stress": {
+      "single_pvc": {
+        "operation": "concurrent_mount_single_pvc",
+        "duration": 4.789013147354126,
+        "pods": 20,
+        "pods_created": 20
+      },
+      "multi_pvc": {
+        "operation": "concurrent_mount_multiple_pvc",
+        "duration": 8.21653962135315,
+        "pvcs_created": 10,
+        "pods_created": 20,
+        "total_pods": 20
+      },
+      "sequential_write": {
+        "status": "running",
+        "duration": 184.95399236679077,
+        "pod": "sequential-write-test-pod",
+        "pvc": "io-test-pvc-sequential-write"
+      },
+      "random_write": {
+        "status": "running",
+        "duration": 185.02785754203796,
+        "pod": "random-write-test-pod",
+        "pvc": "io-test-pvc-random-write"
+      },
+      "mixed_io": {
+        "status": "running",
+        "duration": 180.6199607849121,
+        "pod": "mixed-io-test-pod",
+        "pvc": "io-test-pvc-mixed-io"
+      },
+      "total_duration": 552.7662425041199
+    },
+    "metrics": {
+      "operations": {},
+      "system": {},
+      "kubernetes": {},
+      "csi": {}
+    }
+  }
+}

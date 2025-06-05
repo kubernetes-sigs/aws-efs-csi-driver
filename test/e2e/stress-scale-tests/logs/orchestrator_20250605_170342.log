@@ -1,0 +1,17 @@
+2025-06-05 17:03:42,827 - tests.orchestrator - INFO - EFS CSI Orchestrator initialized
+2025-06-05 17:03:43,043 - tests.orchestrator - INFO - Namespace 'efs-stress-test' already exists
+2025-06-05 17:03:43,044 - tests.orchestrator - INFO - Starting orchestrator test for 300 seconds
+2025-06-05 17:03:43,233 - tests.orchestrator - INFO - StorageClass 'efs-sc' already exists
+2025-06-05 17:03:43,233 - tests.orchestrator - INFO - Running each operation type once to ensure coverage
+2025-06-05 17:03:43,233 - tests.orchestrator - INFO - Creating PVC: test-pvc-455abf8b
+2025-06-05 17:03:43,309 - tests.orchestrator - INFO - Created PVC: test-pvc-455abf8b
+2025-06-05 17:03:43,309 - tests.orchestrator - INFO - Waiting for PVC test-pvc-455abf8b to be bound
+2025-06-05 17:03:45,443 - tests.orchestrator - INFO - PVC test-pvc-455abf8b is bound
+2025-06-05 17:03:45,443 - tests.orchestrator - INFO - Creating PVC: test-pvc-51dbaa96
+2025-06-05 17:03:45,510 - tests.orchestrator - INFO - Created PVC: test-pvc-51dbaa96
+2025-06-05 17:03:45,511 - tests.orchestrator - INFO - Waiting for PVC test-pvc-51dbaa96 to be bound
+2025-06-05 17:03:47,644 - tests.orchestrator - INFO - PVC test-pvc-51dbaa96 is bound
+2025-06-05 17:03:47,644 - tests.orchestrator - INFO - Creating pod test-pod-e1337987 on PVC test-pvc-455abf8b
+2025-06-05 17:03:47,724 - tests.orchestrator - INFO - Created pod: test-pod-e1337987 using PVC: test-pvc-455abf8b
+2025-06-05 17:03:47,724 - tests.orchestrator - INFO - Waiting for pod test-pod-e1337987 to be ready
+2025-06-05 17:03:47,791 - tests.orchestrator - INFO - Pod test-pod-e1337987 phase: Pending

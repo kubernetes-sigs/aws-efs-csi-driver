@@ -1,0 +1,234 @@
+2025-06-05 17:05:26,238 - tests.orchestrator - INFO - EFS CSI Orchestrator initialized
+2025-06-05 17:05:26,435 - tests.orchestrator - INFO - Namespace 'efs-stress-test' already exists
+2025-06-05 17:05:26,436 - tests.orchestrator - INFO - Starting orchestrator test for 300 seconds
+2025-06-05 17:05:26,638 - tests.orchestrator - INFO - StorageClass 'efs-sc' already exists
+2025-06-05 17:05:26,638 - tests.orchestrator - INFO - Running each operation type once to ensure coverage
+2025-06-05 17:05:26,638 - tests.orchestrator - INFO - Creating PVC: test-pvc-9dae599f
+2025-06-05 17:05:26,711 - tests.orchestrator - INFO - Created PVC: test-pvc-9dae599f
+2025-06-05 17:05:26,712 - tests.orchestrator - INFO - Waiting for PVC test-pvc-9dae599f to be bound
+2025-06-05 17:05:28,848 - tests.orchestrator - INFO - PVC test-pvc-9dae599f is bound
+2025-06-05 17:05:28,849 - tests.orchestrator - INFO - Creating PVC: test-pvc-759dbae5
+2025-06-05 17:05:28,916 - tests.orchestrator - INFO - Created PVC: test-pvc-759dbae5
+2025-06-05 17:05:28,916 - tests.orchestrator - INFO - Waiting for PVC test-pvc-759dbae5 to be bound
+2025-06-05 17:05:31,051 - tests.orchestrator - INFO - PVC test-pvc-759dbae5 is bound
+2025-06-05 17:05:31,052 - tests.orchestrator - INFO - Creating pod test-pod-60858a96 on PVC test-pvc-9dae599f
+2025-06-05 17:05:31,134 - tests.orchestrator - INFO - Created pod: test-pod-60858a96 using PVC: test-pvc-9dae599f
+2025-06-05 17:05:31,134 - tests.orchestrator - INFO - Waiting for pod test-pod-60858a96 to be ready
+2025-06-05 17:05:31,203 - tests.orchestrator - INFO - Pod test-pod-60858a96 phase: Pending
+2025-06-05 17:05:35,349 - tests.orchestrator - INFO - Pod test-pod-60858a96 phase: Running
+2025-06-05 17:05:35,349 - tests.orchestrator - INFO - Pod test-pod-60858a96 conditions: PodReadyToStartContainers=True, Initialized=True, Ready=False, ContainersReady=False, PodScheduled=True
+2025-06-05 17:05:37,418 - tests.orchestrator - INFO - Pod test-pod-60858a96 conditions: PodReadyToStartContainers=True, Initialized=True, Ready=False, ContainersReady=False, PodScheduled=True
+2025-06-05 17:05:39,486 - tests.orchestrator - INFO - Pod test-pod-60858a96 conditions: PodReadyToStartContainers=True, Initialized=True, Ready=False, ContainersReady=False, PodScheduled=True
+2025-06-05 17:05:41,723 - tests.orchestrator - INFO - Pod test-pod-60858a96 conditions: PodReadyToStartContainers=True, Initialized=True, Ready=False, ContainersReady=False, PodScheduled=True
+2025-06-05 17:05:43,792 - tests.orchestrator - INFO - Pod test-pod-60858a96 conditions: PodReadyToStartContainers=True, Initialized=True, Ready=False, ContainersReady=False, PodScheduled=True
+2025-06-05 17:05:45,860 - tests.orchestrator - INFO - Pod test-pod-60858a96 conditions: PodReadyToStartContainers=True, Initialized=True, Ready=False, ContainersReady=False, PodScheduled=True
+2025-06-05 17:05:47,929 - tests.orchestrator - INFO - Pod test-pod-60858a96 conditions: PodReadyToStartContainers=True, Initialized=True, Ready=True, ContainersReady=True, PodScheduled=True
+2025-06-05 17:05:47,929 - tests.orchestrator - INFO - Pod test-pod-60858a96 is ready
+2025-06-05 17:05:47,929 - tests.orchestrator - INFO - Creating pod test-pod-e1e1abfd on PVC test-pvc-759dbae5
+2025-06-05 17:05:48,053 - tests.orchestrator - INFO - Created pod: test-pod-e1e1abfd using PVC: test-pvc-759dbae5
+2025-06-05 17:05:48,053 - tests.orchestrator - INFO - Waiting for pod test-pod-e1e1abfd to be ready
+2025-06-05 17:05:48,139 - tests.orchestrator - INFO - Pod test-pod-e1e1abfd phase: Pending
+2025-06-05 17:05:52,277 - tests.orchestrator - INFO - Pod test-pod-e1e1abfd phase: Running
+2025-06-05 17:05:52,278 - tests.orchestrator - INFO - Pod test-pod-e1e1abfd conditions: PodReadyToStartContainers=True, Initialized=True, Ready=False, ContainersReady=False, PodScheduled=True
+2025-06-05 17:05:54,345 - tests.orchestrator - INFO - Pod test-pod-e1e1abfd conditions: PodReadyToStartContainers=True, Initialized=True, Ready=False, ContainersReady=False, PodScheduled=True
+2025-06-05 17:05:56,414 - tests.orchestrator - INFO - Pod test-pod-e1e1abfd conditions: PodReadyToStartContainers=True, Initialized=True, Ready=False, ContainersReady=False, PodScheduled=True
+2025-06-05 17:05:58,484 - tests.orchestrator - INFO - Pod test-pod-e1e1abfd conditions: PodReadyToStartContainers=True, Initialized=True, Ready=False, ContainersReady=False, PodScheduled=True
+2025-06-05 17:06:00,553 - tests.orchestrator - INFO - Pod test-pod-e1e1abfd conditions: PodReadyToStartContainers=True, Initialized=True, Ready=False, ContainersReady=False, PodScheduled=True
+2025-06-05 17:06:02,623 - tests.orchestrator - INFO - Pod test-pod-e1e1abfd conditions: PodReadyToStartContainers=True, Initialized=True, Ready=False, ContainersReady=False, PodScheduled=True
+2025-06-05 17:06:04,693 - tests.orchestrator - INFO - Pod test-pod-e1e1abfd conditions: PodReadyToStartContainers=True, Initialized=True, Ready=False, ContainersReady=False, PodScheduled=True
+2025-06-05 17:06:06,766 - tests.orchestrator - INFO - Pod test-pod-e1e1abfd conditions: PodReadyToStartContainers=True, Initialized=True, Ready=False, ContainersReady=False, PodScheduled=True
+2025-06-05 17:06:08,838 - tests.orchestrator - INFO - Pod test-pod-e1e1abfd conditions: PodReadyToStartContainers=True, Initialized=True, Ready=False, ContainersReady=False, PodScheduled=True
+2025-06-05 17:06:10,908 - tests.orchestrator - INFO - Pod test-pod-e1e1abfd conditions: PodReadyToStartContainers=True, Initialized=True, Ready=True, ContainersReady=True, PodScheduled=True
+2025-06-05 17:06:10,908 - tests.orchestrator - INFO - Pod test-pod-e1e1abfd is ready
+2025-06-05 17:06:10,908 - tests.orchestrator - INFO - Creating pod test-pod-177eb3e7 on PVC test-pvc-9dae599f
+2025-06-05 17:06:10,984 - tests.orchestrator - INFO - Created pod: test-pod-177eb3e7 using PVC: test-pvc-9dae599f
+2025-06-05 17:06:10,984 - tests.orchestrator - INFO - Waiting for pod test-pod-177eb3e7 to be ready
+2025-06-05 17:06:11,053 - tests.orchestrator - INFO - Pod test-pod-177eb3e7 phase: Pending
+2025-06-05 17:06:13,125 - tests.orchestrator - INFO - Pod test-pod-177eb3e7 phase: Running
+2025-06-05 17:06:13,125 - tests.orchestrator - INFO - Pod test-pod-177eb3e7 conditions: PodReadyToStartContainers=True, Initialized=True, Ready=False, ContainersReady=False, PodScheduled=True
+2025-06-05 17:06:15,195 - tests.orchestrator - INFO - Pod test-pod-177eb3e7 conditions: PodReadyToStartContainers=True, Initialized=True, Ready=False, ContainersReady=False, PodScheduled=True
+2025-06-05 17:06:17,263 - tests.orchestrator - INFO - Pod test-pod-177eb3e7 conditions: PodReadyToStartContainers=True, Initialized=True, Ready=False, ContainersReady=False, PodScheduled=True
+2025-06-05 17:06:19,332 - tests.orchestrator - INFO - Pod test-pod-177eb3e7 conditions: PodReadyToStartContainers=True, Initialized=True, Ready=False, ContainersReady=False, PodScheduled=True
+2025-06-05 17:06:21,402 - tests.orchestrator - INFO - Pod test-pod-177eb3e7 conditions: PodReadyToStartContainers=True, Initialized=True, Ready=False, ContainersReady=False, PodScheduled=True
+2025-06-05 17:06:23,470 - tests.orchestrator - INFO - Pod test-pod-177eb3e7 conditions: PodReadyToStartContainers=True, Initialized=True, Ready=False, ContainersReady=False, PodScheduled=True
+2025-06-05 17:06:25,540 - tests.orchestrator - INFO - Pod test-pod-177eb3e7 conditions: PodReadyToStartContainers=True, Initialized=True, Ready=False, ContainersReady=False, PodScheduled=True
+2025-06-05 17:06:27,607 - tests.orchestrator - INFO - Pod test-pod-177eb3e7 conditions: PodReadyToStartContainers=True, Initialized=True, Ready=False, ContainersReady=False, PodScheduled=True
+2025-06-05 17:06:29,677 - tests.orchestrator - INFO - Pod test-pod-177eb3e7 conditions: PodReadyToStartContainers=True, Initialized=True, Ready=False, ContainersReady=False, PodScheduled=True
+2025-06-05 17:06:31,747 - tests.orchestrator - INFO - Pod test-pod-177eb3e7 conditions: PodReadyToStartContainers=True, Initialized=True, Ready=False, ContainersReady=False, PodScheduled=True
+2025-06-05 17:06:33,819 - tests.orchestrator - INFO - Pod test-pod-177eb3e7 conditions: PodReadyToStartContainers=True, Initialized=True, Ready=True, ContainersReady=True, PodScheduled=True
+2025-06-05 17:06:33,819 - tests.orchestrator - INFO - Pod test-pod-177eb3e7 is ready
+2025-06-05 17:06:33,819 - tests.orchestrator - INFO - Testing read/write between pods test-pod-177eb3e7 and test-pod-60858a96 sharing PVC test-pvc-9dae599f
+2025-06-05 17:06:33,887 - tests.orchestrator - ERROR - Failed in read/write verification: (400)
+Reason: Bad Request
+HTTP response headers: HTTPHeaderDict({'Audit-Id': 'b5f76f0a-dcce-47f0-8633-e17708ea40ac', 'Cache-Control': 'no-cache, private', 'Content-Type': 'application/json', 'Date': 'Thu, 05 Jun 2025 17:06:33 GMT', 'Content-Length': '139'})
+HTTP response body: {"kind":"Status","apiVersion":"v1","metadata":{},"status":"Failure","message":"Upgrade request required","reason":"BadRequest","code":400}
+
+
+2025-06-05 17:06:33,887 - tests.orchestrator - INFO - Deleting pod: test-pod-60858a96 from PVC: test-pvc-9dae599f
+2025-06-05 17:06:33,966 - tests.orchestrator - INFO - Waiting for pod test-pod-60858a96 to be deleted
+2025-06-05 17:07:06,621 - tests.orchestrator - INFO - Pod test-pod-60858a96 has been deleted
+2025-06-05 17:07:06,621 - tests.orchestrator - INFO - Deleted pod: test-pod-60858a96
+2025-06-05 17:07:06,621 - tests.orchestrator - INFO - Deleting PVC: test-pvc-9dae599f
+2025-06-05 17:07:06,621 - tests.orchestrator - INFO - Deleting 1 pods using PVC test-pvc-9dae599f
+2025-06-05 17:07:06,621 - tests.orchestrator - INFO - Deleting pod: test-pod-177eb3e7 from PVC: test-pvc-9dae599f
+2025-06-05 17:07:06,699 - tests.orchestrator - INFO - Waiting for pod test-pod-177eb3e7 to be deleted
+2025-06-05 17:07:39,317 - tests.orchestrator - INFO - Pod test-pod-177eb3e7 has been deleted
+2025-06-05 17:07:39,317 - tests.orchestrator - INFO - Deleted pod: test-pod-177eb3e7
+2025-06-05 17:07:39,393 - tests.orchestrator - INFO - Waiting for PVC test-pvc-9dae599f to be deleted
+2025-06-05 17:07:39,461 - tests.orchestrator - INFO - PVC test-pvc-9dae599f has been deleted
+2025-06-05 17:07:39,461 - tests.orchestrator - INFO - Deleted PVC: test-pvc-9dae599f
+2025-06-05 17:07:39,461 - tests.orchestrator - INFO - Completed initial operation sequence, continuing with randomized operations
+2025-06-05 17:07:39,461 - tests.orchestrator - INFO - Selected operation: _attach_pod (selected 1 times)
+2025-06-05 17:07:39,461 - tests.orchestrator - INFO - Creating pod test-pod-3ce2f282 on PVC test-pvc-759dbae5
+2025-06-05 17:07:39,585 - tests.orchestrator - INFO - Created pod: test-pod-3ce2f282 using PVC: test-pvc-759dbae5
+2025-06-05 17:07:39,585 - tests.orchestrator - INFO - Waiting for pod test-pod-3ce2f282 to be ready
+2025-06-05 17:07:39,655 - tests.orchestrator - INFO - Pod test-pod-3ce2f282 phase: Pending
+2025-06-05 17:07:41,879 - tests.orchestrator - INFO - Pod test-pod-3ce2f282 phase: Running
+2025-06-05 17:07:41,879 - tests.orchestrator - INFO - Pod test-pod-3ce2f282 conditions: PodReadyToStartContainers=True, Initialized=True, Ready=False, ContainersReady=False, PodScheduled=True
+2025-06-05 17:07:43,948 - tests.orchestrator - INFO - Pod test-pod-3ce2f282 conditions: PodReadyToStartContainers=True, Initialized=True, Ready=False, ContainersReady=False, PodScheduled=True
+2025-06-05 17:07:46,017 - tests.orchestrator - INFO - Pod test-pod-3ce2f282 conditions: PodReadyToStartContainers=True, Initialized=True, Ready=False, ContainersReady=False, PodScheduled=True
+2025-06-05 17:07:48,085 - tests.orchestrator - INFO - Pod test-pod-3ce2f282 conditions: PodReadyToStartContainers=True, Initialized=True, Ready=False, ContainersReady=False, PodScheduled=True
+2025-06-05 17:07:50,155 - tests.orchestrator - INFO - Pod test-pod-3ce2f282 conditions: PodReadyToStartContainers=True, Initialized=True, Ready=False, ContainersReady=False, PodScheduled=True
+2025-06-05 17:07:52,225 - tests.orchestrator - INFO - Pod test-pod-3ce2f282 conditions: PodReadyToStartContainers=True, Initialized=True, Ready=False, ContainersReady=False, PodScheduled=True
+2025-06-05 17:07:54,292 - tests.orchestrator - INFO - Pod test-pod-3ce2f282 conditions: PodReadyToStartContainers=True, Initialized=True, Ready=False, ContainersReady=False, PodScheduled=True
+2025-06-05 17:07:56,363 - tests.orchestrator - INFO - Pod test-pod-3ce2f282 conditions: PodReadyToStartContainers=True, Initialized=True, Ready=False, ContainersReady=False, PodScheduled=True
+2025-06-05 17:07:58,434 - tests.orchestrator - INFO - Pod test-pod-3ce2f282 conditions: PodReadyToStartContainers=True, Initialized=True, Ready=False, ContainersReady=False, PodScheduled=True
+2025-06-05 17:08:00,502 - tests.orchestrator - INFO - Pod test-pod-3ce2f282 conditions: PodReadyToStartContainers=True, Initialized=True, Ready=False, ContainersReady=False, PodScheduled=True
+2025-06-05 17:08:02,573 - tests.orchestrator - INFO - Pod test-pod-3ce2f282 conditions: PodReadyToStartContainers=True, Initialized=True, Ready=True, ContainersReady=True, PodScheduled=True
+2025-06-05 17:08:02,573 - tests.orchestrator - INFO - Pod test-pod-3ce2f282 is ready
+2025-06-05 17:08:03,574 - tests.orchestrator - INFO - Selected operation: _delete_pod (selected 1 times)
+2025-06-05 17:08:03,574 - tests.orchestrator - INFO - Deleting pod: test-pod-3ce2f282 from PVC: test-pvc-759dbae5
+2025-06-05 17:08:03,651 - tests.orchestrator - INFO - Waiting for pod test-pod-3ce2f282 to be deleted
+2025-06-05 17:08:36,384 - tests.orchestrator - INFO - Pod test-pod-3ce2f282 has been deleted
+2025-06-05 17:08:36,384 - tests.orchestrator - INFO - Deleted pod: test-pod-3ce2f282
+2025-06-05 17:08:37,384 - tests.orchestrator - INFO - Selected operation: _create_pvc (selected 1 times)
+2025-06-05 17:08:37,384 - tests.orchestrator - INFO - Creating PVC: test-pvc-e7dcdff0
+2025-06-05 17:08:37,462 - tests.orchestrator - INFO - Created PVC: test-pvc-e7dcdff0
+2025-06-05 17:08:37,463 - tests.orchestrator - INFO - Waiting for PVC test-pvc-e7dcdff0 to be bound
+2025-06-05 17:08:39,598 - tests.orchestrator - INFO - PVC test-pvc-e7dcdff0 is bound
+2025-06-05 17:08:40,599 - tests.orchestrator - INFO - Selected operation: _create_pvc (selected 2 times)
+2025-06-05 17:08:40,599 - tests.orchestrator - INFO - Creating PVC: test-pvc-1511fcaf
+2025-06-05 17:08:40,670 - tests.orchestrator - INFO - Created PVC: test-pvc-1511fcaf
+2025-06-05 17:08:40,670 - tests.orchestrator - INFO - Waiting for PVC test-pvc-1511fcaf to be bound
+2025-06-05 17:08:42,808 - tests.orchestrator - INFO - PVC test-pvc-1511fcaf is bound
+2025-06-05 17:08:43,808 - tests.orchestrator - INFO - Selected operation: _create_pvc (selected 3 times)
+2025-06-05 17:08:43,809 - tests.orchestrator - INFO - Creating PVC: test-pvc-47e77b85
+2025-06-05 17:08:43,878 - tests.orchestrator - INFO - Created PVC: test-pvc-47e77b85
+2025-06-05 17:08:43,879 - tests.orchestrator - INFO - Waiting for PVC test-pvc-47e77b85 to be bound
+2025-06-05 17:08:46,014 - tests.orchestrator - INFO - PVC test-pvc-47e77b85 is bound
+2025-06-05 17:08:47,015 - tests.orchestrator - INFO - Selected operation: _verify_readwrite (selected 1 times)
+2025-06-05 17:08:47,015 - tests.orchestrator - INFO - No shared PVCs with multiple pods for read/write test
+2025-06-05 17:08:48,015 - tests.orchestrator - INFO - Selected operation: _attach_pod (selected 2 times)
+2025-06-05 17:08:48,015 - tests.orchestrator - INFO - Creating pod test-pod-94de82f9 on PVC test-pvc-1511fcaf
+2025-06-05 17:08:48,137 - tests.orchestrator - INFO - Created pod: test-pod-94de82f9 using PVC: test-pvc-1511fcaf
+2025-06-05 17:08:48,137 - tests.orchestrator - INFO - Waiting for pod test-pod-94de82f9 to be ready
+2025-06-05 17:08:48,224 - tests.orchestrator - INFO - Pod test-pod-94de82f9 phase: Pending
+2025-06-05 17:08:52,367 - tests.orchestrator - INFO - Pod test-pod-94de82f9 phase: Running
+2025-06-05 17:08:52,367 - tests.orchestrator - INFO - Pod test-pod-94de82f9 conditions: PodReadyToStartContainers=True, Initialized=True, Ready=False, ContainersReady=False, PodScheduled=True
+2025-06-05 17:08:54,435 - tests.orchestrator - INFO - Pod test-pod-94de82f9 conditions: PodReadyToStartContainers=True, Initialized=True, Ready=False, ContainersReady=False, PodScheduled=True
+2025-06-05 17:08:56,504 - tests.orchestrator - INFO - Pod test-pod-94de82f9 conditions: PodReadyToStartContainers=True, Initialized=True, Ready=False, ContainersReady=False, PodScheduled=True
+2025-06-05 17:08:58,574 - tests.orchestrator - INFO - Pod test-pod-94de82f9 conditions: PodReadyToStartContainers=True, Initialized=True, Ready=False, ContainersReady=False, PodScheduled=True
+2025-06-05 17:09:00,641 - tests.orchestrator - INFO - Pod test-pod-94de82f9 conditions: PodReadyToStartContainers=True, Initialized=True, Ready=False, ContainersReady=False, PodScheduled=True
+2025-06-05 17:09:02,713 - tests.orchestrator - INFO - Pod test-pod-94de82f9 conditions: PodReadyToStartContainers=True, Initialized=True, Ready=False, ContainersReady=False, PodScheduled=True
+2025-06-05 17:09:04,782 - tests.orchestrator - INFO - Pod test-pod-94de82f9 conditions: PodReadyToStartContainers=True, Initialized=True, Ready=True, ContainersReady=True, PodScheduled=True
+2025-06-05 17:09:04,782 - tests.orchestrator - INFO - Pod test-pod-94de82f9 is ready
+2025-06-05 17:09:05,782 - tests.orchestrator - INFO - Selected operation: _attach_pod (selected 3 times)
+2025-06-05 17:09:05,782 - tests.orchestrator - INFO - Creating pod test-pod-42c169cc on PVC test-pvc-1511fcaf
+2025-06-05 17:09:05,861 - tests.orchestrator - INFO - Created pod: test-pod-42c169cc using PVC: test-pvc-1511fcaf
+2025-06-05 17:09:05,861 - tests.orchestrator - INFO - Waiting for pod test-pod-42c169cc to be ready
+2025-06-05 17:09:05,928 - tests.orchestrator - INFO - Pod test-pod-42c169cc phase: Pending
+2025-06-05 17:09:07,998 - tests.orchestrator - INFO - Pod test-pod-42c169cc phase: Running
+2025-06-05 17:09:07,998 - tests.orchestrator - INFO - Pod test-pod-42c169cc conditions: PodReadyToStartContainers=True, Initialized=True, Ready=False, ContainersReady=False, PodScheduled=True
+2025-06-05 17:09:10,071 - tests.orchestrator - INFO - Pod test-pod-42c169cc conditions: PodReadyToStartContainers=True, Initialized=True, Ready=False, ContainersReady=False, PodScheduled=True
+2025-06-05 17:09:12,149 - tests.orchestrator - INFO - Pod test-pod-42c169cc conditions: PodReadyToStartContainers=True, Initialized=True, Ready=False, ContainersReady=False, PodScheduled=True
+2025-06-05 17:09:14,219 - tests.orchestrator - INFO - Pod test-pod-42c169cc conditions: PodReadyToStartContainers=True, Initialized=True, Ready=False, ContainersReady=False, PodScheduled=True
+2025-06-05 17:09:16,290 - tests.orchestrator - INFO - Pod test-pod-42c169cc conditions: PodReadyToStartContainers=True, Initialized=True, Ready=False, ContainersReady=False, PodScheduled=True
+2025-06-05 17:09:18,358 - tests.orchestrator - INFO - Pod test-pod-42c169cc conditions: PodReadyToStartContainers=True, Initialized=True, Ready=False, ContainersReady=False, PodScheduled=True
+2025-06-05 17:09:20,429 - tests.orchestrator - INFO - Pod test-pod-42c169cc conditions: PodReadyToStartContainers=True, Initialized=True, Ready=False, ContainersReady=False, PodScheduled=True
+2025-06-05 17:09:22,498 - tests.orchestrator - INFO - Pod test-pod-42c169cc conditions: PodReadyToStartContainers=True, Initialized=True, Ready=False, ContainersReady=False, PodScheduled=True
+2025-06-05 17:09:24,566 - tests.orchestrator - INFO - Pod test-pod-42c169cc conditions: PodReadyToStartContainers=True, Initialized=True, Ready=False, ContainersReady=False, PodScheduled=True
+2025-06-05 17:09:26,636 - tests.orchestrator - INFO - Pod test-pod-42c169cc conditions: PodReadyToStartContainers=True, Initialized=True, Ready=True, ContainersReady=True, PodScheduled=True
+2025-06-05 17:09:26,637 - tests.orchestrator - INFO - Pod test-pod-42c169cc is ready
+2025-06-05 17:09:27,637 - tests.orchestrator - INFO - Selected operation: _create_pvc (selected 4 times)
+2025-06-05 17:09:27,637 - tests.orchestrator - INFO - Creating PVC: test-pvc-5d63ba99
+2025-06-05 17:09:27,713 - tests.orchestrator - INFO - Created PVC: test-pvc-5d63ba99
+2025-06-05 17:09:27,714 - tests.orchestrator - INFO - Waiting for PVC test-pvc-5d63ba99 to be bound
+2025-06-05 17:09:29,848 - tests.orchestrator - INFO - PVC test-pvc-5d63ba99 is bound
+2025-06-05 17:09:30,848 - tests.orchestrator - INFO - Selected operation: _delete_pod (selected 2 times)
+2025-06-05 17:09:30,848 - tests.orchestrator - INFO - Deleting pod: test-pod-e1e1abfd from PVC: test-pvc-759dbae5
+2025-06-05 17:09:30,923 - tests.orchestrator - INFO - Waiting for pod test-pod-e1e1abfd to be deleted
+2025-06-05 17:10:03,546 - tests.orchestrator - INFO - Pod test-pod-e1e1abfd has been deleted
+2025-06-05 17:10:03,546 - tests.orchestrator - INFO - Deleted pod: test-pod-e1e1abfd
+2025-06-05 17:10:04,546 - tests.orchestrator - INFO - Selected operation: _attach_pod (selected 4 times)
+2025-06-05 17:10:04,546 - tests.orchestrator - INFO - Creating pod test-pod-21da98c0 on PVC test-pvc-47e77b85
+2025-06-05 17:10:04,641 - tests.orchestrator - INFO - Created pod: test-pod-21da98c0 using PVC: test-pvc-47e77b85
+2025-06-05 17:10:04,641 - tests.orchestrator - INFO - Waiting for pod test-pod-21da98c0 to be ready
+2025-06-05 17:10:04,710 - tests.orchestrator - INFO - Pod test-pod-21da98c0 phase: Pending
+2025-06-05 17:10:06,780 - tests.orchestrator - INFO - Pod test-pod-21da98c0 phase: Running
+2025-06-05 17:10:06,780 - tests.orchestrator - INFO - Pod test-pod-21da98c0 conditions: PodReadyToStartContainers=True, Initialized=True, Ready=False, ContainersReady=False, PodScheduled=True
+2025-06-05 17:10:08,850 - tests.orchestrator - INFO - Pod test-pod-21da98c0 conditions: PodReadyToStartContainers=True, Initialized=True, Ready=False, ContainersReady=False, PodScheduled=True
+2025-06-05 17:10:10,920 - tests.orchestrator - INFO - Pod test-pod-21da98c0 conditions: PodReadyToStartContainers=True, Initialized=True, Ready=False, ContainersReady=False, PodScheduled=True
+2025-06-05 17:10:12,990 - tests.orchestrator - INFO - Pod test-pod-21da98c0 conditions: PodReadyToStartContainers=True, Initialized=True, Ready=False, ContainersReady=False, PodScheduled=True
+2025-06-05 17:10:15,059 - tests.orchestrator - INFO - Pod test-pod-21da98c0 conditions: PodReadyToStartContainers=True, Initialized=True, Ready=False, ContainersReady=False, PodScheduled=True
+2025-06-05 17:10:17,130 - tests.orchestrator - INFO - Pod test-pod-21da98c0 conditions: PodReadyToStartContainers=True, Initialized=True, Ready=False, ContainersReady=False, PodScheduled=True
+2025-06-05 17:10:19,198 - tests.orchestrator - INFO - Pod test-pod-21da98c0 conditions: PodReadyToStartContainers=True, Initialized=True, Ready=False, ContainersReady=False, PodScheduled=True
+2025-06-05 17:10:21,265 - tests.orchestrator - INFO - Pod test-pod-21da98c0 conditions: PodReadyToStartContainers=True, Initialized=True, Ready=True, ContainersReady=True, PodScheduled=True
+2025-06-05 17:10:21,265 - tests.orchestrator - INFO - Pod test-pod-21da98c0 is ready
+2025-06-05 17:10:22,266 - tests.orchestrator - INFO - Selected operation: _delete_pod (selected 3 times)
+2025-06-05 17:10:22,266 - tests.orchestrator - INFO - Deleting pod: test-pod-42c169cc from PVC: test-pvc-1511fcaf
+2025-06-05 17:10:22,353 - tests.orchestrator - INFO - Waiting for pod test-pod-42c169cc to be deleted
+2025-06-05 17:10:54,992 - tests.orchestrator - INFO - Pod test-pod-42c169cc has been deleted
+2025-06-05 17:10:54,992 - tests.orchestrator - INFO - Deleted pod: test-pod-42c169cc
+2025-06-05 17:10:55,992 - tests.orchestrator - INFO - Test completed in 329.56 seconds
+2025-06-05 17:10:55,993 - tests.orchestrator - INFO - ===== STARTING COMPREHENSIVE CLEANUP =====
+2025-06-05 17:10:55,993 - tests.orchestrator - INFO - Deleting 2 pods (force=False)...
+2025-06-05 17:10:55,993 - tests.orchestrator - INFO - Deleting pod: test-pod-94de82f9 from PVC: test-pvc-1511fcaf
+2025-06-05 17:10:56,071 - tests.orchestrator - INFO - Waiting for pod test-pod-94de82f9 to be deleted
+2025-06-05 17:11:28,699 - tests.orchestrator - INFO - Pod test-pod-94de82f9 has been deleted
+2025-06-05 17:11:28,699 - tests.orchestrator - INFO - Deleted pod: test-pod-94de82f9
+2025-06-05 17:11:28,699 - tests.orchestrator - INFO - Deleting pod: test-pod-21da98c0 from PVC: test-pvc-47e77b85
+2025-06-05 17:11:28,774 - tests.orchestrator - INFO - Waiting for pod test-pod-21da98c0 to be deleted
+2025-06-05 17:12:01,396 - tests.orchestrator - INFO - Pod test-pod-21da98c0 has been deleted
+2025-06-05 17:12:01,396 - tests.orchestrator - INFO - Deleted pod: test-pod-21da98c0
+2025-06-05 17:12:06,396 - tests.orchestrator - INFO - Deleting 5 PVCs (force=False)...
+2025-06-05 17:12:06,396 - tests.orchestrator - INFO - Deleting PVC: test-pvc-759dbae5
+2025-06-05 17:12:06,474 - tests.orchestrator - INFO - Waiting for PVC test-pvc-759dbae5 to be deleted
+2025-06-05 17:12:10,610 - tests.orchestrator - INFO - PVC test-pvc-759dbae5 has been deleted
+2025-06-05 17:12:10,610 - tests.orchestrator - INFO - Deleted PVC: test-pvc-759dbae5
+2025-06-05 17:12:10,610 - tests.orchestrator - INFO - Deleting PVC: test-pvc-e7dcdff0
+2025-06-05 17:12:10,682 - tests.orchestrator - INFO - Waiting for PVC test-pvc-e7dcdff0 to be deleted
+2025-06-05 17:12:10,753 - tests.orchestrator - INFO - PVC test-pvc-e7dcdff0 has been deleted
+2025-06-05 17:12:10,753 - tests.orchestrator - INFO - Deleted PVC: test-pvc-e7dcdff0
+2025-06-05 17:12:10,753 - tests.orchestrator - INFO - Deleting PVC: test-pvc-1511fcaf
+2025-06-05 17:12:10,826 - tests.orchestrator - INFO - Waiting for PVC test-pvc-1511fcaf to be deleted
+2025-06-05 17:12:10,894 - tests.orchestrator - INFO - PVC test-pvc-1511fcaf has been deleted
+2025-06-05 17:12:10,894 - tests.orchestrator - INFO - Deleted PVC: test-pvc-1511fcaf
+2025-06-05 17:12:10,894 - tests.orchestrator - INFO - Deleting PVC: test-pvc-47e77b85
+2025-06-05 17:12:10,967 - tests.orchestrator - INFO - Waiting for PVC test-pvc-47e77b85 to be deleted
+2025-06-05 17:12:11,032 - tests.orchestrator - INFO - PVC test-pvc-47e77b85 has been deleted
+2025-06-05 17:12:11,032 - tests.orchestrator - INFO - Deleted PVC: test-pvc-47e77b85
+2025-06-05 17:12:11,032 - tests.orchestrator - INFO - Deleting PVC: test-pvc-5d63ba99
+2025-06-05 17:12:11,107 - tests.orchestrator - INFO - Waiting for PVC test-pvc-5d63ba99 to be deleted
+2025-06-05 17:12:11,173 - tests.orchestrator - INFO - PVC test-pvc-5d63ba99 has been deleted
+2025-06-05 17:12:11,173 - tests.orchestrator - INFO - Deleted PVC: test-pvc-5d63ba99
+2025-06-05 17:12:11,377 - tests.orchestrator - WARNING - First cleanup pass incomplete. Remaining resources: ['pod/test-pod-3cc2d48d', 'pod/test-pod-564344d0', 'pod/test-pod-a9935180', 'pod/test-pod-e1337987', 'pvc/test-pvc-0b5af805', 'pvc/test-pvc-3691f2a0', 'pvc/test-pvc-455abf8b', 'pvc/test-pvc-51dbaa96', 'pvc/test-pvc-601432ce', 'pvc/test-pvc-63ada5ce', 'pvc/test-pvc-64bf8174', 'pvc/test-pvc-d3ee5325']
+2025-06-05 17:12:11,377 - tests.orchestrator - INFO - Attempting force deletion of remaining resources...
+2025-06-05 17:12:11,377 - tests.orchestrator - INFO - Deleting 0 pods (force=True)...
+2025-06-05 17:12:16,377 - tests.orchestrator - INFO - Deleting 0 PVCs (force=True)...
+2025-06-05 17:12:16,581 - tests.orchestrator - ERROR - Cleanup incomplete. Remaining resources after force deletion: ['pod/test-pod-3cc2d48d', 'pod/test-pod-564344d0', 'pod/test-pod-a9935180', 'pod/test-pod-e1337987', 'pvc/test-pvc-0b5af805', 'pvc/test-pvc-3691f2a0', 'pvc/test-pvc-455abf8b', 'pvc/test-pvc-51dbaa96', 'pvc/test-pvc-601432ce', 'pvc/test-pvc-63ada5ce', 'pvc/test-pvc-64bf8174', 'pvc/test-pvc-d3ee5325']
+2025-06-05 17:12:16,581 - tests.orchestrator - INFO - Cleanup completed successfully in 80.59 seconds
+2025-06-05 17:12:16,582 - tests.orchestrator - INFO - ===== CLEANUP PROCESS FINISHED =====
+2025-06-05 17:12:16,582 - tests.orchestrator - INFO - ===== EFS CSI Driver Test Summary =====
+2025-06-05 17:12:16,582 - tests.orchestrator - INFO - --- Operations ---
+2025-06-05 17:12:16,582 - tests.orchestrator - INFO - create_pvc: 6 succeeded, 0 failed (100.0%)
+2025-06-05 17:12:16,582 - tests.orchestrator - INFO - attach_pod: 7 succeeded, 0 failed (100.0%)
+2025-06-05 17:12:16,582 - tests.orchestrator - INFO - delete_pod: 7 succeeded, 0 failed (100.0%)
+2025-06-05 17:12:16,582 - tests.orchestrator - INFO - delete_pvc: 6 succeeded, 0 failed (100.0%)
+2025-06-05 17:12:16,582 - tests.orchestrator - INFO - verify_read_write: Writes 0 succeeded, 1 failed (0.0%)
+2025-06-05 17:12:16,582 - tests.orchestrator - INFO - verify_read_write: Reads 0 succeeded, 1 failed (0.0%)
+2025-06-05 17:12:16,582 - tests.orchestrator - INFO - --- Scenarios ---
+2025-06-05 17:12:16,582 - tests.orchestrator - INFO - shared_volume_rw: 0 succeeded, 1 failed out of 1 runs (0.0%)
+2025-06-05 17:12:16,582 - tests.orchestrator - INFO - many_to_one: No runs
+2025-06-05 17:12:16,582 - tests.orchestrator - INFO - one_to_one: No runs
+2025-06-05 17:12:16,582 - tests.orchestrator - INFO - concurrent_pvc: No runs
+2025-06-05 17:12:16,582 - tests.orchestrator - INFO - =========================================

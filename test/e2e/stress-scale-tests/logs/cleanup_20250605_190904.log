@@ -1,0 +1,129 @@
+2025-06-05 19:09:04,981 - INFO - Starting EFS CSI Driver test resource cleanup
+2025-06-05 19:09:05,918 - INFO - Cleaning up resources in namespaces: ['default', 'efs-stress-test']
+2025-06-05 19:09:06,196 - INFO - Deleting pod/efs-scale-test-0 in namespace default
+2025-06-05 19:09:06,287 - INFO - Deleting pod/efs-scale-test-1 in namespace default
+2025-06-05 19:09:06,368 - INFO - Deleting pod/efs-scale-test-10 in namespace default
+2025-06-05 19:09:06,463 - INFO - Deleting pod/efs-scale-test-11 in namespace default
+2025-06-05 19:09:06,555 - INFO - Deleting pod/efs-scale-test-12 in namespace default
+2025-06-05 19:09:06,645 - INFO - Deleting pod/efs-scale-test-13 in namespace default
+2025-06-05 19:09:06,738 - INFO - Deleting pod/efs-scale-test-14 in namespace default
+2025-06-05 19:09:06,820 - INFO - Deleting pod/efs-scale-test-15 in namespace default
+2025-06-05 19:09:06,900 - INFO - Deleting pod/efs-scale-test-16 in namespace default
+2025-06-05 19:09:06,983 - INFO - Deleting pod/efs-scale-test-17 in namespace default
+2025-06-05 19:09:07,064 - INFO - Deleting pod/efs-scale-test-18 in namespace default
+2025-06-05 19:09:07,151 - INFO - Deleting pod/efs-scale-test-19 in namespace default
+2025-06-05 19:09:07,231 - INFO - Deleting pod/efs-scale-test-2 in namespace default
+2025-06-05 19:09:07,310 - INFO - Deleting pod/efs-scale-test-3 in namespace default
+2025-06-05 19:09:07,391 - INFO - Deleting pod/efs-scale-test-4 in namespace default
+2025-06-05 19:09:07,471 - INFO - Deleting pod/efs-scale-test-5 in namespace default
+2025-06-05 19:09:07,562 - INFO - Deleting pod/efs-scale-test-6 in namespace default
+2025-06-05 19:09:07,650 - INFO - Deleting pod/efs-scale-test-7 in namespace default
+2025-06-05 19:09:07,729 - INFO - Deleting pod/efs-scale-test-8 in namespace default
+2025-06-05 19:09:07,813 - INFO - Deleting pod/efs-scale-test-9 in namespace default
+2025-06-05 19:09:07,968 - INFO - Deleting pod/test-pod-3cc2d48d in namespace efs-stress-test
+2025-06-05 19:09:08,055 - INFO - Deleting pod/test-pod-564344d0 in namespace efs-stress-test
+2025-06-05 19:09:08,144 - INFO - Deleting pod/test-pod-a9935180 in namespace efs-stress-test
+2025-06-05 19:09:08,225 - INFO - Deleting pod/test-pod-e1337987 in namespace efs-stress-test
+2025-06-05 19:09:08,311 - INFO - Waiting 5 seconds for pods to start terminating before deleting PVCs...
+2025-06-05 19:09:13,444 - INFO - Deleting pvc/efs-volume-efs-scale-test-0 in namespace default
+2025-06-05 19:09:13,514 - INFO - Deleting pvc/efs-volume-efs-scale-test-1 in namespace default
+2025-06-05 19:09:13,585 - INFO - Deleting pvc/efs-volume-efs-scale-test-10 in namespace default
+2025-06-05 19:09:13,658 - INFO - Deleting pvc/efs-volume-efs-scale-test-11 in namespace default
+2025-06-05 19:09:13,729 - INFO - Deleting pvc/efs-volume-efs-scale-test-12 in namespace default
+2025-06-05 19:09:13,803 - INFO - Deleting pvc/efs-volume-efs-scale-test-13 in namespace default
+2025-06-05 19:09:13,874 - INFO - Deleting pvc/efs-volume-efs-scale-test-14 in namespace default
+2025-06-05 19:09:13,944 - INFO - Deleting pvc/efs-volume-efs-scale-test-15 in namespace default
+2025-06-05 19:09:14,015 - INFO - Deleting pvc/efs-volume-efs-scale-test-16 in namespace default
+2025-06-05 19:09:14,088 - INFO - Deleting pvc/efs-volume-efs-scale-test-17 in namespace default
+2025-06-05 19:09:14,159 - INFO - Deleting pvc/efs-volume-efs-scale-test-18 in namespace default
+2025-06-05 19:09:14,232 - INFO - Deleting pvc/efs-volume-efs-scale-test-19 in namespace default
+2025-06-05 19:09:14,308 - INFO - Deleting pvc/efs-volume-efs-scale-test-2 in namespace default
+2025-06-05 19:09:14,378 - INFO - Deleting pvc/efs-volume-efs-scale-test-3 in namespace default
+2025-06-05 19:09:14,449 - INFO - Deleting pvc/efs-volume-efs-scale-test-4 in namespace default
+2025-06-05 19:09:14,520 - INFO - Deleting pvc/efs-volume-efs-scale-test-5 in namespace default
+2025-06-05 19:09:14,592 - INFO - Deleting pvc/efs-volume-efs-scale-test-6 in namespace default
+2025-06-05 19:09:14,663 - INFO - Deleting pvc/efs-volume-efs-scale-test-7 in namespace default
+2025-06-05 19:09:14,735 - INFO - Deleting pvc/efs-volume-efs-scale-test-8 in namespace default
+2025-06-05 19:09:14,806 - INFO - Deleting pvc/efs-volume-efs-scale-test-9 in namespace default
+2025-06-05 19:09:15,013 - INFO - Deleting pvc/test-pvc-0b5af805 in namespace efs-stress-test
+2025-06-05 19:09:15,088 - INFO - Deleting pvc/test-pvc-0bf22cd9 in namespace efs-stress-test
+2025-06-05 19:09:15,161 - INFO - Deleting pvc/test-pvc-1bb798a3 in namespace efs-stress-test
+2025-06-05 19:09:15,237 - INFO - Deleting pvc/test-pvc-29a67853 in namespace efs-stress-test
+2025-06-05 19:09:15,308 - INFO - Deleting pvc/test-pvc-36370699 in namespace efs-stress-test
+2025-06-05 19:09:15,382 - INFO - Deleting pvc/test-pvc-3691f2a0 in namespace efs-stress-test
+2025-06-05 19:09:15,454 - INFO - Deleting pvc/test-pvc-3d16a983 in namespace efs-stress-test
+2025-06-05 19:09:15,526 - INFO - Deleting pvc/test-pvc-4184bff1 in namespace efs-stress-test
+2025-06-05 19:09:15,600 - INFO - Deleting pvc/test-pvc-41d09b77 in namespace efs-stress-test
+2025-06-05 19:09:15,672 - INFO - Deleting pvc/test-pvc-455abf8b in namespace efs-stress-test
+2025-06-05 19:09:15,746 - INFO - Deleting pvc/test-pvc-51dbaa96 in namespace efs-stress-test
+2025-06-05 19:09:15,820 - INFO - Deleting pvc/test-pvc-601432ce in namespace efs-stress-test
+2025-06-05 19:09:15,891 - INFO - Deleting pvc/test-pvc-60b59274 in namespace efs-stress-test
+2025-06-05 19:09:15,962 - INFO - Deleting pvc/test-pvc-63ada5ce in namespace efs-stress-test
+2025-06-05 19:09:16,034 - INFO - Deleting pvc/test-pvc-64bf8174 in namespace efs-stress-test
+2025-06-05 19:09:16,105 - INFO - Deleting pvc/test-pvc-6e8e6345 in namespace efs-stress-test
+2025-06-05 19:09:16,179 - INFO - Deleting pvc/test-pvc-7ae6d5e7 in namespace efs-stress-test
+2025-06-05 19:09:16,251 - INFO - Deleting pvc/test-pvc-b84d5df8 in namespace efs-stress-test
+2025-06-05 19:09:16,322 - INFO - Deleting pvc/test-pvc-c196bb79 in namespace efs-stress-test
+2025-06-05 19:09:16,400 - INFO - Deleting pvc/test-pvc-c1c2eedb in namespace efs-stress-test
+2025-06-05 19:09:16,481 - INFO - Deleting pvc/test-pvc-c6976eae in namespace efs-stress-test
+2025-06-05 19:09:16,552 - INFO - Deleting pvc/test-pvc-d0c53501 in namespace efs-stress-test
+2025-06-05 19:09:16,630 - INFO - Deleting pvc/test-pvc-d3ee5325 in namespace efs-stress-test
+2025-06-05 19:09:16,702 - INFO - Deleting pvc/test-pvc-faea1890 in namespace efs-stress-test
+2025-06-05 19:09:16,775 - INFO - Deleting pvc/test-pvc-fe0fe649 in namespace efs-stress-test
+2025-06-05 19:09:16,849 - INFO - Cleanup Summary:
+2025-06-05 19:09:16,849 - INFO - Deleted 24 pods and 45 PVCs
+2025-06-05 19:09:16,849 - INFO - All resources deleted successfully
+2025-06-05 19:09:16,850 - INFO - Verifying resource deletion for up to 60 seconds...
+2025-06-05 19:09:17,649 - INFO - Still waiting on 40 resources to be deleted...
+2025-06-05 19:09:23,324 - INFO - Still waiting on 40 resources to be deleted...
+2025-06-05 19:09:28,995 - INFO - Still waiting on 40 resources to be deleted...
+2025-06-05 19:09:34,677 - INFO - Still waiting on 40 resources to be deleted...
+2025-06-05 19:09:40,425 - INFO - Still waiting on 40 resources to be deleted...
+2025-06-05 19:09:46,178 - INFO - Still waiting on 40 resources to be deleted...
+2025-06-05 19:09:51,931 - INFO - Still waiting on 40 resources to be deleted...
+2025-06-05 19:09:57,697 - INFO - Still waiting on 40 resources to be deleted...
+2025-06-05 19:10:03,442 - INFO - Still waiting on 40 resources to be deleted...
+2025-06-05 19:10:09,190 - INFO - Still waiting on 40 resources to be deleted...
+2025-06-05 19:10:14,938 - INFO - Still waiting on 40 resources to be deleted...
+2025-06-05 19:10:19,938 - ERROR - Timed out waiting for resource deletion. Remaining resources:
+2025-06-05 19:10:19,939 - ERROR -   - pod/default/efs-scale-test-0
+2025-06-05 19:10:19,939 - ERROR -   - pod/default/efs-scale-test-1
+2025-06-05 19:10:19,939 - ERROR -   - pod/default/efs-scale-test-10
+2025-06-05 19:10:19,939 - ERROR -   - pod/default/efs-scale-test-11
+2025-06-05 19:10:19,939 - ERROR -   - pod/default/efs-scale-test-12
+2025-06-05 19:10:19,939 - ERROR -   - pod/default/efs-scale-test-13
+2025-06-05 19:10:19,939 - ERROR -   - pod/default/efs-scale-test-14
+2025-06-05 19:10:19,939 - ERROR -   - pod/default/efs-scale-test-15
+2025-06-05 19:10:19,939 - ERROR -   - pod/default/efs-scale-test-16
+2025-06-05 19:10:19,939 - ERROR -   - pod/default/efs-scale-test-17
+2025-06-05 19:10:19,939 - ERROR -   - pod/default/efs-scale-test-18
+2025-06-05 19:10:19,939 - ERROR -   - pod/default/efs-scale-test-19
+2025-06-05 19:10:19,939 - ERROR -   - pod/default/efs-scale-test-2
+2025-06-05 19:10:19,939 - ERROR -   - pod/default/efs-scale-test-3
+2025-06-05 19:10:19,939 - ERROR -   - pod/default/efs-scale-test-4
+2025-06-05 19:10:19,939 - ERROR -   - pod/default/efs-scale-test-5
+2025-06-05 19:10:19,939 - ERROR -   - pod/default/efs-scale-test-6
+2025-06-05 19:10:19,939 - ERROR -   - pod/default/efs-scale-test-7
+2025-06-05 19:10:19,939 - ERROR -   - pod/default/efs-scale-test-8
+2025-06-05 19:10:19,939 - ERROR -   - pod/default/efs-scale-test-9
+2025-06-05 19:10:19,939 - ERROR -   - pvc/default/efs-volume-efs-scale-test-0
+2025-06-05 19:10:19,939 - ERROR -   - pvc/default/efs-volume-efs-scale-test-1
+2025-06-05 19:10:19,939 - ERROR -   - pvc/default/efs-volume-efs-scale-test-10
+2025-06-05 19:10:19,939 - ERROR -   - pvc/default/efs-volume-efs-scale-test-11
+2025-06-05 19:10:19,939 - ERROR -   - pvc/default/efs-volume-efs-scale-test-12
+2025-06-05 19:10:19,939 - ERROR -   - pvc/default/efs-volume-efs-scale-test-13
+2025-06-05 19:10:19,939 - ERROR -   - pvc/default/efs-volume-efs-scale-test-14
+2025-06-05 19:10:19,940 - ERROR -   - pvc/default/efs-volume-efs-scale-test-15
+2025-06-05 19:10:19,940 - ERROR -   - pvc/default/efs-volume-efs-scale-test-16
+2025-06-05 19:10:19,940 - ERROR -   - pvc/default/efs-volume-efs-scale-test-17
+2025-06-05 19:10:19,940 - ERROR -   - pvc/default/efs-volume-efs-scale-test-18
+2025-06-05 19:10:19,940 - ERROR -   - pvc/default/efs-volume-efs-scale-test-19
+2025-06-05 19:10:19,940 - ERROR -   - pvc/default/efs-volume-efs-scale-test-2
+2025-06-05 19:10:19,940 - ERROR -   - pvc/default/efs-volume-efs-scale-test-3
+2025-06-05 19:10:19,940 - ERROR -   - pvc/default/efs-volume-efs-scale-test-4
+2025-06-05 19:10:19,940 - ERROR -   - pvc/default/efs-volume-efs-scale-test-5
+2025-06-05 19:10:19,940 - ERROR -   - pvc/default/efs-volume-efs-scale-test-6
+2025-06-05 19:10:19,940 - ERROR -   - pvc/default/efs-volume-efs-scale-test-7
+2025-06-05 19:10:19,940 - ERROR -   - pvc/default/efs-volume-efs-scale-test-8
+2025-06-05 19:10:19,940 - ERROR -   - pvc/default/efs-volume-efs-scale-test-9
+2025-06-05 19:10:19,940 - INFO - Cleanup process completed

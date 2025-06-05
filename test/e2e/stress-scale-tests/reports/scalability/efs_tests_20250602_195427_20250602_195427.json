@@ -1,0 +1,100 @@
+{
+  "test_name": "efs_tests_20250602_195427",
+  "test_type": "scalability",
+  "timestamp": "20250602_195427",
+  "system_info": {
+    "hostname": "dev-dsk-ibhard-1d-b948589c.us-east-1.amazon.com",
+    "platform": "Linux-5.10.236-209.935.amzn2int.x86_64-x86_64-with-glibc2.26",
+    "python_version": "3.12.10",
+    "cpu_count": 8,
+    "memory_total_gb": 30.88,
+    "timestamp": "2025-06-02T19:54:27.467966",
+    "kubernetes_version": "Unknown",
+    "aws_region": "us-west-1",
+    "efs_filesystem_id": "fs-02b74eafb14930828"
+  },
+  "results": {
+    "scalability": {
+      "pod_scaling": {
+        "5": {
+          "duration": 5.151206731796265,
+          "success": true,
+          "pods_ready": 5
+        },
+        "10": {
+          "duration": 5.1346681118011475,
+          "success": true,
+          "pods_ready": 10
+        },
+        "15": {
+          "duration": 10.208761215209961,
+          "success": true,
+          "pods_ready": 15
+        },
+        "20": {
+          "duration": 10.21699595451355,
+          "success": true,
+          "pods_ready": 20
+        },
+        "25": {
+          "duration": 25.416666746139526,
+          "success": true,
+          "pods_ready": 25
+        },
+        "30": {
+          "duration": 10.209507942199707,
+          "success": true,
+          "pods_ready": 30
+        },
+        "35": {
+          "duration": 30.496685028076172,
+          "success": true,
+          "pods_ready": 35
+        },
+        "40": {
+          "duration": 15.27869462966919,
+          "success": true,
+          "pods_ready": 40
+        },
+        "45": {
+          "duration": 304.97394347190857,
+          "success": false,
+          "pods_ready": 44
+        },
+        "50": {
+          "duration": 304.2392809391022,
+          "success": false,
+          "pods_ready": 44
+        }
+      },
+      "volume_scaling": {
+        "1": {
+          "duration": 5.21432638168335,
+          "success": true,
+          "volumes_ready": 1
+        },
+        "6": {
+          "duration": 16.051532745361328,
+          "success": true,
+          "volumes_ready": 6
+        },
+        "11": {
+          "duration": 11.683096647262573,
+          "success": true,
+          "volumes_ready": 11
+        },
+        "16": {
+          "duration": 12.391531705856323,
+          "success": true,
+          "volumes_ready": 16
+        }
+      }
+    },
+    "metrics": {
+      "operations": {},
+      "system": {},
+      "kubernetes": {},
+      "csi": {}
+    }
+  }
+}

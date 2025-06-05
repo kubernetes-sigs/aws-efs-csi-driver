@@ -1,0 +1,8 @@
+2025-06-03 17:48:10,686 - tests.orchestrator - INFO - EFS CSI Orchestrator initialized
+2025-06-03 17:48:10,686 - tests.orchestrator - INFO - Starting orchestrator test for 50 seconds
+2025-06-03 17:48:10,945 - tests.orchestrator - ERROR - Error checking StorageClass: (401)
+Reason: Unauthorized
+HTTP response headers: HTTPHeaderDict({'Audit-Id': '501ac0bb-a3bf-4a94-bd95-be7f3c4887ad', 'Cache-Control': 'no-cache, private', 'Content-Type': 'application/json', 'Date': 'Tue, 03 Jun 2025 17:48:10 GMT', 'Content-Length': '129'})
+HTTP response body: {"kind":"Status","apiVersion":"v1","metadata":{},"status":"Failure","message":"Unauthorized","reason":"Unauthorized","code":401}
+
+

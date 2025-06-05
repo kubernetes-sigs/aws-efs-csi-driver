@@ -1,0 +1,124 @@
+cluster:
+  create: true
+  kubernetes_version: '1.28'
+  node_count: 3
+  node_type: t3.large
+  region: us-west-2
+driver:
+  create_filesystem: true
+  filesystem_id: fs-024e09bcfd37c74aa
+  install_method: helm
+  version: 2.1.0
+driver_resources:
+  controller:
+    delete_access_point_root_dir: true
+    log_level: 5
+    resources:
+      limits:
+        cpu: 1000m
+        memory: 2.5Gi
+      requests:
+        cpu: 200m
+        memory: 1Gi
+  node:
+    log_level: 5
+    resources:
+      limits:
+        cpu: 1000m
+        memory: 1Gi
+      requests:
+        cpu: 100m
+        memory: 128Mi
+    sidecars:
+      liveness_probe:
+        resources:
+          limits:
+            cpu: 100m
+            memory: 128Mi
+          requests:
+            cpu: 10m
+            memory: 20Mi
+      node_driver_registrar:
+        resources:
+          limits:
+            cpu: 100m
+            memory: 128Mi
+          requests:
+            cpu: 10m
+            memory: 20Mi
+logging:
+  console_enabled: true
+  file_enabled: true
+  level: INFO
+metrics:
+  collect_operation_durations: true
+  collect_system_metrics: true
+operation_weights:
+  attach_pod: 15
+  create_pvc: 25
+  delete_pod: 5
+  delete_pvc: 10
+  run_specific_scenario: 30
+  verify_readwrite: 25
+pod_config:
+  args:
+  - touch /data/pod-ready && while true; do sleep 30; done
+  command:
+  - /bin/sh
+  - -c
+  image: alpine
+  # Temporarily commenting out node selector to fix pod scheduling issues
+  # node_selector:
+  #   efs-issue: 'false'
+  readiness_probe:
+    initial_delay_seconds: 5
+    period_seconds: 5
+  tolerations:
+  - effect: NoSchedule
+    key: instance
+    operator: Equal
+    value: core
+reporting:
+  json_report: true
+  report_directory: reports/orchestrator
+  summary_report: true
+resource_limits:
+  max_pods_per_pvc: 50
+  max_pvcs: 100
+  total_max_pods: 30
+retries:
+  max_attempts: 3
+  retry_delay: 1
+scenarios:
+  concurrent_pvc:
+    enabled: true
+    max_pvcs: 7
+    min_pvcs: 3
+  many_to_one:
+    enabled: true
+    max_pods: 5
+    min_pods: 3
+  one_to_one:
+    enabled: true
+    max_pairs: 5
+    min_pairs: 3
+storage_class:
+  mount_options:
+  - tls
+  - hard
+  - nfsvers=4.1
+  name: efs-sc
+  parameters:
+    basePath: /dynamic_provisioning_test
+    deleteAccessPointRootDir: 'true'
+    directoryPerms: '700'
+    fileSystemId: fs-024e09bcfd37c74aa
+    gidRangeEnd: '2000'
+    gidRangeStart: '1500'
+    provisioningMode: efs-ap
+  reclaim_policy: Delete
+  volume_binding_mode: Immediate
+test:
+  duration: 300
+  namespace: efs-stress-test
+  operation_interval: 3

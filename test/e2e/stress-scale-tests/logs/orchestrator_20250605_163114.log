@@ -1,0 +1,67 @@
+2025-06-05 16:31:14,327 - tests.orchestrator - INFO - EFS CSI Orchestrator initialized
+2025-06-05 16:31:14,546 - tests.orchestrator - INFO - Namespace 'efs-stress-test' already exists
+2025-06-05 16:31:14,546 - tests.orchestrator - INFO - Starting orchestrator test for 300 seconds
+2025-06-05 16:31:14,735 - tests.orchestrator - INFO - StorageClass 'efs-sc' already exists
+2025-06-05 16:31:14,735 - tests.orchestrator - INFO - Running each operation type once to ensure coverage
+2025-06-05 16:31:14,736 - tests.orchestrator - INFO - Creating PVC: test-pvc-dbe6630f
+2025-06-05 16:31:14,812 - tests.orchestrator - INFO - Created PVC: test-pvc-dbe6630f
+2025-06-05 16:31:14,812 - tests.orchestrator - INFO - Waiting for PVC test-pvc-dbe6630f to be bound
+2025-06-05 16:31:16,944 - tests.orchestrator - INFO - PVC test-pvc-dbe6630f is bound
+2025-06-05 16:31:16,944 - tests.orchestrator - INFO - Creating PVC: test-pvc-2381ce5e
+2025-06-05 16:31:17,012 - tests.orchestrator - INFO - Created PVC: test-pvc-2381ce5e
+2025-06-05 16:31:17,012 - tests.orchestrator - INFO - Waiting for PVC test-pvc-2381ce5e to be bound
+2025-06-05 16:31:19,144 - tests.orchestrator - INFO - PVC test-pvc-2381ce5e is bound
+2025-06-05 16:31:19,144 - tests.orchestrator - INFO - Creating pod test-pod-4022a58d on PVC test-pvc-2381ce5e
+2025-06-05 16:31:19,223 - tests.orchestrator - INFO - Created pod: test-pod-4022a58d using PVC: test-pvc-2381ce5e
+2025-06-05 16:31:19,223 - tests.orchestrator - INFO - Waiting for pod test-pod-4022a58d to be ready
+2025-06-05 16:31:19,289 - tests.orchestrator - INFO - Pod test-pod-4022a58d phase: Pending
+2025-06-05 16:31:50,320 - tests.orchestrator - INFO - Pod test-pod-4022a58d taking longer than expected to become ready (31.1s). Collecting diagnostics...
+2025-06-05 16:31:50,320 - tests.orchestrator - INFO - ===== DIAGNOSTICS FOR POD test-pod-4022a58d =====
+2025-06-05 16:31:50,387 - tests.orchestrator - INFO - No container statuses available
+2025-06-05 16:31:50,457 - tests.orchestrator - INFO - Pod events:
+2025-06-05 16:31:50,457 - tests.orchestrator - INFO -   [2025-06-05 16:31:19+00:00] Warning/FailedScheduling: 0/2 nodes are available: 2 node(s) didn't match Pod's node affinity/selector. preemption: 0/2 nodes are available: 2 Preemption is not helpful for scheduling.
+2025-06-05 16:31:50,524 - tests.orchestrator - INFO - No logs available
+2025-06-05 16:31:50,525 - tests.orchestrator - INFO - Pod volumes:
+2025-06-05 16:31:50,525 - tests.orchestrator - INFO -   - efs-volume: {'type': 'PVC', 'claim_name': 'test-pvc-2381ce5e'}
+2025-06-05 16:31:50,525 - tests.orchestrator - INFO -   - kube-api-access-xrgfl: {}
+2025-06-05 16:31:50,525 - tests.orchestrator - INFO - ===== END DIAGNOSTICS FOR POD test-pod-4022a58d =====
+2025-06-05 16:32:19,393 - tests.orchestrator - WARNING - Timeout waiting for pod test-pod-4022a58d to be ready after 60s
+2025-06-05 16:32:19,393 - tests.orchestrator - INFO - ===== DIAGNOSTICS FOR POD test-pod-4022a58d =====
+2025-06-05 16:32:19,461 - tests.orchestrator - INFO - No container statuses available
+2025-06-05 16:32:19,530 - tests.orchestrator - INFO - Pod events:
+2025-06-05 16:32:19,530 - tests.orchestrator - INFO -   [2025-06-05 16:31:19+00:00] Warning/FailedScheduling: 0/2 nodes are available: 2 node(s) didn't match Pod's node affinity/selector. preemption: 0/2 nodes are available: 2 Preemption is not helpful for scheduling.
+2025-06-05 16:32:19,595 - tests.orchestrator - INFO - No logs available
+2025-06-05 16:32:19,595 - tests.orchestrator - INFO - Pod volumes:
+2025-06-05 16:32:19,595 - tests.orchestrator - INFO -   - efs-volume: {'type': 'PVC', 'claim_name': 'test-pvc-2381ce5e'}
+2025-06-05 16:32:19,595 - tests.orchestrator - INFO -   - kube-api-access-xrgfl: {}
+2025-06-05 16:32:19,595 - tests.orchestrator - INFO - ===== END DIAGNOSTICS FOR POD test-pod-4022a58d =====
+2025-06-05 16:32:19,595 - tests.orchestrator - WARNING - Timeout waiting for pod test-pod-4022a58d to be ready
+2025-06-05 16:32:19,595 - tests.orchestrator - INFO - Creating pod test-pod-9de3bebb on PVC test-pvc-dbe6630f
+2025-06-05 16:32:19,678 - tests.orchestrator - INFO - Created pod: test-pod-9de3bebb using PVC: test-pvc-dbe6630f
+2025-06-05 16:32:19,678 - tests.orchestrator - INFO - Waiting for pod test-pod-9de3bebb to be ready
+2025-06-05 16:32:19,745 - tests.orchestrator - INFO - Pod test-pod-9de3bebb phase: Pending
+2025-06-05 16:32:50,757 - tests.orchestrator - INFO - Pod test-pod-9de3bebb taking longer than expected to become ready (31.1s). Collecting diagnostics...
+2025-06-05 16:32:50,757 - tests.orchestrator - INFO - ===== DIAGNOSTICS FOR POD test-pod-9de3bebb =====
+2025-06-05 16:32:50,823 - tests.orchestrator - INFO - No container statuses available
+2025-06-05 16:32:50,895 - tests.orchestrator - INFO - Pod events:
+2025-06-05 16:32:50,895 - tests.orchestrator - INFO -   [2025-06-05 16:32:19+00:00] Warning/FailedScheduling: 0/2 nodes are available: 2 node(s) didn't match Pod's node affinity/selector. preemption: 0/2 nodes are available: 2 Preemption is not helpful for scheduling.
+2025-06-05 16:32:50,960 - tests.orchestrator - INFO - No logs available
+2025-06-05 16:32:50,960 - tests.orchestrator - INFO - Pod volumes:
+2025-06-05 16:32:50,960 - tests.orchestrator - INFO -   - efs-volume: {'type': 'PVC', 'claim_name': 'test-pvc-dbe6630f'}
+2025-06-05 16:32:50,960 - tests.orchestrator - INFO -   - kube-api-access-vfnnb: {}
+2025-06-05 16:32:50,960 - tests.orchestrator - INFO - ===== END DIAGNOSTICS FOR POD test-pod-9de3bebb =====
+2025-06-05 16:33:19,831 - tests.orchestrator - WARNING - Timeout waiting for pod test-pod-9de3bebb to be ready after 60s
+2025-06-05 16:33:19,831 - tests.orchestrator - INFO - ===== DIAGNOSTICS FOR POD test-pod-9de3bebb =====
+2025-06-05 16:33:19,897 - tests.orchestrator - INFO - No container statuses available
+2025-06-05 16:33:19,966 - tests.orchestrator - INFO - Pod events:
+2025-06-05 16:33:19,966 - tests.orchestrator - INFO -   [2025-06-05 16:32:19+00:00] Warning/FailedScheduling: 0/2 nodes are available: 2 node(s) didn't match Pod's node affinity/selector. preemption: 0/2 nodes are available: 2 Preemption is not helpful for scheduling.
+2025-06-05 16:33:20,031 - tests.orchestrator - INFO - No logs available
+2025-06-05 16:33:20,031 - tests.orchestrator - INFO - Pod volumes:
+2025-06-05 16:33:20,031 - tests.orchestrator - INFO -   - efs-volume: {'type': 'PVC', 'claim_name': 'test-pvc-dbe6630f'}
+2025-06-05 16:33:20,031 - tests.orchestrator - INFO -   - kube-api-access-vfnnb: {}
+2025-06-05 16:33:20,031 - tests.orchestrator - INFO - ===== END DIAGNOSTICS FOR POD test-pod-9de3bebb =====
+2025-06-05 16:33:20,031 - tests.orchestrator - WARNING - Timeout waiting for pod test-pod-9de3bebb to be ready
+2025-06-05 16:33:20,032 - tests.orchestrator - INFO - Creating pod test-pod-4eee03ff on PVC test-pvc-2381ce5e
+2025-06-05 16:33:20,115 - tests.orchestrator - INFO - Created pod: test-pod-4eee03ff using PVC: test-pvc-2381ce5e
+2025-06-05 16:33:20,115 - tests.orchestrator - INFO - Waiting for pod test-pod-4eee03ff to be ready
+2025-06-05 16:33:20,181 - tests.orchestrator - INFO - Pod test-pod-4eee03ff phase: Pending
