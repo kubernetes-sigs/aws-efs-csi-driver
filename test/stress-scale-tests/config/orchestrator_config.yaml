@@ -121,6 +121,6 @@ storage_class:
   reclaim_policy: Delete
   volume_binding_mode: Immediate
 test:
-  duration: 1200
+  duration: 120
   namespace: efs-stress-test
   operation_interval: 3

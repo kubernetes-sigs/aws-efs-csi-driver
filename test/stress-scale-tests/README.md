@@ -10,9 +10,9 @@ The test framework automatically generates load on the EFS CSI Driver by creatin
 
 - **Orchestrated Testing**: Random sequence of volume and pod operations with configurable weights
 - **Scenario Testing**: Specialized test scenarios including:
-  - Many-to-one (multiple pods using a single PVC)
-  - One-to-one (one pod per PVC)
-  - Concurrent PVC operations
+  - Shared Volume Access (multiple pods using a single PVC to test ReadWriteMany capability)
+  - Dedicated Volume Access (individual pods with dedicated PVCs to test isolation)
+  - Concurrent Volume Operations (rapid creation and deletion of multiple PVCs to test API handling)
 - **Shared Volume Testing**: Verifies read/write operations between pods sharing volumes
 - **Comprehensive Reporting**: Detailed logs and metrics in JSON and summary formats
 - **Configurable Parameters**: Adjust test duration, operation rates, resource limits, and more
@@ -25,14 +25,26 @@ The test framework automatically generates load on the EFS CSI Driver by creatin
 
 ## Quick Start
 
-1. Install dependencies:
+1. Set up a Python virtual environment (recommended):
+   ```
+   # Create a virtual environment
+   python -m venv venv
+   
+   # Activate the virtual environment
+   # On Linux/macOS:
+   source venv/bin/activate
+   # On Windows:
+   # venv\Scripts\activate
+   ```
+
+2. Install dependencies:
    ```
    pip install -r requirements.txt
    ```
 
-2. Configure the test parameters in `config/orchestrator_config.yaml`
+3. Configure the test parameters in `config/orchestrator_config.yaml`
 
-3. Run the tests:
+4. Run the tests:
    ```
    python run_tests.py
    ```

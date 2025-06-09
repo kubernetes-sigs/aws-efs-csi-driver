@@ -114,11 +114,8 @@ def print_credential_renewal_instructions():
     print(f"{'AWS CREDENTIALS EXPIRED OR INVALID':^80}")
     print("="*80)
     print("\nYour AWS credentials have expired or are invalid.")
-    print("\nTo renew your credentials, run:")
-    print("\n    ada credentials update --provider isengard --role=Admin --once --account YOUR_ACCOUNT_ID")
-    print("\nOr for temporary credentials:")
-    print("\n    aws sts get-session-token")
-    print("\nAfter renewing credentials, try running the tests again.")
+    print("\nPlease check your AWS credentials and ensure they are properly configured.")
+    print("\nAfter renewing your credentials, try running the tests again.")
     print("="*80 + "\n")
 
 def main():
