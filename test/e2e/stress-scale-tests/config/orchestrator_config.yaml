@@ -115,10 +115,12 @@ storage_class:
     fileSystemId: fs-024e09bcfd37c74aa
     gidRangeEnd: '2000'
     gidRangeStart: '1500'
-    provisioningMode: efs-ap
+    provisioningMode: efs-ap # EFS access point mode 
+    uidRangeEnd: '2000'
+    uidRangeStart: '1500' 
   reclaim_policy: Delete
   volume_binding_mode: Immediate
 test:
-  duration: 300
+  duration: 1200
   namespace: efs-stress-test
   operation_interval: 3

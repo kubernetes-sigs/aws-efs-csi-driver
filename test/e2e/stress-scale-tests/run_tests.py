@@ -58,7 +58,6 @@ def parse_args():
     parser.add_argument(
         '--duration',
         type=int,
-        default=300,
         help='Duration in seconds for test execution'
     )
     parser.add_argument(
