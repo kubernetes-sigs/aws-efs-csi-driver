@@ -10,6 +10,7 @@ from kubernetes import client, config
 from tests.orchestrator import EFSCSIOrchestrator
 from utils.report_generator import ReportGenerator
 from utils.metrics_collector import MetricsCollector
+from utils.log_integration import collect_logs_on_test_failure
 # Commented out to remove dependency on cluster setup
 # from cluster_setup import ClusterSetup
 
@@ -61,15 +62,20 @@ def parse_args():
         help='Duration in seconds for test execution'
     )
     parser.add_argument(
-        '--rate',
+        '--interval',
         type=int,
-        default=5,
-        help='Operations per second for tests'
+        default=None,
+        help='Seconds to wait between operations (overrides config value)'
     )
     parser.add_argument(
         '--dry-run',
         action='store_true',
         help='Print what would be done without executing tests'
+    )
+    parser.add_argument(
+        '--driver-pod-name',
+        default=None,
+        help='Name of the EFS CSI driver pod for log collection (optional)'
     )
     
     # Cluster setup options - kept for compatibility but functionality is disabled
@@ -202,40 +208,107 @@ def main():
                     orchestrator_config = args.config
                 
                 logger.info(f"Using orchestrator config: {orchestrator_config}")
-                orchestrator = EFSCSIOrchestrator(config_file=orchestrator_config)
+                # Get driver pod name from config if not specified on command line
+                driver_pod_name = args.driver_pod_name
+                if driver_pod_name is None and 'driver' in config and 'pod_name' in config['driver']:
+                    driver_pod_name = config['driver']['pod_name']
+                    if driver_pod_name:
+                        logger.info(f"Using driver pod name from config: {driver_pod_name}")
+                
+                # Pass the metrics collector and driver pod name to the orchestrator
+                orchestrator = EFSCSIOrchestrator(
+                    config_file=orchestrator_config, 
+                    metrics_collector=metrics_collector,
+                    driver_pod_name=driver_pod_name
+                )
                 
                 # Override default test parameters if specified
                 if args.duration:
                     orchestrator.test_duration = args.duration
                     logger.info(f"Test duration overridden to {args.duration} seconds")
                     
-                if args.rate:  # Use rate as operation interval (inverse relationship)
-                    orchestrator.operation_interval = max(1, int(1 / args.rate))
-                    logger.info(f"Operation interval overridden to {orchestrator.operation_interval} seconds (from rate {args.rate}/s)")
+                if args.interval is not None:  # Only override if explicitly specified
+                    orchestrator.operation_interval = args.interval
+                    logger.info(f"Operation interval overridden to {orchestrator.operation_interval} seconds")
+                else:
+                    logger.info(f"Using operation interval from config: {orchestrator.operation_interval} seconds")
                 
                 # Run the orchestrator test
                 orchestrator_results = orchestrator.run_test()
                 
-                # Generate orchestrator test specific report
+                # Generate one consolidated orchestrator report with all information
                 orchestrator_report_dir = os.path.join(report_dir, 'orchestrator')
                 os.makedirs(orchestrator_report_dir, exist_ok=True)
-                
+
                 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                orchestrator_report_path = os.path.join(
+                test_name = f"efs_orchestrator_{timestamp}"
+                
+                # Create report path
+                report_path = os.path.join(
                     orchestrator_report_dir, 
-                    f"efs_orchestrator_{timestamp}.json"
+                    f"{test_name}.json"
                 )
                 
-                with open(orchestrator_report_path, 'w') as f:
+                # Add metadata, system info, and metrics to the results
+                system_info = report_generator._collect_system_info()
+                
+                # Get all metrics from the metrics collector
+                collected_metrics = metrics_collector.get_all_metrics()
+                
+                full_report = {
+                    "test_name": test_name,
+                    "test_type": "orchestrator",
+                    "timestamp": timestamp,
+                    "system_info": system_info,
+                    "results": orchestrator_results,
+                    "metrics": {
+                        "file_performance": collected_metrics.get("file_performance", {})
+                    }
+                }
+                
+                logger.info("File performance metrics collected:")
+                for volume, metrics in collected_metrics.get("file_performance", {}).get("by_volume", {}).items():
+                    logger.info(f"  Volume: {volume}")
+                    # Log read metrics if available
+                    if metrics["iops"].get("read") is not None:
+                        logger.info(f"    Read IOPS: {metrics['iops']['read']:.2f}")
+                    if metrics["throughput"].get("read") is not None:
+                        logger.info(f"    Read Throughput: {metrics['throughput']['read']:.2f} MB/s")
+                        
+                    # Log write metrics if available
+                    if metrics["iops"].get("write") is not None:
+                        logger.info(f"    Write IOPS: {metrics['iops']['write']:.2f}")
+                    if metrics["throughput"].get("write") is not None:
+                        logger.info(f"    Write Throughput: {metrics['throughput']['write']:.2f} MB/s")
+                
+                with open(report_path, 'w') as f:
                     import json
-                    json.dump(orchestrator_results, f, indent=2)
-                    
-                logger.info(f"Orchestrator report generated: {orchestrator_report_path}")
+                    json.dump(full_report, f, indent=2)
+                
+                logger.info(f"Orchestrator report generated: {report_path}")
             
             results['orchestrator'] = orchestrator_results
         
     except Exception as e:
         logger.error(f"Error running tests: {e}", exc_info=True)
+        
+        # Collect logs on failure
+        logger.info("Collecting logs due to test failure")
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        test_name = f"efs_orchestrator_failure_{timestamp}"
+        
+        # Get driver pod name from config if not specified on command line
+        driver_pod_name = args.driver_pod_name
+        if driver_pod_name is None and 'driver' in config and 'pod_name' in config['driver']:
+            driver_pod_name = config['driver']['pod_name']
+            if driver_pod_name:
+                logger.info(f"Using driver pod name from config: {driver_pod_name}")
+                
+        logs_path = collect_logs_on_test_failure(test_name, metrics_collector, driver_pod_name=driver_pod_name)
+        if logs_path:
+            logger.info(f"Failure logs collected to: {logs_path}")
+        else:
+            logger.warning("Failed to collect logs")
         
         # Even if tests failed, try to clean up if requested - DISABLED
         if args.setup_cluster and not args.skip_cleanup:

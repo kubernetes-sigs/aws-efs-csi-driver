@@ -35,36 +35,19 @@ class ReportGenerator:
     
     def _determine_test_type(self, test_results):
         """Determine the test type from the results structure
-        
+
         Args:
             test_results: Dictionary containing test results
-            
+
         Returns:
             Test type string
         """
-        # Check for specific test keys
-        if "statefulset_scaling" in test_results:
-            return "statefulset"
-        elif "access_point_scaling" in test_results:
-            return "access_points"
-        elif "pod_scaling" in test_results or "volume_scaling" in test_results:
-            return "scalability"
-        elif any(key.endswith("_io") for key in test_results.keys()):
-            return "stress"
-        
-        # Check nested dictionaries
-        for key, value in test_results.items():
-            if isinstance(value, dict):
-                if "statefulset_scaling" in value:
-                    return "statefulset"
-                elif "access_point_scaling" in value:
-                    return "access_points"
-                elif "pod_scaling" in value or "volume_scaling" in value:
-                    return "scalability"
-                elif any(k.endswith("_io") for k in value.keys()):
-                    return "stress"
-        
-        return "general"
+        # Check for orchestrator results (operations, scenarios, etc.)
+        if "operations" in test_results and "scenarios" in test_results:
+            return "orchestrator"
+            
+        # Default to orchestrator if nothing else matches
+        return "orchestrator"
     
     def _collect_system_info(self):
         """Collect system information for the report

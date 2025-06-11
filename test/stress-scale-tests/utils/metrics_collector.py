@@ -47,6 +47,30 @@ class MetricsCollector:
             "pod_startup_delays": {}
         }
         
+        # File performance metrics
+        self.file_performance = {
+            "iops": {
+                "read": defaultdict(list),    # PV/PVC name -> list of read IOPS measurements
+                "write": defaultdict(list),   # PV/PVC name -> list of write IOPS measurements
+                "metadata": defaultdict(list) # PV/PVC name -> list of metadata IOPS measurements
+            },
+            "latency": {
+                "read": defaultdict(list),    # PV/PVC name -> list of read latency measurements
+                "write": defaultdict(list),   # PV/PVC name -> list of write latency measurements
+                "metadata": defaultdict(list) # PV/PVC name -> list of metadata latency measurements
+            },
+            "throughput": {
+                "read": defaultdict(list),    # PV/PVC name -> list of read throughput measurements
+                "write": defaultdict(list),   # PV/PVC name -> list of write throughput measurements
+            },
+            "operation_counts": {
+                "read": defaultdict(int),     # PV/PVC name -> count of read operations
+                "write": defaultdict(int),    # PV/PVC name -> count of write operations
+                "metadata": defaultdict(int)  # PV/PVC name -> count of metadata operations
+            },
+            "measurement_windows": defaultdict(list)  # PV/PVC name -> list of measurement timestamps
+        }
+        
         self.logger = logging.getLogger(__name__)
     
     def start_operation(self, name=None):
@@ -402,12 +426,200 @@ class MetricsCollector:
         
         return parsed_metrics
 
+    def track_file_operation_iops(self, pv_pvc_name, operation_type, operations_count, duration_seconds):
+        """Track IOPS for a file operation
+        
+        Args:
+            pv_pvc_name: Name of the PV or PVC
+            operation_type: Type of operation ('read', 'write', 'metadata')
+            operations_count: Number of operations performed
+            duration_seconds: Duration of the measurement in seconds
+        """
+        if operation_type not in ['read', 'write', 'metadata']:
+            self.logger.warning(f"Invalid operation type: {operation_type}. Must be 'read', 'write', or 'metadata'")
+            return
+            
+        # Calculate IOPS
+        if duration_seconds > 0:
+            iops = operations_count / duration_seconds
+        else:
+            iops = 0
+            
+        # Update the operation counts
+        self.file_performance["operation_counts"][operation_type][pv_pvc_name] += operations_count
+        
+        # Record the IOPS measurement
+        self.file_performance["iops"][operation_type][pv_pvc_name].append(iops)
+        
+        # Record measurement timestamp
+        self.file_performance["measurement_windows"][pv_pvc_name].append({
+            "timestamp": time.time(),
+            "operation_type": operation_type,
+            "duration_seconds": duration_seconds
+        })
+        
+        self.logger.debug(f"Recorded {operation_type} IOPS: {iops} for {pv_pvc_name}")
+    
+    def track_file_operation_latency(self, pv_pvc_name, operation_type, latency_seconds):
+        """Track latency for a file operation
+        
+        Args:
+            pv_pvc_name: Name of the PV or PVC
+            operation_type: Type of operation ('read', 'write', 'metadata')
+            latency_seconds: Latency of the operation in seconds
+        """
+        if operation_type not in ['read', 'write', 'metadata']:
+            self.logger.warning(f"Invalid operation type: {operation_type}. Must be 'read', 'write', or 'metadata'")
+            return
+            
+        # Record the latency measurement
+        self.file_performance["latency"][operation_type][pv_pvc_name].append(latency_seconds)
+        
+        self.logger.debug(f"Recorded {operation_type} latency: {latency_seconds}s for {pv_pvc_name}")
+    
+    def track_file_operation_throughput(self, pv_pvc_name, operation_type, bytes_transferred, duration_seconds):
+        """Track throughput for a file operation
+        
+        Args:
+            pv_pvc_name: Name of the PV or PVC
+            operation_type: Type of operation ('read', 'write')
+            bytes_transferred: Number of bytes transferred
+            duration_seconds: Duration of the transfer in seconds
+        """
+        if operation_type not in ['read', 'write']:
+            self.logger.warning(f"Invalid operation type: {operation_type}. Must be 'read' or 'write'")
+            return
+            
+        # Calculate throughput (MB/s)
+        if duration_seconds > 0:
+            throughput_mbps = (bytes_transferred / 1024 / 1024) / duration_seconds
+        else:
+            throughput_mbps = 0
+            
+        # Record the throughput measurement
+        self.file_performance["throughput"][operation_type][pv_pvc_name].append(throughput_mbps)
+        
+        self.logger.debug(f"Recorded {operation_type} throughput: {throughput_mbps} MB/s for {pv_pvc_name}")
+    
+    def calculate_latency_percentiles(self, pv_pvc_name, operation_type):
+        """Calculate percentiles for latency measurements
+        
+        Args:
+            pv_pvc_name: Name of the PV or PVC
+            operation_type: Type of operation ('read', 'write', 'metadata')
+            
+        Returns:
+            Dictionary with p50, p95, p99 percentiles
+        """
+        if operation_type not in ['read', 'write', 'metadata']:
+            self.logger.warning(f"Invalid operation type: {operation_type}. Must be 'read', 'write', or 'metadata'")
+            return {}
+            
+        latencies = self.file_performance["latency"][operation_type].get(pv_pvc_name, [])
+        
+        if not latencies:
+            return {
+                "p50": None,
+                "p95": None,
+                "p99": None
+            }
+            
+        # Sort latencies for percentile calculation
+        sorted_latencies = sorted(latencies)
+        n = len(sorted_latencies)
+        
+        p50_idx = int(n * 0.5)
+        p95_idx = int(n * 0.95)
+        p99_idx = int(n * 0.99)
+        
+        return {
+            "p50": sorted_latencies[p50_idx],
+            "p95": sorted_latencies[p95_idx],
+            "p99": sorted_latencies[p99_idx]
+        }
+    
+    def calculate_average_iops(self, pv_pvc_name, operation_type):
+        """Calculate average IOPS for a specific PV/PVC and operation type
+        
+        Args:
+            pv_pvc_name: Name of the PV or PVC
+            operation_type: Type of operation ('read', 'write', 'metadata')
+            
+        Returns:
+            Average IOPS value or None if no measurements
+        """
+        if operation_type not in ['read', 'write', 'metadata']:
+            self.logger.warning(f"Invalid operation type: {operation_type}. Must be 'read', 'write', or 'metadata'")
+            return None
+            
+        iops_values = self.file_performance["iops"][operation_type].get(pv_pvc_name, [])
+        
+        if not iops_values:
+            return None
+            
+        return sum(iops_values) / len(iops_values)
+    
+    def calculate_average_throughput(self, pv_pvc_name, operation_type):
+        """Calculate average throughput for a specific PV/PVC and operation type
+        
+        Args:
+            pv_pvc_name: Name of the PV or PVC
+            operation_type: Type of operation ('read', 'write')
+            
+        Returns:
+            Average throughput in MB/s or None if no measurements
+        """
+        if operation_type not in ['read', 'write']:
+            self.logger.warning(f"Invalid operation type: {operation_type}. Must be 'read' or 'write'")
+            return None
+            
+        throughput_values = self.file_performance["throughput"][operation_type].get(pv_pvc_name, [])
+        
+        if not throughput_values:
+            return None
+            
+        return sum(throughput_values) / len(throughput_values)
+    
     def get_all_metrics(self):
         """Get all collected metrics
         
         Returns:
             Dictionary of all metrics
         """
+        # Calculate summarized file performance metrics
+        file_performance_summary = {
+            "by_volume": {}
+        }
+        
+        # Collect all unique PV/PVC names
+        all_volumes = set()
+        for op_type in ['read', 'write', 'metadata']:
+            all_volumes.update(self.file_performance["iops"][op_type].keys())
+            all_volumes.update(self.file_performance["latency"][op_type].keys())
+            
+        for pv_pvc_name in all_volumes:
+            file_performance_summary["by_volume"][pv_pvc_name] = {
+                "iops": {
+                    "read": self.calculate_average_iops(pv_pvc_name, "read"),
+                    "write": self.calculate_average_iops(pv_pvc_name, "write"),
+                    "metadata": self.calculate_average_iops(pv_pvc_name, "metadata")
+                },
+                "throughput": {
+                    "read": self.calculate_average_throughput(pv_pvc_name, "read"),
+                    "write": self.calculate_average_throughput(pv_pvc_name, "write")
+                },
+                "latency": {
+                    "read": self.calculate_latency_percentiles(pv_pvc_name, "read"),
+                    "write": self.calculate_latency_percentiles(pv_pvc_name, "write"),
+                    "metadata": self.calculate_latency_percentiles(pv_pvc_name, "metadata")
+                },
+                "operation_counts": {
+                    "read": self.file_performance["operation_counts"]["read"].get(pv_pvc_name, 0),
+                    "write": self.file_performance["operation_counts"]["write"].get(pv_pvc_name, 0),
+                    "metadata": self.file_performance["operation_counts"]["metadata"].get(pv_pvc_name, 0)
+                }
+            }
+        
         return {
             "operations": self.operations,
             "system": self.system_metrics,
@@ -416,5 +628,6 @@ class MetricsCollector:
             "controller": self.controller_metrics,
             "node": self.node_metrics,
             "efs": self.efs_metrics,
-            "k8s_events": self.k8s_events
+            "k8s_events": self.k8s_events,
+            "file_performance": file_performance_summary
         }

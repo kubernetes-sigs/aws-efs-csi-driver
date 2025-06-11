@@ -8,12 +8,16 @@ import uuid
 import os
 from kubernetes import client, config
 from datetime import datetime
+from utils.log_integration import collect_logs_on_test_failure
 
 class EFSCSIOrchestrator:
     """Orchestrator for testing EFS CSI driver operations"""
     
-    def __init__(self, config_file='config/orchestrator_config.yaml', namespace=None):
+    def __init__(self, config_file='config/orchestrator_config.yaml', namespace=None, metrics_collector=None, driver_pod_name=None):
         """Initialize the orchestrator with configuration"""
+        # Store driver pod name for log collection
+        self.driver_pod_name = driver_pod_name
+        
         # Load configuration
         with open(config_file, 'r') as f:
             self.config = yaml.safe_load(f)
@@ -23,6 +27,10 @@ class EFSCSIOrchestrator:
         self.core_v1 = client.CoreV1Api()
         self.apps_v1 = client.AppsV1Api()
         self.storage_v1 = client.StorageV1Api()
+        
+        # Initialize metrics collector if provided, or create a new one
+        from utils.metrics_collector import MetricsCollector
+        self.metrics_collector = metrics_collector or MetricsCollector()
         
         # Set namespace from config or use default
         self.namespace = namespace or self.config['test'].get('namespace', 'default')
@@ -162,7 +170,7 @@ class EFSCSIOrchestrator:
         self._verify_readwrite()
         
         # Run a specific scenario
-        # self._run_specific_scenario()
+        self._run_specific_scenario()
         
         # Delete a pod
         self._delete_pod()
@@ -197,6 +205,29 @@ class EFSCSIOrchestrator:
             self.logger.info("Test interrupted by user")
         except Exception as e:
             self.logger.error(f"Unexpected error during test: {e}", exc_info=True)
+            
+            # Collect logs for unexpected failure with comprehensive resource tracking
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            test_name = f"orchestrator_unexpected_failure_{timestamp}"
+            
+            # Gather information about all active resources for diagnostic logging
+            failed_resources = []
+            
+            # Add all PVCs currently being tracked
+            for pvc_name in self.pvcs:
+                failed_resources.append({"type": "pvc", "name": pvc_name, "namespace": self.namespace})
+                
+                # Add all pods associated with each PVC
+                for pod_name in self.pods.get(pvc_name, []):
+                    failed_resources.append({"type": "pod", "name": pod_name, "namespace": self.namespace})
+            
+            logs_path = collect_logs_on_test_failure(
+                test_name, 
+                self.metrics_collector, 
+                self.driver_pod_name,
+                failed_resources=failed_resources
+            )
+            self.logger.info(f"Collected comprehensive failure logs to: {logs_path}")
         finally:
             # Get test duration
             elapsed = time.time() - start_time
@@ -557,6 +588,8 @@ done
         
         Note: Using kubectl subprocesses instead of Kubernetes API to avoid
         WebSocket upgrade errors
+        
+        Also collects performance metrics for file operations.
         """
         # Find PVCs that have multiple pods
         shared_pvcs = [(pvc, pods) for pvc, pods in self.pods.items() if len(pods) >= 2]
@@ -575,12 +608,17 @@ done
         reader_pod = random.choice([p for p in pod_names if p != writer_pod])
         
         test_file = f"test-{uuid.uuid4().hex[:8]}.txt"
-        test_content = f"Test content: {uuid.uuid4()}"
+        test_content = f"Test content: {uuid.uuid4()}" * 50  # Make content larger for better measurements
+        content_size_bytes = len(test_content.encode('utf-8'))
         
         self.logger.info(f"Testing read/write between pods {writer_pod} and {reader_pod} sharing PVC {pvc_name}")
+        self.logger.info(f"File size: {content_size_bytes} bytes")
         
         try:
             import subprocess
+            
+            # Track write operation with metrics
+            write_op_start = time.time()
             
             # Write with first pod using kubectl
             write_cmd = f"kubectl exec -n {self.namespace} {writer_pod} -- /bin/sh -c 'echo \"{test_content}\" > /data/{test_file}'"
@@ -595,12 +633,27 @@ done
                 text=True
             )
             
+            # Measure write operation duration
+            write_duration = time.time() - write_op_start
+            write_ops_count = 1  # One write operation
+            
+            # Track metrics for write operation
+            self.metrics_collector.track_file_operation_latency(pvc_name, "write", write_duration)
+            self.metrics_collector.track_file_operation_iops(pvc_name, "write", write_ops_count, write_duration)
+            self.metrics_collector.track_file_operation_throughput(pvc_name, "write", content_size_bytes, write_duration)
+            
+            self.logger.info(f"Write operation completed in {write_duration:.3f}s")
+            self.logger.info(f"Write throughput: {(content_size_bytes / 1024 / 1024) / write_duration:.2f} MB/s")
+            
             # Update results
             self.results['verify_write']['success'] += 1
             self.logger.info(f"Pod {writer_pod} wrote to /data/{test_file}")
             
             # Sleep briefly to ensure the write completes and is visible
             time.sleep(2)
+            
+            # Track read operation with metrics
+            read_op_start = time.time()
             
             # Read with second pod using kubectl
             read_cmd = f"kubectl exec -n {self.namespace} {reader_pod} -- cat /data/{test_file}"
@@ -615,8 +668,20 @@ done
                 text=True
             )
             
+            # Measure read operation duration
+            read_duration = time.time() - read_op_start
+            read_ops_count = 1  # One read operation
+            
+            # Track metrics for read operation
+            self.metrics_collector.track_file_operation_latency(pvc_name, "read", read_duration)
+            self.metrics_collector.track_file_operation_iops(pvc_name, "read", read_ops_count, read_duration)
+            self.metrics_collector.track_file_operation_throughput(pvc_name, "read", content_size_bytes, read_duration)
+            
             resp = read_process.stdout.strip()
-            self.logger.info(f"Read result: '{resp}'")
+            
+            self.logger.info(f"Read operation completed in {read_duration:.3f}s")
+            self.logger.info(f"Read throughput: {(content_size_bytes / 1024 / 1024) / read_duration:.2f} MB/s")
+            self.logger.info(f"Read result length: {len(resp)} bytes")
             
             # Verify content
             if test_content in resp:
@@ -626,11 +691,34 @@ done
                 # Update scenario tracking
                 self.scenarios['shared_volume_rw']['runs'] += 1
                 self.scenarios['shared_volume_rw']['success'] += 1
+                
+                # Add metadata operation metrics - perform ls to measure metadata operations
+                meta_op_start = time.time()
+                ls_cmd = f"kubectl exec -n {self.namespace} {reader_pod} -- ls -la /data/"
+                
+                ls_process = subprocess.run(
+                    ls_cmd,
+                    shell=True,
+                    check=True,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True
+                )
+                
+                meta_duration = time.time() - meta_op_start
+                meta_ops_count = 1  # One metadata operation
+                
+                # Track metrics for metadata operation
+                self.metrics_collector.track_file_operation_latency(pvc_name, "metadata", meta_duration)
+                self.metrics_collector.track_file_operation_iops(pvc_name, "metadata", meta_ops_count, meta_duration)
+                
+                self.logger.info(f"Metadata operation (ls) completed in {meta_duration:.3f}s")
+                
             else:
                 self.results['verify_read']['fail'] += 1
                 self.scenarios['shared_volume_rw']['runs'] += 1
                 self.scenarios['shared_volume_rw']['fail'] += 1
-                self.logger.error(f"Pod {reader_pod} failed to read content written by {writer_pod}. Got: '{resp}'")
+                self.logger.error(f"Pod {reader_pod} failed to read content written by {writer_pod}. Got different content length: {len(resp)} vs expected {len(test_content)}")
             
         except subprocess.CalledProcessError as e:
             self.logger.error(f"Command execution failed: {e}")
@@ -660,9 +748,9 @@ done
         Randomly select from the required scenarios
         """
         scenarios = [
-            self._scenario_many_to_one
-            #self._scenario_one_to_one, 
-            #self._scenario_concurrent_pvc
+            self._scenario_many_to_one,
+            self._scenario_one_to_one, 
+            self._scenario_concurrent_pvc
         ]
         
         # Pick a random scenario
@@ -855,6 +943,26 @@ done
                     self.logger.info(f"[MANY2ONE] Reader pod mount info: '{reader_mount_process.stdout.strip()}'")
                     
                     self.scenarios['many_to_one']['fail'] += 1
+                    # Collect logs for failure diagnostics with detailed information about failed resources
+                    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                    test_name = f"many2one_failure_{timestamp}"
+                    
+                    # Track failed resources for detailed logging
+                    failed_resources = [
+                        # Add any pods involved in the scenario
+                        {"type": "pod", "name": writer_pod, "namespace": self.namespace},
+                        {"type": "pod", "name": reader_pod, "namespace": self.namespace},
+                        # Add the PVC
+                        {"type": "pvc", "name": pvc_name, "namespace": self.namespace}
+                    ]
+                    
+                    logs_path = collect_logs_on_test_failure(
+                        test_name, 
+                        self.metrics_collector, 
+                        self.driver_pod_name,
+                        failed_resources=failed_resources
+                    )
+                    self.logger.info(f"Collected detailed failure logs to: {logs_path}")
             
             except subprocess.CalledProcessError as e:
                 self.logger.error(f"[MANY2ONE] Command execution failed: {e}")
@@ -997,6 +1105,26 @@ done
                 self.logger.error("[ONE2ONE] One-to-one scenario failed")
                 self.scenarios['one_to_one']['fail'] += 1
                 
+                # Collect logs for failure diagnostics with detailed information
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                test_name = f"one2one_failure_{timestamp}"
+                
+                # Track all failed resources for detailed logging
+                failed_resources = []
+                
+                # Add all PVC-pod pairs
+                for pvc_name, pod_name in pairs:
+                    failed_resources.append({"type": "pod", "name": pod_name, "namespace": self.namespace})
+                    failed_resources.append({"type": "pvc", "name": pvc_name, "namespace": self.namespace})
+                
+                logs_path = collect_logs_on_test_failure(
+                    test_name, 
+                    self.metrics_collector, 
+                    self.driver_pod_name,
+                    failed_resources=failed_resources
+                )
+                self.logger.info(f"Collected detailed failure logs to: {logs_path}")
+                
         except Exception as e:
             self.logger.error(f"[ONE2ONE] Unhandled error in one-to-one scenario: {e}")
             self.scenarios['one_to_one']['fail'] += 1
@@ -1053,6 +1181,29 @@ done
         except Exception as e:
             self.logger.error(f"Error in rapid PVC scenario: {e}")
             self.scenarios['concurrent_pvc']['fail'] += 1
+            
+            # Collect logs for failure diagnostics with detailed information
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            test_name = f"concurrent_pvc_failure_{timestamp}"
+            
+            # Track all resources involved in this scenario
+            failed_resources = []
+            
+            # Add all created PVCs
+            for pvc_name in created_pvcs:
+                failed_resources.append({"type": "pvc", "name": pvc_name, "namespace": self.namespace})
+                
+                # Add pods using those PVCs
+                for pod_name in self.pods.get(pvc_name, []):
+                    failed_resources.append({"type": "pod", "name": pod_name, "namespace": self.namespace})
+            
+            logs_path = collect_logs_on_test_failure(
+                test_name,
+                self.metrics_collector, 
+                self.driver_pod_name,
+                failed_resources=failed_resources
+            )
+            self.logger.info(f"Collected detailed failure logs to: {logs_path}")
     
     def _create_pvc_for_concurrent(self, pvc_name):
         """
