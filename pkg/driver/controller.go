@@ -392,8 +392,14 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 			mountTarget, err := localCloud.DescribeMountTargets(ctx, accessPointsOptions.FileSystemId, azName)
 			if err != nil {
 				klog.Warningf("Failed to describe mount targets for file system %v. Skip using `mounttargetip` mount option: %v", accessPointsOptions.FileSystemId, err)
+			} else if azName == "multi" {
+				var mountTargets []string
+				for _, mt := range mountTarget {
+					mountTargets = append(mountTargets, fmt.Sprintf("%s:%s", mt.AZId, mt.IPAddress))
+				}
+				volContext[MountTargetIp] = strings.Join(mountTargets, ",")
 			} else {
-				volContext[MountTargetIp] = mountTarget.IPAddress
+				volContext[MountTargetIp] = mountTarget[0].IPAddress
 			}
 
 		}
@@ -499,7 +505,8 @@ func (d *Driver) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeRequest)
 			} else {
 				mountTarget, err := localCloud.DescribeMountTargets(ctx, fileSystemId, "")
 				if err == nil {
-					mountOptions = append(mountOptions, MountTargetIp+"="+mountTarget.IPAddress)
+					// TODO optimize multi zone
+					mountOptions = append(mountOptions, MountTargetIp+"="+mountTarget[0].IPAddress)
 				} else {
 					klog.Warningf("Failed to describe mount targets for file system %v. Skip using `mounttargetip` mount option: %v", fileSystemId, err)
 				}
