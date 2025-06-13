@@ -1,0 +1,6 @@
+kubernetes
+pytest
+pyyaml
+prometheus_client
+pandas
+psutil
