@@ -1,0 +1,134 @@
+2025-06-09 14:22:15,661 - __main__ - INFO - Starting EFS CSI tests with configuration from config/orchestrator_config.yaml
+2025-06-09 14:22:15,661 - __main__ - INFO - Verifying AWS credentials
+2025-06-09 14:22:15,663 - urllib3.connectionpool - WARNING - Retrying (Retry(total=2, connect=None, read=None, redirect=None, status=None)) after connection broken by 'NewConnectionError('<urllib3.connection.HTTPConnection object at 0x7faa58451dc0>: Failed to establish a new connection: [Errno 111] Connection refused')': /api/v1/namespaces
+2025-06-09 14:22:15,663 - urllib3.connectionpool - WARNING - Retrying (Retry(total=1, connect=None, read=None, redirect=None, status=None)) after connection broken by 'NewConnectionError('<urllib3.connection.HTTPConnection object at 0x7faa57760200>: Failed to establish a new connection: [Errno 111] Connection refused')': /api/v1/namespaces
+2025-06-09 14:22:15,664 - urllib3.connectionpool - WARNING - Retrying (Retry(total=0, connect=None, read=None, redirect=None, status=None)) after connection broken by 'NewConnectionError('<urllib3.connection.HTTPConnection object at 0x7faa57760bc0>: Failed to establish a new connection: [Errno 111] Connection refused')': /api/v1/namespaces
+2025-06-09 14:22:15,664 - __main__ - INFO - Running orchestrator stress test suite
+2025-06-09 14:22:15,664 - __main__ - INFO - Starting orchestrator for 300 seconds
+2025-06-09 14:22:15,664 - __main__ - INFO - Using orchestrator config: config/orchestrator_config.yaml
+2025-06-09 14:22:16,871 - __main__ - INFO - Test duration overridden to 300 seconds
+2025-06-09 14:22:16,871 - __main__ - INFO - Operation interval overridden to 1 seconds (from rate 5/s)
+2025-06-09 14:22:57,994 - __main__ - INFO - Starting EFS CSI tests with configuration from config/orchestrator_config.yaml
+2025-06-09 14:22:57,994 - __main__ - INFO - Verifying AWS credentials
+2025-06-09 14:22:57,995 - urllib3.connectionpool - WARNING - Retrying (Retry(total=2, connect=None, read=None, redirect=None, status=None)) after connection broken by 'NewConnectionError('<urllib3.connection.HTTPConnection object at 0x7f7d9d75e0c0>: Failed to establish a new connection: [Errno 111] Connection refused')': /api/v1/namespaces
+2025-06-09 14:22:57,996 - urllib3.connectionpool - WARNING - Retrying (Retry(total=1, connect=None, read=None, redirect=None, status=None)) after connection broken by 'NewConnectionError('<urllib3.connection.HTTPConnection object at 0x7f7d9d87b950>: Failed to establish a new connection: [Errno 111] Connection refused')': /api/v1/namespaces
+2025-06-09 14:22:57,996 - urllib3.connectionpool - WARNING - Retrying (Retry(total=0, connect=None, read=None, redirect=None, status=None)) after connection broken by 'NewConnectionError('<urllib3.connection.HTTPConnection object at 0x7f7d9d75e150>: Failed to establish a new connection: [Errno 111] Connection refused')': /api/v1/namespaces
+2025-06-09 14:22:57,996 - __main__ - INFO - Running orchestrator stress test suite
+2025-06-09 14:22:57,997 - __main__ - INFO - Starting orchestrator for 300 seconds
+2025-06-09 14:22:57,997 - __main__ - INFO - Using orchestrator config: config/orchestrator_config.yaml
+2025-06-09 14:22:59,034 - __main__ - INFO - Test duration overridden to 300 seconds
+2025-06-09 14:22:59,034 - __main__ - INFO - Operation interval overridden to 1 seconds (from rate 5/s)
+2025-06-09 14:25:21,361 - __main__ - INFO - Starting EFS CSI tests with configuration from config/orchestrator_config.yaml
+2025-06-09 14:25:21,361 - __main__ - INFO - Verifying AWS credentials
+2025-06-09 14:25:21,362 - urllib3.connectionpool - WARNING - Retrying (Retry(total=2, connect=None, read=None, redirect=None, status=None)) after connection broken by 'NewConnectionError('<urllib3.connection.HTTPConnection object at 0x7f1b6a1801a0>: Failed to establish a new connection: [Errno 111] Connection refused')': /api/v1/namespaces
+2025-06-09 14:25:21,363 - urllib3.connectionpool - WARNING - Retrying (Retry(total=1, connect=None, read=None, redirect=None, status=None)) after connection broken by 'NewConnectionError('<urllib3.connection.HTTPConnection object at 0x7f1b6a180260>: Failed to establish a new connection: [Errno 111] Connection refused')': /api/v1/namespaces
+2025-06-09 14:25:21,363 - urllib3.connectionpool - WARNING - Retrying (Retry(total=0, connect=None, read=None, redirect=None, status=None)) after connection broken by 'NewConnectionError('<urllib3.connection.HTTPConnection object at 0x7f1b6a1827e0>: Failed to establish a new connection: [Errno 111] Connection refused')': /api/v1/namespaces
+2025-06-09 14:25:21,364 - __main__ - INFO - Running orchestrator stress test suite
+2025-06-09 14:25:21,364 - __main__ - INFO - Starting orchestrator for None seconds
+2025-06-09 14:25:21,364 - __main__ - INFO - Using orchestrator config: config/orchestrator_config.yaml
+2025-06-09 14:25:22,404 - __main__ - INFO - Operation interval overridden to 1 seconds (from rate 5/s)
+2025-06-09 14:56:33,409 - __main__ - INFO - Orchestrator report generated: reports/orchestrator/efs_orchestrator_20250609_145633.json
+2025-06-09 18:20:10,833 - __main__ - INFO - Starting EFS CSI tests with configuration from config/orchestrator_config.yaml
+2025-06-09 18:20:10,833 - __main__ - INFO - Verifying AWS credentials
+2025-06-09 18:20:10,834 - urllib3.connectionpool - WARNING - Retrying (Retry(total=2, connect=None, read=None, redirect=None, status=None)) after connection broken by 'NewConnectionError('<urllib3.connection.HTTPConnection object at 0x7f7441b71f70>: Failed to establish a new connection: [Errno 111] Connection refused')': /api/v1/namespaces
+2025-06-09 18:20:10,834 - urllib3.connectionpool - WARNING - Retrying (Retry(total=1, connect=None, read=None, redirect=None, status=None)) after connection broken by 'NewConnectionError('<urllib3.connection.HTTPConnection object at 0x7f7441940320>: Failed to establish a new connection: [Errno 111] Connection refused')': /api/v1/namespaces
+2025-06-09 18:20:10,835 - urllib3.connectionpool - WARNING - Retrying (Retry(total=0, connect=None, read=None, redirect=None, status=None)) after connection broken by 'NewConnectionError('<urllib3.connection.HTTPConnection object at 0x7f7441940620>: Failed to establish a new connection: [Errno 111] Connection refused')': /api/v1/namespaces
+2025-06-09 18:20:10,835 - __main__ - INFO - Running orchestrator stress test suite
+2025-06-09 18:20:10,835 - __main__ - INFO - Starting orchestrator for None seconds
+2025-06-09 18:20:10,835 - __main__ - INFO - Using orchestrator config: config/orchestrator_config.yaml
+2025-06-09 18:20:11,779 - __main__ - ERROR - Error running tests: (401)
+Reason: Unauthorized
+HTTP response headers: HTTPHeaderDict({'Audit-Id': 'd5d12f12-977a-4faf-bd61-ad049e1a9ec2', 'Cache-Control': 'no-cache, private', 'Content-Type': 'application/json', 'Date': 'Mon, 09 Jun 2025 18:20:11 GMT', 'Content-Length': '129'})
+HTTP response body: {"kind":"Status","apiVersion":"v1","metadata":{},"status":"Failure","message":"Unauthorized","reason":"Unauthorized","code":401}
+
+Traceback (most recent call last):
+  File "/local/home/ibhard/efs-csi-driver-fork/aws-efs-csi-driver/test/e2e/stress-scale-tests/run_tests.py", line 208, in main
+    orchestrator = EFSCSIOrchestrator(config_file=orchestrator_config)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/local/home/ibhard/efs-csi-driver-fork/aws-efs-csi-driver/test/e2e/stress-scale-tests/tests/orchestrator.py", line 91, in __init__
+    self._ensure_namespace_exists()
+  File "/local/home/ibhard/efs-csi-driver-fork/aws-efs-csi-driver/test/e2e/stress-scale-tests/tests/orchestrator.py", line 97, in _ensure_namespace_exists
+    self.core_v1.read_namespace(name=self.namespace)
+  File "/home/ibhard/.local/share/mise/installs/python/3.12.10/lib/python3.12/site-packages/kubernetes/client/api/core_v1_api.py", line 22992, in read_namespace
+    return self.read_namespace_with_http_info(name, **kwargs)  # noqa: E501
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ibhard/.local/share/mise/installs/python/3.12.10/lib/python3.12/site-packages/kubernetes/client/api/core_v1_api.py", line 23071, in read_namespace_with_http_info
+    return self.api_client.call_api(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ibhard/.local/share/mise/installs/python/3.12.10/lib/python3.12/site-packages/kubernetes/client/api_client.py", line 348, in call_api
+    return self.__call_api(resource_path, method,
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ibhard/.local/share/mise/installs/python/3.12.10/lib/python3.12/site-packages/kubernetes/client/api_client.py", line 180, in __call_api
+    response_data = self.request(
+                    ^^^^^^^^^^^^^
+  File "/home/ibhard/.local/share/mise/installs/python/3.12.10/lib/python3.12/site-packages/kubernetes/client/api_client.py", line 373, in request
+    return self.rest_client.GET(url,
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ibhard/.local/share/mise/installs/python/3.12.10/lib/python3.12/site-packages/kubernetes/client/rest.py", line 244, in GET
+    return self.request("GET", url,
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ibhard/.local/share/mise/installs/python/3.12.10/lib/python3.12/site-packages/kubernetes/client/rest.py", line 238, in request
+    raise ApiException(http_resp=r)
+kubernetes.client.exceptions.ApiException: (401)
+Reason: Unauthorized
+HTTP response headers: HTTPHeaderDict({'Audit-Id': 'd5d12f12-977a-4faf-bd61-ad049e1a9ec2', 'Cache-Control': 'no-cache, private', 'Content-Type': 'application/json', 'Date': 'Mon, 09 Jun 2025 18:20:11 GMT', 'Content-Length': '129'})
+HTTP response body: {"kind":"Status","apiVersion":"v1","metadata":{},"status":"Failure","message":"Unauthorized","reason":"Unauthorized","code":401}
+
+
+2025-06-09 18:36:58,115 - __main__ - INFO - Starting EFS CSI tests with configuration from config/orchestrator_config.yaml
+2025-06-09 18:36:58,115 - __main__ - INFO - Verifying AWS credentials
+2025-06-09 18:36:58,116 - urllib3.connectionpool - WARNING - Retrying (Retry(total=2, connect=None, read=None, redirect=None, status=None)) after connection broken by 'NewConnectionError('<urllib3.connection.HTTPConnection object at 0x7fbf0fb7d1f0>: Failed to establish a new connection: [Errno 111] Connection refused')': /api/v1/namespaces
+2025-06-09 18:36:58,116 - urllib3.connectionpool - WARNING - Retrying (Retry(total=1, connect=None, read=None, redirect=None, status=None)) after connection broken by 'NewConnectionError('<urllib3.connection.HTTPConnection object at 0x7fbf0e634350>: Failed to establish a new connection: [Errno 111] Connection refused')': /api/v1/namespaces
+2025-06-09 18:36:58,117 - urllib3.connectionpool - WARNING - Retrying (Retry(total=0, connect=None, read=None, redirect=None, status=None)) after connection broken by 'NewConnectionError('<urllib3.connection.HTTPConnection object at 0x7fbf0e634650>: Failed to establish a new connection: [Errno 111] Connection refused')': /api/v1/namespaces
+2025-06-09 18:36:58,117 - __main__ - INFO - Running orchestrator stress test suite
+2025-06-09 18:36:58,117 - __main__ - INFO - Starting orchestrator for None seconds
+2025-06-09 18:36:58,117 - __main__ - INFO - Using orchestrator config: config/orchestrator_config.yaml
+2025-06-09 18:36:59,092 - __main__ - ERROR - Error running tests: (401)
+Reason: Unauthorized
+HTTP response headers: HTTPHeaderDict({'Audit-Id': 'd3c86ac1-4d01-4ad7-a9bc-d37363c9419a', 'Cache-Control': 'no-cache, private', 'Content-Type': 'application/json', 'Date': 'Mon, 09 Jun 2025 18:36:59 GMT', 'Content-Length': '129'})
+HTTP response body: {"kind":"Status","apiVersion":"v1","metadata":{},"status":"Failure","message":"Unauthorized","reason":"Unauthorized","code":401}
+
+Traceback (most recent call last):
+  File "/local/home/ibhard/efs-csi-driver-fork/aws-efs-csi-driver/test/e2e/stress-scale-tests/run_tests.py", line 208, in main
+    orchestrator = EFSCSIOrchestrator(config_file=orchestrator_config)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/local/home/ibhard/efs-csi-driver-fork/aws-efs-csi-driver/test/e2e/stress-scale-tests/tests/orchestrator.py", line 91, in __init__
+    self._ensure_namespace_exists()
+  File "/local/home/ibhard/efs-csi-driver-fork/aws-efs-csi-driver/test/e2e/stress-scale-tests/tests/orchestrator.py", line 97, in _ensure_namespace_exists
+    self.core_v1.read_namespace(name=self.namespace)
+  File "/home/ibhard/.local/share/mise/installs/python/3.12.10/lib/python3.12/site-packages/kubernetes/client/api/core_v1_api.py", line 22992, in read_namespace
+    return self.read_namespace_with_http_info(name, **kwargs)  # noqa: E501
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ibhard/.local/share/mise/installs/python/3.12.10/lib/python3.12/site-packages/kubernetes/client/api/core_v1_api.py", line 23071, in read_namespace_with_http_info
+    return self.api_client.call_api(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ibhard/.local/share/mise/installs/python/3.12.10/lib/python3.12/site-packages/kubernetes/client/api_client.py", line 348, in call_api
+    return self.__call_api(resource_path, method,
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ibhard/.local/share/mise/installs/python/3.12.10/lib/python3.12/site-packages/kubernetes/client/api_client.py", line 180, in __call_api
+    response_data = self.request(
+                    ^^^^^^^^^^^^^
+  File "/home/ibhard/.local/share/mise/installs/python/3.12.10/lib/python3.12/site-packages/kubernetes/client/api_client.py", line 373, in request
+    return self.rest_client.GET(url,
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ibhard/.local/share/mise/installs/python/3.12.10/lib/python3.12/site-packages/kubernetes/client/rest.py", line 244, in GET
+    return self.request("GET", url,
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ibhard/.local/share/mise/installs/python/3.12.10/lib/python3.12/site-packages/kubernetes/client/rest.py", line 238, in request
+    raise ApiException(http_resp=r)
+kubernetes.client.exceptions.ApiException: (401)
+Reason: Unauthorized
+HTTP response headers: HTTPHeaderDict({'Audit-Id': 'd3c86ac1-4d01-4ad7-a9bc-d37363c9419a', 'Cache-Control': 'no-cache, private', 'Content-Type': 'application/json', 'Date': 'Mon, 09 Jun 2025 18:36:59 GMT', 'Content-Length': '129'})
+HTTP response body: {"kind":"Status","apiVersion":"v1","metadata":{},"status":"Failure","message":"Unauthorized","reason":"Unauthorized","code":401}
+
+
+2025-06-09 18:37:28,448 - __main__ - INFO - Starting EFS CSI tests with configuration from config/orchestrator_config.yaml
+2025-06-09 18:37:28,448 - __main__ - INFO - Verifying AWS credentials
+2025-06-09 18:37:28,449 - urllib3.connectionpool - WARNING - Retrying (Retry(total=2, connect=None, read=None, redirect=None, status=None)) after connection broken by 'NewConnectionError('<urllib3.connection.HTTPConnection object at 0x7fefbc4d51f0>: Failed to establish a new connection: [Errno 111] Connection refused')': /api/v1/namespaces
+2025-06-09 18:37:28,449 - urllib3.connectionpool - WARNING - Retrying (Retry(total=1, connect=None, read=None, redirect=None, status=None)) after connection broken by 'NewConnectionError('<urllib3.connection.HTTPConnection object at 0x7fefbb0a0da0>: Failed to establish a new connection: [Errno 111] Connection refused')': /api/v1/namespaces
+2025-06-09 18:37:28,449 - urllib3.connectionpool - WARNING - Retrying (Retry(total=0, connect=None, read=None, redirect=None, status=None)) after connection broken by 'NewConnectionError('<urllib3.connection.HTTPConnection object at 0x7fefbaf8c1a0>: Failed to establish a new connection: [Errno 111] Connection refused')': /api/v1/namespaces
+2025-06-09 18:37:28,450 - __main__ - INFO - Running orchestrator stress test suite
+2025-06-09 18:37:28,450 - __main__ - INFO - Starting orchestrator for None seconds
+2025-06-09 18:37:28,450 - __main__ - INFO - Using orchestrator config: config/orchestrator_config.yaml
+2025-06-09 18:37:29,435 - __main__ - INFO - Operation interval overridden to 1 seconds (from rate 5/s)
+2025-06-09 18:40:30,388 - __main__ - INFO - Orchestrator report generated: reports/orchestrator/efs_orchestrator_20250609_184030.json
