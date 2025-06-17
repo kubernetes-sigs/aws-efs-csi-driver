@@ -75,6 +75,7 @@ RUN clean_install amazon-efs-utils true && \
         /usr/bin/mount \
         /usr/bin/umount \
         /sbin/mount.nfs4 \
+        /usr/bin/openssl \
         /usr/bin/sed \
         /usr/bin/stat \
         /usr/bin/stunnel \

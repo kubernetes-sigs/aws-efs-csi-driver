@@ -150,7 +150,6 @@ HELM_ARGS=(upgrade --install "${DRIVER_NAME}"
   --set sidecars.node-driver-registrar.image.repository=602401143452.dkr.ecr.us-west-2.amazonaws.com/eks/csi-node-driver-registrar
   --set sidecars.csiProvisioner.image.repository=602401143452.dkr.ecr.us-west-2.amazonaws.com/eks/csi-provisioner
   --wait
-  --debug
   --kubeconfig "${KUBECONFIG}"
   ./charts/"${DRIVER_NAME}")
 if [[ -f "$HELM_VALUES_FILE" ]]; then
