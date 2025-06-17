@@ -124,3 +124,4 @@ test:
   duration: 120
   namespace: efs-stress-test
   operation_interval: 3
+# Updated configuration for EFS test orchestrator

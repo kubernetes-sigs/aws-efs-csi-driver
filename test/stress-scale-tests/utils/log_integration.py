@@ -364,3 +364,4 @@ if __name__ == "__main__":
     # Example usage
     tarball_path = collect_logs_for_test("example_test")
     print(f"Logs collected to: {tarball_path}")
+# Enhanced log integration module
