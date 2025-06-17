@@ -768,9 +768,13 @@ while true; do sleep 30; done
         """
         scenarios = [
             self._scenario_many_to_one,
-            self._scenario_one_to_one, 
+            self._scenario_one_to_one,
             self._scenario_concurrent_pvc
         ]
+        
+        # Add controller crash test if enabled
+        if self.config["scenarios"].get("controller_crash", {}).get("enabled", False):
+            scenarios.append(self._scenario_controller_crash_test)
         
         # Pick a random scenario
         scenario = random.choice(scenarios)
@@ -1824,6 +1828,229 @@ while true; do sleep 30; done
         if runs == 0:
             return 0
         return (self.scenarios[scenario_name]['success'] / runs) * 100
+    
+    def _scenario_controller_crash_test(self):
+        """
+        Test the resilience of CSI driver by crashing the controller pod during PVC provisioning.
+        
+        Steps:
+        1. Create a PVC
+        2. Crash the controller pod
+        3. Verify that the PVC still becomes bound
+        4. Attach a pod and verify read/write functionality
+        """
+        self.logger.info("+" * 80)
+        self.logger.info("STARTING CONTROLLER CRASH TEST SCENARIO")
+        self.logger.info("+" * 80)
+        
+        # Initialize scenario tracking if needed
+        if 'controller_crash' not in self.scenarios:
+            self.scenarios['controller_crash'] = {'runs': 0, 'success': 0, 'fail': 0}
+        self.scenarios['controller_crash']['runs'] += 1
+        
+        try:
+            # Step 1: Create PVC with unique name
+            self._create_crash_test_pvc()
+            
+            # Step 2: Crash controller pod
+            if not self._crash_controller_pod():
+                self.logger.error("Failed to crash or verify controller pod recreation")
+                self._track_scenario_failure('controller_crash')
+                return
+                
+            # Step 3: Verify PVC becomes bound and attach pod
+            if not self._verify_crash_test_pvc_and_pod():
+                self._track_scenario_failure('controller_crash')
+                return
+                
+            # Success!
+            self.logger.info("Controller crash test completed successfully")
+            self._track_scenario_success('controller_crash')
+            
+        except Exception as e:
+            self.logger.error(f"Exception in controller crash test: {str(e)}")
+            self._track_scenario_failure('controller_crash')
+            self._handle_unexpected_test_error(e)
+            
+        self.logger.info("+" * 80)
+        self.logger.info("COMPLETED CONTROLLER CRASH TEST SCENARIO")
+        self.logger.info("+" * 80)
+    
+    def _create_crash_test_pvc(self):
+        """Create a PVC for controller crash test"""
+        crash_config = self.config["scenarios"].get("controller_crash", {})
+        pvc_name = f"crash-test-{uuid.uuid4().hex[:8]}"
+        
+        self.logger.info(f"[CRASH-TEST] Creating PVC {pvc_name}")
+        
+        # Build and create PVC manifest
+        pvc_manifest = self._build_pvc_manifest(pvc_name)
+        self.core_v1.create_namespaced_persistent_volume_claim(
+            namespace=self.namespace,
+            body=pvc_manifest
+        )
+        
+        # Track PVC
+        self.pvcs.append(pvc_name)
+        self.pods[pvc_name] = []
+        self.results['create_pvc']['success'] += 1
+        
+        # Save PVC name for later verification
+        self._crash_test_pvc_name = pvc_name
+        
+        return pvc_name
+    
+    def _crash_controller_pod(self):
+        """
+        Find and delete the CSI controller pod to simulate a crash.
+        The pod will be automatically recreated by Kubernetes.
+        """
+        import subprocess
+        
+        # Get controller crash test configuration
+        crash_config = self.config["scenarios"].get("controller_crash", {})
+        controller_namespace = crash_config.get("controller_namespace", "kube-system")
+        controller_pod_selector = crash_config.get("controller_pod_selector", "app=efs-csi-controller")
+        
+        try:
+            # Find the controller pod
+            self.logger.info(f"Finding controller pod in namespace {controller_namespace}")
+            cmd = f"kubectl get pods -n {controller_namespace} -l {controller_pod_selector} --no-headers -o custom-columns=:metadata.name"
+            
+            result = subprocess.run(
+                cmd,
+                shell=True,
+                check=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True
+            )
+            
+            controller_pods = [pod for pod in result.stdout.strip().split('\n') if pod]
+            
+            if not controller_pods:
+                self.logger.error(f"No controller pods found in namespace {controller_namespace}")
+                return False
+            
+            # Delete the controller pod
+            controller_pod = controller_pods[0]
+            self.logger.info(f"Crashing controller pod: {controller_pod}")
+            
+            delete_cmd = f"kubectl delete pod {controller_pod} -n {controller_namespace} --wait=false"
+            subprocess.run(delete_cmd, shell=True, check=True)
+            
+            # Wait briefly to ensure deletion has started
+            time.sleep(5)
+            
+            # Wait for new controller pod
+            return self._verify_controller_recreation(controller_namespace, controller_pod_selector)
+            
+        except Exception as e:
+            self.logger.error(f"Failed to crash controller pod: {str(e)}")
+            return False
+    
+    def _verify_controller_recreation(self, namespace, pod_selector):
+        """Verify the controller pod was recreated after being deleted"""
+        import subprocess
+        
+        self.logger.info("Verifying controller pod recreation")
+        max_retries = 12
+        
+        for attempt in range(max_retries):
+            try:
+                # Check if any controller pod exists and its status
+                cmd = f"kubectl get pods -n {namespace} -l {pod_selector} -o jsonpath='{{.items[*].status.phase}}'"
+                result = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+                
+                if not result.stdout:
+                    self.logger.info(f"Controller pod not found yet (attempt {attempt+1}/{max_retries})")
+                elif "Running" in result.stdout:
+                    self.logger.info("New controller pod is running")
+                    return True
+                elif "ContainerCreating" in result.stdout or "Pending" in result.stdout:
+                    self.logger.info("New controller pod is being created")
+                    return True
+                elif "Error" in result.stdout or "CrashLoopBackOff" in result.stdout:
+                    self.logger.error("Controller pod is in error state")
+                    return False
+                    
+                time.sleep(10)
+                
+            except Exception as e:
+                self.logger.error(f"Error checking controller pod status: {str(e)}")
+                return False
+                
+        self.logger.error("Controller pod was not recreated within expected time")
+        return False
+    
+    def _verify_crash_test_pvc_and_pod(self):
+        """Verify PVC becomes bound after controller crash and attach a pod"""
+        # Get controller crash test configuration
+        crash_config = self.config["scenarios"].get("controller_crash", {})
+        recovery_timeout = crash_config.get("recovery_timeout", 300)
+        
+        # Get the PVC name we saved earlier
+        pvc_name = getattr(self, '_crash_test_pvc_name', None)
+        
+        if not pvc_name:
+            self.logger.error("No crash test PVC name found")
+            return False
+            
+        # Wait for PVC to become bound with extended timeout
+        self.logger.info(f"Waiting for PVC {pvc_name} to become bound after controller crash")
+        if not self._wait_for_pvc_bound(pvc_name, timeout=recovery_timeout):
+            self.logger.error(f"PVC {pvc_name} failed to bind after controller crash")
+            self._run_pod_diagnostics_commands()
+            return False
+            
+        self.logger.info(f"PVC {pvc_name} successfully bound after controller crash")
+        
+        # Create a pod using this PVC
+        self.logger.info(f"Creating pod to use PVC {pvc_name}")
+        pod_name = self._attach_pod(pvc_name)
+        
+        if not pod_name:
+            self.logger.error(f"Failed to attach pod to PVC {pvc_name} after controller crash")
+            return False
+            
+        # Verify read/write works
+        self.logger.info(f"Verifying read/write capability")
+        if not self._verify_single_pod_readwrite(pod_name, pvc_name):
+            self.logger.error("Read/write verification failed after controller crash")
+            return False
+            
+        return True
+        
+    def _verify_single_pod_readwrite(self, pod_name, pvc_name):
+        """Verify a single pod can read/write to its volume"""
+        import subprocess
+        
+        test_file = f"crash-test-{uuid.uuid4().hex[:8]}.txt"
+        test_content = f"Controller crash test: {uuid.uuid4()}"
+        
+        try:
+            # Write test
+            write_cmd = f"kubectl exec -n {self.namespace} {pod_name} -- /bin/sh -c 'echo \"{test_content}\" > /data/{test_file}'"
+            self.logger.info(f"Executing write command: {write_cmd}")
+            subprocess.run(write_cmd, shell=True, check=True)
+            
+            # Read test
+            read_cmd = f"kubectl exec -n {self.namespace} {pod_name} -- cat /data/{test_file}"
+            self.logger.info(f"Executing read command: {read_cmd}")
+            read_process = subprocess.run(read_cmd, shell=True, check=True, stdout=subprocess.PIPE, text=True)
+            read_result = read_process.stdout.strip()
+            
+            # Check result
+            if test_content in read_result:
+                self.logger.info(f"Read/write test successful")
+                return True
+            else:
+                self.logger.error(f"Read/write test failed: expected '{test_content}', got '{read_result}'")
+                return False
+                
+        except Exception as e:
+            self.logger.error(f"Error in read/write test: {str(e)}")
+            return False
     
     def _print_report_summary(self, report):
         """Print a summary of the test report"""
