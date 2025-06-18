@@ -59,6 +59,10 @@ stunnel_debug_enabled = false
 #Uncomment the below option to save all stunnel logs for a file system to the same file
 #stunnel_logs_file = /var/log/amazon/efs/{fs_id}.stunnel.log
 stunnel_cafile = /etc/amazon/efs/efs-utils.crt
+{{if .CsiDriverVersion -}}
+csi_driver_version={{.CsiDriverVersion}}
+{{else -}}
+{{- end}}
 
 # Validate the certificate hostname on mount. This option is not supported by certain stunnel versions.
 stunnel_check_cert_hostname = true
@@ -151,6 +155,7 @@ retention_in_days = 14
 
 	efsUtilsConfigFileName = "efs-utils.conf"
 	efsStateDir            = "/var/run/efs"
+	csiDriverVersion       = "v2.1.8"
 )
 
 // Watchdog defines the interface for process monitoring and supervising
@@ -186,6 +191,7 @@ type efsUtilsConfig struct {
 	Region              string
 	FipsEnabled         string
 	PortRangeUpperBound string
+	CsiDriverVersion    string
 }
 
 func newExecWatchdog(efsUtilsCfgPath, efsUtilsStaticFilesPath, cmd string, arg ...string) Watchdog {
@@ -297,7 +303,13 @@ func (w *execWatchdog) updateConfig(efsClientSource string) error {
 	if err != nil || val < 21049 {
 		portRangeUpperBound = "21049"
 	}
-	efsCfg := efsUtilsConfig{EfsClientSource: efsClientSource, Region: region, FipsEnabled: fipsEnabled, PortRangeUpperBound: portRangeUpperBound}
+	efsCfg := efsUtilsConfig{
+		EfsClientSource: efsClientSource, 
+		Region: region, 
+		FipsEnabled: fipsEnabled, 
+		PortRangeUpperBound: portRangeUpperBound
+		CsiDriverVersion: csiDriverVersion
+	}
 	if err = efsCfgTemplate.Execute(f, efsCfg); err != nil {
 		return fmt.Errorf("cannot update config %s for efs-utils. Error: %v", w.efsUtilsCfgPath, err)
 	}
