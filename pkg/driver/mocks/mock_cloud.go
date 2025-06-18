@@ -219,10 +219,10 @@ func (mr *MockCloudMockRecorder) DescribeFileSystem(ctx, fileSystemId interface{
 }
 
 // DescribeMountTargets mocks base method.
-func (m *MockCloud) DescribeMountTargets(ctx context.Context, fileSystemId, az string) (*cloud.MountTarget, error) {
+func (m *MockCloud) DescribeMountTargets(ctx context.Context, fileSystemId, az string) ([]*cloud.MountTarget, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DescribeMountTargets", ctx, fileSystemId, az)
-	ret0, _ := ret[0].(*cloud.MountTarget)
+	ret0, _ := ret[0].([]*cloud.MountTarget)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
