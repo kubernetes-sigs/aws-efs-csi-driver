@@ -17,13 +17,55 @@ The test framework automatically generates load on the EFS CSI Driver by creatin
 - **Comprehensive Reporting**: Detailed logs and metrics in JSON and summary formats
 - **Configurable Parameters**: Adjust test duration, operation rates, resource limits, and more
 
-## Requirements
+## Prerequisites
 
-- Python 3.8+
-- Kubernetes cluster with EFS CSI Driver installed
+- AWS Account with appropriate permissions for:
+  - EFS filesystem creation and management
+  - EKS cluster management (if creating a new cluster)
+- Kubernetes cluster with:
+  - EFS CSI Driver installed (unless using the orchestrator to install it)
+  - Node(s) in the same VPC as your EFS filesystem
 - `kubectl` configured to access the cluster
+- Required Python packages (install via requirements.txt):
+  - kubernetes
+  - pytest
+  - pyyaml
+  - prometheus_client
+  - pandas
+  - psutil
+  - boto3
 
 ## Quick Start
+
+### Important Configuration Notes
+
+Before running tests, you'll need to configure key settings in `config/orchestrator_config.yaml`. The most important sections are:
+
+1. **Driver Configuration**:
+   ```yaml
+   driver:
+     create_filesystem: true/false  # Set to true to automatically create a new EFS filesystem
+     filesystem_id: fs-xxx         # Required if create_filesystem is false (use existing filesystem)
+     # Note: If create_filesystem is true, boto3 will be used to create the filesystem
+   ```
+
+2. **Storage Class Configuration**:
+   ```yaml
+   storage_class:
+     parameters:
+       fileSystemId: fs-xxx       # Must match your filesystem_id
+       region: us-west-1          # Your AWS region
+       availabilityZoneName: us-west-1b  # AZ where your nodes are running
+   ```
+
+3. **Pod Configuration**:
+   ```yaml
+   pod_config:
+     node_selector:
+       topology.kubernetes.io/zone: us-west-1b  # Must match your node's AZ
+   ```
+
+### Getting Started
 
 1. Set up a Python virtual environment (recommended):
    ```
@@ -49,15 +91,48 @@ The test framework automatically generates load on the EFS CSI Driver by creatin
    python run_tests.py
    ```
 
-## Configuration Options
+## Configuration Structure
 
-The main configuration file is located at `config/orchestrator_config.yaml`. Key parameters include:
+The configuration is modularized into separate components for better organization and clarity:
 
-- `test.duration`: Test duration in seconds (default: 3600)
-- `test.namespace`: Kubernetes namespace for test resources (default: efs-stress-test) 
-- `test.operation_interval`: Time between operations in seconds (default: 3)
-- `resource_limits`: Controls maximum PVCs and pods to create
-- `operation_weights`: Adjust relative frequency of different operations
+1. `config/orchestrator_config.yaml`: Main configuration file that imports component configurations
+2. Component configurations in `config/components/`:
+   - `driver.yaml`: Driver installation and resource settings
+   - `storage.yaml`: Storage class configuration
+   - `test.yaml`: Test parameters, metrics, and reporting settings
+   - `pod.yaml`: Pod configuration settings
+   - `scenarios.yaml`: Test scenario definitions
+
+Each component file is well-documented with comments explaining available options. The modular structure allows you to:
+- Focus on specific configuration aspects independently
+- Easily understand which settings are related
+- Comment out unused sections without affecting other components
+- Override specific settings in the main config file if needed
+
+### Key Configuration Parameters
+
+Most commonly adjusted settings:
+
+1. In `driver.yaml`:
+   - `driver.create_filesystem`: Whether to create a new EFS filesystem
+   - `driver.filesystem_id`: Your EFS filesystem ID
+
+2. In `storage.yaml`:
+   - `storage_class.parameters.fileSystemId`: Must match your filesystem_id
+   - `storage_class.parameters.region`: Your AWS region
+   - `storage_class.parameters.availabilityZoneName`: Your AZ
+
+3. In `test.yaml`:
+   - `test.duration`: Test duration in seconds
+   - `test.namespace`: Kubernetes namespace for test resources
+   - `test.operation_interval`: Time between operations
+
+4. In `pod.yaml`:
+   - `pod_config.node_selector`: Must match your node's availability zone
+
+5. In `scenarios.yaml`:
+   - Enable/disable specific test scenarios as needed
+   - Adjust scenario parameters like pod counts and PVC limits
 
 ## Running Tests
 
@@ -71,9 +146,9 @@ Run with custom duration (e.g., 2 hours):
 python run_tests.py --duration 7200
 ```
 
-Run with custom operation rate (operations per second):
+Run with custom interval (seconds between operations):
 ```
-python run_tests.py --rate 10
+python run_tests.py --interval 10
 ```
 
 ## Cleanup

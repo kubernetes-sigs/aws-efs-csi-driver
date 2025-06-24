@@ -4,3 +4,4 @@ pyyaml
 prometheus_client
 pandas
 psutil
+boto3
