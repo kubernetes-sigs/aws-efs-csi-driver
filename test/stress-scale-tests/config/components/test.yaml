@@ -1,0 +1,58 @@
+# Core test configuration
+test:
+  # Test duration in seconds
+  duration: 3000
+  # Kubernetes namespace for test resources
+  namespace: efs-stress-test
+  # Time between operations in seconds
+  operation_interval: 2
+
+# Resource limits to prevent overload
+resource_limits:
+  # Maximum pods that can use a single PVC
+  max_pods_per_pvc: 50
+  # Maximum number of PVCs to create
+  max_pvcs: 1000
+  # Maximum total pods across all PVCs
+  total_max_pods: 3000
+
+# Operation frequency weights (higher = more frequent)
+operation_weights:
+  # Core operations
+  create_pvc: 30
+  attach_pod: 25
+  delete_pod: 25
+  delete_pvc: 25
+  # Additional operations
+  verify_readwrite: 25
+  run_specific_scenario: 25
+
+# Retry configuration for failed operations
+retries:
+  max_attempts: 3
+  retry_delay: 1
+
+# Logging configuration
+logging:
+  # Enable console output
+  console_enabled: true
+  # Enable file logging
+  file_enabled: true
+  # Log level (DEBUG, INFO, WARNING, ERROR)
+  level: INFO
+
+# Metrics collection settings
+metrics:
+  # Track operation durations
+  collect_operation_durations: true
+  # Track system metrics (CPU, memory, etc)
+  collect_system_metrics: true
+
+# Report generation settings
+reporting:
+  # Generate JSON report
+  json_report: true
+  # Generate summary report
+  summary_report: true
+  # Directory for report output
+  report_directory: reports/orchestrator
