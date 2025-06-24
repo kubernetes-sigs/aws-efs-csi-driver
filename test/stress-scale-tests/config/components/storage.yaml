@@ -1,0 +1,47 @@
+# Storage class configuration for EFS volumes
+storage_class:
+  # Name of the storage class to create
+  name: efs-sc
+
+  # Mount options for EFS volumes
+  mount_options:
+  - tls        # Enable TLS for secure data transfer
+  - hard       # Hard mount for better reliability
+  - nfsvers=4.1  # NFS version to use
+
+  # Storage class parameters
+  parameters:
+    # Base path for dynamic provisioning (optional)
+    basePath: /dynamic_provisioning_test
+    
+    # Whether to delete access point root directory on PVC deletion
+    deleteAccessPointRootDir: 'true'
+    
+    # Directory permissions for new access points
+    directoryPerms: '700'
+    
+    # EFS filesystem ID - MUST match the filesystem_id in driver.yaml
+    fileSystemId: fs-024e09bcfd37c74aa
+    
+    # GID range for access point creation
+    gidRangeStart: '1500'
+    gidRangeEnd: '2000'
+    
+    # UID range for access point creation
+    uidRangeStart: '1500'
+    uidRangeEnd: '2000'
+    
+    # Provisioning mode (efs-ap for access point mode)
+    provisioningMode: efs-ap
+    
+    # AWS region where the EFS filesystem exists
+    region: us-west-1
+    
+    # Availability zone for the EFS mount targets
+    availabilityZoneName: us-west-1b
+
+  # What happens to PVs when PVCs are deleted
+  reclaim_policy: Delete
+  
+  # When volumes are bound to pods
+  volume_binding_mode: Immediate

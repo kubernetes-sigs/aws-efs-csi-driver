@@ -1,36 +1,67 @@
+# AWS EFS CSI Driver Orchestrator Configuration
+
+# Cluster Configuration
 cluster:
+  # Whether to create a new Kubernetes cluster (true) or use an existing one (false)
   create: true
+  # Kubernetes version to use when creating a new cluster
   kubernetes_version: '1.28'
+  # Number of worker nodes in the cluster
   node_count: 3
+  # EC2 instance type for the worker nodes
   node_type: t3.large
+  # AWS region where the cluster will be created
   region: us-west-2
+
+# CSI Driver Configuration
 driver:
+  # Whether to create a new EFS filesystem (true) or use an existing one (false)
   create_filesystem: true
+  # ID of the EFS filesystem to use, required when create_filesystem is false
   filesystem_id: fs-024e09bcfd37c74aa
+  # Method to install the CSI driver (helm, manual, etc.)
   install_method: helm
+  # Version of the CSI driver to install
   version: 2.1.0
+
+# Driver Resource Allocation
 driver_resources:
+  # Controller pod configuration
   controller:
+    # Whether to delete the access point root directory on PVC deletion
     delete_access_point_root_dir: true
+    # Log verbosity level (1-9)
     log_level: 5
+    # Resource limits and requests for the controller pod
     resources:
+      # Maximum resources the controller pod can use
       limits:
         cpu: 1000m
         memory: 2.5Gi
+      # Minimum resources guaranteed to the controller pod
       requests:
         cpu: 200m
         memory: 1Gi
+  
+  # Node daemonset configuration
   node:
+    # Log verbosity level (1-9)
     log_level: 5
+    # Resource limits and requests for the node pods
     resources:
+      # Maximum resources the node pod can use
       limits:
         cpu: 1000m
         memory: 1Gi
+      # Minimum resources guaranteed to the node pod
       requests:
         cpu: 100m
         memory: 128Mi
+    # Sidecar containers configuration
     sidecars:
+      # Liveness probe sidecar container
       liveness_probe:
+        # Resource limits and requests
         resources:
           limits:
             cpu: 100m
@@ -38,7 +69,9 @@ driver_resources:
           requests:
             cpu: 10m
             memory: 20Mi
+      # Node driver registrar sidecar container
       node_driver_registrar:
+        # Resource limits and requests
         resources:
           limits:
             cpu: 100m
@@ -46,81 +79,158 @@ driver_resources:
           requests:
             cpu: 10m
             memory: 20Mi
+
+# Logging Configuration
 logging:
+  # Whether to enable logging to console
   console_enabled: true
+  # Whether to enable logging to file
   file_enabled: true
+  # Log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
   level: INFO
+
+# Metrics Collection Configuration
 metrics:
+  # Whether to collect operation duration metrics
   collect_operation_durations: true
+  # Whether to collect system metrics (CPU, memory, etc.)
   collect_system_metrics: true
+
+# Operation Probability Weights
 operation_weights:
+  # Weight for pod attachment operations (higher = more frequent)
   attach_pod: 15
+  # Weight for PVC creation operations
   create_pvc: 25
+  # Weight for pod deletion operations
   delete_pod: 5
+  # Weight for PVC deletion operations
   delete_pvc: 10
+  # Weight for running specific test scenarios
   run_specific_scenario: 30
+  # Weight for read/write verification operations
   verify_readwrite: 25
+
+# Pod Configuration
 pod_config:
+  # Arguments passed to the container command
   args:
   - touch /data/pod-ready && while true; do sleep 30; done
+  # Command to run in the container
   command:
   - /bin/sh
   - -c
+  # Container image to use for test pods
   image: alpine
-  # Temporarily commenting out node selector to fix pod scheduling issues
+  # Node selector for pod scheduling (currently commented out)
   # node_selector:
   #   efs-issue: 'false'
+  # Readiness probe configuration
   readiness_probe:
+    # Time to wait before first probe after container starts
     initial_delay_seconds: 5
+    # How often to perform the probe
     period_seconds: 5
+  # Pod tolerations for scheduling on tainted nodes
   tolerations:
   - effect: NoSchedule
     key: instance
     operator: Equal
     value: core
+
+# Test Reporting Configuration
 reporting:
+  # Whether to generate JSON reports
   json_report: true
+  # Directory where reports will be stored
   report_directory: reports/orchestrator
+  # Whether to generate a summary report
   summary_report: true
+
+# Resource Limits for Tests
 resource_limits:
+  # Maximum number of pods that can be attached to a single PVC
   max_pods_per_pvc: 50
+  # Maximum number of PVCs to create during testing
   max_pvcs: 100
+  # Maximum total number of pods to create across all tests
   total_max_pods: 30
+
+# Retry Configuration
 retries:
+  # Maximum number of retry attempts for failed operations
   max_attempts: 3
+  # Delay in seconds between retry attempts
   retry_delay: 1
+
+# Test Scenario Configurations
 scenarios:
+  # Concurrent PVC scenario - tests creating multiple PVCs concurrently
   concurrent_pvc:
+    # Whether this scenario is enabled
     enabled: true
+    # Maximum number of PVCs to create in this scenario
     max_pvcs: 7
+    # Minimum number of PVCs to create in this scenario
     min_pvcs: 3
+  
+  # Many-to-one scenario - tests multiple pods using the same PVC
   many_to_one:
+    # Whether this scenario is enabled
     enabled: true
+    # Maximum number of pods to create per PVC
     max_pods: 5
+    # Minimum number of pods to create per PVC
     min_pods: 3
+  
+  # One-to-one scenario - tests pods with their own dedicated PVCs
   one_to_one:
+    # Whether this scenario is enabled
     enabled: true
+    # Maximum number of pod-PVC pairs to create
     max_pairs: 5
+    # Minimum number of pod-PVC pairs to create
     min_pairs: 3
+
+# Storage Class Configuration
 storage_class:
+  # Mount options for the volumes
   mount_options:
-  - tls
-  - hard
-  - nfsvers=4.1
+  - tls           # Enable TLS for the NFS connection
+  - hard          # Hard mount (retry indefinitely)
+  - nfsvers=4.1   # Use NFS version 4.1
+  # Name of the storage class
   name: efs-sc
+  # StorageClass parameters
   parameters:
+    # Base path in the filesystem for dynamic provisioning
     basePath: /dynamic_provisioning_test
+    # Whether to delete the access point root directory when PVC is deleted
     deleteAccessPointRootDir: 'true'
+    # Directory permissions for new directories
     directoryPerms: '700'
+    # EFS filesystem ID
     fileSystemId: fs-024e09bcfd37c74aa
+    # End of GID range for access point
     gidRangeEnd: '2000'
+    # Start of GID range for access point
     gidRangeStart: '1500'
-    provisioningMode: efs-ap # EFS access point mode 
+    # Provisioning mode (efs-ap for access point mode)
+    provisioningMode: efs-ap
+    # End of UID range for access point
     uidRangeEnd: '2000'
-    uidRangeStart: '1500' 
+    # Start of UID range for access point
+    uidRangeStart: '1500'
+  # What happens to PVs when PVCs are deleted (Delete or Retain)
   reclaim_policy: Delete
+  # When to bind PVs to PVCs (Immediate or WaitForFirstConsumer)
   volume_binding_mode: Immediate
+
+# Test Execution Configuration
 test:
+  # Duration of the test in seconds
   duration: 120
+  # Kubernetes namespace where tests will be run
   namespace: efs-stress-test
+  # Time in seconds between operations
   operation_interval: 3

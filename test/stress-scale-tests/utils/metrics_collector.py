@@ -631,3 +631,4 @@ class MetricsCollector:
             "k8s_events": self.k8s_events,
             "file_performance": file_performance_summary
         }
+# Enhanced modular implementation for metrics collection

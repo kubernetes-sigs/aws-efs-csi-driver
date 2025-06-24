@@ -333,3 +333,4 @@ class ReportGenerator:
                         file.write(f"{key}: {value}\n")
             else:
                 file.write(f"{result}\n")
+# Enhanced report generator module

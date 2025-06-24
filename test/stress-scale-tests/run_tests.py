@@ -48,7 +48,12 @@ def parse_args():
     parser.add_argument(
         '--config', 
         default='config/orchestrator_config.yaml',
-        help='Path to configuration file'
+        help='Path to main configuration file (legacy option)'
+    )
+    parser.add_argument(
+        '--config-dir',
+        default='config/components',
+        help='Path to directory containing component configuration files'
     )
     parser.add_argument(
         '--test-suite', 
@@ -81,22 +86,8 @@ def parse_args():
     
     # Cluster setup options - kept for compatibility but functionality is disabled
     parser.add_argument(
-        '--setup-cluster',
-        action='store_true',
-        help='Set up EKS cluster and EFS CSI driver before running tests (DISABLED)'
-    )
-    parser.add_argument(
-        '--kubernetes-version',
-        help='Kubernetes version to use for cluster (DISABLED)'
-    )
-    parser.add_argument(
         '--driver-version',
         help='EFS CSI Driver version to install (DISABLED)'
-    )
-    parser.add_argument(
-        '--skip-cleanup',
-        action='store_true',
-        help='Skip cleanup of cluster resources after tests (DISABLED)'
     )
     
     return parser.parse_args()
@@ -158,17 +149,6 @@ def get_driver_pod_name(args, config):
         driver_pod_name = config['driver']['pod_name']
     return driver_pod_name
 
-def handle_setup_cluster(args, config, logger):
-    """Handle cluster setup functionality
-    
-    Args:
-        args: Command line arguments
-        config: Configuration dictionary
-        logger: Logger instance
-    """
-    if args.setup_cluster:
-        logger.warning("Cluster setup functionality is disabled - skipping setup")
-        logger.warning("Please make sure you have a working cluster with EFS CSI driver installed")
 
 def initialize_components(config):
     """Initialize report generator and metrics collector
@@ -244,24 +224,25 @@ def setup_orchestrator(args, config, logger, metrics_collector):
     Returns:
         Configured orchestrator instance
     """
-    # Get orchestrator config file
-    orchestrator_config = 'config/orchestrator_config.yaml'
-    if not os.path.exists(orchestrator_config):
-        logger.warning(f"Orchestrator config file {orchestrator_config} not found, falling back to {args.config}")
-        orchestrator_config = args.config
+    # Get component configuration paths using the config-dir argument
+    config_dir = args.config_dir
+    component_configs = {
+        'driver': os.path.join(config_dir, 'driver.yaml'),
+        'storage': os.path.join(config_dir, 'storage.yaml'), 
+        'test': os.path.join(config_dir, 'test.yaml'),
+        'pod': os.path.join(config_dir, 'pod.yaml'),
+        'scenarios': os.path.join(config_dir, 'scenarios.yaml')
+    }
     
-    logger.info(f"Using orchestrator config: {orchestrator_config}")
+    # Log what we're doing
+    logger.info("Using component configuration files:")
+    for component, path in component_configs.items():
+        logger.info(f"  - {component}: {path}")
     
-    # Driver pod name functionality commented out as not currently needed
-    # driver_pod_name = get_driver_pod_name(args, config)
-    # if driver_pod_name:
-    #     logger.info(f"Using driver pod name from config: {driver_pod_name}")
-    
-    # Create orchestrator (driver_pod_name parameter commented out)
+    # Create orchestrator with component configuration paths
     orchestrator = EFSCSIOrchestrator(
-        config_file=orchestrator_config, 
+        component_configs=component_configs,
         metrics_collector=metrics_collector,
-        # driver_pod_name=driver_pod_name
     )
     
     # Override default test parameters if specified
@@ -374,9 +355,8 @@ def handle_test_failure(e, args, config, metrics_collector, logger):
     else:
         logger.warning("Failed to collect logs")
     
-    # Even if tests failed, try to clean up if requested - DISABLED
-    if args.setup_cluster and not args.skip_cleanup:
-        logger.warning("Cluster cleanup functionality is disabled")
+    # Cluster cleanup functionality is completely disabled
+    logger.info("Cleanup will be handled by the test orchestrator")
 
 def main():
     """Main entry point"""
@@ -397,8 +377,6 @@ def main():
         print_credential_renewal_instructions()
         sys.exit(1)
     
-    # Handle cluster setup if requested
-    handle_setup_cluster(args, config, logger)
     
     # Initialize components
     report_generator, metrics_collector, report_dir = initialize_components(config)
@@ -415,3 +393,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+# Enhanced modularized implementation

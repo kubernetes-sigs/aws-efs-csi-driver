@@ -1,0 +1,56 @@
+# Driver installation and configuration
+driver:
+  # ECR repository for the EFS CSI driver image
+  repository: 745939127895.dkr.ecr.us-east-1.amazonaws.com/amazon/aws-efs-csi-driver
+  # Kubernetes namespace for the driver
+  namespace: kube-system
+  # Driver version to deploy
+  version: 2.1.8
+  # Existing EFS filesystem ID
+  filesystem_id: fs-024e09bcfd37c74aa
+  # Installation method (currently only helm is supported)
+  install_method: helm
+
+# Driver resource configuration
+driver_resources:
+  controller:
+    # Whether to delete access point root directory on cleanup
+    delete_access_point_root_dir: true
+    # Controller log level (1-5)
+    log_level: 5
+    resources:
+      limits:
+        cpu: 4000m
+        memory: 8.0Gi
+      requests:
+        cpu: 200m
+        memory: 1Gi
+  
+  # Node daemon configuration
+  node:
+    log_level: 5
+    resources:
+      limits:
+        cpu: 1000m
+        memory: 1Gi
+      requests:
+        cpu: 100m
+        memory: 128Mi
+    # Optional sidecar configurations
+    sidecars:
+      liveness_probe:
+        resources:
+          limits:
+            cpu: 100m
+            memory: 128Mi
+          requests:
+            cpu: 10m
+            memory: 20Mi
+      node_driver_registrar:
+        resources:
+          limits:
+            cpu: 100m
+            memory: 128Mi
+          requests:
+            cpu: 10m
+            memory: 20Mi

@@ -1,8 +1,0 @@
-2025-06-09 16:12:10,963 - INFO - Starting EFS CSI Driver test resource cleanup
-2025-06-09 16:12:12,039 - ERROR - Failed to list namespaces: (401)
-Reason: Unauthorized
-HTTP response headers: HTTPHeaderDict({'Audit-Id': '1a009cf9-0d14-4835-a132-092db20a6853', 'Cache-Control': 'no-cache, private', 'Content-Type': 'application/json', 'Date': 'Mon, 09 Jun 2025 16:12:12 GMT', 'Content-Length': '129'})
-HTTP response body: {"kind":"Status","apiVersion":"v1","metadata":{},"status":"Failure","message":"Unauthorized","reason":"Unauthorized","code":401}
-
-
-2025-06-09 16:12:12,040 - INFO - Cleanup process completed
