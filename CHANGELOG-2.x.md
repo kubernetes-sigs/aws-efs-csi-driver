@@ -1,3 +1,7 @@
+# V2.1.9
+* Fixing CVEs and depricated pod images ([#1649](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1649)), [@thakurmi](https://github.com/thakurmi)
+* unpinned openssl to fix failing build ([#1611](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1638)), [@thakurmi](https://github.com/thakurmi)
+* CVE-2025-22869: bump golang.org/x/crypto to v0.35.0 ([#1611](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1611)), [@kunalmemane](https://github.com/kunalmemane)
 # V2.1.8
 * Remove unused workflow that publishes images to dockerhub ([#1621](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1621), [@jrakas-dev](https://github.com/jrakas-dev))
 *  Return existing access point if one already exists during create workflow ([#1620](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1620), [@jrakas-dev](https://github.com/jrakas-dev))
