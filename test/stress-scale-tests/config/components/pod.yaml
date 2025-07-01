@@ -1,0 +1,30 @@
+# Pod configuration for test workloads
+pod_config:
+  # Container image to use for test pods
+  image: alpine
+
+  # Command to run in the container
+  command:
+  - /bin/sh
+  - -c
+
+  # Arguments for the command
+  args:
+  - touch /data/pod-ready && while true; do sleep 30; done
+
+  # Node selector to control pod placement
+  # IMPORTANT: Must match your cluster's availability zone
+  node_selector:
+    topology.kubernetes.io/zone: us-west-1b
+
+  # Pod readiness probe configuration
+  readiness_probe:
+    initial_delay_seconds: 5
+    period_seconds: 5
+
+  # Pod tolerations for node placement
+  tolerations:
+  - effect: NoSchedule
+    key: instance
+    operator: Equal
+    value: core
