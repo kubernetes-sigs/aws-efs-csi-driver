@@ -165,6 +165,25 @@ type AuthenticationConfiguration struct {
 	metav1.TypeMeta
 
 	JWT []JWTAuthenticator
+
+	// If present --anonymous-auth must not be set
+	Anonymous *AnonymousAuthConfig
+}
+
+// AnonymousAuthConfig provides the configuration for the anonymous authenticator.
+type AnonymousAuthConfig struct {
+	Enabled bool
+
+	// If set, anonymous auth is only allowed if the request meets one of the
+	// conditions.
+	Conditions []AnonymousAuthCondition
+}
+
+// AnonymousAuthCondition describes the condition under which anonymous auth
+// should be enabled.
+type AnonymousAuthCondition struct {
+	// Path for which anonymous auth is enabled.
+	Path string
 }
 
 // JWTAuthenticator provides the configuration for a single JWT authenticator.
@@ -175,12 +194,55 @@ type JWTAuthenticator struct {
 	UserValidationRules  []UserValidationRule
 }
 
-// Issuer provides the configuration for a external provider specific settings.
+// Issuer provides the configuration for an external provider's specific settings.
 type Issuer struct {
-	URL                  string
+	// url points to the issuer URL in a format https://url or https://url/path.
+	// This must match the "iss" claim in the presented JWT, and the issuer returned from discovery.
+	// Same value as the --oidc-issuer-url flag.
+	// Discovery information is fetched from "{url}/.well-known/openid-configuration" unless overridden by discoveryURL.
+	// Required to be unique across all JWT authenticators.
+	// Note that egress selection configuration is not used for this network connection.
+	// +required
+	URL string
+	// discoveryURL, if specified, overrides the URL used to fetch discovery
+	// information instead of using "{url}/.well-known/openid-configuration".
+	// The exact value specified is used, so "/.well-known/openid-configuration"
+	// must be included in discoveryURL if needed.
+	//
+	// The "issuer" field in the fetched discovery information must match the "issuer.url" field
+	// in the AuthenticationConfiguration and will be used to validate the "iss" claim in the presented JWT.
+	// This is for scenarios where the well-known and jwks endpoints are hosted at a different
+	// location than the issuer (such as locally in the cluster).
+	//
+	// Example:
+	// A discovery url that is exposed using kubernetes service 'oidc' in namespace 'oidc-namespace'
+	// and discovery information is available at '/.well-known/openid-configuration'.
+	// discoveryURL: "https://oidc.oidc-namespace/.well-known/openid-configuration"
+	// certificateAuthority is used to verify the TLS connection and the hostname on the leaf certificate
+	// must be set to 'oidc.oidc-namespace'.
+	//
+	// curl https://oidc.oidc-namespace/.well-known/openid-configuration (.discoveryURL field)
+	// {
+	//     issuer: "https://oidc.example.com" (.url field)
+	// }
+	//
+	// discoveryURL must be different from url.
+	// Required to be unique across all JWT authenticators.
+	// Note that egress selection configuration is not used for this network connection.
+	// +optional
+	DiscoveryURL         string
 	CertificateAuthority string
 	Audiences            []string
+	AudienceMatchPolicy  AudienceMatchPolicyType
 }
+
+// AudienceMatchPolicyType is a set of valid values for Issuer.AudienceMatchPolicy
+type AudienceMatchPolicyType string
+
+// Valid types for AudienceMatchPolicyType
+const (
+	AudienceMatchPolicyMatchAny AudienceMatchPolicyType = "MatchAny"
+)
 
 // ClaimValidationRule provides the configuration for a single claim validation rule.
 type ClaimValidationRule struct {
@@ -338,6 +400,13 @@ type WebhookMatchCondition struct {
 	// CEL expressions have access to the contents of the SubjectAccessReview in v1 version.
 	// If version specified by subjectAccessReviewVersion in the request variable is v1beta1,
 	// the contents would be converted to the v1 version before evaluating the CEL expression.
+	//
+	// - 'resourceAttributes' describes information for a resource access request and is unset for non-resource requests. e.g. has(request.resourceAttributes) && request.resourceAttributes.namespace == 'default'
+	// - 'nonResourceAttributes' describes information for a non-resource access request and is unset for resource requests. e.g. has(request.nonResourceAttributes) && request.nonResourceAttributes.path == '/healthz'.
+	// - 'user' is the user to test for. e.g. request.user == 'alice'
+	// - 'groups' is the groups to test for. e.g. ('group1' in request.groups)
+	// - 'extra' corresponds to the user.Info.GetExtra() method from the authenticator.
+	// - 'uid' is the information about the requesting user. e.g. request.uid == '1'
 	//
 	// Documentation on CEL: https://kubernetes.io/docs/reference/using-api/cel/
 	Expression string
