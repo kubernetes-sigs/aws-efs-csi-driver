@@ -293,29 +293,23 @@ func (f *FailureError) backtrace() {
 //	}
 var ErrFailure error = FailureError{}
 
-// ExpectNotEqual expects the specified two are not the same, otherwise an exception raises
-//
-// Deprecated: use gomega.Expect().ToNot(gomega.Equal())
-func ExpectNotEqual(actual interface{}, extra interface{}, explain ...interface{}) {
-	gomega.ExpectWithOffset(1, actual).NotTo(gomega.Equal(extra), explain...)
-}
-
-// ExpectError expects an error happens, otherwise an exception raises
-//
-// Deprecated: use gomega.Expect().To(gomega.HaveOccurred()) or (better!) check
-// specifically for the error that is expected with
-// gomega.Expect().To(gomega.MatchError(gomega.ContainSubstring()))
-func ExpectError(err error, explain ...interface{}) {
-	gomega.ExpectWithOffset(1, err).To(gomega.HaveOccurred(), explain...)
-}
-
 // ExpectNoError checks if "err" is set, and if so, fails assertion while logging the error.
+//
+// As in [gomega.Expect], the explain parameters can be used to provide
+// additional information in case of a failure in one of these two ways:
+//   - A single string is used as first line of the failure message directly.
+//   - A string with additional parameters is passed through [fmt.Sprintf].
 func ExpectNoError(err error, explain ...interface{}) {
 	ExpectNoErrorWithOffset(1, err, explain...)
 }
 
 // ExpectNoErrorWithOffset checks if "err" is set, and if so, fails assertion while logging the error at "offset" levels above its caller
 // (for example, for call chain f -> g -> ExpectNoErrorWithOffset(1, ...) error would be logged for "f").
+//
+// As in [gomega.Expect], the explain parameters can be used to provide
+// additional information in case of a failure in one of these two ways:
+//   - A single string is used as first line of the failure message directly.
+//   - A string with additional parameters is passed through [fmt.Sprintf].
 func ExpectNoErrorWithOffset(offset int, err error, explain ...interface{}) {
 	if err == nil {
 		return
@@ -350,9 +344,9 @@ func ExpectNoErrorWithOffset(offset int, err error, explain ...interface{}) {
 	// because it is not included in the failure message.
 	var failure FailureError
 	if errors.As(err, &failure) && failure.Backtrace() != "" {
-		Logf("Failed inside E2E framework:\n    %s", strings.ReplaceAll(failure.Backtrace(), "\n", "\n    "))
+		log(offset+1, fmt.Sprintf("Failed inside E2E framework:\n    %s", strings.ReplaceAll(failure.Backtrace(), "\n", "\n    ")))
 	} else if !errors.Is(err, ErrFailure) {
-		Logf("Unexpected error: %s\n%s", prefix, format.Object(err, 1))
+		log(offset+1, fmt.Sprintf("Unexpected error: %s\n%s", prefix, format.Object(err, 1)))
 	}
 	Fail(prefix+err.Error(), 1+offset)
 }
