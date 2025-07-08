@@ -19,14 +19,29 @@ package testutil
 import (
 	"fmt"
 	"io"
-	"testing"
 
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/testutil"
+	dto "github.com/prometheus/client_model/go"
 
 	apimachineryversion "k8s.io/apimachinery/pkg/version"
 	"k8s.io/component-base/metrics"
 	"k8s.io/component-base/metrics/legacyregistry"
 )
+
+type TB interface {
+	Logf(format string, args ...any)
+	Errorf(format string, args ...any)
+	Fatalf(format string, args ...any)
+}
+
+// MetricFamily is a type alias which enables writing gatherers in tests
+// without importing prometheus directly (https://github.com/kubernetes/kubernetes/issues/99876).
+type MetricFamily = dto.MetricFamily
+
+// GathererFunc is a type alias which enables writing gatherers as a function in tests
+// without importing prometheus directly (https://github.com/kubernetes/kubernetes/issues/99876).
+type GathererFunc = prometheus.GathererFunc
 
 // CollectAndCompare registers the provided Collector with a newly created
 // pedantic Registry. It then does the same as GatherAndCompare, gathering the
@@ -94,7 +109,7 @@ func NewFakeKubeRegistry(ver string) metrics.KubeRegistry {
 	return metrics.NewKubeRegistry()
 }
 
-func AssertVectorCount(t *testing.T, name string, labelFilter map[string]string, wantCount int) {
+func AssertVectorCount(t TB, name string, labelFilter map[string]string, wantCount int) {
 	metrics, err := legacyregistry.DefaultGatherer.Gather()
 	if err != nil {
 		t.Fatalf("Failed to gather metrics: %s", err)
@@ -124,7 +139,7 @@ func AssertVectorCount(t *testing.T, name string, labelFilter map[string]string,
 	}
 }
 
-func AssertHistogramTotalCount(t *testing.T, name string, labelFilter map[string]string, wantCount int) {
+func AssertHistogramTotalCount(t TB, name string, labelFilter map[string]string, wantCount int) {
 	metrics, err := legacyregistry.DefaultGatherer.Gather()
 	if err != nil {
 		t.Fatalf("Failed to gather metrics: %s", err)

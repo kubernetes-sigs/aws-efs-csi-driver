@@ -19,15 +19,19 @@ package pod
 import (
 	"bytes"
 	"context"
+	"errors"
+	"fmt"
 	"io"
 	"net/url"
 	"strings"
 
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/httpstream"
 	"k8s.io/client-go/kubernetes/scheme"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/remotecommand"
+	clientexec "k8s.io/client-go/util/exec"
 	"k8s.io/kubernetes/test/e2e/framework"
 
 	"github.com/onsi/gomega"
@@ -51,11 +55,13 @@ type ExecOptions struct {
 // returning stdout, stderr and error. `options` allowed for
 // additional parameters to be passed.
 func ExecWithOptions(f *framework.Framework, options ExecOptions) (string, string, error) {
+	return ExecWithOptionsContext(context.Background(), f, options)
+}
+
+func ExecWithOptionsContext(ctx context.Context, f *framework.Framework, options ExecOptions) (string, string, error) {
 	if !options.Quiet {
 		framework.Logf("ExecWithOptions %+v", options)
 	}
-	config, err := framework.LoadConfig()
-	framework.ExpectNoError(err, "failed to load restclient config")
 
 	const tty = false
 
@@ -64,8 +70,7 @@ func ExecWithOptions(f *framework.Framework, options ExecOptions) (string, strin
 		Resource("pods").
 		Name(options.PodName).
 		Namespace(options.Namespace).
-		SubResource("exec").
-		Param("container", options.ContainerName)
+		SubResource("exec")
 	req.VersionedParams(&v1.PodExecOptions{
 		Container: options.ContainerName,
 		Command:   options.Command,
@@ -76,8 +81,9 @@ func ExecWithOptions(f *framework.Framework, options ExecOptions) (string, strin
 	}, scheme.ParameterCodec)
 
 	var stdout, stderr bytes.Buffer
-	framework.Logf("ExecWithOptions: execute(POST %s)", req.URL())
-	err = execute("POST", req.URL(), config, options.Stdin, &stdout, &stderr, tty)
+	framework.Logf("ExecWithOptions: execute(%s)", req.URL())
+	err := execute(ctx, req.URL(), f.ClientConfig(), options.Stdin, &stdout, &stderr, tty)
+
 	if options.PreserveWhitespace {
 		return stdout.String(), stderr.String(), err
 	}
@@ -139,12 +145,67 @@ func ExecShellInPodWithFullOutput(ctx context.Context, f *framework.Framework, p
 	return execCommandInPodWithFullOutput(ctx, f, podName, "/bin/sh", "-c", cmd)
 }
 
-func execute(method string, url *url.URL, config *restclient.Config, stdin io.Reader, stdout, stderr io.Writer, tty bool) error {
-	exec, err := remotecommand.NewSPDYExecutor(config, method, url)
+// VerifyExecInPodSucceed verifies shell cmd in target pod succeed
+func VerifyExecInPodSucceed(ctx context.Context, f *framework.Framework, pod *v1.Pod, shExec string) error {
+	stdout, stderr, err := ExecShellInPodWithFullOutput(ctx, f, pod.Name, shExec)
+	if err != nil {
+		var exitError clientexec.CodeExitError
+		if errors.As(err, &exitError) {
+			exitCode := exitError.ExitStatus()
+			return fmt.Errorf("%q should succeed, but failed with exit code %d and error message %w\nstdout: %s\nstderr: %s",
+				shExec, exitCode, exitError, stdout, stderr)
+		} else {
+			return fmt.Errorf("%q should succeed, but failed with error message %w\nstdout: %s\nstderr: %s",
+				shExec, err, stdout, stderr)
+		}
+	}
+	return nil
+}
+
+// VerifyExecInPodFail verifies shell cmd in target pod fail with certain exit code
+func VerifyExecInPodFail(ctx context.Context, f *framework.Framework, pod *v1.Pod, shExec string, exitCode int) error {
+	stdout, stderr, err := ExecShellInPodWithFullOutput(ctx, f, pod.Name, shExec)
+	if err != nil {
+		var exitError clientexec.CodeExitError
+		if errors.As(err, &exitError) {
+			actualExitCode := exitError.ExitStatus()
+			if actualExitCode == exitCode {
+				return nil
+			}
+			return fmt.Errorf("%q should fail with exit code %d, but failed with exit code %d and error message %w\nstdout: %s\nstderr: %s",
+				shExec, exitCode, actualExitCode, exitError, stdout, stderr)
+		} else {
+			return fmt.Errorf("%q should fail with exit code %d, but failed with error message %w\nstdout: %s\nstderr: %s",
+				shExec, exitCode, err, stdout, stderr)
+		}
+	}
+	return fmt.Errorf("%q should fail with exit code %d, but exit without error", shExec, exitCode)
+}
+
+func execute(ctx context.Context, url *url.URL, config *restclient.Config, stdin io.Reader, stdout, stderr io.Writer, tty bool) error {
+	// WebSocketExecutor executor is default
+	// WebSocketExecutor must be "GET" method as described in RFC 6455 Sec. 4.1 (page 17).
+	websocketExec, err := remotecommand.NewWebSocketExecutor(config, "GET", url.String())
 	if err != nil {
 		return err
 	}
-	return exec.StreamWithContext(context.Background(), remotecommand.StreamOptions{
+	spdyExec, err := remotecommand.NewSPDYExecutor(config, "POST", url)
+	if err != nil {
+		return err
+	}
+	exec, err := remotecommand.NewFallbackExecutor(websocketExec, spdyExec, func(err error) bool {
+		if httpstream.IsUpgradeFailure(err) || httpstream.IsHTTPSProxyError(err) {
+			framework.Logf("fallback to secondary dialer from primary dialer err: %v", err)
+			return true
+		}
+		framework.Logf("unexpected error trying to use websockets for pod exec: %v", err)
+		return false
+	})
+	if err != nil {
+		return err
+	}
+
+	return exec.StreamWithContext(ctx, remotecommand.StreamOptions{
 		Stdin:  stdin,
 		Stdout: stdout,
 		Stderr: stderr,
