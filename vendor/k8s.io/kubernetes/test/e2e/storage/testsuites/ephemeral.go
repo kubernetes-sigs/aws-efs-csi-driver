@@ -194,7 +194,8 @@ func (p *ephemeralTestSuite) DefineTests(driver storageframework.TestDriver, pat
 				// attempt to create a dummy file and expect for it not to be created
 				command = "ls /mnt/test* && (touch /mnt/test-0/hello-world || true) && [ ! -f /mnt/test-0/hello-world ]"
 			}
-			e2evolume.VerifyExecInPodSucceed(f, pod, command)
+			err := e2epod.VerifyExecInPodSucceed(ctx, f, pod, command)
+			framework.ExpectNoError(err, "while checking read-only mount")
 			return nil
 		}
 		l.testCase.TestEphemeral(ctx)
@@ -214,7 +215,8 @@ func (p *ephemeralTestSuite) DefineTests(driver storageframework.TestDriver, pat
 			if pattern.VolMode == v1.PersistentVolumeBlock {
 				command = "if ! [ -b /mnt/test-0 ]; then echo /mnt/test-0 is not a block device; exit 1; fi"
 			}
-			e2evolume.VerifyExecInPodSucceed(f, pod, command)
+			err := e2epod.VerifyExecInPodSucceed(ctx, f, pod, command)
+			framework.ExpectNoError(err, "while checking read/write mount")
 			return nil
 		}
 		l.testCase.TestEphemeral(ctx)
@@ -295,7 +297,7 @@ func (p *ephemeralTestSuite) DefineTests(driver storageframework.TestDriver, pat
 
 		l.testCase.RunningPodCheck = func(ctx context.Context, pod *v1.Pod) interface{} {
 			// Create another pod with the same inline volume attributes.
-			pod2 := StartInPodWithInlineVolume(ctx, f.ClientSet, f.Namespace.Name, "inline-volume-tester2", "sleep 100000",
+			pod2 := StartInPodWithInlineVolume(ctx, f.ClientSet, f.Namespace.Name, "inline-volume-tester2", e2epod.InfiniteSleepCommand,
 				[]v1.VolumeSource{pod.Spec.Volumes[0].VolumeSource},
 				readOnly,
 				l.testCase.Node)
@@ -308,8 +310,10 @@ func (p *ephemeralTestSuite) DefineTests(driver storageframework.TestDriver, pat
 			// visible in the other.
 			if pattern.VolMode != v1.PersistentVolumeBlock && !readOnly && !shared {
 				ginkgo.By("writing data in one pod and checking the second does not see it (it should get its own volume)")
-				e2evolume.VerifyExecInPodSucceed(f, pod, "touch /mnt/test-0/hello-world")
-				e2evolume.VerifyExecInPodSucceed(f, pod2, "[ ! -f /mnt/test-0/hello-world ]")
+				err := e2epod.VerifyExecInPodSucceed(ctx, f, pod, "touch /mnt/test-0/hello-world")
+				framework.ExpectNoError(err, "while writing data in first pod")
+				err = e2epod.VerifyExecInPodSucceed(ctx, f, pod2, "[ ! -f /mnt/test-0/hello-world ]")
+				framework.ExpectNoError(err, "while checking data in second pod")
 			}
 
 			// TestEphemeral expects the pod to be fully deleted
@@ -387,7 +391,6 @@ func (t EphemeralTest) TestEphemeral(ctx context.Context) {
 	gomega.Expect(client).NotTo(gomega.BeNil(), "EphemeralTest.Client is required")
 
 	ginkgo.By(fmt.Sprintf("checking the requested inline volume exists in the pod running on node %+v", t.Node))
-	command := "sleep 10000"
 
 	var volumes []v1.VolumeSource
 	numVolumes := t.NumInlineVolumes
@@ -415,7 +418,7 @@ func (t EphemeralTest) TestEphemeral(ctx context.Context) {
 		}
 		volumes = append(volumes, volume)
 	}
-	pod := StartInPodWithInlineVolume(ctx, client, t.Namespace, "inline-volume-tester", command, volumes, t.ReadOnly, t.Node)
+	pod := StartInPodWithInlineVolume(ctx, client, t.Namespace, "inline-volume-tester", e2epod.InfiniteSleepCommand, volumes, t.ReadOnly, t.Node)
 	defer func() {
 		// pod might be nil now.
 		StopPodAndDependents(ctx, client, t.Timeouts, pod)
