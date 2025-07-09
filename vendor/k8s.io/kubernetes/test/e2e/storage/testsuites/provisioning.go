@@ -70,6 +70,7 @@ type StorageClassTest struct {
 	AllowVolumeExpansion bool
 	NodeSelection        e2epod.NodeSelection
 	MountOptions         []string
+	ReclaimPolicy        *v1.PersistentVolumeReclaimPolicy
 }
 
 type provisioningTestSuite struct {
@@ -1004,7 +1005,7 @@ func (t StorageClassTest) TestBindingWaitForFirstConsumerMultiPVC(ctx context.Co
 	// Wait for ClaimProvisionTimeout (across all PVCs in parallel) and make sure the phase did not become Bound i.e. the Wait errors out
 	ginkgo.By("checking the claims are in pending state")
 	err = e2epv.WaitForPersistentVolumeClaimsPhase(ctx, v1.ClaimBound, t.Client, namespace, claimNames, 2*time.Second /* Poll */, t.Timeouts.ClaimProvisionShort, true)
-	framework.ExpectError(err)
+	gomega.Expect(err).To(gomega.MatchError(gomega.ContainSubstring("not all in phase Bound")))
 	verifyPVCsPending(ctx, t.Client, createdClaims)
 
 	ginkgo.By("creating a pod referring to the claims")
@@ -1186,7 +1187,7 @@ func StopPodAndDependents(ctx context.Context, c clientset.Interface, timeouts *
 			// As with CSI inline volumes, we use the pod delete timeout here because conceptually
 			// the volume deletion needs to be that fast (whatever "that" is).
 			framework.Logf("Wait up to %v for pod PV %s to be fully deleted", timeouts.PodDelete, pv.Name)
-			framework.ExpectNoError(e2epv.WaitForPersistentVolumeDeleted(ctx, c, pv.Name, 5*time.Second, timeouts.PodDelete))
+			framework.ExpectNoError(e2epv.WaitForPersistentVolumeDeleted(ctx, c, pv.Name, 5*time.Second, timeouts.PVDeleteSlow))
 		}
 	}
 }

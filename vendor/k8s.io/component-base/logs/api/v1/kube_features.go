@@ -17,6 +17,7 @@ limitations under the License.
 package v1
 
 import (
+	"k8s.io/apimachinery/pkg/util/version"
 	"k8s.io/component-base/featuregate"
 )
 
@@ -24,15 +25,12 @@ const (
 	// owner: @pohly
 	// kep: https://kep.k8s.io/3077
 	// alpha: v1.24
+	// beta: v1.30
 	//
 	// Enables looking up a logger from a context.Context instead of using
 	// the global fallback logger and manipulating the logger that is
 	// used by a call chain.
 	ContextualLogging featuregate.Feature = "ContextualLogging"
-
-	// contextualLoggingDefault must remain false while in alpha. It can
-	// become true in beta.
-	contextualLoggingDefault = false
 
 	// Allow fine-tuning of experimental, alpha-quality logging options.
 	//
@@ -40,6 +38,10 @@ const (
 	// we want to avoid a proliferation of feature gates. This feature gate:
 	// - will guard *a group* of logging options whose quality level is alpha.
 	// - will never graduate to beta or stable.
+	//
+	// IMPORTANT: Unlike typical feature gates, LoggingAlphaOptions is NOT affected by
+	// emulation version changes. Its behavior remains constant regardless of the
+	// emulation version being used.
 	LoggingAlphaOptions featuregate.Feature = "LoggingAlphaOptions"
 
 	// Allow fine-tuning of experimental, beta-quality logging options.
@@ -49,22 +51,32 @@ const (
 	// - will guard *a group* of logging options whose quality level is beta.
 	// - is thus *introduced* as beta
 	// - will never graduate to stable.
+	//
+	// IMPORTANT: Unlike typical feature gates, LoggingBetaOptions is NOT affected by
+	// emulation version changes. Its behavior remains constant regardless of the
+	// emulation version being used.
 	LoggingBetaOptions featuregate.Feature = "LoggingBetaOptions"
 
 	// Stable logging options. Always enabled.
 	LoggingStableOptions featuregate.Feature = "LoggingStableOptions"
 )
 
-func featureGates() map[featuregate.Feature]featuregate.FeatureSpec {
-	return map[featuregate.Feature]featuregate.FeatureSpec{
-		ContextualLogging: {Default: contextualLoggingDefault, PreRelease: featuregate.Alpha},
-
-		LoggingAlphaOptions: {Default: false, PreRelease: featuregate.Alpha},
-		LoggingBetaOptions:  {Default: true, PreRelease: featuregate.Beta},
+func featureGates() map[featuregate.Feature]featuregate.VersionedSpecs {
+	return map[featuregate.Feature]featuregate.VersionedSpecs{
+		ContextualLogging: {
+			{Version: version.MustParse("1.24"), Default: false, PreRelease: featuregate.Alpha},
+			{Version: version.MustParse("1.30"), Default: true, PreRelease: featuregate.Beta},
+		},
+		LoggingAlphaOptions: {
+			{Version: version.MustParse("1.24"), Default: false, PreRelease: featuregate.Alpha},
+		},
+		LoggingBetaOptions: {
+			{Version: version.MustParse("1.24"), Default: true, PreRelease: featuregate.Beta},
+		},
 	}
 }
 
 // AddFeatureGates adds all feature gates used by this package.
-func AddFeatureGates(mutableFeatureGate featuregate.MutableFeatureGate) error {
-	return mutableFeatureGate.Add(featureGates())
+func AddFeatureGates(mutableFeatureGate featuregate.MutableVersionedFeatureGate) error {
+	return mutableFeatureGate.AddVersioned(featureGates())
 }
