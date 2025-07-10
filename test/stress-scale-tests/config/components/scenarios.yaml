@@ -1,0 +1,34 @@
+# Test scenario configurations
+scenarios:
+  # Multiple pods accessing a single PVC
+  many_to_one:
+    enabled: true
+    max_pods: 20
+    min_pods: 10
+
+  # One-to-one pod to PVC testing
+  one_to_one:
+    enabled: true
+    max_pairs: 20
+    min_pairs: 10
+
+  # Concurrent PVC operations testing
+  concurrent_pvc:
+    enabled: true
+    max_pvcs: 30
+    min_pvcs: 20
+
+  # Advanced scenarios
+  
+  # Controller crash resilience testing
+  controller_crash:
+    enabled: true
+    recovery_timeout: 300
+    controller_namespace: "kube-system"
+    controller_pod_selector: "app=efs-csi-controller"
+
+  # Add your custom scenarios here
+  # custom_scenario:
+  #   enabled: false
+  #   parameter1: value1
+  #   parameter2: value2
