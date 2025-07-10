@@ -25,6 +25,8 @@ parameters:
   csi.storage.k8s.io/provisioner-secret-namespace: kube-system
 ```
 
+**Note**: driver version > 2.1.0 supports the `az: multi` option, which fetches EFS mount targets in all availability zones and consumes one for a pod in the same zone.
+
 ### Prerequisite setup
 Lets say you have an EKS cluster in aws account `A` & you wish to mount your file system in another aws account `B` using aws-efs-csi-driver, you'll need to perform the following steps before you proceed with cross account mount between accounts `A` & `B` 
 1. Perform [vpc-peering](https://docs.aws.amazon.com/vpc/latest/peering/working-with-vpc-peering.html) between EKS cluster `vpc` in aws account `A` and EFS `vpc` in another aws account `B`.
