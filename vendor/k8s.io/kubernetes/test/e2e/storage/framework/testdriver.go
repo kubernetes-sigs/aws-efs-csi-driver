@@ -22,6 +22,7 @@ import (
 
 	v1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
+	storagev1beta1 "k8s.io/api/storage/v1beta1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/kubernetes/test/e2e/framework"
@@ -130,6 +131,21 @@ type SnapshottableTestDriver interface {
 	GetSnapshotClass(ctx context.Context, config *PerTestConfig, parameters map[string]string) *unstructured.Unstructured
 }
 
+type VoulmeGroupSnapshottableTestDriver interface {
+	TestDriver
+	// GetVolumeGroupSnapshotClass returns a VolumeGroupSnapshotClass to create group snapshot.
+	GetVolumeGroupSnapshotClass(ctx context.Context, config *PerTestConfig, parameters map[string]string) *unstructured.Unstructured
+}
+
+// VolumeAttributesClassTestDriver represents an interface for a TestDriver that supports
+// creating and modifying volumes via VolumeAttributesClass objects
+type VolumeAttributesClassTestDriver interface {
+	TestDriver
+	// GetVolumeAttributesClass returns a VolumeAttributesClass to create/modify PVCs
+	// It will return nil if the TestDriver does not support VACs
+	GetVolumeAttributesClass(ctx context.Context, config *PerTestConfig) *storagev1beta1.VolumeAttributesClass
+}
+
 // CustomTimeoutsTestDriver represents an interface fo a TestDriver that supports custom timeouts.
 type CustomTimeoutsTestDriver interface {
 	TestDriver
@@ -149,13 +165,14 @@ type Capability string
 
 // Constants related to capabilities and behavior of the driver.
 const (
-	CapPersistence        Capability = "persistence"        // data is persisted across pod restarts
-	CapBlock              Capability = "block"              // raw block mode
-	CapFsGroup            Capability = "fsGroup"            // volume ownership via fsGroup
-	CapVolumeMountGroup   Capability = "volumeMountGroup"   // Driver has the VolumeMountGroup CSI node capability. Because this is a FSGroup feature, the fsGroup capability must also be set to true.
-	CapExec               Capability = "exec"               // exec a file in the volume
-	CapSnapshotDataSource Capability = "snapshotDataSource" // support populate data from snapshot
-	CapPVCDataSource      Capability = "pvcDataSource"      // support populate data from pvc
+	CapPersistence         Capability = "persistence"        // data is persisted across pod restarts
+	CapBlock               Capability = "block"              // raw block mode
+	CapFsGroup             Capability = "fsGroup"            // volume ownership via fsGroup
+	CapVolumeMountGroup    Capability = "volumeMountGroup"   // Driver has the VolumeMountGroup CSI node capability. Because this is a FSGroup feature, the fsGroup capability must also be set to true.
+	CapExec                Capability = "exec"               // exec a file in the volume
+	CapSnapshotDataSource  Capability = "snapshotDataSource" // support populate data from snapshot
+	CapVolumeGroupSnapshot Capability = "groupSnapshot"      // support group snapshot
+	CapPVCDataSource       Capability = "pvcDataSource"      // support populate data from pvc
 
 	// multiple pods on a node can use the same volume concurrently;
 	// for CSI, see:

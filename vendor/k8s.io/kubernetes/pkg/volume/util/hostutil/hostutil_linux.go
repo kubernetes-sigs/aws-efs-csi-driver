@@ -66,7 +66,7 @@ func (hu *HostUtil) PathIsDevice(pathname string) (bool, error) {
 	return isDevice, err
 }
 
-// ExclusiveOpenFailsOnDevice is shared with NsEnterMounter
+// ExclusiveOpenFailsOnDevice checks if block device in use by calling Open with O_EXCL flag.
 func ExclusiveOpenFailsOnDevice(pathname string) (bool, error) {
 	var isDevice bool
 	finfo, err := os.Stat(pathname)
@@ -109,7 +109,7 @@ func (hu *HostUtil) GetDeviceNameFromMount(mounter mount.Interface, mountPath, p
 	return getDeviceNameFromMount(mounter, mountPath, pluginMountDir)
 }
 
-// getDeviceNameFromMountLinux find the device name from /proc/mounts in which
+// getDeviceNameFromMount find the device name from /proc/self/mountinfo in which
 // the mount path reference should match the given plugin mount directory. In case no mount path reference
 // matches, returns the volume name taken from its given mountPath
 func getDeviceNameFromMount(mounter mount.Interface, mountPath, pluginMountDir string) (string, error) {
@@ -154,8 +154,6 @@ func (hu *HostUtil) PathExists(pathname string) (bool, error) {
 }
 
 // EvalHostSymlinks returns the path name after evaluating symlinks.
-// TODO once the nsenter implementation is removed, this method can be removed
-// from the interface and filepath.EvalSymlinks used directly
 func (hu *HostUtil) EvalHostSymlinks(pathname string) (string, error) {
 	return filepath.EvalSymlinks(pathname)
 }
@@ -280,8 +278,8 @@ func (hu *HostUtil) GetMode(pathname string) (os.FileMode, error) {
 	return GetModeLinux(pathname)
 }
 
-// GetOwnerLinux is shared between Linux and NsEnterMounter
-// pathname must already be evaluated for symlinks
+// pathname must already be evaluated for symlinks.
+// GetOwnerLinux returns the integer ID for the user and group of the given path.
 func GetOwnerLinux(pathname string) (int64, int64, error) {
 	info, err := os.Stat(pathname)
 	if err != nil {
@@ -291,7 +289,7 @@ func GetOwnerLinux(pathname string) (int64, int64, error) {
 	return int64(stat.Uid), int64(stat.Gid), nil
 }
 
-// GetModeLinux is shared between Linux and NsEnterMounter
+// GetModeLinux returns permissions of the pathname.
 func GetModeLinux(pathname string) (os.FileMode, error) {
 	info, err := os.Stat(pathname)
 	if err != nil {
