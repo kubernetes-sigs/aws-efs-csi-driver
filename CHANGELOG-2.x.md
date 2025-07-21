@@ -1,3 +1,7 @@
+# V2.1.10
+* Update dependencies and fix go.sum ([#1663](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1663), [@anthotse](https://anthotse))
+* Implement ControllerModifyVolume function ([#1663](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1663), [@anthotse](https://anthotse))
+* Update golang in Dockerfile ([#1663](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1663), [@anthotse](https://anthotse)) 
 # V2.1.9
 * Fixing CVEs and depricated pod images ([#1649](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1649)), [@thakurmi](https://github.com/thakurmi)
 * unpinned openssl to fix failing build ([#1638](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1638)), [@thakurmi](https://github.com/thakurmi)
