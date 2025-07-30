@@ -11,14 +11,14 @@ portRangeUpperBound: "21049"
 
 image:
   repository: public.ecr.aws/efs-csi-driver/amazon/aws-efs-csi-driver
-  tag: "v2.1.5"
+  tag: "v2.1.10"
   pullPolicy: IfNotPresent
 
 sidecars:
   livenessProbe:
     image:
       repository: public.ecr.aws/eks-distro/kubernetes-csi/livenessprobe
-      tag: v2.14.0-eks-1-31-5
+      tag: v2.15.0-eks-1-33-3
       pullPolicy: IfNotPresent
     resources: {}
     securityContext:
@@ -27,7 +27,7 @@ sidecars:
   nodeDriverRegistrar:
     image:
       repository: public.ecr.aws/eks-distro/kubernetes-csi/node-driver-registrar
-      tag: v2.12.0-eks-1-31-5
+      tag: v2.13.0-eks-1-33-3
       pullPolicy: IfNotPresent
     resources: {}
     securityContext:
@@ -36,7 +36,7 @@ sidecars:
   csiProvisioner:
     image:
       repository: public.ecr.aws/eks-distro/kubernetes-csi/external-provisioner
-      tag: v5.1.0-eks-1-31-5
+      tag: v5.2.0-eks-1-33-3
       pullPolicy: IfNotPresent
     resources: {}
     securityContext:
@@ -129,6 +129,11 @@ controller:
     enabled: false
     port: 8080
     path: /metrics
+    
+  # Timeout for Create/DeleteVolume calls to Controller. We recommend increasing for high concurrency workloads
+  timeout: 15s
+  # Number of concurrent threads controller will handle at once.
+  workerThreads: 100 
   # TSCs without the label selector stanza
   #
   # Example:

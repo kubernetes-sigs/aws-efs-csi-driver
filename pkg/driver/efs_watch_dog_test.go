@@ -17,6 +17,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 )
@@ -265,6 +266,42 @@ func TestSetupWithAdditionalDirectoryInStaticFilesDirectory(t *testing.T) {
 	efsClient := "k8s"
 	if err := w.setup(efsClient); err == nil {
 		t.Fatalf("Expected failure since config directory contains another directory.")
+	}
+}
+
+func TestRemoveLibwrapOption(t *testing.T) {
+	tempDir, err := ioutil.TempDir("", "test-stunnel-configs")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	testConfig := []byte(`
+fips = no
+[efs]
+client = yes
+accept = 127.0.0.1:1000
+connect = fs-123.efs.us-west-2.amazonaws.com:2049
+libwrap = no
+`)
+	testFilePath := filepath.Join(tempDir, "stunnel-config.test")
+	if err := ioutil.WriteFile(testFilePath, testConfig, 0644); err != nil {
+		t.Fatalf("Failed to write test config: %v", err)
+	}
+
+	w := &execWatchdog{efsUtilsCfgPath: tempDir}
+
+	if err := w.removeLibwrapOption(tempDir); err != nil {
+		t.Fatalf("removeLibwrapOption failed: %v", err)
+	}
+
+	content, err := ioutil.ReadFile(testFilePath)
+	if err != nil {
+		t.Fatalf("Failed to read updated config: %v", err)
+	}
+
+	if strings.Contains(string(content), "libwrap = no") {
+		t.Errorf("libwrap = no was not removed from the config file")
 	}
 }
 

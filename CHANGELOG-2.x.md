@@ -1,3 +1,24 @@
+# V2.1.10
+* Update dependencies and fix go.sum ([#1663](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1663), [@anthotse](https://anthotse))
+* Implement ControllerModifyVolume function ([#1663](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1663), [@anthotse](https://anthotse))
+* Update golang in Dockerfile ([#1663](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1663), [@anthotse](https://anthotse))
+# V2.1.9
+* Fixing CVEs and depricated pod images ([#1649](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1649)), [@thakurmi](https://github.com/thakurmi)
+* unpinned openssl to fix failing build ([#1611](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1638)), [@thakurmi](https://github.com/thakurmi)
+* CVE-2025-22869: bump golang.org/x/crypto to v0.35.0 ([#1611](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1611)), [@kunalmemane](https://github.com/kunalmemane)
+# V2.1.8
+* Remove unused workflow that publishes images to dockerhub ([#1621](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1621), [@jrakas-dev](https://github.com/jrakas-dev))
+*  Return existing access point if one already exists during create workflow ([#1620](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1620), [@jrakas-dev](https://github.com/jrakas-dev))
+* Clean install openssl and standardize eks distro ([#1619](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1619), [@dankova22](https://github.com/dankova22))
+* Fix centos image in pod config examples ([#1611](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1611), [@thakurmi](https://github.com/thakurmi))
+# V2.1.7
+* Adding additional checks and multi threaded testing to ensure concurrent createVolume and deleteVolume calls are handled correctly ([#1592] (https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1592), [@dluthcke](https://github.com/dluthcke))
+* Clarifying Note when uninstalling CSI driver ([#1599] (https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1599), [@dluthcke](https://github.com/dluthcke))
+* Update README.md to include uninstall instructions ([#1597] (https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1596), [@dluthcke](https://github.com/dluthcke))
+* Updating sidecar versions ([#1596](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1596), [@dluthcke](https://github.com/dluthcke))
+* Update K8s version to mitigate CVE-2025-0426 ([#1594](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1594), [@mskanth97](https://github.com/mskanth972))
+# V2.1.6
+Remove libwrap=no from stunnel config on startup for newer stunnel compatibility ([#1586](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1586/commits/5151feef34da86595a9ccc7e3c960aea537a61dc), [@dankova22](https://github.com/dankova22))
 # V2.1.5
 * Upgrade golang.net (v0.25.0 -> v0.33.0) ([#1562]https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1562)
 * Updated Python distribution to latest version and add symlink to stunnel5 to ensure compatibility ([#1569]https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1569/files)

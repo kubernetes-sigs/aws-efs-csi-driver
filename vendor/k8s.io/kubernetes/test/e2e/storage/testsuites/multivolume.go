@@ -19,6 +19,7 @@ package testsuites
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"time"
 
 	"github.com/onsi/ginkgo/v2"
@@ -26,6 +27,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/errors"
 	clientset "k8s.io/client-go/kubernetes"
+	"k8s.io/kubernetes/test/e2e/feature"
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2enode "k8s.io/kubernetes/test/e2e/framework/node"
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
@@ -49,7 +51,8 @@ var _ storageframework.TestSuite = &multiVolumeTestSuite{}
 func InitCustomMultiVolumeTestSuite(patterns []storageframework.TestPattern) storageframework.TestSuite {
 	return &multiVolumeTestSuite{
 		tsInfo: storageframework.TestSuiteInfo{
-			Name:         "multiVolume [Slow]",
+			Name:         "multiVolume",
+			TestTags:     []interface{}{framework.WithSlow()},
 			TestPatterns: patterns,
 			SupportedSizeRange: e2evolume.SizeRange{
 				Min: "1Mi",
@@ -316,7 +319,7 @@ func (t *multiVolumeTestSuite) DefineTests(driver storageframework.TestDriver, p
 	// [        node1        ]
 	//   |                 |     <- same volume mode
 	// [volume1]   ->  [restored volume1 snapshot]
-	ginkgo.It("should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]", func(ctx context.Context) {
+	f.It("should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly]", feature.VolumeSnapshotDataSource, feature.VolumeSourceXFS, func(ctx context.Context) {
 		init(ctx)
 		ginkgo.DeferCleanup(cleanup)
 
@@ -368,7 +371,7 @@ func (t *multiVolumeTestSuite) DefineTests(driver storageframework.TestDriver, p
 	// [        node1        ]
 	//   |                 |     <- same volume mode
 	// [volume1]   ->  [cloned volume1]
-	ginkgo.It("should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]", func(ctx context.Context) {
+	f.It("should concurrently access the volume and its clone from pods on the same node [LinuxOnly]", feature.VolumeSourceXFS, func(ctx context.Context) {
 		init(ctx)
 		ginkgo.DeferCleanup(cleanup)
 
@@ -420,7 +423,7 @@ func (t *multiVolumeTestSuite) DefineTests(driver storageframework.TestDriver, p
 			e2eskipper.Skipf("Driver %q does not support multiple concurrent pods - skipping", dInfo.Name)
 		}
 
-		if l.driver.GetDriverInfo().Name == "vsphere" && pattern == storageframework.BlockVolModeDynamicPV {
+		if l.driver.GetDriverInfo().Name == "vsphere" && reflect.DeepEqual(pattern, storageframework.BlockVolModeDynamicPV) {
 			e2eskipper.Skipf("Driver %q does not support read only raw block volumes - skipping", dInfo.Name)
 		}
 
@@ -496,18 +499,19 @@ func testAccessMultipleVolumes(ctx context.Context, f *framework.Framework, cs c
 		index := i + 1
 		path := fmt.Sprintf("/mnt/volume%d", index)
 		ginkgo.By(fmt.Sprintf("Checking if the volume%d exists as expected volume mode (%s)", index, *pvc.Spec.VolumeMode))
-		e2evolume.CheckVolumeModeOfPath(f, pod, *pvc.Spec.VolumeMode, path)
+		err = e2evolume.CheckVolumeModeOfPath(ctx, f, pod, *pvc.Spec.VolumeMode, path)
+		framework.ExpectNoError(err)
 
 		if readSeedBase > 0 {
 			ginkgo.By(fmt.Sprintf("Checking if read from the volume%d works properly", index))
-			storageutils.CheckReadFromPath(f, pod, *pvc.Spec.VolumeMode, false, path, byteLen, readSeedBase+int64(i))
+			storageutils.CheckReadFromPath(ctx, f, pod, *pvc.Spec.VolumeMode, false, path, byteLen, readSeedBase+int64(i))
 		}
 
 		ginkgo.By(fmt.Sprintf("Checking if write to the volume%d works properly", index))
-		storageutils.CheckWriteToPath(f, pod, *pvc.Spec.VolumeMode, false, path, byteLen, writeSeedBase+int64(i))
+		storageutils.CheckWriteToPath(ctx, f, pod, *pvc.Spec.VolumeMode, false, path, byteLen, writeSeedBase+int64(i))
 
 		ginkgo.By(fmt.Sprintf("Checking if read from the volume%d works properly", index))
-		storageutils.CheckReadFromPath(f, pod, *pvc.Spec.VolumeMode, false, path, byteLen, writeSeedBase+int64(i))
+		storageutils.CheckReadFromPath(ctx, f, pod, *pvc.Spec.VolumeMode, false, path, byteLen, writeSeedBase+int64(i))
 	}
 
 	pod, err = cs.CoreV1().Pods(pod.Namespace).Get(ctx, pod.Name, metav1.GetOptions{})
@@ -596,7 +600,7 @@ func TestConcurrentAccessToSingleVolume(ctx context.Context, f *framework.Framew
 			framework.Failf("Number of pods shouldn't be less than 1, but got %d", len(pods))
 		}
 		// byteLen should be the size of a sector to enable direct I/O
-		byteLen = storageutils.GetSectorSize(f, pods[0], path)
+		byteLen = storageutils.GetSectorSize(ctx, f, pods[0], path)
 		directIO = true
 	}
 
@@ -604,7 +608,8 @@ func TestConcurrentAccessToSingleVolume(ctx context.Context, f *framework.Framew
 	for i, pod := range pods {
 		index := i + 1
 		ginkgo.By(fmt.Sprintf("Checking if the volume in pod%d exists as expected volume mode (%s)", index, *pvc.Spec.VolumeMode))
-		e2evolume.CheckVolumeModeOfPath(f, pod, *pvc.Spec.VolumeMode, path)
+		err := e2evolume.CheckVolumeModeOfPath(ctx, f, pod, *pvc.Spec.VolumeMode, path)
+		framework.ExpectNoError(err)
 
 		if readOnly {
 			ginkgo.By("Skipping volume content checks, volume is read-only")
@@ -614,17 +619,17 @@ func TestConcurrentAccessToSingleVolume(ctx context.Context, f *framework.Framew
 		if i != 0 {
 			ginkgo.By(fmt.Sprintf("From pod%d, checking if reading the data that pod%d write works properly", index, index-1))
 			// For 1st pod, no one has written data yet, so pass the read check
-			storageutils.CheckReadFromPath(f, pod, *pvc.Spec.VolumeMode, directIO, path, byteLen, seed)
+			storageutils.CheckReadFromPath(ctx, f, pod, *pvc.Spec.VolumeMode, directIO, path, byteLen, seed)
 		}
 
 		// Update the seed and check if write/read works properly
 		seed = time.Now().UTC().UnixNano()
 
 		ginkgo.By(fmt.Sprintf("Checking if write to the volume in pod%d works properly", index))
-		storageutils.CheckWriteToPath(f, pod, *pvc.Spec.VolumeMode, directIO, path, byteLen, seed)
+		storageutils.CheckWriteToPath(ctx, f, pod, *pvc.Spec.VolumeMode, directIO, path, byteLen, seed)
 
 		ginkgo.By(fmt.Sprintf("Checking if read from the volume in pod%d works properly", index))
-		storageutils.CheckReadFromPath(f, pod, *pvc.Spec.VolumeMode, directIO, path, byteLen, seed)
+		storageutils.CheckReadFromPath(ctx, f, pod, *pvc.Spec.VolumeMode, directIO, path, byteLen, seed)
 	}
 
 	if len(pods) < 2 {
@@ -640,7 +645,8 @@ func TestConcurrentAccessToSingleVolume(ctx context.Context, f *framework.Framew
 		index := i + 1
 		// index of pod and index of pvc match, because pods are created above way
 		ginkgo.By(fmt.Sprintf("Rechecking if the volume in pod%d exists as expected volume mode (%s)", index, *pvc.Spec.VolumeMode))
-		e2evolume.CheckVolumeModeOfPath(f, pod, *pvc.Spec.VolumeMode, "/mnt/volume1")
+		err := e2evolume.CheckVolumeModeOfPath(ctx, f, pod, *pvc.Spec.VolumeMode, "/mnt/volume1")
+		framework.ExpectNoError(err)
 
 		if readOnly {
 			ginkgo.By("Skipping volume content checks, volume is read-only")
@@ -653,16 +659,16 @@ func TestConcurrentAccessToSingleVolume(ctx context.Context, f *framework.Framew
 		} else {
 			ginkgo.By(fmt.Sprintf("From pod%d, rechecking if reading the data that pod%d write works properly", index, index-1))
 		}
-		storageutils.CheckReadFromPath(f, pod, *pvc.Spec.VolumeMode, directIO, path, byteLen, seed)
+		storageutils.CheckReadFromPath(ctx, f, pod, *pvc.Spec.VolumeMode, directIO, path, byteLen, seed)
 
 		// Update the seed and check if write/read works properly
 		seed = time.Now().UTC().UnixNano()
 
 		ginkgo.By(fmt.Sprintf("Rechecking if write to the volume in pod%d works properly", index))
-		storageutils.CheckWriteToPath(f, pod, *pvc.Spec.VolumeMode, directIO, path, byteLen, seed)
+		storageutils.CheckWriteToPath(ctx, f, pod, *pvc.Spec.VolumeMode, directIO, path, byteLen, seed)
 
 		ginkgo.By(fmt.Sprintf("Rechecking if read from the volume in pod%d works properly", index))
-		storageutils.CheckReadFromPath(f, pod, *pvc.Spec.VolumeMode, directIO, path, byteLen, seed)
+		storageutils.CheckReadFromPath(ctx, f, pod, *pvc.Spec.VolumeMode, directIO, path, byteLen, seed)
 	}
 }
 
@@ -759,7 +765,7 @@ func ensureTopologyRequirements(ctx context.Context, nodeSelection *e2epod.NodeS
 	nodes, err := e2enode.GetReadySchedulableNodes(ctx, cs)
 	framework.ExpectNoError(err)
 	if len(nodes.Items) < minCount {
-		e2eskipper.Skipf(fmt.Sprintf("Number of available nodes is less than %d - skipping", minCount))
+		e2eskipper.Skipf("Number of available nodes is less than %d - skipping", minCount)
 	}
 
 	topologyKeys := driverInfo.TopologyKeys

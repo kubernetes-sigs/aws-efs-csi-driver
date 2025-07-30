@@ -113,55 +113,66 @@ var Semantic = conversion.EqualitiesOrDie(
 	},
 )
 
-var standardResourceQuotaScopes = sets.NewString(
-	string(core.ResourceQuotaScopeTerminating),
-	string(core.ResourceQuotaScopeNotTerminating),
-	string(core.ResourceQuotaScopeBestEffort),
-	string(core.ResourceQuotaScopeNotBestEffort),
-	string(core.ResourceQuotaScopePriorityClass),
+var standardResourceQuotaScopes = sets.New(
+	core.ResourceQuotaScopeTerminating,
+	core.ResourceQuotaScopeNotTerminating,
+	core.ResourceQuotaScopeBestEffort,
+	core.ResourceQuotaScopeNotBestEffort,
+	core.ResourceQuotaScopePriorityClass,
+	core.ResourceQuotaScopeVolumeAttributesClass,
 )
 
 // IsStandardResourceQuotaScope returns true if the scope is a standard value
-func IsStandardResourceQuotaScope(str string) bool {
-	return standardResourceQuotaScopes.Has(str) || str == string(core.ResourceQuotaScopeCrossNamespacePodAffinity)
+func IsStandardResourceQuotaScope(scope core.ResourceQuotaScope) bool {
+	return standardResourceQuotaScopes.Has(scope) || scope == core.ResourceQuotaScopeCrossNamespacePodAffinity
 }
 
-var podObjectCountQuotaResources = sets.NewString(
-	string(core.ResourcePods),
+var podObjectCountQuotaResources = sets.New(
+	core.ResourcePods,
 )
 
-var podComputeQuotaResources = sets.NewString(
-	string(core.ResourceCPU),
-	string(core.ResourceMemory),
-	string(core.ResourceLimitsCPU),
-	string(core.ResourceLimitsMemory),
-	string(core.ResourceRequestsCPU),
-	string(core.ResourceRequestsMemory),
+var podComputeQuotaResources = sets.New(
+	core.ResourceCPU,
+	core.ResourceMemory,
+	core.ResourceLimitsCPU,
+	core.ResourceLimitsMemory,
+	core.ResourceRequestsCPU,
+	core.ResourceRequestsMemory,
+)
+
+var pvcObjectCountQuotaResources = sets.New(
+	core.ResourcePersistentVolumeClaims,
+)
+
+var pvcStorageQuotaResources = sets.New(
+	core.ResourceRequestsStorage,
 )
 
 // IsResourceQuotaScopeValidForResource returns true if the resource applies to the specified scope
-func IsResourceQuotaScopeValidForResource(scope core.ResourceQuotaScope, resource string) bool {
+func IsResourceQuotaScopeValidForResource(scope core.ResourceQuotaScope, resource core.ResourceName) bool {
 	switch scope {
 	case core.ResourceQuotaScopeTerminating, core.ResourceQuotaScopeNotTerminating, core.ResourceQuotaScopeNotBestEffort,
 		core.ResourceQuotaScopePriorityClass, core.ResourceQuotaScopeCrossNamespacePodAffinity:
 		return podObjectCountQuotaResources.Has(resource) || podComputeQuotaResources.Has(resource)
 	case core.ResourceQuotaScopeBestEffort:
 		return podObjectCountQuotaResources.Has(resource)
+	case core.ResourceQuotaScopeVolumeAttributesClass:
+		return pvcObjectCountQuotaResources.Has(resource) || pvcStorageQuotaResources.Has(resource)
 	default:
 		return true
 	}
 }
 
-var standardContainerResources = sets.NewString(
-	string(core.ResourceCPU),
-	string(core.ResourceMemory),
-	string(core.ResourceEphemeralStorage),
+var standardContainerResources = sets.New(
+	core.ResourceCPU,
+	core.ResourceMemory,
+	core.ResourceEphemeralStorage,
 )
 
 // IsStandardContainerResourceName returns true if the container can make a resource request
 // for the specified resource
-func IsStandardContainerResourceName(str string) bool {
-	return standardContainerResources.Has(str) || IsHugePageResourceName(core.ResourceName(str))
+func IsStandardContainerResourceName(name core.ResourceName) bool {
+	return standardContainerResources.Has(name) || IsHugePageResourceName(name)
 }
 
 // IsExtendedResourceName returns true if:
@@ -196,88 +207,88 @@ func IsOvercommitAllowed(name core.ResourceName) bool {
 		!IsHugePageResourceName(name)
 }
 
-var standardLimitRangeTypes = sets.NewString(
-	string(core.LimitTypePod),
-	string(core.LimitTypeContainer),
-	string(core.LimitTypePersistentVolumeClaim),
+var standardLimitRangeTypes = sets.New(
+	core.LimitTypePod,
+	core.LimitTypeContainer,
+	core.LimitTypePersistentVolumeClaim,
 )
 
 // IsStandardLimitRangeType returns true if the type is Pod or Container
-func IsStandardLimitRangeType(str string) bool {
-	return standardLimitRangeTypes.Has(str)
+func IsStandardLimitRangeType(value core.LimitType) bool {
+	return standardLimitRangeTypes.Has(value)
 }
 
-var standardQuotaResources = sets.NewString(
-	string(core.ResourceCPU),
-	string(core.ResourceMemory),
-	string(core.ResourceEphemeralStorage),
-	string(core.ResourceRequestsCPU),
-	string(core.ResourceRequestsMemory),
-	string(core.ResourceRequestsStorage),
-	string(core.ResourceRequestsEphemeralStorage),
-	string(core.ResourceLimitsCPU),
-	string(core.ResourceLimitsMemory),
-	string(core.ResourceLimitsEphemeralStorage),
-	string(core.ResourcePods),
-	string(core.ResourceQuotas),
-	string(core.ResourceServices),
-	string(core.ResourceReplicationControllers),
-	string(core.ResourceSecrets),
-	string(core.ResourcePersistentVolumeClaims),
-	string(core.ResourceConfigMaps),
-	string(core.ResourceServicesNodePorts),
-	string(core.ResourceServicesLoadBalancers),
+var standardQuotaResources = sets.New(
+	core.ResourceCPU,
+	core.ResourceMemory,
+	core.ResourceEphemeralStorage,
+	core.ResourceRequestsCPU,
+	core.ResourceRequestsMemory,
+	core.ResourceRequestsStorage,
+	core.ResourceRequestsEphemeralStorage,
+	core.ResourceLimitsCPU,
+	core.ResourceLimitsMemory,
+	core.ResourceLimitsEphemeralStorage,
+	core.ResourcePods,
+	core.ResourceQuotas,
+	core.ResourceServices,
+	core.ResourceReplicationControllers,
+	core.ResourceSecrets,
+	core.ResourcePersistentVolumeClaims,
+	core.ResourceConfigMaps,
+	core.ResourceServicesNodePorts,
+	core.ResourceServicesLoadBalancers,
 )
 
 // IsStandardQuotaResourceName returns true if the resource is known to
 // the quota tracking system
-func IsStandardQuotaResourceName(str string) bool {
-	return standardQuotaResources.Has(str) || IsQuotaHugePageResourceName(core.ResourceName(str))
+func IsStandardQuotaResourceName(name core.ResourceName) bool {
+	return standardQuotaResources.Has(name) || IsQuotaHugePageResourceName(name)
 }
 
-var standardResources = sets.NewString(
-	string(core.ResourceCPU),
-	string(core.ResourceMemory),
-	string(core.ResourceEphemeralStorage),
-	string(core.ResourceRequestsCPU),
-	string(core.ResourceRequestsMemory),
-	string(core.ResourceRequestsEphemeralStorage),
-	string(core.ResourceLimitsCPU),
-	string(core.ResourceLimitsMemory),
-	string(core.ResourceLimitsEphemeralStorage),
-	string(core.ResourcePods),
-	string(core.ResourceQuotas),
-	string(core.ResourceServices),
-	string(core.ResourceReplicationControllers),
-	string(core.ResourceSecrets),
-	string(core.ResourceConfigMaps),
-	string(core.ResourcePersistentVolumeClaims),
-	string(core.ResourceStorage),
-	string(core.ResourceRequestsStorage),
-	string(core.ResourceServicesNodePorts),
-	string(core.ResourceServicesLoadBalancers),
+var standardResources = sets.New(
+	core.ResourceCPU,
+	core.ResourceMemory,
+	core.ResourceEphemeralStorage,
+	core.ResourceRequestsCPU,
+	core.ResourceRequestsMemory,
+	core.ResourceRequestsEphemeralStorage,
+	core.ResourceLimitsCPU,
+	core.ResourceLimitsMemory,
+	core.ResourceLimitsEphemeralStorage,
+	core.ResourcePods,
+	core.ResourceQuotas,
+	core.ResourceServices,
+	core.ResourceReplicationControllers,
+	core.ResourceSecrets,
+	core.ResourceConfigMaps,
+	core.ResourcePersistentVolumeClaims,
+	core.ResourceStorage,
+	core.ResourceRequestsStorage,
+	core.ResourceServicesNodePorts,
+	core.ResourceServicesLoadBalancers,
 )
 
 // IsStandardResourceName returns true if the resource is known to the system
-func IsStandardResourceName(str string) bool {
-	return standardResources.Has(str) || IsQuotaHugePageResourceName(core.ResourceName(str))
+func IsStandardResourceName(name core.ResourceName) bool {
+	return standardResources.Has(name) || IsQuotaHugePageResourceName(name)
 }
 
-var integerResources = sets.NewString(
-	string(core.ResourcePods),
-	string(core.ResourceQuotas),
-	string(core.ResourceServices),
-	string(core.ResourceReplicationControllers),
-	string(core.ResourceSecrets),
-	string(core.ResourceConfigMaps),
-	string(core.ResourcePersistentVolumeClaims),
-	string(core.ResourceServicesNodePorts),
-	string(core.ResourceServicesLoadBalancers),
+var integerResources = sets.New(
+	core.ResourcePods,
+	core.ResourceQuotas,
+	core.ResourceServices,
+	core.ResourceReplicationControllers,
+	core.ResourceSecrets,
+	core.ResourceConfigMaps,
+	core.ResourcePersistentVolumeClaims,
+	core.ResourceServicesNodePorts,
+	core.ResourceServicesLoadBalancers,
 )
 
 // IsIntegerResourceName returns true if the resource is measured in integer values
-func IsIntegerResourceName(str string) bool {
-	return integerResources.Has(str) || IsExtendedResourceName(core.ResourceName(str))
+func IsIntegerResourceName(name core.ResourceName) bool {
+	return integerResources.Has(name) || IsExtendedResourceName(name)
 }
 
 // IsServiceIPSet aims to check if the service's ClusterIP is set or not
@@ -289,7 +300,7 @@ func IsServiceIPSet(service *core.Service) bool {
 		service.Spec.ClusterIP != core.ClusterIPNone
 }
 
-var standardFinalizers = sets.NewString(
+var standardFinalizers = sets.New(
 	string(core.FinalizerKubernetes),
 	metav1.FinalizerOrphanDependents,
 	metav1.FinalizerDeleteDependents,
@@ -499,4 +510,19 @@ func validFirstDigit(str string) bool {
 		return false
 	}
 	return str[0] == '-' || (str[0] == '0' && str == "0") || (str[0] >= '1' && str[0] <= '9')
+}
+
+// HasInvalidLabelValueInNodeSelectorTerms checks if there's an invalid label value
+// in one NodeSelectorTerm's MatchExpression values
+func HasInvalidLabelValueInNodeSelectorTerms(terms []core.NodeSelectorTerm) bool {
+	for _, term := range terms {
+		for _, expression := range term.MatchExpressions {
+			for _, value := range expression.Values {
+				if len(validation.IsValidLabelValue(value)) > 0 {
+					return true
+				}
+			}
+		}
+	}
+	return false
 }

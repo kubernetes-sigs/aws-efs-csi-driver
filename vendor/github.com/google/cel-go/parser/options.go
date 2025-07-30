@@ -25,6 +25,9 @@ type options struct {
 	macros                           map[string]Macro
 	populateMacroCalls               bool
 	enableOptionalSyntax             bool
+	enableVariadicOperatorASTs       bool
+	enableIdentEscapeSyntax          bool
+	enableHiddenAccumulatorName      bool
 }
 
 // Option configures the behavior of the parser.
@@ -122,6 +125,39 @@ func PopulateMacroCalls(populateMacroCalls bool) Option {
 func EnableOptionalSyntax(optionalSyntax bool) Option {
 	return func(opts *options) error {
 		opts.enableOptionalSyntax = optionalSyntax
+		return nil
+	}
+}
+
+// EnableIdentEscapeSyntax enables backtick (`) escaped field identifiers. This
+// supports extended types of characters in identifiers, e.g. foo.`baz-bar`.
+func EnableIdentEscapeSyntax(enableIdentEscapeSyntax bool) Option {
+	return func(opts *options) error {
+		opts.enableIdentEscapeSyntax = enableIdentEscapeSyntax
+		return nil
+	}
+}
+
+// EnableHiddenAccumulatorName uses an accumulator variable name that is not a
+// normally accessible identifier in source for comprehension macros. Compatibility notes:
+// with this option enabled, a parsed AST would be semantically the same as if disabled, but would
+// have different internal identifiers in any of the built-in comprehension sub-expressions. When
+// disabled, it is possible but almost certainly a logic error to access the accumulator variable.
+func EnableHiddenAccumulatorName(enabled bool) Option {
+	return func(opts *options) error {
+		opts.enableHiddenAccumulatorName = enabled
+		return nil
+	}
+}
+
+// EnableVariadicOperatorASTs enables a compact representation of chained like-kind commutative
+// operators. e.g. `a || b || c || d` -> `call(op='||', args=[a, b, c, d])`
+//
+// The benefit of enabling variadic operators ASTs is a more compact representation deeply nested
+// logic graphs.
+func EnableVariadicOperatorASTs(varArgASTs bool) Option {
+	return func(opts *options) error {
+		opts.enableVariadicOperatorASTs = varArgASTs
 		return nil
 	}
 }

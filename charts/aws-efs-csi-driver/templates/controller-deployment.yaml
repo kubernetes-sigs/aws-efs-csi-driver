@@ -137,6 +137,18 @@ spec:
             {{- if hasKey .Values.controller "leaderElectionLeaseDuration" }}
             - --leader-election-lease-duration={{ .Values.controller.leaderElectionLeaseDuration }}
             {{- end }}
+            {{- if hasKey .Values.controller "workerThreads" }}
+            - --worker-threads={{ .Values.controller.workerThreads }}
+            {{- end }}
+            {{- if hasKey .Values.controller "timeout" }}
+            - --timeout={{ .Values.controller.timeout }}
+            {{- end }}
+            {{- if hasKey .Values.controller "workerThreads" }}
+            - --worker-threads={{ .Values.controller.workerThreads }}
+            {{- end }}
+            {{- if hasKey .Values.controller "timeout" }}
+            - --timeout={{ .Values.controller.timeout }}
+            {{- end }}
             {{- if .Values.controller.metrics.enabled }}
             - --metrics-address=:{{ .Values.controller.metrics.port }}
             - --metrics-path={{ .Values.controller.metrics.path }}

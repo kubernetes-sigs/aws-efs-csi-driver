@@ -22,6 +22,7 @@ import (
 	"regexp"
 	"time"
 
+	"github.com/onsi/gomega"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
@@ -51,7 +52,7 @@ func WaitForTotalHealthy(ctx context.Context, c clientset.Interface, timeout tim
 
 	var notReady []v1.Node
 	var missingPodsPerNode map[string][]string
-	err := wait.PollImmediateWithContext(ctx, poll, timeout, func(ctx context.Context) (bool, error) {
+	err := wait.PollUntilContextTimeout(ctx, poll, timeout, true, func(ctx context.Context) (bool, error) {
 		notReady = nil
 		// It should be OK to list unschedulable Nodes here.
 		nodes, err := c.CoreV1().Nodes().List(ctx, metav1.ListOptions{ResourceVersion: "0"})
@@ -96,7 +97,7 @@ func WaitForTotalHealthy(ctx context.Context, c clientset.Interface, timeout tim
 		return len(notReady) == 0 && len(missingPodsPerNode) == 0, nil
 	})
 
-	if err != nil && err != wait.ErrWaitTimeout {
+	if err != nil && !wait.Interrupted(err) {
 		return err
 	}
 
@@ -160,6 +161,23 @@ func WaitForNodeSchedulable(ctx context.Context, c clientset.Interface, name str
 	return false
 }
 
+// WaitForNodeHeartbeatAfter waits up to timeout for node to send the next
+// heartbeat after the given timestamp.
+//
+// To ensure the node status is posted by a restarted kubelet process,
+// after should be retrieved by [GetNodeHeartbeatTime] while the kubelet is down.
+func WaitForNodeHeartbeatAfter(ctx context.Context, c clientset.Interface, name string, after metav1.Time, timeout time.Duration) {
+	framework.Logf("Waiting up to %v for node %s to send a heartbeat after %v", timeout, name, after)
+	gomega.Eventually(ctx, func() (time.Time, error) {
+		node, err := c.CoreV1().Nodes().Get(ctx, name, metav1.GetOptions{})
+		if err != nil {
+			framework.Logf("Couldn't get node %s", name)
+			return time.Time{}, err
+		}
+		return GetNodeHeartbeatTime(node).Time, nil
+	}, timeout, poll).Should(gomega.BeTemporally(">", after.Time), "Node %s didn't send a heartbeat", name)
+}
+
 // CheckReady waits up to timeout for cluster to has desired size and
 // there is no not-ready nodes in it. By cluster size we mean number of schedulable Nodes.
 func CheckReady(ctx context.Context, c clientset.Interface, size int, timeout time.Duration) ([]v1.Node, error) {
@@ -192,7 +210,7 @@ func CheckReady(ctx context.Context, c clientset.Interface, size int, timeout ti
 func waitListSchedulableNodes(ctx context.Context, c clientset.Interface) (*v1.NodeList, error) {
 	var nodes *v1.NodeList
 	var err error
-	if wait.PollImmediateWithContext(ctx, poll, singleCallTimeout, func(ctx context.Context) (bool, error) {
+	if wait.PollUntilContextTimeout(ctx, poll, singleCallTimeout, true, func(ctx context.Context) (bool, error) {
 		nodes, err = c.CoreV1().Nodes().List(ctx, metav1.ListOptions{FieldSelector: fields.Set{
 			"spec.unschedulable": "false",
 		}.AsSelector().String()})

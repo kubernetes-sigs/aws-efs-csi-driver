@@ -89,6 +89,11 @@ The following sections are Kubernetes specific. If you are a Kubernetes user, us
 | Amazon EFS CSI Driver Version | Image                            |
 |-------------------------------|----------------------------------|
 | master branch                 | amazon/aws-efs-csi-driver:master |
+| v2.1.10                       | amazon/aws-efs-csi-driver:v2.1.10|
+| v2.1.9                        | amazon/aws-efs-csi-driver:v2.1.9 |
+| v2.1.8                        | amazon/aws-efs-csi-driver:v2.1.8 |
+| v2.1.7                        | amazon/aws-efs-csi-driver:v2.1.7 |
+| v2.1.6                        | amazon/aws-efs-csi-driver:v2.1.6 |
 | v2.1.5                        | amazon/aws-efs-csi-driver:v2.1.5 |
 | v2.1.4                        | amazon/aws-efs-csi-driver:v2.1.4 |
 | v2.1.3                        | amazon/aws-efs-csi-driver:v2.1.3 |
@@ -155,7 +160,7 @@ The following sections are Kubernetes specific. If you are a Kubernetes user, us
 ### ECR Image
 | Driver Version | [ECR](https://gallery.ecr.aws/efs-csi-driver/amazon/aws-efs-csi-driver) Image |
 |----------------|-------------------------------------------------------------------------------|
-| v2.1.5         | public.ecr.aws/efs-csi-driver/amazon/aws-efs-csi-driver:v2.1.5                |
+| v2.1.10        | public.ecr.aws/efs-csi-driver/amazon/aws-efs-csi-driver:v2.1.10               |
 
 **Note**  
 You can find previous efs-csi-driver versions' images from [here](https://gallery.ecr.aws/efs-csi-driver/amazon/aws-efs-csi-driver)
@@ -179,7 +184,7 @@ Since Amazon EFS is an elastic file system, it doesn't really enforce any file s
 + Dynamic provisioning requires `1.2` or later of the driver. You can statically provision persistent volumes using version `1.1` of the driver on any [supported Amazon EKS cluster version](https://docs.aws.amazon.com/eks/latest/userguide/efs-csi.html).
 + Version `1.3.2` or later of this driver supports the Arm64 architecture, including Amazon EC2 Graviton\-based instances.
 + Version `1.4.2` or later of this driver supports using FIPS for mounting file systems. For more information on how to enable FIPS, see [Helm](#-helm-).
-+ Take note of the resource quotas for Amazon EFS. For example, there's a quota of 1000 access points that can be created for each Amazon EFS file system. For more information, see [https://docs.aws.amazon.com/efs/latest/ug/limits.html#limits-efs-resources-per-account-per-region](https://docs.aws.amazon.com/efs/latest/ug/limits.html#limits-efs-resources-per-account-per-region).
++ Take note of the resource quotas for Amazon EFS. For example, there's a quota of 10000 access points that can be created for each Amazon EFS file system. For more information, see [https://docs.aws.amazon.com/efs/latest/ug/limits.html#limits-efs-resources-per-account-per-region](https://docs.aws.amazon.com/efs/latest/ug/limits.html#limits-efs-resources-per-account-per-region).
 
 ### Configure node startup taint
 There are potential race conditions on node startup (especially when a node is first joining the cluster) where pods/processes that rely on the EFS CSI Driver can act on a node before the EFS CSI Driver is able to startup up and become fully ready. To combat this, the EFS CSI Driver contains a feature to automatically remove a taint from the node on startup. This feature was introduced from version v1.7.2 of the EFS CSI Driver and version v2.5.2 of its Helm chart. Users can taint their nodes when they join the cluster and/or on startup, to prevent other pods from running and/or being scheduled on the node prior to the EFS CSI Driver becoming ready.
@@ -251,7 +256,7 @@ This procedure requires Helm V3 or later. To install or upgrade Helm, see [Using
 
    To force the Amazon EFS CSI driver to use FIPS for mounting the file system, add the following argument.
    ```sh
-   --set useFips=true
+   --set useFIPS=true
    ```
 **Note**  
 `hostNetwork: true` (should be added under spec/deployment on kubernetes installations where AWS metadata is not reachable from pod network. To fix the following error `NoCredentialProviders: no valid providers in chain` this parameter should be added.)
@@ -380,9 +385,27 @@ If you want to update to a specific version, first customize the driver yaml fil
 kubectl kustomize "github.com/kubernetes-sigs/aws-efs-csi-driver/deploy/kubernetes/overlays/stable/?ref=release-2.0" > driver.yaml
 ```
 
-Then, update all lines referencing `image: amazon/aws-efs-csi-driver` to the desired version (e.g., to `image: amazon/aws-efs-csi-driver:v2.1.5`) in the yaml file, and deploy driver yaml again:
+Then, update all lines referencing `image: amazon/aws-efs-csi-driver` to the desired version (e.g., to `image: amazon/aws-efs-csi-driver:v2.1.10`) in the yaml file, and deploy driver yaml again:
 ```sh
 kubectl apply -f driver.yaml
+```
+
+### Uninstalling the Amazon EFS CSI Driver
+
+Note: While the aws-efs-csi-driver daemonsets and controller are deleted from the cluster no new EFS PVCs will be able to be created, new pods that are created which use an EFS PV volume will not function (because the PV will not mount), and any existing pods with mounted PVs will not be able to access EFS until the driver is successfully re-installed (either manually, or through the [EKS add-on system](https://docs.aws.amazon.com/eks/latest/userguide/efs-csi.html#efs-install-driver)).
+
+Uninstall the self-managed EFS CSI Driver with either Helm or Kustomize, depending on your installation method. If you are using the driver as a managed EKS add-on, see the [EKS Documentation](https://docs.aws.amazon.com/eks/latest/userguide/efs-csi.html#efs-install-driver).
+
+**Helm**
+
+```
+helm uninstall aws-efs-csi-driver --namespace kube-system
+```
+
+**Kustomize**
+
+```
+kubectl delete -k "github.com/kubernetes-sigs/aws-efs-csi-driver/deploy/kubernetes/overlays/stable/?ref=<YOUR-CSI-DRIVER-RELEASE-OR-TAG>"
 ```
 
 ### Examples
@@ -399,6 +422,15 @@ Before following the examples, you need to:
 * [Consume Amazon EFS in StatefulSets](../examples/kubernetes/statefulset/README.md)
 * [Mount subpath](../examples/kubernetes/volume_path/README.md)
 * [Use Access Points](../examples/kubernetes/access_points/README.md)
+
+## Resource limits
+The controller container has different memory / CPU requirements based on the workload scale, concurrency, and configurations. When configuring your controller with `delete-access-point-root-dir=true`, we recommend setting higher resource limits if your workload requires many concurrent volume deletions. For example, for a workload that requires 100 concurrent PVC deletions, we recommend setting a minimum CPU limit of 3000m and a minimum memory limit of 2.5 GiB. 
+
+Alternatively, if you would prefer not to allocate these resources to your controller container, we advise lowering concurrency by lowering the `--worker-threads` argument of the [external-provisioner](https://github.com/kubernetes-csi/external-provisioner).
+
+## Timeouts
+For most highly concurrent workloads, we recommend increasing the default timeout argument set in the [external-provisioner](https://github.com/kubernetes-csi/external-provisioner) from 15 seconds to 60 seconds. This will avoid provisioning failures due to throttling and resource contention in the controller container. 
+
 
 ## Using botocore to retrieve mount target ip address when dns name cannot be resolved
 * Amazon EFS CSI driver supports using botocore to retrieve mount target ip address when dns name cannot be resolved, e.g., when user is mounting a file system in another VPC, botocore comes preinstalled on efs-csi-driver which can solve this DNS issue.

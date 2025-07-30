@@ -25,6 +25,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -62,6 +63,7 @@ const (
 	ReuseAccessPointKey   = "reuseAccessPoint"
 	PvcNameKey            = "csi.storage.k8s.io/pvc/name"
 	CrossAccount          = "crossaccount"
+	ApLockWaitTimeSec     = 3
 )
 
 var (
@@ -178,6 +180,13 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 				FileSystemId:  existingAP.FileSystemId,
 				CapacityGiB:   accessPointsOptions.CapacityGiB,
 			}
+
+			// Take the lock to prevent this access point from being deleted while creating volume
+			if d.lockManager.lockMutex(accessPoint.AccessPointId, ApLockWaitTimeSec*time.Second) {
+				defer d.lockManager.unlockMutex(accessPoint.AccessPointId)
+			} else {
+				return nil, status.Errorf(codes.Internal, "Could not take the lock for existing access point: %v", accessPoint.AccessPointId)
+			}
 		}
 	}
 
@@ -213,7 +222,7 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 			if err != nil {
 				return nil, status.Errorf(codes.InvalidArgument, "Failed to parse invalid %v: %v", Gid, err)
 			}
-			if uid < 0 {
+			if gid < 0 {
 				return nil, status.Errorf(codes.InvalidArgument, "%v must be greater or equal than 0", Gid)
 			}
 		}
@@ -342,11 +351,30 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 		if err != nil {
 			if err == cloud.ErrAccessDenied {
 				return nil, status.Errorf(codes.Unauthenticated, "Access Denied. Please ensure you have the right AWS permissions: %v", err)
+			} else if err == cloud.ErrAlreadyExists {
+				klog.V(4).Infof("Access point already exists for client token %s. Retrieving existing access point details.", clientToken)
+				existingAccessPoint, err := localCloud.FindAccessPointByClientToken(ctx, clientToken, accessPointsOptions.FileSystemId)
+				if err != nil {
+					return nil, fmt.Errorf("Error attempting to retrieve existing access point for client token %s: %v", clientToken, err)
+				}
+				if existingAccessPoint == nil {
+					return nil, fmt.Errorf("No access point for client token %s was returned: %v", clientToken, err)
+				}
+				err = validateExistingAccessPoint(existingAccessPoint, basePath, gidMin, gidMax)
+				if err != nil {
+					return nil, status.Errorf(codes.AlreadyExists, "Invalid existing access point: %v", err)
+				}
+				accessPoint = existingAccessPoint
+			} else {
+				return nil, status.Errorf(codes.Internal, "Failed to create Access point in File System %v : %v", accessPointsOptions.FileSystemId, err)
 			}
-			if err == cloud.ErrAlreadyExists {
-				return nil, status.Errorf(codes.AlreadyExists, "Access Point already exists")
-			}
-			return nil, status.Errorf(codes.Internal, "Failed to create Access point in File System %v : %v", accessPointsOptions.FileSystemId, err)
+		}
+
+		// Lock on the new access point to prevent accidental deletion before creation is done
+		if d.lockManager.lockMutex(accessPoint.AccessPointId, ApLockWaitTimeSec*time.Second) {
+			defer d.lockManager.unlockMutex(accessPoint.AccessPointId)
+		} else {
+			return nil, status.Errorf(codes.Internal, "Could not take the lock after creating access point: %v", accessPoint.AccessPointId)
 		}
 	}
 
@@ -411,9 +439,43 @@ func (d *Driver) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeRequest)
 		return &csi.DeleteVolumeResponse{}, nil
 	}
 
+	// Lock on the access point ID to ensure a retry won't race with the in-progress deletion
+	if d.lockManager.lockMutex(accessPointId, ApLockWaitTimeSec*time.Second) {
+		defer d.lockManager.unlockMutex(accessPointId)
+	} else {
+		return nil, status.Errorf(codes.Internal, "Could not take the lock to delete access point: %v", accessPointId)
+	}
+
 	//TODO: Add Delete File System when FS provisioning is implemented
 	// Delete access point root directory if delete-access-point-root-dir is set.
 	if d.deleteAccessPointRootDir {
+		fsRoot := TempMountPathPrefix + "/" + accessPointId
+		deleteCompleted := false
+
+		// Ensure the volume is cleaned up properly in case of an incomplete deletion
+		defer func() {
+			if !deleteCompleted {
+				// Check if the FS is still mounted
+				isNotMounted, err := d.mounter.IsLikelyNotMountPoint(fsRoot)
+				if err != nil {
+					return // Skip cleanup, we can't verify mount status
+				}
+
+				if !isNotMounted {
+					if err := d.mounter.Unmount(fsRoot); err != nil {
+						klog.Warningf("Failed to unmount %v: %v", fsRoot, err)
+						return // Don't remove any data if the unmount fails
+					}
+				}
+
+				// Only try folder removal if the unmount succeeded or wasn't mounted
+				// If the directory already doesn't exist it will be treated as success
+				if err := os.Remove(fsRoot); err != nil && !os.IsNotExist(err) {
+					klog.Warningf("Failed to remove %v: %v", fsRoot, err)
+				}
+			}
+		}()
+
 		// Check if Access point exists.
 		// If access point exists, retrieve its root directory and delete it/
 		accessPoint, err := localCloud.DescribeAccessPoint(ctx, accessPointId)
@@ -444,26 +506,41 @@ func (d *Driver) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeRequest)
 			}
 		}
 
-		target := TempMountPathPrefix + "/" + accessPointId
-		if err := d.mounter.MakeDir(target); err != nil {
-			return nil, status.Errorf(codes.Internal, "Could not create dir %q: %v", target, err)
+		// Create the target directory, This won't fail if it already exists
+		if err := d.mounter.MakeDir(fsRoot); err != nil {
+			return nil, status.Errorf(codes.Internal, "Could not create dir %q: %v", fsRoot, err)
 		}
-		if err := d.mounter.Mount(fileSystemId, target, "efs", mountOptions); err != nil {
-			os.Remove(target)
-			return nil, status.Errorf(codes.Internal, "Could not mount %q at %q: %v", fileSystemId, target, err)
+
+		// Only attempt to mount the target filesystem if its not already mounted
+		isNotMounted, err := d.mounter.IsLikelyNotMountPoint(fsRoot)
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "Could not check if %q is mounted: %v", fsRoot, err)
 		}
-		err = os.RemoveAll(target + accessPoint.AccessPointRootDir)
+		if isNotMounted {
+			if err := d.mounter.Mount(fileSystemId, fsRoot, "efs", mountOptions); err != nil {
+				return nil, status.Errorf(codes.Internal, "Could not mount %q at %q: %v", fileSystemId, fsRoot, err)
+			}
+		}
+
+		// Before removing, ensure the removal path exists and is a directory
+		apRootPath := fsRoot + accessPoint.AccessPointRootDir
+		if pathInfo, err := d.mounter.Stat(apRootPath); err == nil && !os.IsNotExist(err) && pathInfo.IsDir() {
+			err = os.RemoveAll(apRootPath)
+		}
 		if err != nil {
 			return nil, status.Errorf(codes.Internal, "Could not delete access point root directory %q: %v", accessPoint.AccessPointRootDir, err)
 		}
-		err = d.mounter.Unmount(target)
+		err = d.mounter.Unmount(fsRoot)
 		if err != nil {
-			return nil, status.Errorf(codes.Internal, "Could not unmount %q: %v", target, err)
+			return nil, status.Errorf(codes.Internal, "Could not unmount %q: %v", fsRoot, err)
 		}
-		err = os.Remove(target)
+		err = os.Remove(fsRoot)
 		if err != nil && !os.IsNotExist(err) {
-			return nil, status.Errorf(codes.Internal, "Could not delete %q: %v", target, err)
+			return nil, status.Errorf(codes.Internal, "Could not delete %q: %v", fsRoot, err)
 		}
+
+		//Mark the delete as complete, Nothing needs cleanup in the deferred function
+		deleteCompleted = true
 	}
 
 	// Delete access point
@@ -556,7 +633,10 @@ func (d *Driver) ControllerExpandVolume(ctx context.Context, req *csi.Controller
 }
 
 func (d *Driver) ControllerGetVolume(ctx context.Context, req *csi.ControllerGetVolumeRequest) (*csi.ControllerGetVolumeResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "")
+}
 
+func (d *Driver) ControllerModifyVolume(ctx context.Context, req *csi.ControllerModifyVolumeRequest) (*csi.ControllerModifyVolumeResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "")
 }
 
@@ -645,4 +725,27 @@ func get64LenHash(text string) string {
 	h := sha256.New()
 	h.Write([]byte(text))
 	return fmt.Sprintf("%x", h.Sum(nil))
+}
+
+func validateExistingAccessPoint(existingAccessPoint *cloud.AccessPoint, basePath string, gidMin int64, gidMax int64) error {
+
+	normalizedBasePath := strings.TrimPrefix(basePath, "/")
+	normalizedAccessPointPath := strings.TrimPrefix(existingAccessPoint.AccessPointRootDir, "/")
+	if !strings.HasPrefix(normalizedAccessPointPath, normalizedBasePath) {
+		return fmt.Errorf("Access point found but has different base path than what's specified in storage class")
+	}
+
+	if existingAccessPoint.PosixUser == nil {
+		return fmt.Errorf("Access point found but PosixUser is nil")
+	}
+
+	if existingAccessPoint.PosixUser.Gid < gidMin || existingAccessPoint.PosixUser.Gid > gidMax {
+		return fmt.Errorf("Access point found but its GID is outside the specified range")
+	}
+
+	if existingAccessPoint.PosixUser.Uid < gidMin || existingAccessPoint.PosixUser.Uid > gidMax {
+		return fmt.Errorf("Access point found but its UID is outside the specified range")
+	}
+
+	return nil
 }

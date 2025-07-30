@@ -5,13 +5,13 @@ bases:
 images:
   - name: public.ecr.aws/efs-csi-driver/amazon/aws-efs-csi-driver
     newName: 602401143452.dkr.ecr.us-west-2.amazonaws.com/eks/aws-efs-csi-driver
-    newTag: v2.1.5
+    newTag: v2.1.10
   - name: public.ecr.aws/eks-distro/kubernetes-csi/livenessprobe
     newName: 602401143452.dkr.ecr.us-west-2.amazonaws.com/eks/livenessprobe
-    newTag: v2.14.0-eks-1-31-5
+    newTag: v2.15.0-eks-1-33-3
   - name: public.ecr.aws/eks-distro/kubernetes-csi/node-driver-registrar
     newName: 602401143452.dkr.ecr.us-west-2.amazonaws.com/eks/csi-node-driver-registrar
-    newTag: v2.12.0-eks-1-31-5
+    newTag: v2.13.0-eks-1-33-3
   - name: public.ecr.aws/eks-distro/kubernetes-csi/external-provisioner
     newName: 602401143452.dkr.ecr.us-west-2.amazonaws.com/eks/csi-provisioner
-    newTag: v5.1.0-eks-1-31-5
+    newTag: v5.2.0-eks-1-33-3
