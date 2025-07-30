@@ -143,8 +143,20 @@ spec:
             {{- if hasKey .Values.controller "timeout" }}
             - --timeout={{ .Values.controller.timeout }}
             {{- end }}
+            {{- if hasKey .Values.controller "workerThreads" }}
+            - --worker-threads={{ .Values.controller.workerThreads }}
+            {{- end }}
+            {{- if hasKey .Values.controller "timeout" }}
+            - --timeout={{ .Values.controller.timeout }}
+            {{- end }}
+            {{- if .Values.controller.metrics.enabled }}
+            - --metrics-address=:{{ .Values.controller.metrics.port }}
+            - --metrics-path={{ .Values.controller.metrics.path }}
+            {{- end }}
+            {{- if .Values.sidecars.csiProvisioner.additionalArgs }}
             {{- range .Values.sidecars.csiProvisioner.additionalArgs }}
             - {{ . }}
+            {{- end }}
             {{- end }}
           env:
             - name: ADDRESS
@@ -152,6 +164,13 @@ spec:
           volumeMounts:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
+          {{- if .Values.controller.metrics.enabled }}
+          ports:
+            - name: metrics
+              containerPort: {{ .Values.controller.metrics.port }}
+              protocol: TCP
+          {{- end }}
+          {{- with .Values.sidecars.csiProvisioner.resources }}
           {{- with default .Values.controller.resources .Values.sidecars.csiProvisioner.resources }}
           resources: {{ toYaml . | nindent 12 }}
           {{- end }}
