@@ -14,7 +14,6 @@ limitations under the License.
 package driver
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -151,7 +150,7 @@ func TestExecWatchdog(t *testing.T) {
 }
 
 func createTempDir(t *testing.T) string {
-	name, err := ioutil.TempDir("", "")
+	name, err := os.MkdirTemp("", "")
 	checkError(t, err)
 	return name
 }
@@ -259,7 +258,7 @@ func TestSetupWithAdditionalDirectoryInStaticFilesDirectory(t *testing.T) {
 	staticFileDirName := createTempDir(t)
 	defer os.RemoveAll(staticFileDirName)
 
-	_, err := ioutil.TempDir(staticFileDirName, "")
+	_, err := os.MkdirTemp(staticFileDirName, "")
 	checkError(t, err)
 
 	w := newExecWatchdog(configDirName, staticFileDirName, "sleep", "300").(*execWatchdog)
@@ -270,7 +269,7 @@ func TestSetupWithAdditionalDirectoryInStaticFilesDirectory(t *testing.T) {
 }
 
 func TestRemoveLibwrapOption(t *testing.T) {
-	tempDir, err := ioutil.TempDir("", "test-stunnel-configs")
+	tempDir, err := os.MkdirTemp("", "test-stunnel-configs")
 	if err != nil {
 		t.Fatalf("Failed to create temp dir: %v", err)
 	}
@@ -285,7 +284,7 @@ connect = fs-123.efs.us-west-2.amazonaws.com:2049
 libwrap = no
 `)
 	testFilePath := filepath.Join(tempDir, "stunnel-config.test")
-	if err := ioutil.WriteFile(testFilePath, testConfig, 0644); err != nil {
+	if err := os.WriteFile(testFilePath, testConfig, 0644); err != nil {
 		t.Fatalf("Failed to write test config: %v", err)
 	}
 
@@ -295,7 +294,7 @@ libwrap = no
 		t.Fatalf("removeLibwrapOption failed: %v", err)
 	}
 
-	content, err := ioutil.ReadFile(testFilePath)
+	content, err := os.ReadFile(testFilePath)
 	if err != nil {
 		t.Fatalf("Failed to read updated config: %v", err)
 	}
@@ -306,7 +305,7 @@ libwrap = no
 }
 
 func verifyFileContent(t *testing.T, fileName string, expectedFileContent string) {
-	fileContent, err := ioutil.ReadFile(fileName)
+	fileContent, err := os.ReadFile(fileName)
 	if err != nil {
 		t.Fatalf("Failed to read file %v, %v", fileName, err)
 	}
@@ -317,7 +316,7 @@ func verifyFileContent(t *testing.T, fileName string, expectedFileContent string
 }
 
 func verifyConfigFile(t *testing.T, configFilePath string) {
-	configFileContent, err := ioutil.ReadFile(configFilePath)
+	configFileContent, err := os.ReadFile(configFilePath)
 	checkError(t, err)
 	actualConfig := string(configFileContent)
 	if actualConfig != expectedEfsUtilsConfig {

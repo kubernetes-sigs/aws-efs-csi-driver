@@ -18,7 +18,6 @@ package driver
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/signal"
 	"strings"
@@ -88,7 +87,7 @@ func waitIfZombieStunnel(p ps.Process) bool {
 	if !strings.Contains(p.Executable(), "stunnel") && !strings.Contains(p.Executable(), "efs-proxy") {
 		return false
 	}
-	data, err := ioutil.ReadFile(fmt.Sprintf("/proc/%v/status", p.Pid()))
+	data, err := os.ReadFile(fmt.Sprintf("/proc/%v/status", p.Pid()))
 	if err != nil {
 		klog.Warningf("reaper: failed to read process %v's status: %v", p, err)
 		return false
