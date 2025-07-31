@@ -526,7 +526,7 @@ func removeNotReadyTaint(k8sClient cloud.KubernetesAPIClient) error {
 	return nil
 }
 
-// remove taint may failed, this keep retring until succeed, make sure the taint will eventually being removed
+// remove taint may fail, this keeps retrying until it succeeds, make sure the taint will eventually be removed
 func tryRemoveNotReadyTaintUntilSucceed(interval time.Duration, removeFn func() error) {
 	for {
 		err := removeFn()
