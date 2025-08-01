@@ -54,6 +54,7 @@ type Driver struct {
 	adaptiveRetryMode        bool
 	tags                     map[string]string
 	lockManager              LockManagerMap
+	healthMonitor            *HealthMonitor
 }
 
 func NewDriver(endpoint, efsUtilsCfgPath, efsUtilsStaticFilesPath, tags string, volMetricsOptIn bool, volMetricsRefreshPeriod float64, volMetricsFsRateLimit int, deleteAccessPointRootDir bool, adaptiveRetryMode bool) *Driver {
@@ -64,10 +65,15 @@ func NewDriver(endpoint, efsUtilsCfgPath, efsUtilsStaticFilesPath, tags string, 
 
 	nodeCaps := SetNodeCapOptInFeatures(volMetricsOptIn)
 	watchdog := newExecWatchdog(efsUtilsCfgPath, efsUtilsStaticFilesPath, "amazon-efs-mount-watchdog")
+	mounter := newNodeMounter()
+	
+	// Initialize health monitor
+	healthMonitor := NewHealthMonitor(mounter)
+	
 	return &Driver{
 		endpoint:                 endpoint,
 		nodeID:                   cloud.GetMetadata().GetInstanceID(),
-		mounter:                  newNodeMounter(),
+		mounter:                  mounter,
 		efsWatchdog:              watchdog,
 		cloud:                    cloud,
 		nodeCaps:                 nodeCaps,
@@ -80,6 +86,7 @@ func NewDriver(endpoint, efsUtilsCfgPath, efsUtilsStaticFilesPath, tags string, 
 		adaptiveRetryMode:        adaptiveRetryMode,
 		tags:                     parseTagsFromStr(strings.TrimSpace(tags)),
 		lockManager:              NewLockManagerMap(),
+		healthMonitor:            healthMonitor,
 	}
 }
 
@@ -131,6 +138,13 @@ func (d *Driver) Run() error {
 	reaper := newReaper()
 	klog.Info("Starting reaper")
 	reaper.start()
+
+	// Start health monitor
+	if d.healthMonitor != nil {
+		klog.Info("Starting EFS health monitor")
+		d.healthMonitor.Start()
+		defer d.healthMonitor.Stop()
+	}
 
 	// Remove taint from node to indicate driver startup success
 	// This is done at the last possible moment to prevent race conditions or false positive removals

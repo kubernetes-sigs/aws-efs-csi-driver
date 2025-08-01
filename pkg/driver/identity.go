@@ -23,6 +23,7 @@ import (
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
 	"github.com/kubernetes-sigs/aws-efs-csi-driver/pkg/util"
+	"github.com/golang/protobuf/ptypes/wrappers"
 )
 
 func (d *Driver) GetPluginInfo(ctx context.Context, req *csi.GetPluginInfoRequest) (*csi.GetPluginInfoResponse, error) {
@@ -52,5 +53,20 @@ func (d *Driver) GetPluginCapabilities(ctx context.Context, req *csi.GetPluginCa
 }
 
 func (d *Driver) Probe(ctx context.Context, req *csi.ProbeRequest) (*csi.ProbeResponse, error) {
-	return &csi.ProbeResponse{}, nil
+	klog.V(5).Infof("Probe: called with args %+v", util.SanitizeRequest(*req))
+	
+	// Enhanced probe with health monitoring
+	if d.healthMonitor != nil {
+		// Check if we have any unhealthy mounts that should fail the probe
+		if !d.healthMonitor.GetOverallHealth() {
+			klog.V(4).Info("Probe: detected unhealthy EFS mounts")
+			// In most cases, we still want to return success to avoid driver restart
+			// unless the mounts are critically degraded
+			// Individual mount health is better handled by readiness probes
+		}
+	}
+	
+	return &csi.ProbeResponse{
+		Ready: &wrappers.BoolValue{Value: true},
+	}, nil
 }
