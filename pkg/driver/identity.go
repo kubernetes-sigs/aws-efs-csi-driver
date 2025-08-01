@@ -22,8 +22,8 @@ import (
 	"k8s.io/klog/v2"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
-	"github.com/kubernetes-sigs/aws-efs-csi-driver/pkg/util"
 	"github.com/golang/protobuf/ptypes/wrappers"
+	"github.com/kubernetes-sigs/aws-efs-csi-driver/pkg/util"
 )
 
 func (d *Driver) GetPluginInfo(ctx context.Context, req *csi.GetPluginInfoRequest) (*csi.GetPluginInfoResponse, error) {
@@ -54,7 +54,7 @@ func (d *Driver) GetPluginCapabilities(ctx context.Context, req *csi.GetPluginCa
 
 func (d *Driver) Probe(ctx context.Context, req *csi.ProbeRequest) (*csi.ProbeResponse, error) {
 	klog.V(5).Infof("Probe: called with args %+v", util.SanitizeRequest(*req))
-	
+
 	// Enhanced probe with health monitoring
 	if d.healthMonitor != nil {
 		// Check if we have any unhealthy mounts that should fail the probe
@@ -65,7 +65,7 @@ func (d *Driver) Probe(ctx context.Context, req *csi.ProbeRequest) (*csi.ProbeRe
 			// Individual mount health is better handled by readiness probes
 		}
 	}
-	
+
 	return &csi.ProbeResponse{
 		Ready: &wrappers.BoolValue{Value: true},
 	}, nil
