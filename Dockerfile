@@ -63,6 +63,7 @@ COPY --from=rpm-provider /tmp/rpms/* /tmp/download/
 # cd, ls, cat, vim, tcpdump, are for debugging
 RUN clean_install amazon-efs-utils true && \
     clean_install crypto-policies true && \
+    clean_install "openssl-3.0.8 openssl-libs-3.0.8" true && \
     install_binary \
         /usr/bin/cat \
         /usr/bin/cd \
@@ -75,7 +76,6 @@ RUN clean_install amazon-efs-utils true && \
         /usr/bin/mount \
         /usr/bin/umount \
         /sbin/mount.nfs4 \
-        /usr/bin/openssl \
         /usr/bin/sed \
         /usr/bin/stat \
         /usr/bin/stunnel \
