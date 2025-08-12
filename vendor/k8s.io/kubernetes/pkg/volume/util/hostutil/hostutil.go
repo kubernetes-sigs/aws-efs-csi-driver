@@ -19,8 +19,6 @@ package hostutil
 import (
 	"fmt"
 	"os"
-
-	"k8s.io/mount-utils"
 )
 
 // FileType enumerates the known set of possible file types.
@@ -41,6 +39,10 @@ const (
 	FileTypeUnknown FileType = ""
 )
 
+var (
+	errUnknownFileType = fmt.Errorf("only recognise file, directory, socket, block device and character device")
+)
+
 // HostUtils defines the set of methods for interacting with paths on a host.
 type HostUtils interface {
 	// DeviceOpened determines if the device (e.g. /dev/sdc) is in use elsewhere
@@ -48,9 +50,6 @@ type HostUtils interface {
 	DeviceOpened(pathname string) (bool, error)
 	// PathIsDevice determines if a path is a device.
 	PathIsDevice(pathname string) (bool, error)
-	// GetDeviceNameFromMount finds the device name by checking the mount path
-	// to get the global mount path within its plugin directory.
-	GetDeviceNameFromMount(mounter mount.Interface, mountPath, pluginMountDir string) (string, error)
 	// MakeRShared checks that given path is on a mount with 'rshared' mount
 	// propagation. If not, it bind-mounts the path as rshared.
 	MakeRShared(path string) error
@@ -108,5 +107,5 @@ func getFileType(pathname string) (FileType, error) {
 		return FileTypeBlockDev, nil
 	}
 
-	return pathType, fmt.Errorf("only recognise file, directory, socket, block device and character device")
+	return pathType, errUnknownFileType
 }
