@@ -1,3 +1,7 @@
+# V2.1.11
+* Bump k8 version to default 1.33 for e2e tests([#1681](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1681), [@dankova22](https://github.com/dankova22))
+* Update openssl installation change in Dockerfile ([#1678](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1678), [@anthotse](https:///github.com/anthotse))
+* Fix spelling errors and modernize deprecated io/ioutil usage ([#1674](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1674), [@oyiz](https://github.com/oyuz))
 # V2.1.10
 * Update dependencies and fix go.sum ([#1663](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1663), [@anthotse](https://anthotse))
 * Implement ControllerModifyVolume function ([#1663](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1663), [@anthotse](https://anthotse))
