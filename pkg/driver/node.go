@@ -205,6 +205,12 @@ func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 	}
 	klog.V(5).Infof("NodePublishVolume: %s was mounted", target)
 
+	// Register mount with health monitor for ongoing health checks
+	if d.healthMonitor != nil {
+		d.healthMonitor.RegisterMount(target)
+		klog.V(4).Infof("NodePublishVolume: registered %s for health monitoring", target)
+	}
+
 	//Increment volume Id counter
 	if d.volMetricsOptIn {
 		if value, ok := volumeIdCounter[req.GetVolumeId()]; ok {
@@ -248,6 +254,12 @@ func (d *Driver) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpublish
 		return nil, status.Errorf(codes.Internal, "Could not unmount %q: %v", target, err)
 	}
 	klog.V(5).Infof("NodeUnpublishVolume: %s unmounted", target)
+
+	// Unregister mount from health monitor
+	if d.healthMonitor != nil {
+		d.healthMonitor.UnregisterMount(target)
+		klog.V(4).Infof("NodeUnpublishVolume: unregistered %s from health monitoring", target)
+	}
 
 	//TODO: If `du` is running on a volume, unmount waits for it to complete. We should stop `du` on unmount in the future for NodeUnpublish
 	//Decrement Volume ID counter and evict cache if counter is 0.
