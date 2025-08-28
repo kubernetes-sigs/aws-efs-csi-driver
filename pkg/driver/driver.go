@@ -23,11 +23,10 @@ import (
 	"time"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
-	"google.golang.org/grpc"
-	"k8s.io/klog/v2"
-
 	"github.com/kubernetes-sigs/aws-efs-csi-driver/pkg/cloud"
 	"github.com/kubernetes-sigs/aws-efs-csi-driver/pkg/util"
+	"google.golang.org/grpc"
+	"k8s.io/klog/v2"
 )
 
 const (
@@ -155,9 +154,31 @@ func parseTagsFromStr(tagStr string) map[string]string {
 		return m
 	}
 	tagsSplit := strings.Split(tagStr, " ")
-	for _, pair := range tagsSplit {
-		p := strings.Split(pair, ":")
-		m[p[0]] = p[1]
+	for _, currTag := range tagsSplit {
+		var nameBuilder strings.Builder
+		var valBuilder strings.Builder
+		var currBuilder *strings.Builder = &nameBuilder
+
+		for i := 0; i < len(currTag); i++ {
+			if currTag[i] == ':' {
+				if currBuilder == &valBuilder {
+					break
+				} else {
+					currBuilder = &valBuilder
+					continue
+				}
+			}
+
+			// Handle escape character
+			if currTag[i] == byte('\\') && currTag[i+1] == byte(':') {
+				currBuilder.WriteRune(':')
+				i++ // Skip an extra character
+				continue
+			}
+
+			currBuilder.WriteByte(currTag[i])
+		}
+		m[nameBuilder.String()] = valBuilder.String()
 	}
 	return m
 }

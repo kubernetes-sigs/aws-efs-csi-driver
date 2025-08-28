@@ -361,11 +361,11 @@ Enabling the vol-metrics-opt-in parameter activates the gathering of inode and d
 
 
 ### Container Arguments for deployment(controller) 
-| Parameters                  | Values | Default | Optional | Description                                                                                                                                                                                                                            |
-|-----------------------------|--------|---------|----------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| delete-access-point-root-dir|        | false  | true     | Opt in to delete access point root directory by DeleteVolume. By default, DeleteVolume will delete the access point behind Persistent Volume and deleting access point will not delete the access point root directory or its contents. |
-| adaptive-retry-mode         |        | true   | true     | Opt out to use standard sdk retry mode for EFS API calls. By default, Driver will use adaptive mode for the sdk retry configuration which heavily rate limits EFS API requests to reduce throttling if throttling is observed.           |
-| tags                         |       |         | true     | Space separated key:value pairs which will be added as tags for Amazon EFS resources. For example, '--tags=name:efs-tag-test date:Jan24'                                                                                               |
+| Parameters                  | Values | Default | Optional | Description                                                                                                                                                                                                                                                   |
+|-----------------------------|--------|---------|----------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| delete-access-point-root-dir|        | false  | true     | Opt in to delete access point root directory by DeleteVolume. By default, DeleteVolume will delete the access point behind Persistent Volume and deleting access point will not delete the access point root directory or its contents.                       |
+| adaptive-retry-mode         |        | true   | true     | Opt out to use standard sdk retry mode for EFS API calls. By default, Driver will use adaptive mode for the sdk retry configuration which heavily rate limits EFS API requests to reduce throttling if throttling is observed.                                |
+| tags                         |       |         | true     | Space separated key:value pairs which will be added as tags for Amazon EFS resources. For example, '--tags=name:efs-tag-test date:Jan24'. To include a ':' in the tag name or value, use \ as an escape character, for example '--tags="tag\:name:tag\:value" |
 ### Upgrading the Amazon EFS CSI Driver
 
 
