@@ -5,9 +5,9 @@ bases:
 images:
   - name: public.ecr.aws/efs-csi-driver/amazon/aws-efs-csi-driver
     newTag: v2.1.11
-  - name: public.ecr.aws/eks-distro/kubernetes-csi/livenessprobe
-    newTag: v2.15.0-eks-1-33-3
-  - name: public.ecr.aws/eks-distro/kubernetes-csi/node-driver-registrar
-    newTag: v2.13.0-eks-1-33-3
-  - name: public.ecr.aws/eks-distro/kubernetes-csi/external-provisioner
-    newTag: v5.2.0-eks-1-33-3
+  - name: public.ecr.aws/csi-components/livenessprobe
+    newTag: v2.16.0-eksbuild.5
+  - name: public.ecr.aws/csi-components/csi-node-driver-registrar
+    newTag: v2.14.0-eksbuild.5
+  - name: public.ecr.aws/csi-components/csi-provisioner
+    newTag: v5.3.0-eksbuild.4
