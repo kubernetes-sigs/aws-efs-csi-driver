@@ -524,16 +524,21 @@ func (d *Driver) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeRequest)
 
 		// Before removing, ensure the removal path exists and is a directory
 		apRootPath := fsRoot + accessPoint.AccessPointRootDir
-		if pathInfo, err := d.mounter.Stat(apRootPath); err == nil && !os.IsNotExist(err) && pathInfo.IsDir() {
-			err = os.RemoveAll(apRootPath)
+		pathInfo, err := d.mounter.Stat(apRootPath)
+		if err == nil && pathInfo.IsDir() {
+			// Prevent accidental deletion of the entire staging path when AP root is "/"
+			if accessPoint.AccessPointRootDir == "/" {
+				klog.Warningf("Skipping cleanup of root directory %q for access point %s",
+					accessPoint.AccessPointRootDir, accessPointId)
+				return nil, status.Errorf(codes.Internal, "Could not delete efs root dir '/'")
+			}
+			if err = os.RemoveAll(apRootPath); err != nil {
+				return nil, status.Errorf(codes.Internal, "Could not delete access point root directory %q: %v", accessPoint.AccessPointRootDir, err)
+			}
+		} else if err != nil && !os.IsNotExist(err) {
+			return nil, status.Errorf(codes.Internal, "Could not stat access point root directory %q: %v", accessPoint.AccessPointRootDir, err)
 		}
-		if err != nil {
-			return nil, status.Errorf(codes.Internal, "Could not delete access point root directory %q: %v", accessPoint.AccessPointRootDir, err)
-		}
-		err = d.mounter.Unmount(fsRoot)
-		if err != nil {
-			return nil, status.Errorf(codes.Internal, "Could not unmount %q: %v", fsRoot, err)
-		}
+
 		err = os.Remove(fsRoot)
 		if err != nil && !os.IsNotExist(err) {
 			return nil, status.Errorf(codes.Internal, "Could not delete %q: %v", fsRoot, err)

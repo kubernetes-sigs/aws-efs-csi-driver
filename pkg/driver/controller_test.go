@@ -3435,10 +3435,9 @@ func TestDeleteVolume(t *testing.T) {
 
 				ctx := context.Background()
 				mockMounter.EXPECT().MakeDir(gomock.Any()).Return(nil)
-				mockMounter.EXPECT().Mount(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
-				mockMounter.EXPECT().Unmount(gomock.Any()).Return(nil)
-				mockMounter.EXPECT().Stat(gomock.Any()).Return(dirPresent, nil)
 				mockMounter.EXPECT().IsLikelyNotMountPoint(gomock.Any()).Return(true, nil)
+				mockMounter.EXPECT().Mount(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+				mockMounter.EXPECT().Stat(gomock.Any()).Return(dirPresent, nil)
 				mockCloud.EXPECT().DescribeAccessPoint(gomock.Eq(ctx), gomock.Eq(apId)).Return(accessPoint, nil)
 				mockCloud.EXPECT().DeleteAccessPoint(gomock.Eq(ctx), gomock.Eq(apId)).Return(nil)
 				_, err := driver.DeleteVolume(ctx, req)
@@ -3488,12 +3487,12 @@ func TestDeleteVolume(t *testing.T) {
 				ctx := context.Background()
 				// Expect the deletion scenario to only happen once
 				mockMounter.EXPECT().MakeDir(gomock.Any()).Return(nil).Times(1)
+				mockMounter.EXPECT().IsLikelyNotMountPoint(gomock.Any()).Return(true, nil).Times(1)
 				mockMounter.EXPECT().Mount(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-				mockMounter.EXPECT().Unmount(gomock.Any()).Return(nil).Times(1)
 				mockMounter.EXPECT().Stat(gomock.Any()).Return(dirPresent, nil).Times(1)
 				mockCloud.EXPECT().DeleteAccessPoint(gomock.Eq(ctx), gomock.Eq(apId)).Return(nil).Times(1)
 
-				mockMounter.EXPECT().IsLikelyNotMountPoint(gomock.Any()).Return(true, nil).Times(numGoRoutines)
+				mockMounter.EXPECT().IsLikelyNotMountPoint(gomock.Any()).Return(true, nil).Times(numGoRoutines - 1)
 
 				// Expect the first describe call to see the access point, then subsequent calls to see it as deleted
 				var describeCallCount int32 = 0
@@ -3603,13 +3602,13 @@ func TestDeleteVolume(t *testing.T) {
 				ctx := context.Background()
 				// Expect the deletion scenario to only happen once per access point
 				mockMounter.EXPECT().MakeDir(gomock.Any()).Return(nil).Times(2)
+				mockMounter.EXPECT().IsLikelyNotMountPoint(gomock.Any()).Return(true, nil).Times(2)
 				mockMounter.EXPECT().Mount(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(2)
-				mockMounter.EXPECT().Unmount(gomock.Any()).Return(nil).Times(2)
 				mockMounter.EXPECT().Stat(gomock.Any()).Return(dirPresent, nil).Times(2)
 				mockCloud.EXPECT().DeleteAccessPoint(gomock.Eq(ctx), gomock.Eq(apId)).Return(nil).Times(1)
 				mockCloud.EXPECT().DeleteAccessPoint(gomock.Eq(ctx), gomock.Eq(apId2)).Return(nil).Times(1)
 
-				mockMounter.EXPECT().IsLikelyNotMountPoint(gomock.Any()).Return(true, nil).Times(2 * numGoRoutines)
+				mockMounter.EXPECT().IsLikelyNotMountPoint(gomock.Any()).Return(true, nil).Times(2*numGoRoutines - 2)
 
 				// Expect the first describe call to see the access point, then subsequent calls to see it as deleted
 				describeCallCountAp1 := 0
@@ -3960,11 +3959,14 @@ func TestDeleteVolume(t *testing.T) {
 
 				ctx := context.Background()
 				mockMounter.EXPECT().MakeDir(gomock.Any()).Return(nil)
+				mockMounter.EXPECT().IsLikelyNotMountPoint(gomock.Any()).Return(true, nil)
 				mockMounter.EXPECT().Mount(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
-				mockMounter.EXPECT().Unmount(gomock.Any()).Return(errors.New("Failed to unmount"))
 				mockMounter.EXPECT().Stat(gomock.Any()).Return(dirPresent, nil).Times(1)
-				mockMounter.EXPECT().IsLikelyNotMountPoint(gomock.Any()).Return(true, nil).Times(2)
 				mockCloud.EXPECT().DescribeAccessPoint(gomock.Eq(ctx), gomock.Eq(apId)).Return(accessPoint, nil)
+				mockCloud.EXPECT().DeleteAccessPoint(gomock.Eq(ctx), gomock.Eq(apId)).Return(errors.New("Failed to delete access point"))
+				// Deferred cleanup function may try to check and unmount when deletion fails
+				mockMounter.EXPECT().IsLikelyNotMountPoint(gomock.Any()).Return(false, nil).AnyTimes()
+				mockMounter.EXPECT().Unmount(gomock.Any()).Return(errors.New("Failed to unmount")).AnyTimes()
 				_, err := driver.DeleteVolume(ctx, req)
 				if err == nil {
 					t.Fatal("DeleteVolume did not fail")
@@ -4108,6 +4110,58 @@ func TestDeleteVolume(t *testing.T) {
 				mockCtl.Finish()
 			},
 		},
+		{
+			name: "Fail: Access point root directory is '/'",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockCloud := mocks.NewMockCloud(mockCtl)
+				mockMounter := mocks.NewMockMounter(mockCtl)
+
+				driver := &Driver{
+					endpoint:                 endpoint,
+					cloud:                    mockCloud,
+					mounter:                  mockMounter,
+					gidAllocator:             NewGidAllocator(),
+					deleteAccessPointRootDir: true,
+				}
+
+				req := &csi.DeleteVolumeRequest{
+					VolumeId: volumeId,
+				}
+
+				accessPoint := &cloud.AccessPoint{
+					AccessPointId:      apId,
+					FileSystemId:       fsId,
+					AccessPointRootDir: "/",
+					CapacityGiB:        0,
+				}
+
+				fsRoot := TempMountPathPrefix + "/" + apId
+
+				ctx := context.Background()
+				mockCloud.EXPECT().DescribeAccessPoint(gomock.Eq(ctx), gomock.Eq(apId)).Return(accessPoint, nil)
+				mockMounter.EXPECT().MakeDir(fsRoot).Return(nil)
+				mockMounter.EXPECT().IsLikelyNotMountPoint(fsRoot).Return(true, nil)
+				mockMounter.EXPECT().Mount(fsId, fsRoot, "efs", gomock.Any()).Return(nil)
+				dirPresent := mocks.NewMockFileInfo(
+					"testFile",
+					0,
+					0755,
+					time.Now(),
+					true,
+					nil,
+				)
+				mockMounter.EXPECT().Stat(fsRoot+"/").Return(dirPresent, nil)
+				// Additional call from deferred cleanup function when deletion fails
+				mockMounter.EXPECT().IsLikelyNotMountPoint(fsRoot).Return(true, nil)
+
+				_, err := driver.DeleteVolume(ctx, req)
+				if err == nil {
+					t.Fatalf("DeleteVolume did not fail")
+				}
+				mockCtl.Finish()
+			},
+		},
 	}
 
 	for _, tc := range testCases {
@@ -4207,12 +4261,10 @@ func TestCreateDeleteVolumeRace(t *testing.T) {
 
 				// Expected delete function calls
 				mockMounter.EXPECT().MakeDir(gomock.Any()).Return(nil).Times(1)
+				mockMounter.EXPECT().IsLikelyNotMountPoint(gomock.Any()).Return(true, nil).Times(1)
 				mockMounter.EXPECT().Mount(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-				mockMounter.EXPECT().Unmount(gomock.Any()).Return(nil).Times(1)
 				mockMounter.EXPECT().Stat(gomock.Any()).Return(dirPresent, nil).Times(1)
 				mockCloud.EXPECT().DeleteAccessPoint(gomock.Eq(ctx), gomock.Eq(apId)).Return(nil).Times(1)
-
-				mockMounter.EXPECT().IsLikelyNotMountPoint(gomock.Any()).Return(true, nil).Times(1)
 
 				// Lock the volume mutex to hold threads until they are all scheduled
 				driver.lockManager.lockMutex(apId)
@@ -4360,10 +4412,9 @@ func TestCreateDeleteVolumeRace(t *testing.T) {
 
 				// Expected delete function calls
 				mockMounter.EXPECT().MakeDir(gomock.Any()).Return(nil).Times(1)
-				mockMounter.EXPECT().Mount(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-				mockMounter.EXPECT().Unmount(gomock.Any()).Return(nil).Times(1)
-				mockMounter.EXPECT().Stat(gomock.Any()).Return(dirPresent, nil).Times(1)
 				mockMounter.EXPECT().IsLikelyNotMountPoint(gomock.Any()).Return(true, nil).Times(1)
+				mockMounter.EXPECT().Mount(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+				mockMounter.EXPECT().Stat(gomock.Any()).Return(dirPresent, nil).Times(1)
 				mockCloud.EXPECT().DeleteAccessPoint(gomock.Eq(ctx), gomock.Eq(apId)).Return(nil).Times(1)
 
 				// Lock the volume mutex to hold threads until they are all scheduled
