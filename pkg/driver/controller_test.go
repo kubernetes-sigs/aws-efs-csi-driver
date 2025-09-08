@@ -796,7 +796,11 @@ func TestCreateVolume(t *testing.T) {
 					cloud:        mockCloud,
 					gidAllocator: NewGidAllocator(),
 					lockManager:  NewLockManagerMap(),
-					tags:         parseTagsFromStr("cluster:efs"),
+					tags:         parseTagsFromStr("cluster:efs tag2\\:name2:tag2\\:val2"),
+				}
+
+				if driver.tags["cluster"] != "efs" || driver.tags["tag2:name2"] != "tag2:val2" {
+					t.Fatalf("Incorrect tags")
 				}
 
 				req := &csi.CreateVolumeRequest{
