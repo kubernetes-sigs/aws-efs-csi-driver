@@ -100,8 +100,33 @@ func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 				return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("Volume context property %q must be a boolean value: %v", k, err))
 			}
 		case MountTargetIp:
-			ipAddr := volContext[MountTargetIp]
-			mountOptions = append(mountOptions, MountTargetIp+"="+ipAddr)
+			mountTargetIp := volContext[MountTargetIp]
+			var ipAddrToMount string
+
+			// check for multiZone volume or not:
+			if strings.Contains(mountTargetIp, ",") {
+				mountTargetPairs := strings.Split(mountTargetIp, ",")
+				azToIp := make(map[string]string)
+
+				for _, pair := range mountTargetPairs {
+					ipPair := strings.Split(pair, ":")
+					if len(ipPair) == 2 {
+						azid := ipPair[0]
+						ipAddr := ipPair[1]
+						azToIp[azid] = ipAddr
+					}
+				}
+
+				var ok bool
+				ipAddrToMount, ok = azToIp[d.availabilityZoneID]
+				if !ok {
+					return nil, status.Errorf(codes.InvalidArgument, "No mount target IP found for availability zone %s", d.availabilityZoneID)
+				}
+				mountOptions = append(mountOptions, MountTargetIp+"="+ipAddrToMount)
+			} else {
+				ipAddrToMount = mountTargetIp
+			}
+			mountOptions = append(mountOptions, MountTargetIp+"="+ipAddrToMount)
 		case CrossAccount:
 			var err error
 			crossAccountDNSEnabled, err = strconv.ParseBool(v)

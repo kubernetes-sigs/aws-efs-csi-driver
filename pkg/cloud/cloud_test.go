@@ -1006,6 +1006,25 @@ func TestDescribeMountTargets(t *testing.T) {
 			expectError: errtyp{},
 		},
 		{
+			name: "Success: Mount target with multi az. Get all mount targets.",
+			mockOutput: &efs.DescribeMountTargetsOutput{
+				MountTargets: []types.MountTargetDescription{
+					{
+						AvailabilityZoneId:   aws.String("az-id"),
+						AvailabilityZoneName: aws.String("multi"),
+						FileSystemId:         aws.String(fsId),
+						IpAddress:            aws.String("127.0.0.1"),
+						LifeCycleState:       types.LifeCycleStateAvailable,
+						MountTargetId:        aws.String(mtId),
+						NetworkInterfaceId:   aws.String("eni-abcd1234"),
+						OwnerId:              aws.String("1234567890"),
+						SubnetId:             aws.String("subnet-abcd1234"),
+					},
+				},
+			},
+			expectError: errtyp{},
+		},
+		{
 			name: "Fail: File system does not have any mount targets",
 			mockOutput: &efs.DescribeMountTargetsOutput{
 				MountTargets: []types.MountTargetDescription{},

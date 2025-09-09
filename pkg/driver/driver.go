@@ -39,6 +39,7 @@ const (
 type Driver struct {
 	endpoint                 string
 	nodeID                   string
+	availabilityZoneID       string
 	srv                      *grpc.Server
 	mounter                  Mounter
 	efsWatchdog              Watchdog
@@ -66,6 +67,7 @@ func NewDriver(endpoint, efsUtilsCfgPath, efsUtilsStaticFilesPath, tags string, 
 	return &Driver{
 		endpoint:                 endpoint,
 		nodeID:                   cloud.GetMetadata().GetInstanceID(),
+		availabilityZoneID:       cloud.GetMetadata().GetAvailabilityZoneID(),
 		mounter:                  newNodeMounter(),
 		efsWatchdog:              watchdog,
 		cloud:                    cloud,

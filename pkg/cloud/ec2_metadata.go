@@ -3,6 +3,7 @@ package cloud
 import (
 	"context"
 	"fmt"
+	"io"
 
 	"github.com/aws/aws-sdk-go-v2/feature/ec2/imds"
 )
@@ -34,9 +35,18 @@ func (e ec2MetadataProvider) getMetadata() (MetadataService, error) {
 		return nil, fmt.Errorf("could not get valid EC2 availavility zone")
 	}
 
+	availabilityZoneIdResponse, err := e.ec2MetadataService.GetMetadata(context.TODO(), &imds.GetMetadataInput{
+		Path: "placement/availability-zone-id",
+	})
+	if err != nil {
+		return nil, fmt.Errorf("could not get placement availability-zone-id from the EC2 instance identity metadata")
+	}
+	availabilityZoneID, _ := io.ReadAll(availabilityZoneIdResponse.Content)
+
 	return &metadata{
-		instanceID:       doc.InstanceID,
-		region:           doc.Region,
-		availabilityZone: doc.AvailabilityZone,
+		instanceID:         doc.InstanceID,
+		region:             doc.Region,
+		availabilityZone:   doc.AvailabilityZone,
+		availabilityZoneID: string(availabilityZoneID),
 	}, nil
 }
