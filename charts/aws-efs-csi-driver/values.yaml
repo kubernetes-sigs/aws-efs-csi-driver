@@ -17,8 +17,8 @@ image:
 sidecars:
   livenessProbe:
     image:
-      repository: public.ecr.aws/eks-distro/kubernetes-csi/livenessprobe
-      tag: v2.15.0-eks-1-33-3
+      repository: public.ecr.aws/csi-components/livenessprobe
+      tag: v2.16.0-eksbuild.5
       pullPolicy: IfNotPresent
     resources: {}
     securityContext:
@@ -26,8 +26,8 @@ sidecars:
       allowPrivilegeEscalation: false
   nodeDriverRegistrar:
     image:
-      repository: public.ecr.aws/eks-distro/kubernetes-csi/node-driver-registrar
-      tag: v2.13.0-eks-1-33-3
+      repository: public.ecr.aws/csi-components/csi-node-driver-registrar
+      tag: v2.14.0-eksbuild.5
       pullPolicy: IfNotPresent
     resources: {}
     securityContext:
@@ -35,8 +35,8 @@ sidecars:
       allowPrivilegeEscalation: false
   csiProvisioner:
     image:
-      repository: public.ecr.aws/eks-distro/kubernetes-csi/external-provisioner
-      tag: v5.2.0-eks-1-33-3
+      repository: public.ecr.aws/csi-components/csi-provisioner
+      tag: v5.3.0-eksbuild.4
       pullPolicy: IfNotPresent
     resources: {}
     securityContext:
