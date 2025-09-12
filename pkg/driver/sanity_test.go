@@ -81,6 +81,7 @@ func TestSanityEFSCSI(t *testing.T) {
 		volStatter:      NewVolStatter(),
 		gidAllocator:    NewGidAllocator(),
 		lockManager:     NewLockManagerMap(),
+		inFlightChecker: NewInFlightChecker(UnsetMaxInflightMountCounts),
 	}
 	defer func() {
 		if r := recover(); r != nil {

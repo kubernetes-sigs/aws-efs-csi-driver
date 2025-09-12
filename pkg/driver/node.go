@@ -33,6 +33,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8stypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2"
@@ -45,6 +46,10 @@ var (
 	}
 	volumeIdCounter  = make(map[string]int)
 	supportedFSTypes = []string{"efs", ""}
+)
+
+const (
+	maxInflightMountCallsReached = "The number of concurrent mount calls is %v, which has reached the limit"
 )
 
 func (d *Driver) NodeStageVolume(ctx context.Context, req *csi.NodeStageVolumeRequest) (*csi.NodeStageVolumeResponse, error) {
@@ -75,6 +80,17 @@ func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 
 	if volCap.GetMount() == nil {
 		return nil, status.Error(codes.InvalidArgument, "Volume capability access type must be mount")
+	}
+
+	if d.inFlightChecker != nil {
+		if ok := d.inFlightChecker.increment(); !ok {
+			return nil, status.Errorf(codes.Aborted, maxInflightMountCallsReached, d.inFlightChecker.maxCount)
+		}
+
+		defer func() {
+			klog.V(4).Infof("NodePublishVolume: volume operation finished for volumeId: %s with %d inflight count before decrementing", req.GetVolumeId(), d.inFlightChecker.count)
+			d.inFlightChecker.decrement()
+		}()
 	}
 
 	// TODO when CreateVolume is implemented, it must use the same key names
@@ -537,4 +553,36 @@ func tryRemoveNotReadyTaintUntilSucceed(interval time.Duration, removeFn func() 
 		klog.ErrorS(err, "Unexpected failure when attempting to remove node taint(s)")
 		time.Sleep(interval)
 	}
+}
+
+func getMemoryLimitInBytes() (int64, error) {
+	containerMemoryLimit, err := resource.ParseQuantity(os.Getenv("CSI_NODE_MEMORY_LIMIT"))
+	if err != nil {
+		return 0, err
+	}
+	return containerMemoryLimit.Value(), nil
+}
+
+func calculateMaxInflightMountCalls(maxInflightMountCallsOptIn bool, maxInflightMountCalls int64) int64 {
+	if !maxInflightMountCallsOptIn {
+		return UnsetMaxInflightMountCounts
+	}
+
+	if maxInflightMountCalls >= 0 {
+		klog.V(4).Infof("maxInflightMountCalls is manually set to %d, overriding the default value.", maxInflightMountCalls)
+		return maxInflightMountCalls
+	}
+
+	memoryLimitInBytes, err := getMemoryLimitInBytes()
+	if err != nil {
+		klog.Warningf("Unable to get memory limits and calculate maxInflightMountCalls due to error %s. Fallback to use default value %d", err, UnsetMaxInflightMountCounts)
+		return UnsetMaxInflightMountCounts
+	}
+
+	// Calculate max concurrent mounts based on available memory:
+	// - Each mount operation consumes approximately 30 MiB of memory
+	// - Multipled by 1.5 to give some memory buffer
+	maxInflightMountCalls = memoryLimitInBytes / (memoryCostPerMount * 1.5)
+	klog.V(4).Infof("maxInflightMountCalls is set to %d based on memory limit %d bytes", maxInflightMountCalls, memoryLimitInBytes)
+	return maxInflightMountCalls
 }

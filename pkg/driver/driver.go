@@ -34,6 +34,10 @@ const (
 
 	// AgentNotReadyTaintKey contains the key of taints to be removed on driver startup
 	AgentNotReadyNodeTaintKey = "efs.csi.aws.com/agent-not-ready"
+	UnsetMaxInflightMountCounts = -1
+
+	bytesInMiB = 1024 * 1024
+	memoryCostPerMount = 30 * bytesInMiB
 )
 
 type Driver struct {
@@ -53,9 +57,10 @@ type Driver struct {
 	adaptiveRetryMode        bool
 	tags                     map[string]string
 	lockManager              LockManagerMap
+	inFlightChecker          *InFlightChecker
 }
 
-func NewDriver(endpoint, efsUtilsCfgPath, efsUtilsStaticFilesPath, tags string, volMetricsOptIn bool, volMetricsRefreshPeriod float64, volMetricsFsRateLimit int, deleteAccessPointRootDir bool, adaptiveRetryMode bool) *Driver {
+func NewDriver(endpoint, efsUtilsCfgPath, efsUtilsStaticFilesPath, tags string, volMetricsOptIn bool, volMetricsRefreshPeriod float64, volMetricsFsRateLimit int, deleteAccessPointRootDir bool, adaptiveRetryMode bool, maxInflightMountCallsOptIn bool, maxInflightMountCalls int64) *Driver {
 	cloud, err := cloud.NewCloud(adaptiveRetryMode)
 	if err != nil {
 		klog.Fatalln(err)
@@ -79,6 +84,7 @@ func NewDriver(endpoint, efsUtilsCfgPath, efsUtilsStaticFilesPath, tags string, 
 		adaptiveRetryMode:        adaptiveRetryMode,
 		tags:                     parseTagsFromStr(strings.TrimSpace(tags)),
 		lockManager:              NewLockManagerMap(),
+		inFlightChecker:          NewInFlightChecker(calculateMaxInflightMountCalls(maxInflightMountCallsOptIn, maxInflightMountCalls)),
 	}
 }
 

@@ -57,9 +57,16 @@ spec:
             - --vol-metrics-opt-in=false
             - --vol-metrics-refresh-period=240
             - --vol-metrics-fs-rate-limit=5
+            - --max-inflight-mount-calls-opt-in=false
+            - --max-inflight-mount-calls=100
           env:
             - name: CSI_ENDPOINT
               value: unix:/csi/csi.sock
+            - name: CSI_NODE_MEMORY_LIMIT
+              valueFrom:
+                resourceFieldRef:
+                  containerName: efs-plugin
+                  resource: limits.memory
             - name: CSI_NODE_NAME
               valueFrom:
                 fieldRef:
