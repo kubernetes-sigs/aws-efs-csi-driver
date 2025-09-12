@@ -44,7 +44,7 @@ func main() {
 		adaptiveRetryMode          = flag.Bool("adaptive-retry-mode", true, "Opt out to use standard sdk retry configuration. By default, adaptive retry mode will be used to more heavily client side rate limit EFS API requests.")
 		tags                       = flag.String("tags", "", "Space separated key:value pairs which will be added as tags for EFS resources. For example, 'environment:prod region:us-east-1'")
 		maxInflightMountCallsOptIn = flag.Bool("max-inflight-mount-calls-opt-in", false, "Opt in to use max inflight mount calls limit.")
-		maxInflightMountCalls      = flag.Int64("max-inflight-mount-calls", driver.UnsetMaxInflightMountCounts, "New NodePublishVolume operation will be blocked if maximum number of inflight calls is reached. If it is not specified or set to negative value, the check will be disabled (i.e. no limit).")
+		maxInflightMountCalls      = flag.Int64("max-inflight-mount-calls", driver.UnsetMaxInflightMountCounts, "New NodePublishVolume operation will be blocked if maximum number of inflight calls is reached. If maxInflightMountCallsOptIn is true but maxInflightMountCalls is not specified or set to negative value, it will be calculated based on memory limit. If failing to fetch the memory limit, the check will be disabled (i.e. no limit).")
 	)
 	klog.InitFlags(nil)
 	flag.Parse()

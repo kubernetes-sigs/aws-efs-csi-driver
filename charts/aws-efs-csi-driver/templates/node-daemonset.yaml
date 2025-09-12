@@ -86,6 +86,11 @@ spec:
           env:
             - name: CSI_ENDPOINT
               value: unix:/csi/csi.sock
+            - name: CSI_NODE_MEMORY_LIMIT
+              valueFrom:
+                resourceFieldRef:
+                  containerName: efs-plugin
+                  resource: limits.memory
             - name: CSI_NODE_NAME
               valueFrom:
                 fieldRef:

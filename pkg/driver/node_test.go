@@ -1093,3 +1093,118 @@ func TestTryRemoveNotReadyTaintUntilSucceed(t *testing.T) {
 		}
 	}
 }
+
+func TestGetMemoryLimitInBytes(t *testing.T) {
+	const bytesInGiB = bytesInMiB * 1024
+	testCases := []struct {
+		name               string
+		memoryLimitConfig  string
+		expResult          int64
+		expError           bool
+	}{
+		{
+			name: "success with 512Mi",
+			memoryLimitConfig: "512Mi",
+			expResult: 512 * bytesInMiB,
+			expError: false,
+		},
+		{
+			name: "success with 1Gi",
+			memoryLimitConfig: "1Gi",
+			expResult: bytesInGiB,
+			expError: false,
+		},
+		{
+			name: "error with invalid format",
+			memoryLimitConfig: "invalid",
+			expResult: 0,
+			expError: true,
+		},
+		{
+			name: "error with empty value",
+			memoryLimitConfig: "",
+			expResult: 0,
+			expError: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Setenv("CSI_NODE_MEMORY_LIMIT", tc.memoryLimitConfig)
+
+			result, err := getMemoryLimitInBytes()
+
+			if result != tc.expResult {
+				t.Fatalf("Expected result %d, got %d", tc.expResult, result)
+			}
+
+			if tc.expError {
+				if err == nil {
+					t.Fatalf("Expected error, got nil")
+				}
+			} else {
+				if err != nil {
+					t.Fatalf("Expected no error, got %v", err)
+				}
+			}
+		})
+	}
+}
+
+func TestCalculateMaxInflightMountCalls(t *testing.T) {
+	testCases := []struct {
+		name                        string
+		maxInflightMountCallsOptIn  bool
+		maxInflightMountCalls       int64
+		memoryLimitConfig           string
+		expResult                   int64
+	}{
+		{
+			name: "feature disabled",
+			maxInflightMountCallsOptIn: false,
+			maxInflightMountCalls: 100,
+			memoryLimitConfig: "512Mi",
+			expResult: UnsetMaxInflightMountCounts,
+		},
+		{
+			name: "manual override with non negative value",
+			maxInflightMountCallsOptIn: true,
+			maxInflightMountCalls: 50,
+			memoryLimitConfig: "512Mi",
+			expResult: 50,
+		},
+		{
+			name: "calculated from memory limit in Mi",
+			maxInflightMountCallsOptIn: true,
+			maxInflightMountCalls: UnsetMaxInflightMountCounts,
+			memoryLimitConfig: "512Mi",
+			expResult: 11,  // 512Mi / (30Mi * 1.5)
+		},
+		{
+			name: "calculated from memory limit in Gi",
+			maxInflightMountCallsOptIn: true,
+			maxInflightMountCalls: UnsetMaxInflightMountCounts,
+			memoryLimitConfig: "1Gi",
+			expResult: 22, // 1Gi / (30Mi * 1.5)
+		},
+		{
+			name:  "failure to get memory limit",
+			maxInflightMountCallsOptIn: true,
+			maxInflightMountCalls: UnsetMaxInflightMountCounts,
+			memoryLimitConfig: "invalid",
+			expResult: UnsetMaxInflightMountCounts,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Setenv("CSI_NODE_MEMORY_LIMIT", tc.memoryLimitConfig)
+
+			result := calculateMaxInflightMountCalls(tc.maxInflightMountCallsOptIn, tc.maxInflightMountCalls)
+
+			if result != tc.expResult {
+				t.Fatalf("Expected result %d, got %d", tc.expResult, result)
+			}
+		})
+	}
+}

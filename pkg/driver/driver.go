@@ -33,8 +33,11 @@ const (
 	driverName = "efs.csi.aws.com"
 
 	// AgentNotReadyTaintKey contains the key of taints to be removed on driver startup
-	AgentNotReadyNodeTaintKey   = "efs.csi.aws.com/agent-not-ready"
+	AgentNotReadyNodeTaintKey = "efs.csi.aws.com/agent-not-ready"
 	UnsetMaxInflightMountCounts = -1
+
+	bytesInMiB = 1024 * 1024
+	memoryCostPerMount = 30 * bytesInMiB
 )
 
 type Driver struct {
