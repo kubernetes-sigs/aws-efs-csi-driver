@@ -353,6 +353,8 @@ After deploying the driver, you can continue to these sections:
 | vol-metrics-opt-in          |        | false   | true     | Opt in to emit volume metrics.                                                                                                                                                                                                          |
 | vol-metrics-refresh-period  |        | 240     | true     | Refresh period for volume metrics in minutes.                                                                                                                                                                                           |
 | vol-metrics-fs-rate-limit   |        | 5       | true     | Volume metrics routines rate limiter per file system.                                                                                                                                                                                   |
+| max-inflight-mount-calls-opt-in                         |       | false        | true     | Opt in to use max inflight mount calls limit |
+| max-inflight-mount-calls                         |       | -1        | true     | New NodePublishVolume call will be blocked if maximum number of inflight calls is reached. If it is set to negative value, it will be calculated based on memory limit. If failing to fetch the memory limit, the check will be disabled (i.e. no limit). |
 
 
 
