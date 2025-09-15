@@ -21,10 +21,11 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/aws/smithy-go"
 	"math/rand"
 	"os"
 	"time"
+
+	"github.com/aws/smithy-go"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -118,16 +119,16 @@ type cloud struct {
 // NewCloud returns a new instance of AWS cloud
 // It panics if session is invalid
 func NewCloud(adaptiveRetryMode bool) (Cloud, error) {
-	return createCloud("", adaptiveRetryMode)
+	return createCloud("", "", adaptiveRetryMode)
 }
 
 // NewCloudWithRole returns a new instance of AWS cloud after assuming an aws role
 // It panics if driver does not have permissions to assume role.
-func NewCloudWithRole(awsRoleArn string, adaptiveRetryMode bool) (Cloud, error) {
-	return createCloud(awsRoleArn, adaptiveRetryMode)
+func NewCloudWithRole(awsRoleArn string, externalId string, adaptiveRetryMode bool) (Cloud, error) {
+	return createCloud(awsRoleArn, externalId, adaptiveRetryMode)
 }
 
-func createCloud(awsRoleArn string, adaptiveRetryMode bool) (Cloud, error) {
+func createCloud(awsRoleArn string, externalId string, adaptiveRetryMode bool) (Cloud, error) {
 	cfg, err := config.LoadDefaultConfig(context.TODO())
 	if err != nil {
 		klog.Warningf("Could not load config: %v", err)
@@ -152,7 +153,7 @@ func createCloud(awsRoleArn string, adaptiveRetryMode bool) (Cloud, error) {
 
 	rm := newRetryManager(adaptiveRetryMode)
 
-	efs_client := createEfsClient(awsRoleArn, metadata)
+	efs_client := createEfsClient(awsRoleArn, externalId, metadata)
 	klog.V(5).Infof("EFS Client created using the following endpoint: %+v", cfg.BaseEndpoint)
 
 	return &cloud{
@@ -162,11 +163,18 @@ func createCloud(awsRoleArn string, adaptiveRetryMode bool) (Cloud, error) {
 	}, nil
 }
 
-func createEfsClient(awsRoleArn string, metadata MetadataService) Efs {
+func createEfsClient(awsRoleArn string, externalId string, metadata MetadataService) Efs {
 	cfg, _ := config.LoadDefaultConfig(context.TODO(), config.WithRegion(metadata.GetRegion()))
 	if awsRoleArn != "" {
 		stsClient := sts.NewFromConfig(cfg)
-		roleProvider := stscreds.NewAssumeRoleProvider(stsClient, awsRoleArn)
+		var roleProvider aws.CredentialsProvider
+		if externalId != "" {
+			roleProvider = stscreds.NewAssumeRoleProvider(stsClient, awsRoleArn, func(o *stscreds.AssumeRoleOptions) {
+				o.ExternalID = &externalId
+			})
+		} else {
+			roleProvider = stscreds.NewAssumeRoleProvider(stsClient, awsRoleArn)
+		}
 		cfg.Credentials = aws.NewCredentialsCache(roleProvider)
 	}
 	return efs.NewFromConfig(cfg)
