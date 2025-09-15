@@ -11,7 +11,7 @@ portRangeUpperBound: "21049"
 
 image:
   repository: public.ecr.aws/efs-csi-driver/amazon/aws-efs-csi-driver
-  tag: "v2.1.11"
+  tag: "v2.1.12"
   pullPolicy: IfNotPresent
 
 sidecars:
