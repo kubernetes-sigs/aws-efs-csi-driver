@@ -338,8 +338,12 @@ func (d *Driver) NodeGetCapabilities(ctx context.Context, req *csi.NodeGetCapabi
 func (d *Driver) NodeGetInfo(ctx context.Context, req *csi.NodeGetInfoRequest) (*csi.NodeGetInfoResponse, error) {
 	klog.V(4).Infof("NodeGetInfo: called with args %+v", util.SanitizeRequest(*req))
 
+	maxVolumesPerNode := d.volumeAttachLimit
+	klog.V(4).Infof("NodeGetInfo: maxVolumesPerNode=%d", maxVolumesPerNode)
+
 	return &csi.NodeGetInfoResponse{
-		NodeId: d.nodeID,
+		NodeId:            d.nodeID,
+		MaxVolumesPerNode: maxVolumesPerNode,
 	}, nil
 }
 
@@ -567,4 +571,19 @@ func calculateMaxInflightMountCalls(maxInflightMountCallsOptIn bool, maxInflight
 
 	klog.V(4).Infof("MaxInflightMountCalls is manually set to %d", maxInflightMountCalls)
 	return maxInflightMountCalls
+}
+
+func calculateVolumeAttachLimit(volumeAttachLimitOptIn bool, volumeAttachLimit int64) int64 {
+	if volumeAttachLimitOptIn && volumeAttachLimit <= 0 {
+		klog.Errorf("Fatal error: volumeAttachLimit must be greater than 0 when volumeAttachLimitOptIn is true!")
+		klog.FlushAndExit(klog.ExitFlushTimeout, 1)
+	}
+
+	if !volumeAttachLimitOptIn {
+		klog.V(4).Infof("VolumeAttachLimitOptIn is false, setting maxVolumesPerNode to zero so that container orchestrator will decide the value")
+		return 0
+	}
+
+	klog.V(4).Infof("VolumeAttachLimit is manually set to %d", volumeAttachLimit)
+	return volumeAttachLimit
 }

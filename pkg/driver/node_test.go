@@ -910,6 +910,53 @@ func TestNodeGetVolumeStats(t *testing.T) {
 	os.RemoveAll(validPath)
 }
 
+func TestNodeGetInfo(t *testing.T) {
+	testCases := []struct {
+		name              string
+		volumeAttachLimit int64
+		expectedResponse  *csi.NodeGetInfoResponse
+	}{
+		{
+			name:              "returns nodeID and volumeAttachLimit",
+			volumeAttachLimit: 100,
+			expectedResponse: &csi.NodeGetInfoResponse{
+				NodeId:            "test-node-id",
+				MaxVolumesPerNode: 100,
+			},
+		},
+		{
+			name:              "zero volume attach limit",
+			volumeAttachLimit: 0,
+			expectedResponse: &csi.NodeGetInfoResponse{
+				NodeId:            "test-node-id",
+				MaxVolumesPerNode: 0,
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			mockCtrl := gomock.NewController(t)
+			defer mockCtrl.Finish()
+
+			driver := &Driver{
+				nodeID:            "test-node-id",
+				volumeAttachLimit: tc.volumeAttachLimit,
+			}
+
+			req := &csi.NodeGetInfoRequest{}
+			ctx := context.Background()
+
+			ret, err := driver.NodeGetInfo(ctx, req)
+
+			testResult(t, "NodeGetInfo", ret, err, errtyp{})
+			if !reflect.DeepEqual(tc.expectedResponse, ret) {
+				t.Errorf("Expected: %v, Actual: %v", tc.expectedResponse, ret)
+			}
+		})
+	}
+}
+
 func testResponse(t *testing.T, expected, actual *csi.NodeGetVolumeStatsResponse) {
 	if !reflect.DeepEqual(expected, actual) {
 		t.Errorf("Expected: %v, Actual: %v", expected, actual)
@@ -1135,6 +1182,62 @@ func TestCalculateMaxInflightMountCalls(t *testing.T) {
 				}
 			} else {
 				result := calculateMaxInflightMountCalls(tc.maxInflightMountCallsOptIn, tc.maxInflightMountCalls)
+				if result != tc.expected {
+					t.Errorf("Expected %d, got %d", tc.expected, result)
+				}
+			}
+		})
+	}
+}
+
+func TestCalculateVolumeAttachLimit(t *testing.T) {
+	testCases := []struct {
+		name                   string
+		volumeAttachLimitOptIn bool
+		volumeAttachLimit      int64
+		expected               int64
+		expectFatal            bool
+	}{
+		{
+			name:                   "opt-in false returns zero",
+			volumeAttachLimitOptIn: false,
+			volumeAttachLimit:      100,
+			expected:               0,
+		},
+		{
+			name:                   "opt-in true with valid value",
+			volumeAttachLimitOptIn: true,
+			volumeAttachLimit:      50,
+			expected:               50,
+		},
+		{
+			name:                   "opt-in true with zero value should fatal",
+			volumeAttachLimitOptIn: true,
+			volumeAttachLimit:      0,
+			expectFatal:            true,
+		},
+		{
+			name:                   "opt-in true with negative value should fatal",
+			volumeAttachLimitOptIn: true,
+			volumeAttachLimit:      -1,
+			expectFatal:            true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			if tc.expectFatal {
+				// If it is in forked process, run the fatal code directly and let klog.Fatal exit
+				if os.Getenv("FORK") == "1" {
+					calculateVolumeAttachLimit(tc.volumeAttachLimitOptIn, tc.volumeAttachLimit)
+					return
+				}
+				err := runForkFatalTest("TestCalculateVolumeAttachLimit/" + tc.name)
+				if err == nil {
+					t.Fatal("expected process to exit with error")
+				}
+			} else {
+				result := calculateVolumeAttachLimit(tc.volumeAttachLimitOptIn, tc.volumeAttachLimit)
 				if result != tc.expected {
 					t.Errorf("Expected %d, got %d", tc.expected, result)
 				}

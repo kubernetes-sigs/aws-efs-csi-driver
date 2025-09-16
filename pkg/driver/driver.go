@@ -35,6 +35,7 @@ const (
 	// AgentNotReadyTaintKey contains the key of taints to be removed on driver startup
 	AgentNotReadyNodeTaintKey   = "efs.csi.aws.com/agent-not-ready"
 	UnsetMaxInflightMountCounts = -1
+	UnsetVolumeAttachLimit      = -1
 )
 
 type Driver struct {
@@ -54,15 +55,11 @@ type Driver struct {
 	adaptiveRetryMode        bool
 	tags                     map[string]string
 	lockManager              LockManagerMap
-<<<<<<< Updated upstream
-	inFlightChecker          *InFlightChecker
-=======
 	inFlightMountTracker     *InFlightMountTracker
 	volumeAttachLimit        int64
->>>>>>> Stashed changes
 }
 
-func NewDriver(endpoint, efsUtilsCfgPath, efsUtilsStaticFilesPath, tags string, volMetricsOptIn bool, volMetricsRefreshPeriod float64, volMetricsFsRateLimit int, deleteAccessPointRootDir bool, adaptiveRetryMode bool, maxInflightMountCallsOptIn bool, maxInflightMountCalls int64) *Driver {
+func NewDriver(endpoint, efsUtilsCfgPath, efsUtilsStaticFilesPath, tags string, volMetricsOptIn bool, volMetricsRefreshPeriod float64, volMetricsFsRateLimit int, deleteAccessPointRootDir bool, adaptiveRetryMode bool, maxInflightMountCallsOptIn bool, maxInflightMountCalls int64, volumeAttachLimitOptIn bool, volumeAttachLimit int64) *Driver {
 	cloud, err := cloud.NewCloud(adaptiveRetryMode)
 	if err != nil {
 		klog.Fatalln(err)
@@ -86,12 +83,8 @@ func NewDriver(endpoint, efsUtilsCfgPath, efsUtilsStaticFilesPath, tags string, 
 		adaptiveRetryMode:        adaptiveRetryMode,
 		tags:                     parseTagsFromStr(strings.TrimSpace(tags)),
 		lockManager:              NewLockManagerMap(),
-<<<<<<< Updated upstream
-		inFlightChecker:          NewInFlightChecker(calculateMaxInflightMountCalls(maxInflightMountCallsOptIn, maxInflightMountCalls)),
-=======
 		inFlightMountTracker:     NewInFlightMountTracker(calculateMaxInflightMountCalls(maxInflightMountCallsOptIn, maxInflightMountCalls)),
 		volumeAttachLimit:        calculateVolumeAttachLimit(volumeAttachLimitOptIn, volumeAttachLimit),
->>>>>>> Stashed changes
 	}
 }
 
