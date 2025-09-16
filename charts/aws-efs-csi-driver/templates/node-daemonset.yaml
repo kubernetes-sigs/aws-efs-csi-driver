@@ -81,6 +81,10 @@ spec:
             - --vol-metrics-opt-in={{ hasKey .Values.node "volMetricsOptIn" | ternary .Values.node.volMetricsOptIn false }}
             - --vol-metrics-refresh-period={{ hasKey .Values.node "volMetricsRefreshPeriod" | ternary .Values.node.volMetricsRefreshPeriod 240 }}
             - --vol-metrics-fs-rate-limit={{ hasKey .Values.node "volMetricsFsRateLimit" | ternary .Values.node.volMetricsFsRateLimit 5 }}
+            - --max-inflight-mount-calls-opt-in={{ hasKey .Values.node "maxInflightMountCallsOptIn" | ternary .Values.node.maxInflightMountCallsOptIn false }}
+            - --max-inflight-mount-calls={{ hasKey .Values.node "maxInflightMountCalls" | ternary .Values.node.maxInflightMountCalls 10 }}
+            - --volume-attach-limit-opt-in={{ hasKey .Values.node "volumeAttachLimitOptIn" | ternary .Values.node.volumeAttachLimitOptIn false }}
+            - --volume-attach-limit={{ hasKey .Values.node "volumeAttachLimit" | ternary .Values.node.volumeAttachLimit 20 }}
           env:
             - name: CSI_ENDPOINT
               value: unix:/csi/csi.sock
