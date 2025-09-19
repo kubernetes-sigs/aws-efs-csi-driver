@@ -670,7 +670,7 @@ func TestListAccessPoints(t *testing.T) {
 		fsId                = "fs-abcd1234"
 		accessPointId       = "ap-abc123"
 		Gid           int64 = 1000
-		Uid           int64 = 1000
+		Uid           int64 = 2000
 	)
 	testCases := []struct {
 		name     string
@@ -710,6 +710,17 @@ func TestListAccessPoints(t *testing.T) {
 
 				if len(res) != 1 {
 					t.Fatalf("Expected only one AccessPoint in response but got: %v", res)
+				}
+
+				// Verify PosixUser fields are correctly mapped
+				if res[0].PosixUser == nil {
+					t.Fatal("PosixUser should not be nil")
+				}
+				if res[0].PosixUser.Gid != Gid {
+					t.Fatalf("Gid mismatched. Expected: %v, Actual: %v", Gid, res[0].PosixUser.Gid)
+				}
+				if res[0].PosixUser.Uid != Uid {
+					t.Fatalf("Uid mismatched. Expected: %v, Actual: %v", Uid, res[0].PosixUser.Uid)
 				}
 
 				mockctl.Finish()
