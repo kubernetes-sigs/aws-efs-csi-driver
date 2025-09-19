@@ -327,7 +327,7 @@ func (c *cloud) ListAccessPoints(ctx context.Context, fileSystemId string) (acce
 		if accessPointDescription.PosixUser != nil {
 			posixUser = &PosixUser{
 				Gid: *accessPointDescription.PosixUser.Gid,
-				Uid: *accessPointDescription.PosixUser.Gid,
+				Uid: *accessPointDescription.PosixUser.Uid,
 			}
 		} else {
 			posixUser = nil
