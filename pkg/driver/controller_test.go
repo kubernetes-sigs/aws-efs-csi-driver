@@ -2892,6 +2892,7 @@ func TestCreateVolume(t *testing.T) {
 
 				secrets := map[string]string{}
 				secrets["awsRoleArn"] = "arn:aws:iam::1234567890:role/EFSCrossAccountRole"
+				secrets["externalId"] = "external-id"
 				secrets["crossaccount"] = "true"
 
 				req := &csi.CreateVolumeRequest{
@@ -4095,6 +4096,7 @@ func TestDeleteVolume(t *testing.T) {
 
 				secrets := map[string]string{}
 				secrets["awsRoleArn"] = "arn:aws:iam::1234567890:role/EFSCrossAccountRole"
+				secrets["externalId"] = "external-id"
 
 				req := &csi.DeleteVolumeRequest{
 					VolumeId: volumeId,
