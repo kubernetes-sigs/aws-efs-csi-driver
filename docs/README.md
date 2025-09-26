@@ -353,8 +353,30 @@ After deploying the driver, you can continue to these sections:
 |-----------------------------|--------|---------|----------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | vol-metrics-opt-in          |        | false   | true     | Opt in to emit volume metrics.                                                                                                                                                                                                          |
 | vol-metrics-refresh-period  |        | 240     | true     | Refresh period for volume metrics in minutes.                                                                                                                                                                                           |
-| vol-metrics-fs-rate-limit   |        | 5       | true     | Volume metrics routines rate limiter per file system.                                                                                                                                                                                   |
+| max-inflight-mount-calls-opt-in   |        | false       | true     | Opt in to use max inflight mount calls limit.                                                                                                                                                                                   |
+| max-inflight-mount-calls   |        | -1       | true     | New NodePublishVolume operation will be blocked if maximum number of inflight calls is reached. If maxInflightMountCallsOptIn is true, it has to be set to a positive value.                                                                                                                                                                                  |
+| volume-attach-limit-opt-in   |        | false       | true     | Opt in to use volume attach limit.                                                                                                                                                                                   |
+| volume-attach-limit   |        |  -1      | true     | Maximum number of volumes that can be attached to a node. If volumeAttachLimitOptIn is true, it has to be set to a positive value.                                                                                                                                                                 |
 
+#### Suggestion for setting max-inflight-mount-calls and volume-attach-limit
+
+To prevent out-of-memory (OOM) issues in the efs-plugin container, configure these parameters based on your container's memory limit:
+
+- Each EFS volume consumes **~12 MiB** of memory (for the efs-proxy process)
+- Each concurrent mount operation consumes **~30 MiB** of memory during peak usage
+  - A single mount operation typically takes **~100 milliseconds** to complete
+  - For example, concurrent mount operations can occur when multiple pods are being scheduled simultaneously and need to mount EFS volumes
+
+#### Recommended formula
+```
+Container Memory Limit = ((volume-attach-limit × 12) + (max-inflight-mount-calls × 30)) × 1.5 MiB
+```
+
+#### Example calculation
+- For 50 volumes and 10 concurrent mounts: `((50 × 12) + (10 × 30)) × 1.5 = 1,350 MiB`
+- Set container memory limit to at least 1.4 GiB
+
+> **Note:** The 1.5x multiplier provides a safety buffer for other container processes and memory fluctuations.
 
 
 ##### Understanding the Impact of vol-metrics-opt-in:
