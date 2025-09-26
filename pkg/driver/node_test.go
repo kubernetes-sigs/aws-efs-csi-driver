@@ -1134,7 +1134,7 @@ func runForkFatalTest(testName string) error {
 	return err
 }
 
-func TestCalculateMaxInflightMountCalls(t *testing.T) {
+func TestGetMaxInflightMountCalls(t *testing.T) {
 	testCases := []struct {
 		name                       string
 		maxInflightMountCallsOptIn bool
@@ -1173,15 +1173,15 @@ func TestCalculateMaxInflightMountCalls(t *testing.T) {
 			if tc.expectFatal {
 				if os.Getenv("FORK") == "1" {
 					// If it is in forked process, run the fatal code directly and let klog.Fatal exit
-					calculateMaxInflightMountCalls(tc.maxInflightMountCallsOptIn, tc.maxInflightMountCalls)
+					getMaxInflightMountCalls(tc.maxInflightMountCallsOptIn, tc.maxInflightMountCalls)
 					return
 				}
-				err := runForkFatalTest("TestCalculateMaxInflightMountCalls/" + tc.name)
+				err := runForkFatalTest("TestGetMaxInflightMountCalls/" + tc.name)
 				if err == nil {
 					t.Fatal("expected process to exit with error")
 				}
 			} else {
-				result := calculateMaxInflightMountCalls(tc.maxInflightMountCallsOptIn, tc.maxInflightMountCalls)
+				result := getMaxInflightMountCalls(tc.maxInflightMountCallsOptIn, tc.maxInflightMountCalls)
 				if result != tc.expected {
 					t.Errorf("Expected %d, got %d", tc.expected, result)
 				}
@@ -1190,7 +1190,7 @@ func TestCalculateMaxInflightMountCalls(t *testing.T) {
 	}
 }
 
-func TestCalculateVolumeAttachLimit(t *testing.T) {
+func TestGetVolumeAttachLimit(t *testing.T) {
 	testCases := []struct {
 		name                   string
 		volumeAttachLimitOptIn bool
@@ -1229,15 +1229,15 @@ func TestCalculateVolumeAttachLimit(t *testing.T) {
 			if tc.expectFatal {
 				// If it is in forked process, run the fatal code directly and let klog.Fatal exit
 				if os.Getenv("FORK") == "1" {
-					calculateVolumeAttachLimit(tc.volumeAttachLimitOptIn, tc.volumeAttachLimit)
+					getVolumeAttachLimit(tc.volumeAttachLimitOptIn, tc.volumeAttachLimit)
 					return
 				}
-				err := runForkFatalTest("TestCalculateVolumeAttachLimit/" + tc.name)
+				err := runForkFatalTest("TestGetVolumeAttachLimit/" + tc.name)
 				if err == nil {
 					t.Fatal("expected process to exit with error")
 				}
 			} else {
-				result := calculateVolumeAttachLimit(tc.volumeAttachLimitOptIn, tc.volumeAttachLimit)
+				result := getVolumeAttachLimit(tc.volumeAttachLimitOptIn, tc.volumeAttachLimit)
 				if result != tc.expected {
 					t.Errorf("Expected %d, got %d", tc.expected, result)
 				}

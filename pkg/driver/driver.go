@@ -83,8 +83,8 @@ func NewDriver(endpoint, efsUtilsCfgPath, efsUtilsStaticFilesPath, tags string, 
 		adaptiveRetryMode:        adaptiveRetryMode,
 		tags:                     parseTagsFromStr(strings.TrimSpace(tags)),
 		lockManager:              NewLockManagerMap(),
-		inFlightMountTracker:     NewInFlightMountTracker(calculateMaxInflightMountCalls(maxInflightMountCallsOptIn, maxInflightMountCalls)),
-		volumeAttachLimit:        calculateVolumeAttachLimit(volumeAttachLimitOptIn, volumeAttachLimit),
+		inFlightMountTracker:     NewInFlightMountTracker(getMaxInflightMountCalls(maxInflightMountCallsOptIn, maxInflightMountCalls)),
+		volumeAttachLimit:        getVolumeAttachLimit(volumeAttachLimitOptIn, volumeAttachLimit),
 	}
 }
 
