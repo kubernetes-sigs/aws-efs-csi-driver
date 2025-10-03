@@ -57,6 +57,10 @@ spec:
             - --vol-metrics-opt-in=false
             - --vol-metrics-refresh-period=240
             - --vol-metrics-fs-rate-limit=5
+            - --max-inflight-mount-calls-opt-in=false
+            - --max-inflight-mount-calls=10
+            - --volume-attach-limit-opt-in=false
+            - --volume-attach-limit=20
           env:
             - name: CSI_ENDPOINT
               value: unix:/csi/csi.sock
