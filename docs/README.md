@@ -363,6 +363,11 @@ After deploying the driver, you can continue to these sections:
 | max-inflight-mount-calls   |        | -1       | true     | New NodePublishVolume operation will be blocked if maximum number of inflight calls is reached. If maxInflightMountCallsOptIn is true, it has to be set to a positive value.                                                                                                                                                                                  |
 | volume-attach-limit-opt-in   |        | false       | true     | Opt in to use volume attach limit.                                                                                                                                                                                   |
 | volume-attach-limit   |        |  -1      | true     | Maximum number of volumes that can be attached to a node. If volumeAttachLimitOptIn is true, it has to be set to a positive value.                                                                                                                                                                 |
+| force-unmount-after-timeout   |        |  false      | true     | Enable force unmount if normal unmount times out during NodeUnpublishVolume                                                                                                                                                                 |
+| unmount-timeout   |        |  30s      | true     | Timeout for unmounting a volume during NodePublishVolume when forceUnmountAfterTimeout is true. If the timeout is reached, the volume will be forcibly unmounted. The default value is 30 seconds.                                                                                                                                                                 |
+
+#### Force Unmount After Timeout
+The `force-unmount-after-timeout` feature addresses issues when `NodeUnpublishVolume` gets called infinite times and hangs indefinitely due to broken NFS connections. When enabled, if a normal unmount operation exceeds the configured timeout, the driver will forcibly unmount the volume to prevent indefinite hanging and allow the operation to complete.
 
 #### Suggestion for setting max-inflight-mount-calls and volume-attach-limit
 
