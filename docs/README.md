@@ -4,6 +4,8 @@
 
 The [Amazon Elastic File System](https://aws.amazon.com/efs/) Container Storage Interface (CSI) Driver implements the [CSI](https://github.com/container-storage-interface/spec/blob/master/spec.md) specification for container orchestrators to manage the lifecycle of Amazon EFS file systems.
 
+> **Note:** The latest release version may not include the most recent code changes in master branch. Please check the [changelog](../CHANGELOG-2.x.md) for updates included in the corresponding release versions.
+
 ### CSI Specification Compatibility Matrix
 | Amazon EFS CSI Driver \ CSI Spec Version | v0.3.0| v1.1.0 | v1.2.0 |
 |------------------------------------------|-------|--------|--------|
