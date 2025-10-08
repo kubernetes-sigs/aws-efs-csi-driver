@@ -1,3 +1,7 @@
+# V2.1.13
+* Update Dependencies ([#1709](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1709), [@zmaguire](https://github.com/zmaguire))
+* Set PosixUser.Uid correctly in ListAccessPoints ([#1707](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1707), [@yerzhan7](https://github.com/yerzhan7))
+* Add maxInflightMountCalls and volumeAttachLimit args ([#1706](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1706), [@DavidXU12345](https://github.com/DavidXU12345))
 # V2.1.12
 * Update golang MV in DockerFile ([#1697](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1697), [@mondaljs](https://github.com/mondaljs))
 * Update Sidecar Versions to Resolve CVEs ([#1694](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1694), [@samuhale](https://github.com/samuhale))
