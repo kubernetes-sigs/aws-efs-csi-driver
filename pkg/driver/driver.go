@@ -160,12 +160,12 @@ func splitToList(tagsStr string, splitter byte) []string {
 		return l
 	}
 	var tagBuilder strings.Builder
-	var jump_to_index int = 0
+	var jumper int = 0
 	for index, runeValue := range tagsStr {
-		if jump_to_index > index {
+		if jumper > index {
 			continue
 		}
-		jump_to_index++
+		jumper++
 		if byte(runeValue) == splitter {
 			l = append(l, tagBuilder.String())
 			tagBuilder.Reset()
@@ -175,13 +175,13 @@ func splitToList(tagsStr string, splitter byte) []string {
 		// Handle escape character
 		if runeValue == '\\' && tagsStr[index+1] == byte('\\') {
 			tagBuilder.WriteRune('\\')
-			jump_to_index++
+			jumper++
 			continue
 		}
 
 		if runeValue == '\\' && tagsStr[index+1] == splitter {
 			tagBuilder.WriteByte(splitter)
-			jump_to_index++
+			jumper++
 			continue
 		}
 
