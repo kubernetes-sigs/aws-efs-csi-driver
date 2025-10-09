@@ -100,6 +100,8 @@ controller:
   # Specifies whether a service account should be created
   serviceAccount:
     create: true
+    # Automount API credentials for a Service Account.
+    automountServiceAccountToken: true
     name: efs-csi-controller-sa
     annotations: {}
     ## Enable if EKS IAM for SA is used
@@ -200,6 +202,8 @@ node:
   # Specifies whether a service account should be created
   serviceAccount:
     create: true
+    # Automount API credentials for a Service Account.
+    automountServiceAccountToken: true
     name: efs-csi-node-sa
     annotations: {}
     ## Enable if EKS IAM for SA is used
