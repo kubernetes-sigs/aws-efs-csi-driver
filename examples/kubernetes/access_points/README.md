@@ -84,7 +84,6 @@ Also you can verify that data is written into the EFS filesystems:
 ```
 spec:
   mountOptions:
-    - tls
     - accesspoint=fsap-068c22f0246419f75
 ```
 as this could subject you to
