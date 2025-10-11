@@ -106,6 +106,33 @@ controller:
     #  eks.amazonaws.com/role-arn: arn:aws:iam::111122223333:role/efs-csi-role
   healthPort: 9909
   regionalStsEndpoints: false
+  # Liveness probe configuration for the controller
+  livenessProbe:
+    httpGet:
+      path: /healthz
+      port: healthz
+    initialDelaySeconds: 10
+    timeoutSeconds: 3
+    periodSeconds: 10
+    failureThreshold: 5
+  # Readiness probe configuration for the controller (optional)
+  readinessProbe: {}
+    # httpGet:
+    #   path: /healthz
+    #   port: healthz
+    # initialDelaySeconds: 10
+    # timeoutSeconds: 3
+    # periodSeconds: 10
+    # failureThreshold: 3
+  # Startup probe configuration for the controller (optional)
+  startupProbe: {}
+    # httpGet:
+    #   path: /healthz
+    #   port: healthz
+    # initialDelaySeconds: 10
+    # timeoutSeconds: 3
+    # periodSeconds: 10
+    # failureThreshold: 30
   # Pod Disruption Budget
   podDisruptionBudget: 
     enabled: false
@@ -205,6 +232,33 @@ node:
     ## Enable if EKS IAM for SA is used
     #  eks.amazonaws.com/role-arn: arn:aws:iam::111122223333:role/efs-csi-role
   healthPort: 9809
+  # Liveness probe configuration for the node
+  livenessProbe:
+    httpGet:
+      path: /healthz
+      port: healthz
+    initialDelaySeconds: 10
+    timeoutSeconds: 3
+    periodSeconds: 2
+    failureThreshold: 5
+  # Readiness probe configuration for the node (optional)
+  readinessProbe: {}
+    # httpGet:
+    #   path: /healthz
+    #   port: healthz
+    # initialDelaySeconds: 10
+    # timeoutSeconds: 3
+    # periodSeconds: 2
+    # failureThreshold: 3
+  # Startup probe configuration for the node (optional)
+  startupProbe: {}
+    # httpGet:
+    #   path: /healthz
+    #   port: healthz
+    # initialDelaySeconds: 10
+    # timeoutSeconds: 3
+    # periodSeconds: 2
+    # failureThreshold: 30
   # securityContext on the node pod
   securityContext:
     # The node pod must be run as root to bind to the registration/driver sockets
