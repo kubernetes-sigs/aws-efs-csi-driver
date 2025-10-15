@@ -3,6 +3,8 @@ package cloud
 import (
 	"context"
 	"fmt"
+	"io"
+	"strings"
 	"testing"
 
 	"github.com/aws/aws-sdk-go-v2/feature/ec2/imds"
@@ -12,18 +14,20 @@ import (
 )
 
 var (
-	stdInstanceID       = "instance-1"
-	stdRegionName       = "instance-1"
-	stdAvailabilityZone = "az-1"
+	stdInstanceID         = "instance-1"
+	stdRegionName         = "instance-1"
+	stdAvailabilityZone   = "az-1"
+	stdAvailabilityZoneID = "use1-az1"
 )
 
 func TestRetrieveMetadataFromEC2MetadataService(t *testing.T) {
 	testCases := []struct {
-		name             string
-		isAvailable      bool
-		isPartial        bool
-		identityDocument imds.InstanceIdentityDocument
-		err              error
+		name               string
+		isAvailable        bool
+		isPartial          bool
+		identityDocument   imds.InstanceIdentityDocument
+		availabilityZoneID string
+		err                error
 	}{
 		{
 			name:        "success: normal",
@@ -33,7 +37,8 @@ func TestRetrieveMetadataFromEC2MetadataService(t *testing.T) {
 				Region:           stdRegionName,
 				AvailabilityZone: stdAvailabilityZone,
 			},
-			err: nil,
+			availabilityZoneID: stdAvailabilityZoneID,
+			err:                nil,
 		},
 		{
 			name:        "fail: GetInstanceIdentityDocument returned error",
@@ -43,7 +48,8 @@ func TestRetrieveMetadataFromEC2MetadataService(t *testing.T) {
 				Region:           stdRegionName,
 				AvailabilityZone: stdAvailabilityZone,
 			},
-			err: fmt.Errorf(""),
+			availabilityZoneID: stdAvailabilityZoneID,
+			err:                fmt.Errorf(""),
 		},
 		{
 			name:        "fail: GetInstanceIdentityDocument returned empty instance",
@@ -54,7 +60,8 @@ func TestRetrieveMetadataFromEC2MetadataService(t *testing.T) {
 				Region:           stdRegionName,
 				AvailabilityZone: stdAvailabilityZone,
 			},
-			err: nil,
+			availabilityZoneID: stdAvailabilityZoneID,
+			err:                nil,
 		},
 		{
 			name:        "fail: GetInstanceIdentityDocument returned empty region",
@@ -65,7 +72,8 @@ func TestRetrieveMetadataFromEC2MetadataService(t *testing.T) {
 				Region:           "",
 				AvailabilityZone: stdAvailabilityZone,
 			},
-			err: nil,
+			availabilityZoneID: stdAvailabilityZoneID,
+			err:                nil,
 		},
 		{
 			name:        "fail: GetInstanceIdentityDocument returned empty az",
@@ -76,7 +84,19 @@ func TestRetrieveMetadataFromEC2MetadataService(t *testing.T) {
 				Region:           stdRegionName,
 				AvailabilityZone: "",
 			},
-			err: nil,
+			availabilityZoneID: stdAvailabilityZoneID,
+			err:                nil,
+		},
+		{
+			name:        "fail: GetInstanceIdentityDocument returned empty az id",
+			isAvailable: true,
+			identityDocument: imds.InstanceIdentityDocument{
+				InstanceID:       stdInstanceID,
+				Region:           stdRegionName,
+				AvailabilityZone: stdAvailabilityZone,
+			},
+			availabilityZoneID: "",
+			err:                nil,
 		},
 	}
 
@@ -87,6 +107,15 @@ func TestRetrieveMetadataFromEC2MetadataService(t *testing.T) {
 
 			if tc.isAvailable {
 				mockEC2Metadata.EXPECT().GetInstanceIdentityDocument(context.TODO(), &imds.GetInstanceIdentityDocumentInput{}).Return(&imds.GetInstanceIdentityDocumentOutput{InstanceIdentityDocument: tc.identityDocument}, tc.err)
+
+				if tc.err == nil &&
+					tc.identityDocument.InstanceID != "" &&
+					tc.identityDocument.Region != "" &&
+					tc.identityDocument.AvailabilityZone != "" {
+					mockEC2Metadata.EXPECT().GetMetadata(context.TODO(), &imds.GetMetadataInput{
+						Path: "placement/availability-zone-id",
+					}).Return(&imds.GetMetadataOutput{Content: io.NopCloser(strings.NewReader(tc.availabilityZoneID))}, nil)
+				}
 			}
 
 			ec2Mp := ec2MetadataProvider{ec2MetadataService: mockEC2Metadata}
@@ -107,6 +136,10 @@ func TestRetrieveMetadataFromEC2MetadataService(t *testing.T) {
 
 				if m.GetAvailabilityZone() != tc.identityDocument.AvailabilityZone {
 					t.Fatalf("GetAvailabilityZone() failed: expected %v, got %v", tc.identityDocument.AvailabilityZone, m.GetAvailabilityZone())
+				}
+
+				if m.GetAvailabilityZoneID() != tc.availabilityZoneID {
+					t.Fatalf("GetAvailabilityZoneID() failed: expected %v, got %v", tc.availabilityZoneID, m.GetAvailabilityZoneID())
 				}
 			} else {
 				if err == nil {
