@@ -140,6 +140,9 @@ controller:
   #    topologyKey: kubernetes.io/hostname
   #    whenUnsatisfiable: ScheduleAnyway
   topologySpreadConstraints: []
+  # Enable reading filesystem IDs from configmap/secret
+  fileSystemIdRefs:
+    enabled: false
 
 ## Node daemonset variables
 
