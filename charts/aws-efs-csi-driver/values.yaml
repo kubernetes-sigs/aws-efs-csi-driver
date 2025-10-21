@@ -97,6 +97,8 @@ controller:
   env: []
   volumes: []
   volumeMounts: []
+  socketDirVolume:
+    emptyDir: {}
   # Specifies whether a service account should be created
   serviceAccount:
     create: true
