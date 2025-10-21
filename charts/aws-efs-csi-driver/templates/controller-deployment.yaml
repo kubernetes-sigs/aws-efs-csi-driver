@@ -180,7 +180,11 @@ spec:
           {{- end }}
       volumes:
         - name: socket-dir
+          {{- if .Values.controller.socketDirVolume }}
+          {{- toYaml .Values.controller.socketDirVolume | nindent 10 }}
+          {{- else }}
           emptyDir: {}
+          {{- end }}
         {{- with .Values.controller.volumes }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
