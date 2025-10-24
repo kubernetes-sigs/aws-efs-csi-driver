@@ -28,6 +28,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	k8errors "k8s.io/apimachinery/pkg/api/errors"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
 	"github.com/kubernetes-sigs/aws-efs-csi-driver/pkg/cloud"
@@ -35,6 +36,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"k8s.io/klog/v2"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
@@ -48,6 +50,8 @@ const (
 	DirectoryPerms        = "directoryPerms"
 	EnsureUniqueDirectory = "ensureUniqueDirectory"
 	FsId                  = "fileSystemId"
+	FileSystemIdConfigRef = "fileSystemIdConfigRef"
+	FileSystemIdSecretRef = "fileSystemIdSecretRef"
 	Gid                   = "gid"
 	GidMin                = "gidRangeStart"
 	GidMax                = "gidRangeEnd"
@@ -150,14 +154,11 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 		CapacityGiB: volSize,
 	}
 
-	if value, ok := volumeParams[FsId]; ok {
-		if strings.TrimSpace(value) == "" {
-			return nil, status.Errorf(codes.InvalidArgument, "Parameter %v cannot be empty", FsId)
-		}
-		accessPointsOptions.FileSystemId = value
-	} else {
-		return nil, status.Errorf(codes.InvalidArgument, "Missing %v parameter", FsId)
+	value, err := findFileSystemId(ctx, volumeParams)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "Failed to resolve filesystem Id %v", err)
 	}
+	accessPointsOptions.FileSystemId = value
 
 	localCloud, roleArn, crossAccountDNSEnabled, err = getCloud(req.GetSecrets(), d)
 	if err != nil {
@@ -748,4 +749,76 @@ func validateExistingAccessPoint(existingAccessPoint *cloud.AccessPoint, basePat
 	}
 
 	return nil
+}
+
+func findFileSystemId(ctx context.Context, volumeParams map[string]string) (string, error) {
+	if value, ok := volumeParams[FsId]; ok {
+		value = strings.TrimSpace(value)
+		if value != "" {
+			return value, nil
+		}
+	}
+
+	if ref, ok := volumeParams[FileSystemIdConfigRef]; ok {
+		return getFileSystemIdFromRef(ctx, "configmap", ref)
+	}
+
+	if ref, ok := volumeParams[FileSystemIdSecretRef]; ok {
+		return getFileSystemIdFromRef(ctx, "secret", ref)
+	}
+	return "", fmt.Errorf("fileSystemId not specified in volume parameters")
+}
+
+func getFileSystemIdFromRef(ctx context.Context, resourceType, ref string) (string, error) {
+	namespace, name, key := parseRef(ref)
+	if namespace == "" || name == "" || key == "" {
+		return "", fmt.Errorf("invalid %s reference %s/%s", resourceType, namespace, name)
+	}
+
+	client, err := cloud.DefaultKubernetesAPIClient()
+	if err != nil {
+		return "", err
+	}
+
+	var fsId string
+	if resourceType == "configmap" {
+		configMap, err := client.CoreV1().ConfigMaps(namespace).Get(ctx, name, metav1.GetOptions{})
+		if err != nil {
+			return "", formatK8Errors(err, resourceType, namespace, name)
+		}
+		fsId = configMap.Data[key]
+	} else if resourceType == "secret" {
+		secret, err := client.CoreV1().Secrets(namespace).Get(ctx, name, metav1.GetOptions{})
+		if err != nil {
+			return "", formatK8Errors(err, resourceType, namespace, name)
+		}
+		fsId = string(secret.Data[key])
+	} else {
+		return "", fmt.Errorf("unknown resource type %s", resourceType)
+	}
+
+	fsId = strings.TrimSpace(fsId)
+	if fsId == "" {
+		return "", fmt.Errorf("key %s not found in %s %s/%s", key, resourceType, namespace, name)
+	}
+
+	return fsId, nil
+}
+
+func parseRef(ref string) (string, string, string) {
+	ref = strings.TrimSpace(ref)
+	parts := strings.Split(ref, "/")
+	if len(parts) != 3 {
+		return "", "", ""
+	}
+	return parts[0], parts[1], parts[2]
+}
+
+func formatK8Errors(err error, resourceType, namespace, name string) error {
+	if k8errors.IsForbidden(err) {
+		return fmt.Errorf("%s '%s/%s' is forbidden: %w. "+
+			"This feature requires RBAC permissions. "+
+			"See documentation for details", resourceType, namespace, name, err)
+	}
+	return fmt.Errorf("failed to get %s %s/%s: %w", resourceType, namespace, name, err)
 }
