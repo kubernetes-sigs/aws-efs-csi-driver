@@ -28,9 +28,9 @@ The following CSI interfaces are implemented:
 | Parameters            | Values | Default         | Optional | Description                                                                                                                                                                                                                                                                                                                                                                                   |
 |-----------------------|--------|-----------------|----------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | provisioningMode      | efs-ap |                 | false    | Type of volume provisioned by efs. Currently, Access Points are supported.                                                                                                                                                                                                                                                                                                                    |
-| fileSystemId          |        |                 | true*    | File System under which access points are created. One of `fileSystemId`, `fileSystemIdConfigRef`, or `fileSystemIdSecretRef` must be specified.                                                                                                                                                                                                                                             |
-| fileSystemIdConfigRef |        |                 | true*    | Reference to a ConfigMap containing the filesystem ID in format `namespace/name/key`. Enables dynamic filesystem ID resolution.                                                                                                                                                                                                             |
-| fileSystemIdSecretRef |        |                 | true*    | Reference to a Secret containing the filesystem ID in format `namespace/name/key`. Enables dynamic filesystem ID resolution.                                                                                                                                                                                                                 |
+| fileSystemId          |        |                 | true*    | File System under which access points are created. See footnote for usage details.                                                                                                                                                                                                                                             |
+| fileSystemIdConfigRef |        |                 | true*    | Reference to a ConfigMap containing the filesystem ID in format `namespace/name/key`. See footnote for usage details.                                                                                                                                                                                                           |
+| fileSystemIdSecretRef |        |                 | true*    | Reference to a Secret containing the filesystem ID in format `namespace/name/key`. See footnote for usage details.                                                                                                                                                                                                                |
 | directoryPerms        |        |                 | false    | Directory permissions for [Access Point root directory](https://docs.aws.amazon.com/efs/latest/ug/efs-access-points.html#enforce-root-directory-access-point) creation.                                                                                                                                                                                                                       |
 | uid                   |        |                 | true     | POSIX user Id to be applied for [Access Point root directory](https://docs.aws.amazon.com/efs/latest/ug/efs-access-points.html#enforce-root-directory-access-point) creation.                                                                                                                                                                                                                 |
 | gid                   |        |                 | true     | POSIX group Id to be applied for [Access Point root directory](https://docs.aws.amazon.com/efs/latest/ug/efs-access-points.html#enforce-root-directory-access-point) creation.                                                                                                                                                                                                                |
@@ -43,6 +43,7 @@ The following CSI interfaces are implemented:
 | reuseAccessPoint      |        | false           | true     | When set to true, it creates the Access Point client-token from the provided PVC name. So that the AccessPoint can be replicated from a different cluster if same PVC name and storageclass configuration are used.                                                                                                                                                                                    |
 
 **Note**
+* **Filesystem ID Source (marked with \*)**: Exactly one of `fileSystemId`, `fileSystemIdConfigRef`, or `fileSystemIdSecretRef` must be specified to provide the EFS filesystem ID. For detailed usage guide, see the [ConfigMap and Secret Resolution Guide](./filesystem-id-resolution.md).
 * Custom Posix group Id range for Access Point root directory must include both `gidRangeStart` and `gidRangeEnd` parameters. These parameters are optional only if both are omitted. If you specify one, the other becomes mandatory.
 * When using a custom Posix group ID range, there is a possibility for the driver to run out of available POSIX group Ids. We suggest ensuring custom group ID range is large enough or create a new storage class with a new file system to provision additional volumes. 
 * `az` under storage class parameter is not be confused with efs-utils mount option `az`. The `az` mount option is used for cross-az mount or efs one zone file system mount within the same aws account as the cluster.
@@ -50,48 +51,6 @@ The following CSI interfaces are implemented:
  * When user enforcement is enabled, Amazon EFS replaces the NFS client's user and group IDs with the identity configured on the access point for all file system operations.
  * The uid/gid configured on the access point is either the uid/gid specified in the storage class, a value in the gidRangeStart-gidRangeEnd (used as both uid/gid) specified in the storage class, or is a value selected by the driver is no uid/gid or gidRange is specified.
  * We suggest using [static provisioning](https://github.com/kubernetes-sigs/aws-efs-csi-driver/blob/master/examples/kubernetes/static_provisioning/README.md) if you do not wish to use user identity enforcement.
-
----
-#### Dynamic Filesystem ID Resolution
-
-The EFS CSI driver supports dynamic filesystem ID resolution from Kubernetes ConfigMaps and Secrets. This enables workflows where tools (like Crossplane or Terraform) provision EFS filesystems and write the filesystem ID to Kubernetes resources, which the CSI driver reads automatically during volume provisioning.
-
-**Reference Format:** `namespace/name/key`
-
-**Parameter Precedence:** If `fileSystemId` is provided and non-empty, it takes precedence over `fileSystemIdConfigRef` or `fileSystemIdSecretRef`. If `fileSystemId` is not provided or empty, the driver checks for either ConfigMap or Secret reference.
-
-**Example with ConfigMap:**
-```yaml
-# ConfigMap created
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: efs-config
-  namespace: kube-system
-data:
-  fileSystemId: fs-02604354c13d0316d
----
-# StorageClass references the ConfigMap
-kind: StorageClass
-apiVersion: storage.k8s.io/v1
-metadata:
-  name: efs-sc
-provisioner: efs.csi.aws.com
-parameters:
-  provisioningMode: efs-ap
-  fileSystemIdConfigRef: "kube-system/efs-config/fileSystemId"
-  directoryPerms: "700"
-```
-
-**Enabling RBAC Permissions (Required):**
-
-This feature requires additional RBAC permissions for the controller service account to read ConfigMaps and Secrets. When installing via Helm, enable with:
-```bash
-helm install aws-efs-csi-driver ./charts/aws-efs-csi-driver \
-  --set controller.fileSystemIdRefs.enabled=true
-```
-
-For static manifest installations, manually apply the RBAC resources from the Helm chart templates.
 
 ---
 If you want to pass any other mountOptions to Amazon EFS CSI driver while mounting, they can be passed in through the Persistent Volume or the Storage Class objects, depending on whether static or dynamic provisioning is used. The following are examples of some mountOptions that can be passed:

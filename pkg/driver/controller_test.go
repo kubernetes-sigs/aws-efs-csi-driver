@@ -4892,27 +4892,73 @@ func TestFindFileSystemId(t *testing.T) {
 			expectedError: false,
 		},
 		{
-			name: "Success: Direct parameter takes precedence over configmap",
+			name: "Fail: Multiple sources - fileSystemId and ConfigRef",
 			volumeParams: map[string]string{
 				"fileSystemId":        "fs-direct",
 				FileSystemIdConfigRef: "default/efs-config/fileSystemId",
 			},
-			expectedFsId:  "fs-direct",
-			expectedError: false,
+			expectedError: true,
+			errorContains: "only one of fileSystemId, fileSystemIdConfigRef, or fileSystemIdSecretRef can be specified",
 		},
 		{
-			name: "Success: Empty direct fileSystemId falls through",
+			name: "Fail: Multiple sources - fileSystemId and SecretRef",
 			volumeParams: map[string]string{
-				"fileSystemId": "   ",
+				"fileSystemId":        "fs-direct",
+				FileSystemIdSecretRef: "default/efs-secret/fsId",
+			},
+			expectedError: true,
+			errorContains: "only one of fileSystemId, fileSystemIdConfigRef, or fileSystemIdSecretRef can be specified",
+		},
+		{
+			name: "Fail: Multiple sources - ConfigRef and SecretRef",
+			volumeParams: map[string]string{
+				FileSystemIdConfigRef: "default/efs-config/fileSystemId",
+				FileSystemIdSecretRef: "default/efs-secret/fsId",
+			},
+			expectedError: true,
+			errorContains: "only one of fileSystemId, fileSystemIdConfigRef, or fileSystemIdSecretRef can be specified",
+		},
+		{
+			name: "Success: Empty fileSystemId with valid ConfigRef",
+			volumeParams: map[string]string{
+				"fileSystemId":        "",
 				FileSystemIdConfigRef: "default/efs-config/fileSystemId",
 			},
 			mockSetup: func() kubernetes.Interface {
-				return createMockClientWithConfigMap("default", "efs-config", map[string]string{
-					"fileSystemId": "fs-from-configmap",
-				})
+				cm := &v1.ConfigMap{
+					ObjectMeta: metav1.ObjectMeta{Name: "efs-config", Namespace: "default"},
+					Data:       map[string]string{"fileSystemId": "fs-from-configmap"},
+				}
+				return fake.NewSimpleClientset(cm)
 			},
 			expectedFsId:  "fs-from-configmap",
 			expectedError: false,
+		},
+		{
+			name: "Success: Empty fileSystemId with valid SecretRef",
+			volumeParams: map[string]string{
+				"fileSystemId":        "   ",
+				FileSystemIdSecretRef: "default/efs-secret/fsId",
+			},
+			mockSetup: func() kubernetes.Interface {
+				secret := &v1.Secret{
+					ObjectMeta: metav1.ObjectMeta{Name: "efs-secret", Namespace: "default"},
+					Data:       map[string][]byte{"fsId": []byte("fs-from-secret")},
+				}
+				return fake.NewSimpleClientset(secret)
+			},
+			expectedFsId:  "fs-from-secret",
+			expectedError: false,
+		},
+		{
+			name: "Fail: All empty values",
+			volumeParams: map[string]string{
+				"fileSystemId": "   ",
+				FileSystemIdConfigRef: " ",
+				FileSystemIdSecretRef: " ",
+			},
+			expectedError: true,
+			errorContains: "one of fileSystemId, fileSystemIdConfigRef, or fileSystemIdSecretRef must be specified",
 		},
 		{
 			name: "Fail: ConfigMap not found",
@@ -4956,7 +5002,7 @@ func TestFindFileSystemId(t *testing.T) {
 				"provisioningMode": "efs-ap",
 			},
 			expectedError: true,
-			errorContains: "fileSystemId not specified",
+			errorContains: "one of fileSystemId, fileSystemIdConfigRef, or fileSystemIdSecretRef must be specified",
 		},
 		{
 			name: "Fail: ConfigMap with key not found",
@@ -5016,8 +5062,7 @@ func TestFindFileSystemId(t *testing.T) {
 			if tc.expectedError {
 				if err == nil {
 					t.Errorf("Expected error but got none")
-				}
-				if tc.errorContains != "" && !strings.Contains(err.Error(), tc.errorContains) {
+				} else if tc.errorContains != "" && !strings.Contains(err.Error(), tc.errorContains) {
 					t.Errorf("Expected error to contain '%s', got: %v", tc.errorContains, err)
 				}
 			} else {
