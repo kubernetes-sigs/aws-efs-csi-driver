@@ -95,6 +95,9 @@ type RevokeSecurityGroupEgressOutput struct {
 	// Returns true if the request succeeds; otherwise, returns an error.
 	Return *bool
 
+	// Details about the revoked security group rules.
+	RevokedSecurityGroupRules []types.RevokedSecurityGroupRule
+
 	// The outbound rules that were unknown to the service. In some cases,
 	// unknownIpPermissionSet might be in a different format from the request
 	// parameter.
@@ -170,6 +173,9 @@ func (c *Client) addOperationRevokeSecurityGroupEgressMiddlewares(stack *middlew
 	if err = addUserAgentRetryMode(stack, options); err != nil {
 		return err
 	}
+	if err = addCredentialSource(stack, options); err != nil {
+		return err
+	}
 	if err = addOpRevokeSecurityGroupEgressValidationMiddleware(stack); err != nil {
 		return err
 	}
@@ -189,6 +195,36 @@ func (c *Client) addOperationRevokeSecurityGroupEgressMiddlewares(stack *middlew
 		return err
 	}
 	if err = addDisableHTTPSMiddleware(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptBeforeRetryLoop(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptAttempt(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptExecution(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptBeforeSerialization(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptAfterSerialization(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptBeforeSigning(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptAfterSigning(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptTransmit(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptBeforeDeserialization(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptAfterDeserialization(stack, options); err != nil {
 		return err
 	}
 	if err = addSpanInitializeStart(stack); err != nil {
