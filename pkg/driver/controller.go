@@ -752,6 +752,11 @@ func validateExistingAccessPoint(existingAccessPoint *cloud.AccessPoint, basePat
 }
 
 func findFileSystemId(ctx context.Context, volumeParams map[string]string) (string, error) {
+	if err := validateFileSystemIdRefs(volumeParams); err != nil {
+		klog.Errorf("Failed to validate filesystemId references: %v", err)
+		return "", err
+	}
+
 	if value, ok := volumeParams[FsId]; ok {
 		value = strings.TrimSpace(value)
 		if value != "" {
@@ -760,19 +765,39 @@ func findFileSystemId(ctx context.Context, volumeParams map[string]string) (stri
 	}
 
 	if ref, ok := volumeParams[FileSystemIdConfigRef]; ok {
-		return getFileSystemIdFromRef(ctx, "configmap", ref)
+		return getFileSystemIdFromRef(ctx, FileSystemIdConfigRef, ref)
 	}
 
 	if ref, ok := volumeParams[FileSystemIdSecretRef]; ok {
-		return getFileSystemIdFromRef(ctx, "secret", ref)
+		return getFileSystemIdFromRef(ctx, FileSystemIdSecretRef, ref)
 	}
 	return "", fmt.Errorf("fileSystemId not specified in volume parameters")
 }
 
+func validateFileSystemIdRefs(volumeParams map[string]string) error {
+	refs := 0
+	if value, ok := volumeParams[FsId]; ok && strings.TrimSpace(value) != "" {
+		refs++
+	}
+	if value, ok := volumeParams[FileSystemIdConfigRef]; ok && strings.TrimSpace(value) != "" {
+		refs++
+	}
+	if value, ok := volumeParams[FileSystemIdSecretRef]; ok && strings.TrimSpace(value) != "" {
+		refs++
+	}
+	if refs > 1 {
+		return fmt.Errorf("only one of fileSystemId, fileSystemIdConfigRef, or fileSystemIdSecretRef can be specified")
+	}
+	if refs == 0 {
+		return fmt.Errorf("one of fileSystemId, fileSystemIdConfigRef, or fileSystemIdSecretRef must be specified")
+	}
+	return nil
+}
+
 func getFileSystemIdFromRef(ctx context.Context, resourceType, ref string) (string, error) {
-	namespace, name, key := parseRef(ref)
-	if namespace == "" || name == "" || key == "" {
-		return "", fmt.Errorf("invalid %s reference %s/%s", resourceType, namespace, name)
+	refPath, err := parseFileSystemIdRef(ref)
+	if err != nil {
+		return "", fmt.Errorf("invalid %s reference: %w", resourceType, err)
 	}
 
 	client, err := cloud.DefaultKubernetesAPIClient()
@@ -781,40 +806,65 @@ func getFileSystemIdFromRef(ctx context.Context, resourceType, ref string) (stri
 	}
 
 	var fsId string
-	if resourceType == "configmap" {
-		configMap, err := client.CoreV1().ConfigMaps(namespace).Get(ctx, name, metav1.GetOptions{})
+	if resourceType == FileSystemIdConfigRef {
+		configMap, err := client.CoreV1().ConfigMaps(refPath.Namespace).Get(ctx, refPath.Name, metav1.GetOptions{})
 		if err != nil {
-			return "", formatK8Errors(err, resourceType, namespace, name)
+			return "", formatRBACPermissionErrors(err, resourceType, refPath.Namespace, refPath.Name)
 		}
-		fsId = configMap.Data[key]
-	} else if resourceType == "secret" {
-		secret, err := client.CoreV1().Secrets(namespace).Get(ctx, name, metav1.GetOptions{})
+		fsId = configMap.Data[refPath.Key]
+	} else if resourceType == FileSystemIdSecretRef {
+		secret, err := client.CoreV1().Secrets(refPath.Namespace).Get(ctx, refPath.Name, metav1.GetOptions{})
 		if err != nil {
-			return "", formatK8Errors(err, resourceType, namespace, name)
+			return "", formatRBACPermissionErrors(err, resourceType, refPath.Namespace, refPath.Name)
 		}
-		fsId = string(secret.Data[key])
+		fsId = string(secret.Data[refPath.Key])
 	} else {
 		return "", fmt.Errorf("unknown resource type %s", resourceType)
 	}
 
 	fsId = strings.TrimSpace(fsId)
 	if fsId == "" {
-		return "", fmt.Errorf("key %s not found in %s %s/%s", key, resourceType, namespace, name)
+		return "", fmt.Errorf("key %s not found in %s %s/%s", refPath.Key, resourceType, refPath.Namespace, refPath.Name)
 	}
 
 	return fsId, nil
 }
 
-func parseRef(ref string) (string, string, string) {
-	ref = strings.TrimSpace(ref)
-	parts := strings.Split(ref, "/")
-	if len(parts) != 3 {
-		return "", "", ""
-	}
-	return parts[0], parts[1], parts[2]
+type FileSystemIdRef struct {
+	Namespace string
+	Name      string
+	Key       string
 }
 
-func formatK8Errors(err error, resourceType, namespace, name string) error {
+func parseFileSystemIdRef(ref string) (*FileSystemIdRef, error) {
+	ref = strings.TrimSpace(ref)
+
+	if ref == "" {
+		return nil, fmt.Errorf("reference can't be empty")
+	}
+
+	parts := strings.Split(ref, "/")
+
+	if len(parts) != 3 {
+		return nil, fmt.Errorf("invalid reference format, expected namespace/name/key, got: %s", ref)
+	}
+
+	namespace := strings.TrimSpace(parts[0])
+	name := strings.TrimSpace(parts[1])
+	key := strings.TrimSpace(parts[2])
+
+	if namespace == "" || name == "" || key == "" {
+		return nil, fmt.Errorf("namespace, name, and key must be non-empty in reference: %s", ref)
+	}
+
+	return &FileSystemIdRef{
+		Namespace: namespace,
+		Name:      name,
+		Key:       key,
+	}, nil
+}
+
+func formatRBACPermissionErrors(err error, resourceType, namespace, name string) error {
 	if k8errors.IsForbidden(err) {
 		return fmt.Errorf("%s '%s/%s' is forbidden: %w. "+
 			"This feature requires RBAC permissions. "+
