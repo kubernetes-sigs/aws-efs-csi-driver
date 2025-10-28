@@ -11,19 +11,22 @@ import (
 	smithyhttp "github.com/aws/smithy-go/transport/http"
 )
 
-// We recommend that you use the [ImportImage]ImportImage API instead. For more information,
-// see [Importing a VM as an image using VM Import/Export]in the VM Import/Export User Guide.
+// We recommend that you use the [ImportImage]ImportImage API. For more information, see [Importing a VM as an image using VM Import/Export] in
+// the VM Import/Export User Guide.
 //
 // Creates an import instance task using metadata from the specified disk image.
+//
+// This API action is not supported by the Command Line Interface (CLI). For
+// information about using the Amazon EC2 CLI, which is deprecated, see [Importing a VM to Amazon EC2]in the
+// Amazon EC2 CLI Reference PDF file.
 //
 // This API action supports only single-volume VMs. To import multi-volume VMs,
 // use ImportImageinstead.
 //
 // For information about the import manifest referenced by this API action, see [VM Import Manifest].
 //
-// This API action is not supported by the Command Line Interface (CLI).
-//
 // [Importing a VM as an image using VM Import/Export]: https://docs.aws.amazon.com/vm-import/latest/userguide/vmimport-image-import.html
+// [Importing a VM to Amazon EC2]: https://awsdocs.s3.amazonaws.com/EC2/ec2-clt.pdf#UsingVirtualMachinesinAmazonEC2
 // [ImportImage]: https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_ImportImage.html
 // [VM Import Manifest]: https://docs.aws.amazon.com/AWSEC2/latest/APIReference/manifest.html
 func (c *Client) ImportInstance(ctx context.Context, params *ImportInstanceInput, optFns ...func(*Options)) (*ImportInstanceOutput, error) {
@@ -141,9 +144,6 @@ func (c *Client) addOperationImportInstanceMiddlewares(stack *middleware.Stack, 
 	if err = addUserAgentRetryMode(stack, options); err != nil {
 		return err
 	}
-	if err = addCredentialSource(stack, options); err != nil {
-		return err
-	}
 	if err = addOpImportInstanceValidationMiddleware(stack); err != nil {
 		return err
 	}
@@ -163,36 +163,6 @@ func (c *Client) addOperationImportInstanceMiddlewares(stack *middleware.Stack, 
 		return err
 	}
 	if err = addDisableHTTPSMiddleware(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptBeforeRetryLoop(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptAttempt(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptExecution(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptBeforeSerialization(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptAfterSerialization(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptBeforeSigning(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptAfterSigning(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptTransmit(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptBeforeDeserialization(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptAfterDeserialization(stack, options); err != nil {
 		return err
 	}
 	if err = addSpanInitializeStart(stack); err != nil {

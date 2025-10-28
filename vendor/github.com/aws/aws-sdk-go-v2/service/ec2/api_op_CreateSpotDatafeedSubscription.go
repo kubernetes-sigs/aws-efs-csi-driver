@@ -35,9 +35,9 @@ func (c *Client) CreateSpotDatafeedSubscription(ctx context.Context, params *Cre
 type CreateSpotDatafeedSubscriptionInput struct {
 
 	// The name of the Amazon S3 bucket in which to store the Spot Instance data feed.
-	// For more information about bucket names, see [Bucket naming rules]in the Amazon S3 User Guide.
+	// For more information about bucket names, see [Rules for bucket naming]in the Amazon S3 Developer Guide.
 	//
-	// [Bucket naming rules]: https://docs.aws.amazon.com/AmazonS3/latest/userguide/bucketnamingrules.html
+	// [Rules for bucket naming]: https://docs.aws.amazon.com/AmazonS3/latest/dev/BucketRestrictions.html#bucketnamingrules
 	//
 	// This member is required.
 	Bucket *string
@@ -130,9 +130,6 @@ func (c *Client) addOperationCreateSpotDatafeedSubscriptionMiddlewares(stack *mi
 	if err = addUserAgentRetryMode(stack, options); err != nil {
 		return err
 	}
-	if err = addCredentialSource(stack, options); err != nil {
-		return err
-	}
 	if err = addOpCreateSpotDatafeedSubscriptionValidationMiddleware(stack); err != nil {
 		return err
 	}
@@ -152,36 +149,6 @@ func (c *Client) addOperationCreateSpotDatafeedSubscriptionMiddlewares(stack *mi
 		return err
 	}
 	if err = addDisableHTTPSMiddleware(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptBeforeRetryLoop(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptAttempt(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptExecution(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptBeforeSerialization(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptAfterSerialization(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptBeforeSigning(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptAfterSigning(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptTransmit(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptBeforeDeserialization(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptAfterDeserialization(stack, options); err != nil {
 		return err
 	}
 	if err = addSpanInitializeStart(stack); err != nil {

@@ -25,7 +25,7 @@ import (
 // EIPs). As the existing connections drain out, the EIPs (and the corresponding
 // private IP addresses mapped to them) are released.
 //
-// [Edit secondary IP address associations]: https://docs.aws.amazon.com/vpc/latest/userguide/nat-gateway-working-with.html#nat-gateway-edit-secondary
+// [Edit secondary IP address associations]: https://docs.aws.amazon.com/vpc/latest/userguide/vpc-nat-gateway.html#nat-gateway-edit-secondary
 func (c *Client) DisassociateNatGatewayAddress(ctx context.Context, params *DisassociateNatGatewayAddressInput, optFns ...func(*Options)) (*DisassociateNatGatewayAddressOutput, error) {
 	if params == nil {
 		params = &DisassociateNatGatewayAddressInput{}
@@ -144,9 +144,6 @@ func (c *Client) addOperationDisassociateNatGatewayAddressMiddlewares(stack *mid
 	if err = addUserAgentRetryMode(stack, options); err != nil {
 		return err
 	}
-	if err = addCredentialSource(stack, options); err != nil {
-		return err
-	}
 	if err = addOpDisassociateNatGatewayAddressValidationMiddleware(stack); err != nil {
 		return err
 	}
@@ -166,36 +163,6 @@ func (c *Client) addOperationDisassociateNatGatewayAddressMiddlewares(stack *mid
 		return err
 	}
 	if err = addDisableHTTPSMiddleware(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptBeforeRetryLoop(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptAttempt(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptExecution(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptBeforeSerialization(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptAfterSerialization(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptBeforeSigning(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptAfterSigning(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptTransmit(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptBeforeDeserialization(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptAfterDeserialization(stack, options); err != nil {
 		return err
 	}
 	if err = addSpanInitializeStart(stack); err != nil {

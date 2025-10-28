@@ -113,8 +113,11 @@ type CreateIpamPoolInput struct {
 	//   want this IPAM pool to be available for allocations ([supported Local Zones] ). This option is only
 	//   available for IPAM IPv4 pools in the public scope.
 	//
+	// If you do not choose a locale, resources in Regions others than the IPAM's home
+	// region cannot use CIDRs from this pool.
+	//
 	// Possible values: Any Amazon Web Services Region or supported Amazon Web
-	// Services Local Zone. Default is none and means any locale.
+	// Services Local Zone.
 	//
 	// [supported Local Zones]: https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-byoip.html#byoip-zone-avail
 	Locale *string
@@ -130,8 +133,8 @@ type CreateIpamPoolInput struct {
 	// [Quotas for your IPAM]: https://docs.aws.amazon.com/vpc/latest/ipam/quotas-ipam.html
 	PublicIpSource types.IpamPoolPublicIpSource
 
-	// Determines if the pool is publicly advertisable. The request can only contain
-	// PubliclyAdvertisable if AddressFamily is ipv6 and PublicIpSource is byoip .
+	// Determines if the pool is publicly advertisable. This option is not available
+	// for pools with AddressFamily set to ipv4 .
 	PubliclyAdvertisable *bool
 
 	// The ID of the source IPAM pool. Use this option to create a pool within an
@@ -226,9 +229,6 @@ func (c *Client) addOperationCreateIpamPoolMiddlewares(stack *middleware.Stack, 
 	if err = addUserAgentRetryMode(stack, options); err != nil {
 		return err
 	}
-	if err = addCredentialSource(stack, options); err != nil {
-		return err
-	}
 	if err = addIdempotencyToken_opCreateIpamPoolMiddleware(stack, options); err != nil {
 		return err
 	}
@@ -251,36 +251,6 @@ func (c *Client) addOperationCreateIpamPoolMiddlewares(stack *middleware.Stack, 
 		return err
 	}
 	if err = addDisableHTTPSMiddleware(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptBeforeRetryLoop(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptAttempt(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptExecution(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptBeforeSerialization(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptAfterSerialization(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptBeforeSigning(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptAfterSigning(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptTransmit(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptBeforeDeserialization(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptAfterDeserialization(stack, options); err != nil {
 		return err
 	}
 	if err = addSpanInitializeStart(stack); err != nil {

@@ -38,7 +38,7 @@ import (
 // VPC User Guide.
 //
 // [NAT gateways]: https://docs.aws.amazon.com/vpc/latest/userguide/vpc-nat-gateway.html
-// [Allocate an Elastic IP address]: https://docs.aws.amazon.com/vpc/latest/userguide/WorkWithEIPs.html
+// [Allocate an Elastic IP address]: https://docs.aws.amazon.com/vpc/latest/userguide/vpc-eips.html#allocate-eip
 func (c *Client) CreateNatGateway(ctx context.Context, params *CreateNatGatewayInput, optFns ...func(*Options)) (*CreateNatGatewayOutput, error) {
 	if params == nil {
 		params = &CreateNatGatewayInput{}
@@ -92,20 +92,20 @@ type CreateNatGatewayInput struct {
 	// Secondary EIP allocation IDs. For more information, see [Create a NAT gateway] in the Amazon VPC User
 	// Guide.
 	//
-	// [Create a NAT gateway]: https://docs.aws.amazon.com/vpc/latest/userguide/nat-gateway-working-with.html
+	// [Create a NAT gateway]: https://docs.aws.amazon.com/vpc/latest/userguide/vpc-nat-gateway.html#nat-gateway-creating
 	SecondaryAllocationIds []string
 
 	// [Private NAT gateway only] The number of secondary private IPv4 addresses you
 	// want to assign to the NAT gateway. For more information about secondary
 	// addresses, see [Create a NAT gateway]in the Amazon VPC User Guide.
 	//
-	// [Create a NAT gateway]: https://docs.aws.amazon.com/vpc/latest/userguide/nat-gateway-working-with.html
+	// [Create a NAT gateway]: https://docs.aws.amazon.com/vpc/latest/userguide/vpc-nat-gateway.html#nat-gateway-creating
 	SecondaryPrivateIpAddressCount *int32
 
 	// Secondary private IPv4 addresses. For more information about secondary
 	// addresses, see [Create a NAT gateway]in the Amazon VPC User Guide.
 	//
-	// [Create a NAT gateway]: https://docs.aws.amazon.com/vpc/latest/userguide/nat-gateway-working-with.html
+	// [Create a NAT gateway]: https://docs.aws.amazon.com/vpc/latest/userguide/vpc-nat-gateway.html#nat-gateway-creating
 	SecondaryPrivateIpAddresses []string
 
 	// The tags to assign to the NAT gateway.
@@ -193,9 +193,6 @@ func (c *Client) addOperationCreateNatGatewayMiddlewares(stack *middleware.Stack
 	if err = addUserAgentRetryMode(stack, options); err != nil {
 		return err
 	}
-	if err = addCredentialSource(stack, options); err != nil {
-		return err
-	}
 	if err = addIdempotencyToken_opCreateNatGatewayMiddleware(stack, options); err != nil {
 		return err
 	}
@@ -218,36 +215,6 @@ func (c *Client) addOperationCreateNatGatewayMiddlewares(stack *middleware.Stack
 		return err
 	}
 	if err = addDisableHTTPSMiddleware(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptBeforeRetryLoop(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptAttempt(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptExecution(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptBeforeSerialization(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptAfterSerialization(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptBeforeSigning(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptAfterSigning(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptTransmit(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptBeforeDeserialization(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptAfterDeserialization(stack, options); err != nil {
 		return err
 	}
 	if err = addSpanInitializeStart(stack); err != nil {

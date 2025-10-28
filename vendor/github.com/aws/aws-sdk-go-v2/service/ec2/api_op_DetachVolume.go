@@ -23,9 +23,10 @@ import (
 // When a volume with an Amazon Web Services Marketplace product code is detached
 // from an instance, the product code is no longer associated with the instance.
 //
-// You can't detach or force detach volumes that are attached to Amazon Web
-// Services-managed resources. Attempting to do this results in the
-// UnsupportedOperationException exception.
+// You can't detach or force detach volumes that are attached to Amazon ECS or
+// Fargate tasks. Attempting to do this results in the
+// UnsupportedOperationException exception with the Unable to detach volume
+// attached to ECS tasks error message.
 //
 // For more information, see [Detach an Amazon EBS volume] in the Amazon EBS User Guide.
 //
@@ -80,8 +81,7 @@ type DetachVolumeInput struct {
 // Describes volume attachment details.
 type DetachVolumeOutput struct {
 
-	// The ARN of the Amazon Web Services-managed resource to which the volume is
-	// attached.
+	// The ARN of the Amazon ECS or Fargate task to which the volume is attached.
 	AssociatedResource *string
 
 	// The time stamp when the attachment initiated.
@@ -92,21 +92,18 @@ type DetachVolumeOutput struct {
 
 	// The device name.
 	//
-	// If the volume is attached to an Amazon Web Services-managed resource, this
-	// parameter returns null .
+	// If the volume is attached to a Fargate task, this parameter returns null .
 	Device *string
 
 	// The ID of the instance.
 	//
-	// If the volume is attached to an Amazon Web Services-managed resource, this
-	// parameter returns null .
+	// If the volume is attached to a Fargate task, this parameter returns null .
 	InstanceId *string
 
-	// The service principal of the Amazon Web Services service that owns the
-	// underlying resource to which the volume is attached.
+	// The service principal of Amazon Web Services service that owns the underlying
+	// instance to which the volume is attached.
 	//
-	// This parameter is returned only for volumes that are attached to Amazon Web
-	// Services-managed resources.
+	// This parameter is returned only for volumes that are attached to Fargate tasks.
 	InstanceOwningService *string
 
 	// The attachment state of the volume.
@@ -185,9 +182,6 @@ func (c *Client) addOperationDetachVolumeMiddlewares(stack *middleware.Stack, op
 	if err = addUserAgentRetryMode(stack, options); err != nil {
 		return err
 	}
-	if err = addCredentialSource(stack, options); err != nil {
-		return err
-	}
 	if err = addOpDetachVolumeValidationMiddleware(stack); err != nil {
 		return err
 	}
@@ -207,36 +201,6 @@ func (c *Client) addOperationDetachVolumeMiddlewares(stack *middleware.Stack, op
 		return err
 	}
 	if err = addDisableHTTPSMiddleware(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptBeforeRetryLoop(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptAttempt(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptExecution(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptBeforeSerialization(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptAfterSerialization(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptBeforeSigning(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptAfterSigning(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptTransmit(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptBeforeDeserialization(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptAfterDeserialization(stack, options); err != nil {
 		return err
 	}
 	if err = addSpanInitializeStart(stack); err != nil {

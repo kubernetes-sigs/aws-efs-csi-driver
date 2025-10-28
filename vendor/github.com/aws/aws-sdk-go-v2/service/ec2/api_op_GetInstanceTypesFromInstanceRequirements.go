@@ -19,13 +19,14 @@ import (
 // of the specified parameters. If you specify multiple values for a parameter, you
 // get instance types that satisfy any of the specified values.
 //
-// For more information, see [Preview instance types with specified attributes], [Specify attributes for instance type selection for EC2 Fleet or Spot Fleet], and [Spot placement score] in the Amazon EC2 User Guide, and [Creating mixed instance groups using attribute-based instance type selection] in the
+// For more information, see [Preview instance types with specified attributes], [Attribute-based instance type selection for EC2 Fleet], [Attribute-based instance type selection for Spot Fleet], and [Spot placement score] in the Amazon EC2 User Guide, and [Creating an Auto Scaling group using attribute-based instance type selection] in the
 // Amazon EC2 Auto Scaling User Guide.
 //
-// [Specify attributes for instance type selection for EC2 Fleet or Spot Fleet]: https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-fleet-attribute-based-instance-type-selection.html
-// [Preview instance types with specified attributes]: https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-fleet-attribute-based-instance-type-selection.html#ec2fleet-get-instance-types-from-instance-requirements
-// [Creating mixed instance groups using attribute-based instance type selection]: https://docs.aws.amazon.com/autoscaling/ec2/userguide/create-asg-instance-type-requirements.html
+// [Attribute-based instance type selection for EC2 Fleet]: https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-fleet-attribute-based-instance-type-selection.html
+// [Preview instance types with specified attributes]: https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/spot-fleet-attribute-based-instance-type-selection.html#spotfleet-get-instance-types-from-instance-requirements
 // [Spot placement score]: https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/spot-placement-score.html
+// [Attribute-based instance type selection for Spot Fleet]: https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/spot-fleet-attribute-based-instance-type-selection.html
+// [Creating an Auto Scaling group using attribute-based instance type selection]: https://docs.aws.amazon.com/autoscaling/ec2/userguide/create-asg-instance-type-requirements.html
 func (c *Client) GetInstanceTypesFromInstanceRequirements(ctx context.Context, params *GetInstanceTypesFromInstanceRequirementsInput, optFns ...func(*Options)) (*GetInstanceTypesFromInstanceRequirementsOutput, error) {
 	if params == nil {
 		params = &GetInstanceTypesFromInstanceRequirementsInput{}
@@ -57,9 +58,6 @@ type GetInstanceTypesFromInstanceRequirementsInput struct {
 	//
 	// This member is required.
 	VirtualizationTypes []types.VirtualizationType
-
-	// Reserved.
-	Context *string
 
 	// Checks whether you have the required permissions for the action, without
 	// actually making the request, and provides an error response. If you have the
@@ -160,9 +158,6 @@ func (c *Client) addOperationGetInstanceTypesFromInstanceRequirementsMiddlewares
 	if err = addUserAgentRetryMode(stack, options); err != nil {
 		return err
 	}
-	if err = addCredentialSource(stack, options); err != nil {
-		return err
-	}
 	if err = addOpGetInstanceTypesFromInstanceRequirementsValidationMiddleware(stack); err != nil {
 		return err
 	}
@@ -182,36 +177,6 @@ func (c *Client) addOperationGetInstanceTypesFromInstanceRequirementsMiddlewares
 		return err
 	}
 	if err = addDisableHTTPSMiddleware(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptBeforeRetryLoop(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptAttempt(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptExecution(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptBeforeSerialization(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptAfterSerialization(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptBeforeSigning(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptAfterSigning(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptTransmit(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptBeforeDeserialization(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptAfterDeserialization(stack, options); err != nil {
 		return err
 	}
 	if err = addSpanInitializeStart(stack); err != nil {

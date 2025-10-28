@@ -134,9 +134,6 @@ func (c *Client) addOperationDescribeImportSnapshotTasksMiddlewares(stack *middl
 	if err = addUserAgentRetryMode(stack, options); err != nil {
 		return err
 	}
-	if err = addCredentialSource(stack, options); err != nil {
-		return err
-	}
 	if err = stack.Initialize.Add(newServiceMetadataMiddleware_opDescribeImportSnapshotTasks(options.Region), middleware.Before); err != nil {
 		return err
 	}
@@ -153,36 +150,6 @@ func (c *Client) addOperationDescribeImportSnapshotTasksMiddlewares(stack *middl
 		return err
 	}
 	if err = addDisableHTTPSMiddleware(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptBeforeRetryLoop(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptAttempt(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptExecution(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptBeforeSerialization(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptAfterSerialization(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptBeforeSigning(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptAfterSigning(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptTransmit(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptBeforeDeserialization(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptAfterDeserialization(stack, options); err != nil {
 		return err
 	}
 	if err = addSpanInitializeStart(stack); err != nil {
@@ -364,11 +331,7 @@ func snapshotImportedStateRetryable(ctx context.Context, input *DescribeImportSn
 		var v2 []string
 		for _, v := range v1 {
 			v3 := v.SnapshotTaskDetail
-			var v4 *string
-			if v3 != nil {
-				v5 := v3.Status
-				v4 = v5
-			}
+			v4 := v3.Status
 			if v4 != nil {
 				v2 = append(v2, *v4)
 			}
@@ -392,11 +355,7 @@ func snapshotImportedStateRetryable(ctx context.Context, input *DescribeImportSn
 		var v2 []string
 		for _, v := range v1 {
 			v3 := v.SnapshotTaskDetail
-			var v4 *string
-			if v3 != nil {
-				v5 := v3.Status
-				v4 = v5
-			}
+			v4 := v3.Status
 			if v4 != nil {
 				v2 = append(v2, *v4)
 			}
@@ -415,9 +374,6 @@ func snapshotImportedStateRetryable(ctx context.Context, input *DescribeImportSn
 		}
 	}
 
-	if err != nil {
-		return false, err
-	}
 	return true, nil
 }
 

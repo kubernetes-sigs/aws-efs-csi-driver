@@ -44,13 +44,16 @@ import (
 // operation, which among other things returns the file system state.
 //
 // This operation accepts an optional PerformanceMode parameter that you choose
-// for your file system. We recommend generalPurpose PerformanceMode for all file
-// systems. The maxIO mode is a previous generation performance type that is
-// designed for highly parallelized workloads that can tolerate higher latencies
-// than the generalPurpose mode. MaxIO mode is not supported for One Zone file
-// systems or file systems that use Elastic throughput.
+// for your file system. We recommend generalPurpose performance mode for all file
+// systems. File systems using the maxIO mode is a previous generation performance
+// type that is designed for highly parallelized workloads that can tolerate higher
+// latencies than the General Purpose mode. Max I/O mode is not supported for One
+// Zone file systems or file systems that use Elastic throughput.
 //
-// The PerformanceMode can't be changed after the file system has been created.
+// Due to the higher per-operation latencies with Max I/O, we recommend using
+// General Purpose performance mode for all file systems.
+//
+// The performance mode can't be changed after the file system has been created.
 // For more information, see [Amazon EFS performance modes].
 //
 // You can set the throughput mode for the file system using the ThroughputMode
@@ -98,15 +101,15 @@ type CreateFileSystemInput struct {
 	// This member is required.
 	CreationToken *string
 
-	// For One Zone file systems, specify the Amazon Web Services Availability Zone in
-	// which to create the file system. Use the format us-east-1a to specify the
-	// Availability Zone. For more information about One Zone file systems, see [EFS file system types]in the
-	// Amazon EFS User Guide.
+	// Used to create a One Zone file system. It specifies the Amazon Web Services
+	// Availability Zone in which to create the file system. Use the format us-east-1a
+	// to specify the Availability Zone. For more information about One Zone file
+	// systems, see [Using EFS storage classes]in the Amazon EFS User Guide.
 	//
 	// One Zone file systems are not available in all Availability Zones in Amazon Web
 	// Services Regions where Amazon EFS is available.
 	//
-	// [EFS file system types]: https://docs.aws.amazon.com/efs/latest/ug/availability-durability.html#file-system-type
+	// [Using EFS storage classes]: https://docs.aws.amazon.com/efs/latest/ug/storage-classes.html
 	AvailabilityZoneName *string
 
 	// Specifies whether automatic backups are enabled on the file system that you are
@@ -153,7 +156,7 @@ type CreateFileSystemInput struct {
 	// Amazon EFS file systems.
 	KmsKeyId *string
 
-	// The performance mode of the file system. We recommend generalPurpose
+	// The Performance mode of the file system. We recommend generalPurpose
 	// performance mode for all file systems. File systems using the maxIO performance
 	// mode can scale to higher levels of aggregate throughput and operations per
 	// second with a tradeoff of slightly higher latencies for most file operations.
@@ -169,8 +172,8 @@ type CreateFileSystemInput struct {
 	// The throughput, measured in mebibytes per second (MiBps), that you want to
 	// provision for a file system that you're creating. Required if ThroughputMode is
 	// set to provisioned . Valid values are 1-3414 MiBps, with the upper limit
-	// depending on Region. To increase this limit, contact Amazon Web ServicesSupport.
-	// For more information, see [Amazon EFS quotas that you can increase]in the Amazon EFS User Guide.
+	// depending on Region. To increase this limit, contact Amazon Web Services
+	// Support. For more information, see [Amazon EFS quotas that you can increase]in the Amazon EFS User Guide.
 	//
 	// [Amazon EFS quotas that you can increase]: https://docs.aws.amazon.com/efs/latest/ug/limits.html#soft-limits
 	ProvisionedThroughputInMibps *float64
@@ -233,7 +236,7 @@ type CreateFileSystemOutput struct {
 	// This member is required.
 	OwnerId *string
 
-	// The performance mode of the file system.
+	// The Performance mode of the file system.
 	//
 	// This member is required.
 	PerformanceMode types.PerformanceMode
@@ -348,9 +351,6 @@ func (c *Client) addOperationCreateFileSystemMiddlewares(stack *middleware.Stack
 	if err = addRecordResponseTiming(stack); err != nil {
 		return err
 	}
-	if err = addSpanRetryLoop(stack, options); err != nil {
-		return err
-	}
 	if err = addClientUserAgent(stack, options); err != nil {
 		return err
 	}
@@ -367,9 +367,6 @@ func (c *Client) addOperationCreateFileSystemMiddlewares(stack *middleware.Stack
 		return err
 	}
 	if err = addUserAgentRetryMode(stack, options); err != nil {
-		return err
-	}
-	if err = addCredentialSource(stack, options); err != nil {
 		return err
 	}
 	if err = addIdempotencyToken_opCreateFileSystemMiddleware(stack, options); err != nil {
@@ -394,48 +391,6 @@ func (c *Client) addOperationCreateFileSystemMiddlewares(stack *middleware.Stack
 		return err
 	}
 	if err = addDisableHTTPSMiddleware(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptBeforeRetryLoop(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptAttempt(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptExecution(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptBeforeSerialization(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptAfterSerialization(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptBeforeSigning(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptAfterSigning(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptTransmit(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptBeforeDeserialization(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptAfterDeserialization(stack, options); err != nil {
-		return err
-	}
-	if err = addSpanInitializeStart(stack); err != nil {
-		return err
-	}
-	if err = addSpanInitializeEnd(stack); err != nil {
-		return err
-	}
-	if err = addSpanBuildRequestStart(stack); err != nil {
-		return err
-	}
-	if err = addSpanBuildRequestEnd(stack); err != nil {
 		return err
 	}
 	return nil

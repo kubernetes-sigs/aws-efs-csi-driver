@@ -98,7 +98,7 @@ import (
 // We recommend that you create a mount target in each of the Availability Zones.
 // There are cost considerations for using a file system in an Availability Zone
 // through a mount target created in another Availability Zone. For more
-// information, see [Amazon EFS pricing]. In addition, by always using a mount target local to the
+// information, see [Amazon EFS]. In addition, by always using a mount target local to the
 // instance's Availability Zone, you eliminate a partial failure scenario. If the
 // Availability Zone in which your mount target is created goes down, then you
 // can't access your file system through that mount target.
@@ -116,8 +116,8 @@ import (
 //   - ec2:CreateNetworkInterface
 //
 // [Amazon EFS: How it Works]: https://docs.aws.amazon.com/efs/latest/ug/how-it-works.html
-// [Amazon EFS pricing]: http://aws.amazon.com/efs/pricing/
 // [How it Works: Implementation Overview]: https://docs.aws.amazon.com/efs/latest/ug/how-it-works.html#how-it-works-implementation
+// [Amazon EFS]: http://aws.amazon.com/efs/
 func (c *Client) CreateMountTarget(ctx context.Context, params *CreateMountTargetInput, optFns ...func(*Options)) (*CreateMountTargetOutput, error) {
 	if params == nil {
 		params = &CreateMountTargetInput{}
@@ -146,33 +146,11 @@ type CreateMountTargetInput struct {
 	// This member is required.
 	SubnetId *string
 
-	// If the IP address type for the mount target is IPv4, then specify the IPv4
-	// address within the address range of the specified subnet.
+	// Valid IPv4 address within the address range of the specified subnet.
 	IpAddress *string
 
-	// Specify the type of IP address of the mount target you are creating. Options
-	// are IPv4, dual stack, or IPv6. If you don’t specify an IpAddressType, then IPv4
-	// is used.
-	//
-	//   - IPV4_ONLY – Create mount target with IPv4 only subnet or dual-stack subnet.
-	//
-	//   - DUAL_STACK – Create mount target with dual-stack subnet.
-	//
-	//   - IPV6_ONLY – Create mount target with IPv6 only subnet.
-	//
-	// Creating IPv6 mount target only ENI in dual-stack subnet is not supported.
-	IpAddressType types.IpAddressType
-
-	// If the IP address type for the mount target is IPv6, then specify the IPv6
-	// address within the address range of the specified subnet.
-	Ipv6Address *string
-
-	// VPC security group IDs, of the form sg-xxxxxxxx . These must be for the same VPC
-	// as the subnet specified. The maximum number of security groups depends on
-	// account quota. For more information, see [Amazon VPC Quotas]in the Amazon VPC User Guide (see the
-	// Security Groups table).
-	//
-	// [Amazon VPC Quotas]: https://docs.aws.amazon.com/vpc/latest/userguide/amazon-vpc-limits.html
+	// Up to five VPC security group IDs, of the form sg-xxxxxxxx . These must be for
+	// the same VPC as subnet specified.
 	SecurityGroups []string
 
 	noSmithyDocumentSerde
@@ -215,9 +193,6 @@ type CreateMountTargetOutput struct {
 
 	// Address at which the file system can be mounted by using the mount target.
 	IpAddress *string
-
-	// The IPv6 address for the mount target.
-	Ipv6Address *string
 
 	// The ID of the network interface that Amazon EFS created when it created the
 	// mount target.
@@ -278,9 +253,6 @@ func (c *Client) addOperationCreateMountTargetMiddlewares(stack *middleware.Stac
 	if err = addRecordResponseTiming(stack); err != nil {
 		return err
 	}
-	if err = addSpanRetryLoop(stack, options); err != nil {
-		return err
-	}
 	if err = addClientUserAgent(stack, options); err != nil {
 		return err
 	}
@@ -297,9 +269,6 @@ func (c *Client) addOperationCreateMountTargetMiddlewares(stack *middleware.Stac
 		return err
 	}
 	if err = addUserAgentRetryMode(stack, options); err != nil {
-		return err
-	}
-	if err = addCredentialSource(stack, options); err != nil {
 		return err
 	}
 	if err = addOpCreateMountTargetValidationMiddleware(stack); err != nil {
@@ -321,48 +290,6 @@ func (c *Client) addOperationCreateMountTargetMiddlewares(stack *middleware.Stac
 		return err
 	}
 	if err = addDisableHTTPSMiddleware(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptBeforeRetryLoop(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptAttempt(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptExecution(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptBeforeSerialization(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptAfterSerialization(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptBeforeSigning(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptAfterSigning(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptTransmit(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptBeforeDeserialization(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptAfterDeserialization(stack, options); err != nil {
-		return err
-	}
-	if err = addSpanInitializeStart(stack); err != nil {
-		return err
-	}
-	if err = addSpanInitializeEnd(stack); err != nil {
-		return err
-	}
-	if err = addSpanBuildRequestStart(stack); err != nil {
-		return err
-	}
-	if err = addSpanBuildRequestEnd(stack); err != nil {
 		return err
 	}
 	return nil

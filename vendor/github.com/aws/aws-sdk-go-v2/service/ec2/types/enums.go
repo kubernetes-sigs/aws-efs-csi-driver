@@ -261,8 +261,7 @@ type AllocationType string
 
 // Enum values for AllocationType
 const (
-	AllocationTypeUsed   AllocationType = "used"
-	AllocationTypeFuture AllocationType = "future"
+	AllocationTypeUsed AllocationType = "used"
 )
 
 // Values returns all known values for AllocationType. Note that this can be
@@ -272,45 +271,6 @@ const (
 func (AllocationType) Values() []AllocationType {
 	return []AllocationType{
 		"used",
-		"future",
-	}
-}
-
-type AllowedImagesSettingsDisabledState string
-
-// Enum values for AllowedImagesSettingsDisabledState
-const (
-	AllowedImagesSettingsDisabledStateDisabled AllowedImagesSettingsDisabledState = "disabled"
-)
-
-// Values returns all known values for AllowedImagesSettingsDisabledState. Note
-// that this can be expanded in the future, and so it is only as up to date as the
-// client.
-//
-// The ordering of this slice is not guaranteed to be stable across updates.
-func (AllowedImagesSettingsDisabledState) Values() []AllowedImagesSettingsDisabledState {
-	return []AllowedImagesSettingsDisabledState{
-		"disabled",
-	}
-}
-
-type AllowedImagesSettingsEnabledState string
-
-// Enum values for AllowedImagesSettingsEnabledState
-const (
-	AllowedImagesSettingsEnabledStateEnabled   AllowedImagesSettingsEnabledState = "enabled"
-	AllowedImagesSettingsEnabledStateAuditMode AllowedImagesSettingsEnabledState = "audit-mode"
-)
-
-// Values returns all known values for AllowedImagesSettingsEnabledState. Note
-// that this can be expanded in the future, and so it is only as up to date as the
-// client.
-//
-// The ordering of this slice is not guaranteed to be stable across updates.
-func (AllowedImagesSettingsEnabledState) Values() []AllowedImagesSettingsEnabledState {
-	return []AllowedImagesSettingsEnabledState{
-		"enabled",
-		"audit-mode",
 	}
 }
 
@@ -538,25 +498,6 @@ func (AssociationStatusCode) Values() []AssociationStatusCode {
 	}
 }
 
-type AttachmentLimitType string
-
-// Enum values for AttachmentLimitType
-const (
-	AttachmentLimitTypeShared    AttachmentLimitType = "shared"
-	AttachmentLimitTypeDedicated AttachmentLimitType = "dedicated"
-)
-
-// Values returns all known values for AttachmentLimitType. Note that this can be
-// expanded in the future, and so it is only as up to date as the client.
-//
-// The ordering of this slice is not guaranteed to be stable across updates.
-func (AttachmentLimitType) Values() []AttachmentLimitType {
-	return []AttachmentLimitType{
-		"shared",
-		"dedicated",
-	}
-}
-
 type AttachmentStatus string
 
 // Enum values for AttachmentStatus
@@ -685,27 +626,6 @@ func (AvailabilityZoneState) Values() []AvailabilityZoneState {
 	}
 }
 
-type BandwidthWeightingType string
-
-// Enum values for BandwidthWeightingType
-const (
-	BandwidthWeightingTypeDefault BandwidthWeightingType = "default"
-	BandwidthWeightingTypeVpc1    BandwidthWeightingType = "vpc-1"
-	BandwidthWeightingTypeEbs1    BandwidthWeightingType = "ebs-1"
-)
-
-// Values returns all known values for BandwidthWeightingType. Note that this can
-// be expanded in the future, and so it is only as up to date as the client.
-//
-// The ordering of this slice is not guaranteed to be stable across updates.
-func (BandwidthWeightingType) Values() []BandwidthWeightingType {
-	return []BandwidthWeightingType{
-		"default",
-		"vpc-1",
-		"ebs-1",
-	}
-}
-
 type BareMetal string
 
 // Enum values for BareMetal
@@ -772,27 +692,6 @@ func (BgpStatus) Values() []BgpStatus {
 	return []BgpStatus{
 		"up",
 		"down",
-	}
-}
-
-type BlockPublicAccessMode string
-
-// Enum values for BlockPublicAccessMode
-const (
-	BlockPublicAccessModeOff                BlockPublicAccessMode = "off"
-	BlockPublicAccessModeBlockBidirectional BlockPublicAccessMode = "block-bidirectional"
-	BlockPublicAccessModeBlockIngress       BlockPublicAccessMode = "block-ingress"
-)
-
-// Values returns all known values for BlockPublicAccessMode. Note that this can
-// be expanded in the future, and so it is only as up to date as the client.
-//
-// The ordering of this slice is not guaranteed to be stable across updates.
-func (BlockPublicAccessMode) Values() []BlockPublicAccessMode {
-	return []BlockPublicAccessMode{
-		"off",
-		"block-bidirectional",
-		"block-ingress",
 	}
 }
 
@@ -917,25 +816,6 @@ func (ByoipCidrState) Values() []ByoipCidrState {
 	}
 }
 
-type CallerRole string
-
-// Enum values for CallerRole
-const (
-	CallerRoleOdcrOwner                     CallerRole = "odcr-owner"
-	CallerRoleUnusedReservationBillingOwner CallerRole = "unused-reservation-billing-owner"
-)
-
-// Values returns all known values for CallerRole. Note that this can be expanded
-// in the future, and so it is only as up to date as the client.
-//
-// The ordering of this slice is not guaranteed to be stable across updates.
-func (CallerRole) Values() []CallerRole {
-	return []CallerRole{
-		"odcr-owner",
-		"unused-reservation-billing-owner",
-	}
-}
-
 type CancelBatchErrorCode string
 
 // Enum values for CancelBatchErrorCode
@@ -982,172 +862,6 @@ func (CancelSpotInstanceRequestState) Values() []CancelSpotInstanceRequestState 
 		"closed",
 		"cancelled",
 		"completed",
-	}
-}
-
-type CapacityBlockExtensionStatus string
-
-// Enum values for CapacityBlockExtensionStatus
-const (
-	CapacityBlockExtensionStatusPaymentPending   CapacityBlockExtensionStatus = "payment-pending"
-	CapacityBlockExtensionStatusPaymentFailed    CapacityBlockExtensionStatus = "payment-failed"
-	CapacityBlockExtensionStatusPaymentSucceeded CapacityBlockExtensionStatus = "payment-succeeded"
-)
-
-// Values returns all known values for CapacityBlockExtensionStatus. Note that
-// this can be expanded in the future, and so it is only as up to date as the
-// client.
-//
-// The ordering of this slice is not guaranteed to be stable across updates.
-func (CapacityBlockExtensionStatus) Values() []CapacityBlockExtensionStatus {
-	return []CapacityBlockExtensionStatus{
-		"payment-pending",
-		"payment-failed",
-		"payment-succeeded",
-	}
-}
-
-type CapacityBlockInterconnectStatus string
-
-// Enum values for CapacityBlockInterconnectStatus
-const (
-	CapacityBlockInterconnectStatusOk               CapacityBlockInterconnectStatus = "ok"
-	CapacityBlockInterconnectStatusImpaired         CapacityBlockInterconnectStatus = "impaired"
-	CapacityBlockInterconnectStatusInsufficientData CapacityBlockInterconnectStatus = "insufficient-data"
-)
-
-// Values returns all known values for CapacityBlockInterconnectStatus. Note that
-// this can be expanded in the future, and so it is only as up to date as the
-// client.
-//
-// The ordering of this slice is not guaranteed to be stable across updates.
-func (CapacityBlockInterconnectStatus) Values() []CapacityBlockInterconnectStatus {
-	return []CapacityBlockInterconnectStatus{
-		"ok",
-		"impaired",
-		"insufficient-data",
-	}
-}
-
-type CapacityBlockResourceState string
-
-// Enum values for CapacityBlockResourceState
-const (
-	CapacityBlockResourceStateActive         CapacityBlockResourceState = "active"
-	CapacityBlockResourceStateExpired        CapacityBlockResourceState = "expired"
-	CapacityBlockResourceStateUnavailable    CapacityBlockResourceState = "unavailable"
-	CapacityBlockResourceStateCancelled      CapacityBlockResourceState = "cancelled"
-	CapacityBlockResourceStateFailed         CapacityBlockResourceState = "failed"
-	CapacityBlockResourceStateScheduled      CapacityBlockResourceState = "scheduled"
-	CapacityBlockResourceStatePaymentPending CapacityBlockResourceState = "payment-pending"
-	CapacityBlockResourceStatePaymentFailed  CapacityBlockResourceState = "payment-failed"
-)
-
-// Values returns all known values for CapacityBlockResourceState. Note that this
-// can be expanded in the future, and so it is only as up to date as the client.
-//
-// The ordering of this slice is not guaranteed to be stable across updates.
-func (CapacityBlockResourceState) Values() []CapacityBlockResourceState {
-	return []CapacityBlockResourceState{
-		"active",
-		"expired",
-		"unavailable",
-		"cancelled",
-		"failed",
-		"scheduled",
-		"payment-pending",
-		"payment-failed",
-	}
-}
-
-type CapacityManagerDataExportStatus string
-
-// Enum values for CapacityManagerDataExportStatus
-const (
-	CapacityManagerDataExportStatusPending    CapacityManagerDataExportStatus = "pending"
-	CapacityManagerDataExportStatusInProgress CapacityManagerDataExportStatus = "in-progress"
-	CapacityManagerDataExportStatusDelivered  CapacityManagerDataExportStatus = "delivered"
-	CapacityManagerDataExportStatusFailed     CapacityManagerDataExportStatus = "failed"
-)
-
-// Values returns all known values for CapacityManagerDataExportStatus. Note that
-// this can be expanded in the future, and so it is only as up to date as the
-// client.
-//
-// The ordering of this slice is not guaranteed to be stable across updates.
-func (CapacityManagerDataExportStatus) Values() []CapacityManagerDataExportStatus {
-	return []CapacityManagerDataExportStatus{
-		"pending",
-		"in-progress",
-		"delivered",
-		"failed",
-	}
-}
-
-type CapacityManagerStatus string
-
-// Enum values for CapacityManagerStatus
-const (
-	CapacityManagerStatusEnabled  CapacityManagerStatus = "enabled"
-	CapacityManagerStatusDisabled CapacityManagerStatus = "disabled"
-)
-
-// Values returns all known values for CapacityManagerStatus. Note that this can
-// be expanded in the future, and so it is only as up to date as the client.
-//
-// The ordering of this slice is not guaranteed to be stable across updates.
-func (CapacityManagerStatus) Values() []CapacityManagerStatus {
-	return []CapacityManagerStatus{
-		"enabled",
-		"disabled",
-	}
-}
-
-type CapacityReservationBillingRequestStatus string
-
-// Enum values for CapacityReservationBillingRequestStatus
-const (
-	CapacityReservationBillingRequestStatusPending   CapacityReservationBillingRequestStatus = "pending"
-	CapacityReservationBillingRequestStatusAccepted  CapacityReservationBillingRequestStatus = "accepted"
-	CapacityReservationBillingRequestStatusRejected  CapacityReservationBillingRequestStatus = "rejected"
-	CapacityReservationBillingRequestStatusCancelled CapacityReservationBillingRequestStatus = "cancelled"
-	CapacityReservationBillingRequestStatusRevoked   CapacityReservationBillingRequestStatus = "revoked"
-	CapacityReservationBillingRequestStatusExpired   CapacityReservationBillingRequestStatus = "expired"
-)
-
-// Values returns all known values for CapacityReservationBillingRequestStatus.
-// Note that this can be expanded in the future, and so it is only as up to date as
-// the client.
-//
-// The ordering of this slice is not guaranteed to be stable across updates.
-func (CapacityReservationBillingRequestStatus) Values() []CapacityReservationBillingRequestStatus {
-	return []CapacityReservationBillingRequestStatus{
-		"pending",
-		"accepted",
-		"rejected",
-		"cancelled",
-		"revoked",
-		"expired",
-	}
-}
-
-type CapacityReservationDeliveryPreference string
-
-// Enum values for CapacityReservationDeliveryPreference
-const (
-	CapacityReservationDeliveryPreferenceFixed       CapacityReservationDeliveryPreference = "fixed"
-	CapacityReservationDeliveryPreferenceIncremental CapacityReservationDeliveryPreference = "incremental"
-)
-
-// Values returns all known values for CapacityReservationDeliveryPreference. Note
-// that this can be expanded in the future, and so it is only as up to date as the
-// client.
-//
-// The ordering of this slice is not guaranteed to be stable across updates.
-func (CapacityReservationDeliveryPreference) Values() []CapacityReservationDeliveryPreference {
-	return []CapacityReservationDeliveryPreference{
-		"fixed",
-		"incremental",
 	}
 }
 
@@ -1241,9 +955,8 @@ type CapacityReservationPreference string
 
 // Enum values for CapacityReservationPreference
 const (
-	CapacityReservationPreferenceCapacityReservationsOnly CapacityReservationPreference = "capacity-reservations-only"
-	CapacityReservationPreferenceOpen                     CapacityReservationPreference = "open"
-	CapacityReservationPreferenceNone                     CapacityReservationPreference = "none"
+	CapacityReservationPreferenceOpen CapacityReservationPreference = "open"
+	CapacityReservationPreferenceNone CapacityReservationPreference = "none"
 )
 
 // Values returns all known values for CapacityReservationPreference. Note that
@@ -1253,7 +966,6 @@ const (
 // The ordering of this slice is not guaranteed to be stable across updates.
 func (CapacityReservationPreference) Values() []CapacityReservationPreference {
 	return []CapacityReservationPreference{
-		"capacity-reservations-only",
 		"open",
 		"none",
 	}
@@ -1271,10 +983,6 @@ const (
 	CapacityReservationStateScheduled      CapacityReservationState = "scheduled"
 	CapacityReservationStatePaymentPending CapacityReservationState = "payment-pending"
 	CapacityReservationStatePaymentFailed  CapacityReservationState = "payment-failed"
-	CapacityReservationStateAssessing      CapacityReservationState = "assessing"
-	CapacityReservationStateDelayed        CapacityReservationState = "delayed"
-	CapacityReservationStateUnsupported    CapacityReservationState = "unsupported"
-	CapacityReservationStateUnavailable    CapacityReservationState = "unavailable"
 )
 
 // Values returns all known values for CapacityReservationState. Note that this
@@ -1291,10 +999,6 @@ func (CapacityReservationState) Values() []CapacityReservationState {
 		"scheduled",
 		"payment-pending",
 		"payment-failed",
-		"assessing",
-		"delayed",
-		"unsupported",
-		"unavailable",
 	}
 }
 
@@ -1333,25 +1037,6 @@ func (CapacityReservationType) Values() []CapacityReservationType {
 	return []CapacityReservationType{
 		"default",
 		"capacity-block",
-	}
-}
-
-type CapacityTenancy string
-
-// Enum values for CapacityTenancy
-const (
-	CapacityTenancyDefault   CapacityTenancy = "default"
-	CapacityTenancyDedicated CapacityTenancy = "dedicated"
-)
-
-// Values returns all known values for CapacityTenancy. Note that this can be
-// expanded in the future, and so it is only as up to date as the client.
-//
-// The ordering of this slice is not guaranteed to be stable across updates.
-func (CapacityTenancy) Values() []CapacityTenancy {
-	return []CapacityTenancy{
-		"default",
-		"dedicated",
 	}
 }
 
@@ -1533,25 +1218,6 @@ func (ClientVpnRouteStatusCode) Values() []ClientVpnRouteStatusCode {
 	}
 }
 
-type Comparison string
-
-// Enum values for Comparison
-const (
-	ComparisonEquals Comparison = "equals"
-	ComparisonIn     Comparison = "in"
-)
-
-// Values returns all known values for Comparison. Note that this can be expanded
-// in the future, and so it is only as up to date as the client.
-//
-// The ordering of this slice is not guaranteed to be stable across updates.
-func (Comparison) Values() []Comparison {
-	return []Comparison{
-		"equals",
-		"in",
-	}
-}
-
 type ConnectionNotificationState string
 
 // Enum values for ConnectionNotificationState
@@ -1671,7 +1337,6 @@ const (
 	CpuManufacturerIntel             CpuManufacturer = "intel"
 	CpuManufacturerAmd               CpuManufacturer = "amd"
 	CpuManufacturerAmazonWebServices CpuManufacturer = "amazon-web-services"
-	CpuManufacturerApple             CpuManufacturer = "apple"
 )
 
 // Values returns all known values for CpuManufacturer. Note that this can be
@@ -1683,7 +1348,6 @@ func (CpuManufacturer) Values() []CpuManufacturer {
 		"intel",
 		"amd",
 		"amazon-web-services",
-		"apple",
 	}
 }
 
@@ -2144,9 +1808,6 @@ const (
 	Ec2InstanceConnectEndpointStateDeleteInProgress Ec2InstanceConnectEndpointState = "delete-in-progress"
 	Ec2InstanceConnectEndpointStateDeleteComplete   Ec2InstanceConnectEndpointState = "delete-complete"
 	Ec2InstanceConnectEndpointStateDeleteFailed     Ec2InstanceConnectEndpointState = "delete-failed"
-	Ec2InstanceConnectEndpointStateUpdateInProgress Ec2InstanceConnectEndpointState = "update-in-progress"
-	Ec2InstanceConnectEndpointStateUpdateComplete   Ec2InstanceConnectEndpointState = "update-complete"
-	Ec2InstanceConnectEndpointStateUpdateFailed     Ec2InstanceConnectEndpointState = "update-failed"
 )
 
 // Values returns all known values for Ec2InstanceConnectEndpointState. Note that
@@ -2162,9 +1823,6 @@ func (Ec2InstanceConnectEndpointState) Values() []Ec2InstanceConnectEndpointStat
 		"delete-in-progress",
 		"delete-complete",
 		"delete-failed",
-		"update-in-progress",
-		"update-complete",
-		"update-failed",
 	}
 }
 
@@ -2279,27 +1937,6 @@ func (EndDateType) Values() []EndDateType {
 	return []EndDateType{
 		"unlimited",
 		"limited",
-	}
-}
-
-type EndpointIpAddressType string
-
-// Enum values for EndpointIpAddressType
-const (
-	EndpointIpAddressTypeIpv4      EndpointIpAddressType = "ipv4"
-	EndpointIpAddressTypeIpv6      EndpointIpAddressType = "ipv6"
-	EndpointIpAddressTypeDualStack EndpointIpAddressType = "dual-stack"
-)
-
-// Values returns all known values for EndpointIpAddressType. Note that this can
-// be expanded in the future, and so it is only as up to date as the client.
-//
-// The ordering of this slice is not guaranteed to be stable across updates.
-func (EndpointIpAddressType) Values() []EndpointIpAddressType {
-	return []EndpointIpAddressType{
-		"ipv4",
-		"ipv6",
-		"dual-stack",
 	}
 }
 
@@ -2503,55 +2140,6 @@ func (FastSnapshotRestoreStateCode) Values() []FastSnapshotRestoreStateCode {
 		"enabled",
 		"disabling",
 		"disabled",
-	}
-}
-
-type FilterByDimension string
-
-// Enum values for FilterByDimension
-const (
-	FilterByDimensionResourceRegion                   FilterByDimension = "resource-region"
-	FilterByDimensionAvailabilityZoneId               FilterByDimension = "availability-zone-id"
-	FilterByDimensionAccountId                        FilterByDimension = "account-id"
-	FilterByDimensionInstanceFamily                   FilterByDimension = "instance-family"
-	FilterByDimensionInstanceType                     FilterByDimension = "instance-type"
-	FilterByDimensionInstancePlatform                 FilterByDimension = "instance-platform"
-	FilterByDimensionReservationArn                   FilterByDimension = "reservation-arn"
-	FilterByDimensionReservationId                    FilterByDimension = "reservation-id"
-	FilterByDimensionReservationType                  FilterByDimension = "reservation-type"
-	FilterByDimensionReservationCreateTimestamp       FilterByDimension = "reservation-create-timestamp"
-	FilterByDimensionReservationStartTimestamp        FilterByDimension = "reservation-start-timestamp"
-	FilterByDimensionReservationEndTimestamp          FilterByDimension = "reservation-end-timestamp"
-	FilterByDimensionReservationEndDateType           FilterByDimension = "reservation-end-date-type"
-	FilterByDimensionTenancy                          FilterByDimension = "tenancy"
-	FilterByDimensionReservationState                 FilterByDimension = "reservation-state"
-	FilterByDimensionReservationInstanceMatchCriteria FilterByDimension = "reservation-instance-match-criteria"
-	FilterByDimensionReservationUnusedFinancialOwner  FilterByDimension = "reservation-unused-financial-owner"
-)
-
-// Values returns all known values for FilterByDimension. Note that this can be
-// expanded in the future, and so it is only as up to date as the client.
-//
-// The ordering of this slice is not guaranteed to be stable across updates.
-func (FilterByDimension) Values() []FilterByDimension {
-	return []FilterByDimension{
-		"resource-region",
-		"availability-zone-id",
-		"account-id",
-		"instance-family",
-		"instance-type",
-		"instance-platform",
-		"reservation-arn",
-		"reservation-id",
-		"reservation-type",
-		"reservation-create-timestamp",
-		"reservation-start-timestamp",
-		"reservation-end-timestamp",
-		"reservation-end-date-type",
-		"tenancy",
-		"reservation-state",
-		"reservation-instance-match-criteria",
-		"reservation-unused-financial-owner",
 	}
 }
 
@@ -2782,25 +2370,6 @@ func (FleetType) Values() []FleetType {
 	}
 }
 
-type FlexibleEnaQueuesSupport string
-
-// Enum values for FlexibleEnaQueuesSupport
-const (
-	FlexibleEnaQueuesSupportUnsupported FlexibleEnaQueuesSupport = "unsupported"
-	FlexibleEnaQueuesSupportSupported   FlexibleEnaQueuesSupport = "supported"
-)
-
-// Values returns all known values for FlexibleEnaQueuesSupport. Note that this
-// can be expanded in the future, and so it is only as up to date as the client.
-//
-// The ordering of this slice is not guaranteed to be stable across updates.
-func (FlexibleEnaQueuesSupport) Values() []FlexibleEnaQueuesSupport {
-	return []FlexibleEnaQueuesSupport{
-		"unsupported",
-		"supported",
-	}
-}
-
 type FlowLogsResourceType string
 
 // Enum values for FlowLogsResourceType
@@ -2909,55 +2478,6 @@ const (
 func (GatewayType) Values() []GatewayType {
 	return []GatewayType{
 		"ipsec.1",
-	}
-}
-
-type GroupBy string
-
-// Enum values for GroupBy
-const (
-	GroupByResourceRegion                   GroupBy = "resource-region"
-	GroupByAvailabilityZoneId               GroupBy = "availability-zone-id"
-	GroupByAccountId                        GroupBy = "account-id"
-	GroupByInstanceFamily                   GroupBy = "instance-family"
-	GroupByInstanceType                     GroupBy = "instance-type"
-	GroupByInstancePlatform                 GroupBy = "instance-platform"
-	GroupByReservationArn                   GroupBy = "reservation-arn"
-	GroupByReservationId                    GroupBy = "reservation-id"
-	GroupByReservationType                  GroupBy = "reservation-type"
-	GroupByReservationCreateTimestamp       GroupBy = "reservation-create-timestamp"
-	GroupByReservationStartTimestamp        GroupBy = "reservation-start-timestamp"
-	GroupByReservationEndTimestamp          GroupBy = "reservation-end-timestamp"
-	GroupByReservationEndDateType           GroupBy = "reservation-end-date-type"
-	GroupByTenancy                          GroupBy = "tenancy"
-	GroupByReservationState                 GroupBy = "reservation-state"
-	GroupByReservationInstanceMatchCriteria GroupBy = "reservation-instance-match-criteria"
-	GroupByReservationUnusedFinancialOwner  GroupBy = "reservation-unused-financial-owner"
-)
-
-// Values returns all known values for GroupBy. Note that this can be expanded in
-// the future, and so it is only as up to date as the client.
-//
-// The ordering of this slice is not guaranteed to be stable across updates.
-func (GroupBy) Values() []GroupBy {
-	return []GroupBy{
-		"resource-region",
-		"availability-zone-id",
-		"account-id",
-		"instance-family",
-		"instance-type",
-		"instance-platform",
-		"reservation-arn",
-		"reservation-id",
-		"reservation-type",
-		"reservation-create-timestamp",
-		"reservation-start-timestamp",
-		"reservation-end-timestamp",
-		"reservation-end-date-type",
-		"tenancy",
-		"reservation-state",
-		"reservation-instance-match-criteria",
-		"reservation-unused-financial-owner",
 	}
 }
 
@@ -3197,50 +2717,6 @@ func (ImageBlockPublicAccessEnabledState) Values() []ImageBlockPublicAccessEnabl
 	}
 }
 
-type ImageReferenceOptionName string
-
-// Enum values for ImageReferenceOptionName
-const (
-	ImageReferenceOptionNameStateName    ImageReferenceOptionName = "state-name"
-	ImageReferenceOptionNameVersionDepth ImageReferenceOptionName = "version-depth"
-)
-
-// Values returns all known values for ImageReferenceOptionName. Note that this
-// can be expanded in the future, and so it is only as up to date as the client.
-//
-// The ordering of this slice is not guaranteed to be stable across updates.
-func (ImageReferenceOptionName) Values() []ImageReferenceOptionName {
-	return []ImageReferenceOptionName{
-		"state-name",
-		"version-depth",
-	}
-}
-
-type ImageReferenceResourceType string
-
-// Enum values for ImageReferenceResourceType
-const (
-	ImageReferenceResourceTypeEc2Instance                 ImageReferenceResourceType = "ec2:Instance"
-	ImageReferenceResourceTypeEc2LaunchTemplate           ImageReferenceResourceType = "ec2:LaunchTemplate"
-	ImageReferenceResourceTypeSsmParameter                ImageReferenceResourceType = "ssm:Parameter"
-	ImageReferenceResourceTypeImageBuilderImageRecipe     ImageReferenceResourceType = "imagebuilder:ImageRecipe"
-	ImageReferenceResourceTypeImageBuilderContainerRecipe ImageReferenceResourceType = "imagebuilder:ContainerRecipe"
-)
-
-// Values returns all known values for ImageReferenceResourceType. Note that this
-// can be expanded in the future, and so it is only as up to date as the client.
-//
-// The ordering of this slice is not guaranteed to be stable across updates.
-func (ImageReferenceResourceType) Values() []ImageReferenceResourceType {
-	return []ImageReferenceResourceType{
-		"ec2:Instance",
-		"ec2:LaunchTemplate",
-		"ssm:Parameter",
-		"imagebuilder:ImageRecipe",
-		"imagebuilder:ContainerRecipe",
-	}
-}
-
 type ImageState string
 
 // Enum values for ImageState
@@ -3310,48 +2786,6 @@ func (ImdsSupportValues) Values() []ImdsSupportValues {
 	}
 }
 
-type IngestionStatus string
-
-// Enum values for IngestionStatus
-const (
-	IngestionStatusInitialIngestionInProgress IngestionStatus = "initial-ingestion-in-progress"
-	IngestionStatusIngestionComplete          IngestionStatus = "ingestion-complete"
-	IngestionStatusIngestionFailed            IngestionStatus = "ingestion-failed"
-)
-
-// Values returns all known values for IngestionStatus. Note that this can be
-// expanded in the future, and so it is only as up to date as the client.
-//
-// The ordering of this slice is not guaranteed to be stable across updates.
-func (IngestionStatus) Values() []IngestionStatus {
-	return []IngestionStatus{
-		"initial-ingestion-in-progress",
-		"ingestion-complete",
-		"ingestion-failed",
-	}
-}
-
-type InitializationType string
-
-// Enum values for InitializationType
-const (
-	InitializationTypeDefault         InitializationType = "default"
-	InitializationTypeProvisionedRate InitializationType = "provisioned-rate"
-	InitializationTypeVolumeCopy      InitializationType = "volume-copy"
-)
-
-// Values returns all known values for InitializationType. Note that this can be
-// expanded in the future, and so it is only as up to date as the client.
-//
-// The ordering of this slice is not guaranteed to be stable across updates.
-func (InitializationType) Values() []InitializationType {
-	return []InitializationType{
-		"default",
-		"provisioned-rate",
-		"volume-copy",
-	}
-}
-
 type InstanceAttributeName string
 
 // Enum values for InstanceAttributeName
@@ -3415,27 +2849,6 @@ func (InstanceAutoRecoveryState) Values() []InstanceAutoRecoveryState {
 	return []InstanceAutoRecoveryState{
 		"disabled",
 		"default",
-	}
-}
-
-type InstanceBandwidthWeighting string
-
-// Enum values for InstanceBandwidthWeighting
-const (
-	InstanceBandwidthWeightingDefault InstanceBandwidthWeighting = "default"
-	InstanceBandwidthWeightingVpc1    InstanceBandwidthWeighting = "vpc-1"
-	InstanceBandwidthWeightingEbs1    InstanceBandwidthWeighting = "ebs-1"
-)
-
-// Values returns all known values for InstanceBandwidthWeighting. Note that this
-// can be expanded in the future, and so it is only as up to date as the client.
-//
-// The ordering of this slice is not guaranteed to be stable across updates.
-func (InstanceBandwidthWeighting) Values() []InstanceBandwidthWeighting {
-	return []InstanceBandwidthWeighting{
-		"default",
-		"vpc-1",
-		"ebs-1",
 	}
 }
 
@@ -3679,26 +3092,6 @@ func (InstanceMetadataTagsState) Values() []InstanceMetadataTagsState {
 	}
 }
 
-type InstanceRebootMigrationState string
-
-// Enum values for InstanceRebootMigrationState
-const (
-	InstanceRebootMigrationStateDisabled InstanceRebootMigrationState = "disabled"
-	InstanceRebootMigrationStateDefault  InstanceRebootMigrationState = "default"
-)
-
-// Values returns all known values for InstanceRebootMigrationState. Note that
-// this can be expanded in the future, and so it is only as up to date as the
-// client.
-//
-// The ordering of this slice is not guaranteed to be stable across updates.
-func (InstanceRebootMigrationState) Values() []InstanceRebootMigrationState {
-	return []InstanceRebootMigrationState{
-		"disabled",
-		"default",
-	}
-}
-
 type InstanceStateName string
 
 // Enum values for InstanceStateName
@@ -3750,1078 +3143,826 @@ type InstanceType string
 
 // Enum values for InstanceType
 const (
-	InstanceTypeA1Medium           InstanceType = "a1.medium"
-	InstanceTypeA1Large            InstanceType = "a1.large"
-	InstanceTypeA1Xlarge           InstanceType = "a1.xlarge"
-	InstanceTypeA12xlarge          InstanceType = "a1.2xlarge"
-	InstanceTypeA14xlarge          InstanceType = "a1.4xlarge"
-	InstanceTypeA1Metal            InstanceType = "a1.metal"
-	InstanceTypeC1Medium           InstanceType = "c1.medium"
-	InstanceTypeC1Xlarge           InstanceType = "c1.xlarge"
-	InstanceTypeC3Large            InstanceType = "c3.large"
-	InstanceTypeC3Xlarge           InstanceType = "c3.xlarge"
-	InstanceTypeC32xlarge          InstanceType = "c3.2xlarge"
-	InstanceTypeC34xlarge          InstanceType = "c3.4xlarge"
-	InstanceTypeC38xlarge          InstanceType = "c3.8xlarge"
-	InstanceTypeC4Large            InstanceType = "c4.large"
-	InstanceTypeC4Xlarge           InstanceType = "c4.xlarge"
-	InstanceTypeC42xlarge          InstanceType = "c4.2xlarge"
-	InstanceTypeC44xlarge          InstanceType = "c4.4xlarge"
-	InstanceTypeC48xlarge          InstanceType = "c4.8xlarge"
-	InstanceTypeC5Large            InstanceType = "c5.large"
-	InstanceTypeC5Xlarge           InstanceType = "c5.xlarge"
-	InstanceTypeC52xlarge          InstanceType = "c5.2xlarge"
-	InstanceTypeC54xlarge          InstanceType = "c5.4xlarge"
-	InstanceTypeC59xlarge          InstanceType = "c5.9xlarge"
-	InstanceTypeC512xlarge         InstanceType = "c5.12xlarge"
-	InstanceTypeC518xlarge         InstanceType = "c5.18xlarge"
-	InstanceTypeC524xlarge         InstanceType = "c5.24xlarge"
-	InstanceTypeC5Metal            InstanceType = "c5.metal"
-	InstanceTypeC5aLarge           InstanceType = "c5a.large"
-	InstanceTypeC5aXlarge          InstanceType = "c5a.xlarge"
-	InstanceTypeC5a2xlarge         InstanceType = "c5a.2xlarge"
-	InstanceTypeC5a4xlarge         InstanceType = "c5a.4xlarge"
-	InstanceTypeC5a8xlarge         InstanceType = "c5a.8xlarge"
-	InstanceTypeC5a12xlarge        InstanceType = "c5a.12xlarge"
-	InstanceTypeC5a16xlarge        InstanceType = "c5a.16xlarge"
-	InstanceTypeC5a24xlarge        InstanceType = "c5a.24xlarge"
-	InstanceTypeC5adLarge          InstanceType = "c5ad.large"
-	InstanceTypeC5adXlarge         InstanceType = "c5ad.xlarge"
-	InstanceTypeC5ad2xlarge        InstanceType = "c5ad.2xlarge"
-	InstanceTypeC5ad4xlarge        InstanceType = "c5ad.4xlarge"
-	InstanceTypeC5ad8xlarge        InstanceType = "c5ad.8xlarge"
-	InstanceTypeC5ad12xlarge       InstanceType = "c5ad.12xlarge"
-	InstanceTypeC5ad16xlarge       InstanceType = "c5ad.16xlarge"
-	InstanceTypeC5ad24xlarge       InstanceType = "c5ad.24xlarge"
-	InstanceTypeC5dLarge           InstanceType = "c5d.large"
-	InstanceTypeC5dXlarge          InstanceType = "c5d.xlarge"
-	InstanceTypeC5d2xlarge         InstanceType = "c5d.2xlarge"
-	InstanceTypeC5d4xlarge         InstanceType = "c5d.4xlarge"
-	InstanceTypeC5d9xlarge         InstanceType = "c5d.9xlarge"
-	InstanceTypeC5d12xlarge        InstanceType = "c5d.12xlarge"
-	InstanceTypeC5d18xlarge        InstanceType = "c5d.18xlarge"
-	InstanceTypeC5d24xlarge        InstanceType = "c5d.24xlarge"
-	InstanceTypeC5dMetal           InstanceType = "c5d.metal"
-	InstanceTypeC5nLarge           InstanceType = "c5n.large"
-	InstanceTypeC5nXlarge          InstanceType = "c5n.xlarge"
-	InstanceTypeC5n2xlarge         InstanceType = "c5n.2xlarge"
-	InstanceTypeC5n4xlarge         InstanceType = "c5n.4xlarge"
-	InstanceTypeC5n9xlarge         InstanceType = "c5n.9xlarge"
-	InstanceTypeC5n18xlarge        InstanceType = "c5n.18xlarge"
-	InstanceTypeC5nMetal           InstanceType = "c5n.metal"
-	InstanceTypeC6gMedium          InstanceType = "c6g.medium"
-	InstanceTypeC6gLarge           InstanceType = "c6g.large"
-	InstanceTypeC6gXlarge          InstanceType = "c6g.xlarge"
-	InstanceTypeC6g2xlarge         InstanceType = "c6g.2xlarge"
-	InstanceTypeC6g4xlarge         InstanceType = "c6g.4xlarge"
-	InstanceTypeC6g8xlarge         InstanceType = "c6g.8xlarge"
-	InstanceTypeC6g12xlarge        InstanceType = "c6g.12xlarge"
-	InstanceTypeC6g16xlarge        InstanceType = "c6g.16xlarge"
-	InstanceTypeC6gMetal           InstanceType = "c6g.metal"
-	InstanceTypeC6gdMedium         InstanceType = "c6gd.medium"
-	InstanceTypeC6gdLarge          InstanceType = "c6gd.large"
-	InstanceTypeC6gdXlarge         InstanceType = "c6gd.xlarge"
-	InstanceTypeC6gd2xlarge        InstanceType = "c6gd.2xlarge"
-	InstanceTypeC6gd4xlarge        InstanceType = "c6gd.4xlarge"
-	InstanceTypeC6gd8xlarge        InstanceType = "c6gd.8xlarge"
-	InstanceTypeC6gd12xlarge       InstanceType = "c6gd.12xlarge"
-	InstanceTypeC6gd16xlarge       InstanceType = "c6gd.16xlarge"
-	InstanceTypeC6gdMetal          InstanceType = "c6gd.metal"
-	InstanceTypeC6gnMedium         InstanceType = "c6gn.medium"
-	InstanceTypeC6gnLarge          InstanceType = "c6gn.large"
-	InstanceTypeC6gnXlarge         InstanceType = "c6gn.xlarge"
-	InstanceTypeC6gn2xlarge        InstanceType = "c6gn.2xlarge"
-	InstanceTypeC6gn4xlarge        InstanceType = "c6gn.4xlarge"
-	InstanceTypeC6gn8xlarge        InstanceType = "c6gn.8xlarge"
-	InstanceTypeC6gn12xlarge       InstanceType = "c6gn.12xlarge"
-	InstanceTypeC6gn16xlarge       InstanceType = "c6gn.16xlarge"
-	InstanceTypeC6iLarge           InstanceType = "c6i.large"
-	InstanceTypeC6iXlarge          InstanceType = "c6i.xlarge"
-	InstanceTypeC6i2xlarge         InstanceType = "c6i.2xlarge"
-	InstanceTypeC6i4xlarge         InstanceType = "c6i.4xlarge"
-	InstanceTypeC6i8xlarge         InstanceType = "c6i.8xlarge"
-	InstanceTypeC6i12xlarge        InstanceType = "c6i.12xlarge"
-	InstanceTypeC6i16xlarge        InstanceType = "c6i.16xlarge"
-	InstanceTypeC6i24xlarge        InstanceType = "c6i.24xlarge"
-	InstanceTypeC6i32xlarge        InstanceType = "c6i.32xlarge"
-	InstanceTypeC6iMetal           InstanceType = "c6i.metal"
-	InstanceTypeCc14xlarge         InstanceType = "cc1.4xlarge"
-	InstanceTypeCc28xlarge         InstanceType = "cc2.8xlarge"
-	InstanceTypeCg14xlarge         InstanceType = "cg1.4xlarge"
-	InstanceTypeCr18xlarge         InstanceType = "cr1.8xlarge"
-	InstanceTypeD2Xlarge           InstanceType = "d2.xlarge"
-	InstanceTypeD22xlarge          InstanceType = "d2.2xlarge"
-	InstanceTypeD24xlarge          InstanceType = "d2.4xlarge"
-	InstanceTypeD28xlarge          InstanceType = "d2.8xlarge"
-	InstanceTypeD3Xlarge           InstanceType = "d3.xlarge"
-	InstanceTypeD32xlarge          InstanceType = "d3.2xlarge"
-	InstanceTypeD34xlarge          InstanceType = "d3.4xlarge"
-	InstanceTypeD38xlarge          InstanceType = "d3.8xlarge"
-	InstanceTypeD3enXlarge         InstanceType = "d3en.xlarge"
-	InstanceTypeD3en2xlarge        InstanceType = "d3en.2xlarge"
-	InstanceTypeD3en4xlarge        InstanceType = "d3en.4xlarge"
-	InstanceTypeD3en6xlarge        InstanceType = "d3en.6xlarge"
-	InstanceTypeD3en8xlarge        InstanceType = "d3en.8xlarge"
-	InstanceTypeD3en12xlarge       InstanceType = "d3en.12xlarge"
-	InstanceTypeDl124xlarge        InstanceType = "dl1.24xlarge"
-	InstanceTypeF12xlarge          InstanceType = "f1.2xlarge"
-	InstanceTypeF14xlarge          InstanceType = "f1.4xlarge"
-	InstanceTypeF116xlarge         InstanceType = "f1.16xlarge"
-	InstanceTypeG22xlarge          InstanceType = "g2.2xlarge"
-	InstanceTypeG28xlarge          InstanceType = "g2.8xlarge"
-	InstanceTypeG34xlarge          InstanceType = "g3.4xlarge"
-	InstanceTypeG38xlarge          InstanceType = "g3.8xlarge"
-	InstanceTypeG316xlarge         InstanceType = "g3.16xlarge"
-	InstanceTypeG3sXlarge          InstanceType = "g3s.xlarge"
-	InstanceTypeG4adXlarge         InstanceType = "g4ad.xlarge"
-	InstanceTypeG4ad2xlarge        InstanceType = "g4ad.2xlarge"
-	InstanceTypeG4ad4xlarge        InstanceType = "g4ad.4xlarge"
-	InstanceTypeG4ad8xlarge        InstanceType = "g4ad.8xlarge"
-	InstanceTypeG4ad16xlarge       InstanceType = "g4ad.16xlarge"
-	InstanceTypeG4dnXlarge         InstanceType = "g4dn.xlarge"
-	InstanceTypeG4dn2xlarge        InstanceType = "g4dn.2xlarge"
-	InstanceTypeG4dn4xlarge        InstanceType = "g4dn.4xlarge"
-	InstanceTypeG4dn8xlarge        InstanceType = "g4dn.8xlarge"
-	InstanceTypeG4dn12xlarge       InstanceType = "g4dn.12xlarge"
-	InstanceTypeG4dn16xlarge       InstanceType = "g4dn.16xlarge"
-	InstanceTypeG4dnMetal          InstanceType = "g4dn.metal"
-	InstanceTypeG5Xlarge           InstanceType = "g5.xlarge"
-	InstanceTypeG52xlarge          InstanceType = "g5.2xlarge"
-	InstanceTypeG54xlarge          InstanceType = "g5.4xlarge"
-	InstanceTypeG58xlarge          InstanceType = "g5.8xlarge"
-	InstanceTypeG512xlarge         InstanceType = "g5.12xlarge"
-	InstanceTypeG516xlarge         InstanceType = "g5.16xlarge"
-	InstanceTypeG524xlarge         InstanceType = "g5.24xlarge"
-	InstanceTypeG548xlarge         InstanceType = "g5.48xlarge"
-	InstanceTypeG5gXlarge          InstanceType = "g5g.xlarge"
-	InstanceTypeG5g2xlarge         InstanceType = "g5g.2xlarge"
-	InstanceTypeG5g4xlarge         InstanceType = "g5g.4xlarge"
-	InstanceTypeG5g8xlarge         InstanceType = "g5g.8xlarge"
-	InstanceTypeG5g16xlarge        InstanceType = "g5g.16xlarge"
-	InstanceTypeG5gMetal           InstanceType = "g5g.metal"
-	InstanceTypeHi14xlarge         InstanceType = "hi1.4xlarge"
-	InstanceTypeHpc6a48xlarge      InstanceType = "hpc6a.48xlarge"
-	InstanceTypeHs18xlarge         InstanceType = "hs1.8xlarge"
-	InstanceTypeH12xlarge          InstanceType = "h1.2xlarge"
-	InstanceTypeH14xlarge          InstanceType = "h1.4xlarge"
-	InstanceTypeH18xlarge          InstanceType = "h1.8xlarge"
-	InstanceTypeH116xlarge         InstanceType = "h1.16xlarge"
-	InstanceTypeI2Xlarge           InstanceType = "i2.xlarge"
-	InstanceTypeI22xlarge          InstanceType = "i2.2xlarge"
-	InstanceTypeI24xlarge          InstanceType = "i2.4xlarge"
-	InstanceTypeI28xlarge          InstanceType = "i2.8xlarge"
-	InstanceTypeI3Large            InstanceType = "i3.large"
-	InstanceTypeI3Xlarge           InstanceType = "i3.xlarge"
-	InstanceTypeI32xlarge          InstanceType = "i3.2xlarge"
-	InstanceTypeI34xlarge          InstanceType = "i3.4xlarge"
-	InstanceTypeI38xlarge          InstanceType = "i3.8xlarge"
-	InstanceTypeI316xlarge         InstanceType = "i3.16xlarge"
-	InstanceTypeI3Metal            InstanceType = "i3.metal"
-	InstanceTypeI3enLarge          InstanceType = "i3en.large"
-	InstanceTypeI3enXlarge         InstanceType = "i3en.xlarge"
-	InstanceTypeI3en2xlarge        InstanceType = "i3en.2xlarge"
-	InstanceTypeI3en3xlarge        InstanceType = "i3en.3xlarge"
-	InstanceTypeI3en6xlarge        InstanceType = "i3en.6xlarge"
-	InstanceTypeI3en12xlarge       InstanceType = "i3en.12xlarge"
-	InstanceTypeI3en24xlarge       InstanceType = "i3en.24xlarge"
-	InstanceTypeI3enMetal          InstanceType = "i3en.metal"
-	InstanceTypeIm4gnLarge         InstanceType = "im4gn.large"
-	InstanceTypeIm4gnXlarge        InstanceType = "im4gn.xlarge"
-	InstanceTypeIm4gn2xlarge       InstanceType = "im4gn.2xlarge"
-	InstanceTypeIm4gn4xlarge       InstanceType = "im4gn.4xlarge"
-	InstanceTypeIm4gn8xlarge       InstanceType = "im4gn.8xlarge"
-	InstanceTypeIm4gn16xlarge      InstanceType = "im4gn.16xlarge"
-	InstanceTypeInf1Xlarge         InstanceType = "inf1.xlarge"
-	InstanceTypeInf12xlarge        InstanceType = "inf1.2xlarge"
-	InstanceTypeInf16xlarge        InstanceType = "inf1.6xlarge"
-	InstanceTypeInf124xlarge       InstanceType = "inf1.24xlarge"
-	InstanceTypeIs4genMedium       InstanceType = "is4gen.medium"
-	InstanceTypeIs4genLarge        InstanceType = "is4gen.large"
-	InstanceTypeIs4genXlarge       InstanceType = "is4gen.xlarge"
-	InstanceTypeIs4gen2xlarge      InstanceType = "is4gen.2xlarge"
-	InstanceTypeIs4gen4xlarge      InstanceType = "is4gen.4xlarge"
-	InstanceTypeIs4gen8xlarge      InstanceType = "is4gen.8xlarge"
-	InstanceTypeM1Small            InstanceType = "m1.small"
-	InstanceTypeM1Medium           InstanceType = "m1.medium"
-	InstanceTypeM1Large            InstanceType = "m1.large"
-	InstanceTypeM1Xlarge           InstanceType = "m1.xlarge"
-	InstanceTypeM2Xlarge           InstanceType = "m2.xlarge"
-	InstanceTypeM22xlarge          InstanceType = "m2.2xlarge"
-	InstanceTypeM24xlarge          InstanceType = "m2.4xlarge"
-	InstanceTypeM3Medium           InstanceType = "m3.medium"
-	InstanceTypeM3Large            InstanceType = "m3.large"
-	InstanceTypeM3Xlarge           InstanceType = "m3.xlarge"
-	InstanceTypeM32xlarge          InstanceType = "m3.2xlarge"
-	InstanceTypeM4Large            InstanceType = "m4.large"
-	InstanceTypeM4Xlarge           InstanceType = "m4.xlarge"
-	InstanceTypeM42xlarge          InstanceType = "m4.2xlarge"
-	InstanceTypeM44xlarge          InstanceType = "m4.4xlarge"
-	InstanceTypeM410xlarge         InstanceType = "m4.10xlarge"
-	InstanceTypeM416xlarge         InstanceType = "m4.16xlarge"
-	InstanceTypeM5Large            InstanceType = "m5.large"
-	InstanceTypeM5Xlarge           InstanceType = "m5.xlarge"
-	InstanceTypeM52xlarge          InstanceType = "m5.2xlarge"
-	InstanceTypeM54xlarge          InstanceType = "m5.4xlarge"
-	InstanceTypeM58xlarge          InstanceType = "m5.8xlarge"
-	InstanceTypeM512xlarge         InstanceType = "m5.12xlarge"
-	InstanceTypeM516xlarge         InstanceType = "m5.16xlarge"
-	InstanceTypeM524xlarge         InstanceType = "m5.24xlarge"
-	InstanceTypeM5Metal            InstanceType = "m5.metal"
-	InstanceTypeM5aLarge           InstanceType = "m5a.large"
-	InstanceTypeM5aXlarge          InstanceType = "m5a.xlarge"
-	InstanceTypeM5a2xlarge         InstanceType = "m5a.2xlarge"
-	InstanceTypeM5a4xlarge         InstanceType = "m5a.4xlarge"
-	InstanceTypeM5a8xlarge         InstanceType = "m5a.8xlarge"
-	InstanceTypeM5a12xlarge        InstanceType = "m5a.12xlarge"
-	InstanceTypeM5a16xlarge        InstanceType = "m5a.16xlarge"
-	InstanceTypeM5a24xlarge        InstanceType = "m5a.24xlarge"
-	InstanceTypeM5adLarge          InstanceType = "m5ad.large"
-	InstanceTypeM5adXlarge         InstanceType = "m5ad.xlarge"
-	InstanceTypeM5ad2xlarge        InstanceType = "m5ad.2xlarge"
-	InstanceTypeM5ad4xlarge        InstanceType = "m5ad.4xlarge"
-	InstanceTypeM5ad8xlarge        InstanceType = "m5ad.8xlarge"
-	InstanceTypeM5ad12xlarge       InstanceType = "m5ad.12xlarge"
-	InstanceTypeM5ad16xlarge       InstanceType = "m5ad.16xlarge"
-	InstanceTypeM5ad24xlarge       InstanceType = "m5ad.24xlarge"
-	InstanceTypeM5dLarge           InstanceType = "m5d.large"
-	InstanceTypeM5dXlarge          InstanceType = "m5d.xlarge"
-	InstanceTypeM5d2xlarge         InstanceType = "m5d.2xlarge"
-	InstanceTypeM5d4xlarge         InstanceType = "m5d.4xlarge"
-	InstanceTypeM5d8xlarge         InstanceType = "m5d.8xlarge"
-	InstanceTypeM5d12xlarge        InstanceType = "m5d.12xlarge"
-	InstanceTypeM5d16xlarge        InstanceType = "m5d.16xlarge"
-	InstanceTypeM5d24xlarge        InstanceType = "m5d.24xlarge"
-	InstanceTypeM5dMetal           InstanceType = "m5d.metal"
-	InstanceTypeM5dnLarge          InstanceType = "m5dn.large"
-	InstanceTypeM5dnXlarge         InstanceType = "m5dn.xlarge"
-	InstanceTypeM5dn2xlarge        InstanceType = "m5dn.2xlarge"
-	InstanceTypeM5dn4xlarge        InstanceType = "m5dn.4xlarge"
-	InstanceTypeM5dn8xlarge        InstanceType = "m5dn.8xlarge"
-	InstanceTypeM5dn12xlarge       InstanceType = "m5dn.12xlarge"
-	InstanceTypeM5dn16xlarge       InstanceType = "m5dn.16xlarge"
-	InstanceTypeM5dn24xlarge       InstanceType = "m5dn.24xlarge"
-	InstanceTypeM5dnMetal          InstanceType = "m5dn.metal"
-	InstanceTypeM5nLarge           InstanceType = "m5n.large"
-	InstanceTypeM5nXlarge          InstanceType = "m5n.xlarge"
-	InstanceTypeM5n2xlarge         InstanceType = "m5n.2xlarge"
-	InstanceTypeM5n4xlarge         InstanceType = "m5n.4xlarge"
-	InstanceTypeM5n8xlarge         InstanceType = "m5n.8xlarge"
-	InstanceTypeM5n12xlarge        InstanceType = "m5n.12xlarge"
-	InstanceTypeM5n16xlarge        InstanceType = "m5n.16xlarge"
-	InstanceTypeM5n24xlarge        InstanceType = "m5n.24xlarge"
-	InstanceTypeM5nMetal           InstanceType = "m5n.metal"
-	InstanceTypeM5znLarge          InstanceType = "m5zn.large"
-	InstanceTypeM5znXlarge         InstanceType = "m5zn.xlarge"
-	InstanceTypeM5zn2xlarge        InstanceType = "m5zn.2xlarge"
-	InstanceTypeM5zn3xlarge        InstanceType = "m5zn.3xlarge"
-	InstanceTypeM5zn6xlarge        InstanceType = "m5zn.6xlarge"
-	InstanceTypeM5zn12xlarge       InstanceType = "m5zn.12xlarge"
-	InstanceTypeM5znMetal          InstanceType = "m5zn.metal"
-	InstanceTypeM6aLarge           InstanceType = "m6a.large"
-	InstanceTypeM6aXlarge          InstanceType = "m6a.xlarge"
-	InstanceTypeM6a2xlarge         InstanceType = "m6a.2xlarge"
-	InstanceTypeM6a4xlarge         InstanceType = "m6a.4xlarge"
-	InstanceTypeM6a8xlarge         InstanceType = "m6a.8xlarge"
-	InstanceTypeM6a12xlarge        InstanceType = "m6a.12xlarge"
-	InstanceTypeM6a16xlarge        InstanceType = "m6a.16xlarge"
-	InstanceTypeM6a24xlarge        InstanceType = "m6a.24xlarge"
-	InstanceTypeM6a32xlarge        InstanceType = "m6a.32xlarge"
-	InstanceTypeM6a48xlarge        InstanceType = "m6a.48xlarge"
-	InstanceTypeM6gMetal           InstanceType = "m6g.metal"
-	InstanceTypeM6gMedium          InstanceType = "m6g.medium"
-	InstanceTypeM6gLarge           InstanceType = "m6g.large"
-	InstanceTypeM6gXlarge          InstanceType = "m6g.xlarge"
-	InstanceTypeM6g2xlarge         InstanceType = "m6g.2xlarge"
-	InstanceTypeM6g4xlarge         InstanceType = "m6g.4xlarge"
-	InstanceTypeM6g8xlarge         InstanceType = "m6g.8xlarge"
-	InstanceTypeM6g12xlarge        InstanceType = "m6g.12xlarge"
-	InstanceTypeM6g16xlarge        InstanceType = "m6g.16xlarge"
-	InstanceTypeM6gdMetal          InstanceType = "m6gd.metal"
-	InstanceTypeM6gdMedium         InstanceType = "m6gd.medium"
-	InstanceTypeM6gdLarge          InstanceType = "m6gd.large"
-	InstanceTypeM6gdXlarge         InstanceType = "m6gd.xlarge"
-	InstanceTypeM6gd2xlarge        InstanceType = "m6gd.2xlarge"
-	InstanceTypeM6gd4xlarge        InstanceType = "m6gd.4xlarge"
-	InstanceTypeM6gd8xlarge        InstanceType = "m6gd.8xlarge"
-	InstanceTypeM6gd12xlarge       InstanceType = "m6gd.12xlarge"
-	InstanceTypeM6gd16xlarge       InstanceType = "m6gd.16xlarge"
-	InstanceTypeM6iLarge           InstanceType = "m6i.large"
-	InstanceTypeM6iXlarge          InstanceType = "m6i.xlarge"
-	InstanceTypeM6i2xlarge         InstanceType = "m6i.2xlarge"
-	InstanceTypeM6i4xlarge         InstanceType = "m6i.4xlarge"
-	InstanceTypeM6i8xlarge         InstanceType = "m6i.8xlarge"
-	InstanceTypeM6i12xlarge        InstanceType = "m6i.12xlarge"
-	InstanceTypeM6i16xlarge        InstanceType = "m6i.16xlarge"
-	InstanceTypeM6i24xlarge        InstanceType = "m6i.24xlarge"
-	InstanceTypeM6i32xlarge        InstanceType = "m6i.32xlarge"
-	InstanceTypeM6iMetal           InstanceType = "m6i.metal"
-	InstanceTypeMac1Metal          InstanceType = "mac1.metal"
-	InstanceTypeP2Xlarge           InstanceType = "p2.xlarge"
-	InstanceTypeP28xlarge          InstanceType = "p2.8xlarge"
-	InstanceTypeP216xlarge         InstanceType = "p2.16xlarge"
-	InstanceTypeP32xlarge          InstanceType = "p3.2xlarge"
-	InstanceTypeP38xlarge          InstanceType = "p3.8xlarge"
-	InstanceTypeP316xlarge         InstanceType = "p3.16xlarge"
-	InstanceTypeP3dn24xlarge       InstanceType = "p3dn.24xlarge"
-	InstanceTypeP4d24xlarge        InstanceType = "p4d.24xlarge"
-	InstanceTypeR3Large            InstanceType = "r3.large"
-	InstanceTypeR3Xlarge           InstanceType = "r3.xlarge"
-	InstanceTypeR32xlarge          InstanceType = "r3.2xlarge"
-	InstanceTypeR34xlarge          InstanceType = "r3.4xlarge"
-	InstanceTypeR38xlarge          InstanceType = "r3.8xlarge"
-	InstanceTypeR4Large            InstanceType = "r4.large"
-	InstanceTypeR4Xlarge           InstanceType = "r4.xlarge"
-	InstanceTypeR42xlarge          InstanceType = "r4.2xlarge"
-	InstanceTypeR44xlarge          InstanceType = "r4.4xlarge"
-	InstanceTypeR48xlarge          InstanceType = "r4.8xlarge"
-	InstanceTypeR416xlarge         InstanceType = "r4.16xlarge"
-	InstanceTypeR5Large            InstanceType = "r5.large"
-	InstanceTypeR5Xlarge           InstanceType = "r5.xlarge"
-	InstanceTypeR52xlarge          InstanceType = "r5.2xlarge"
-	InstanceTypeR54xlarge          InstanceType = "r5.4xlarge"
-	InstanceTypeR58xlarge          InstanceType = "r5.8xlarge"
-	InstanceTypeR512xlarge         InstanceType = "r5.12xlarge"
-	InstanceTypeR516xlarge         InstanceType = "r5.16xlarge"
-	InstanceTypeR524xlarge         InstanceType = "r5.24xlarge"
-	InstanceTypeR5Metal            InstanceType = "r5.metal"
-	InstanceTypeR5aLarge           InstanceType = "r5a.large"
-	InstanceTypeR5aXlarge          InstanceType = "r5a.xlarge"
-	InstanceTypeR5a2xlarge         InstanceType = "r5a.2xlarge"
-	InstanceTypeR5a4xlarge         InstanceType = "r5a.4xlarge"
-	InstanceTypeR5a8xlarge         InstanceType = "r5a.8xlarge"
-	InstanceTypeR5a12xlarge        InstanceType = "r5a.12xlarge"
-	InstanceTypeR5a16xlarge        InstanceType = "r5a.16xlarge"
-	InstanceTypeR5a24xlarge        InstanceType = "r5a.24xlarge"
-	InstanceTypeR5adLarge          InstanceType = "r5ad.large"
-	InstanceTypeR5adXlarge         InstanceType = "r5ad.xlarge"
-	InstanceTypeR5ad2xlarge        InstanceType = "r5ad.2xlarge"
-	InstanceTypeR5ad4xlarge        InstanceType = "r5ad.4xlarge"
-	InstanceTypeR5ad8xlarge        InstanceType = "r5ad.8xlarge"
-	InstanceTypeR5ad12xlarge       InstanceType = "r5ad.12xlarge"
-	InstanceTypeR5ad16xlarge       InstanceType = "r5ad.16xlarge"
-	InstanceTypeR5ad24xlarge       InstanceType = "r5ad.24xlarge"
-	InstanceTypeR5bLarge           InstanceType = "r5b.large"
-	InstanceTypeR5bXlarge          InstanceType = "r5b.xlarge"
-	InstanceTypeR5b2xlarge         InstanceType = "r5b.2xlarge"
-	InstanceTypeR5b4xlarge         InstanceType = "r5b.4xlarge"
-	InstanceTypeR5b8xlarge         InstanceType = "r5b.8xlarge"
-	InstanceTypeR5b12xlarge        InstanceType = "r5b.12xlarge"
-	InstanceTypeR5b16xlarge        InstanceType = "r5b.16xlarge"
-	InstanceTypeR5b24xlarge        InstanceType = "r5b.24xlarge"
-	InstanceTypeR5bMetal           InstanceType = "r5b.metal"
-	InstanceTypeR5dLarge           InstanceType = "r5d.large"
-	InstanceTypeR5dXlarge          InstanceType = "r5d.xlarge"
-	InstanceTypeR5d2xlarge         InstanceType = "r5d.2xlarge"
-	InstanceTypeR5d4xlarge         InstanceType = "r5d.4xlarge"
-	InstanceTypeR5d8xlarge         InstanceType = "r5d.8xlarge"
-	InstanceTypeR5d12xlarge        InstanceType = "r5d.12xlarge"
-	InstanceTypeR5d16xlarge        InstanceType = "r5d.16xlarge"
-	InstanceTypeR5d24xlarge        InstanceType = "r5d.24xlarge"
-	InstanceTypeR5dMetal           InstanceType = "r5d.metal"
-	InstanceTypeR5dnLarge          InstanceType = "r5dn.large"
-	InstanceTypeR5dnXlarge         InstanceType = "r5dn.xlarge"
-	InstanceTypeR5dn2xlarge        InstanceType = "r5dn.2xlarge"
-	InstanceTypeR5dn4xlarge        InstanceType = "r5dn.4xlarge"
-	InstanceTypeR5dn8xlarge        InstanceType = "r5dn.8xlarge"
-	InstanceTypeR5dn12xlarge       InstanceType = "r5dn.12xlarge"
-	InstanceTypeR5dn16xlarge       InstanceType = "r5dn.16xlarge"
-	InstanceTypeR5dn24xlarge       InstanceType = "r5dn.24xlarge"
-	InstanceTypeR5dnMetal          InstanceType = "r5dn.metal"
-	InstanceTypeR5nLarge           InstanceType = "r5n.large"
-	InstanceTypeR5nXlarge          InstanceType = "r5n.xlarge"
-	InstanceTypeR5n2xlarge         InstanceType = "r5n.2xlarge"
-	InstanceTypeR5n4xlarge         InstanceType = "r5n.4xlarge"
-	InstanceTypeR5n8xlarge         InstanceType = "r5n.8xlarge"
-	InstanceTypeR5n12xlarge        InstanceType = "r5n.12xlarge"
-	InstanceTypeR5n16xlarge        InstanceType = "r5n.16xlarge"
-	InstanceTypeR5n24xlarge        InstanceType = "r5n.24xlarge"
-	InstanceTypeR5nMetal           InstanceType = "r5n.metal"
-	InstanceTypeR6gMedium          InstanceType = "r6g.medium"
-	InstanceTypeR6gLarge           InstanceType = "r6g.large"
-	InstanceTypeR6gXlarge          InstanceType = "r6g.xlarge"
-	InstanceTypeR6g2xlarge         InstanceType = "r6g.2xlarge"
-	InstanceTypeR6g4xlarge         InstanceType = "r6g.4xlarge"
-	InstanceTypeR6g8xlarge         InstanceType = "r6g.8xlarge"
-	InstanceTypeR6g12xlarge        InstanceType = "r6g.12xlarge"
-	InstanceTypeR6g16xlarge        InstanceType = "r6g.16xlarge"
-	InstanceTypeR6gMetal           InstanceType = "r6g.metal"
-	InstanceTypeR6gdMedium         InstanceType = "r6gd.medium"
-	InstanceTypeR6gdLarge          InstanceType = "r6gd.large"
-	InstanceTypeR6gdXlarge         InstanceType = "r6gd.xlarge"
-	InstanceTypeR6gd2xlarge        InstanceType = "r6gd.2xlarge"
-	InstanceTypeR6gd4xlarge        InstanceType = "r6gd.4xlarge"
-	InstanceTypeR6gd8xlarge        InstanceType = "r6gd.8xlarge"
-	InstanceTypeR6gd12xlarge       InstanceType = "r6gd.12xlarge"
-	InstanceTypeR6gd16xlarge       InstanceType = "r6gd.16xlarge"
-	InstanceTypeR6gdMetal          InstanceType = "r6gd.metal"
-	InstanceTypeR6iLarge           InstanceType = "r6i.large"
-	InstanceTypeR6iXlarge          InstanceType = "r6i.xlarge"
-	InstanceTypeR6i2xlarge         InstanceType = "r6i.2xlarge"
-	InstanceTypeR6i4xlarge         InstanceType = "r6i.4xlarge"
-	InstanceTypeR6i8xlarge         InstanceType = "r6i.8xlarge"
-	InstanceTypeR6i12xlarge        InstanceType = "r6i.12xlarge"
-	InstanceTypeR6i16xlarge        InstanceType = "r6i.16xlarge"
-	InstanceTypeR6i24xlarge        InstanceType = "r6i.24xlarge"
-	InstanceTypeR6i32xlarge        InstanceType = "r6i.32xlarge"
-	InstanceTypeR6iMetal           InstanceType = "r6i.metal"
-	InstanceTypeT1Micro            InstanceType = "t1.micro"
-	InstanceTypeT2Nano             InstanceType = "t2.nano"
-	InstanceTypeT2Micro            InstanceType = "t2.micro"
-	InstanceTypeT2Small            InstanceType = "t2.small"
-	InstanceTypeT2Medium           InstanceType = "t2.medium"
-	InstanceTypeT2Large            InstanceType = "t2.large"
-	InstanceTypeT2Xlarge           InstanceType = "t2.xlarge"
-	InstanceTypeT22xlarge          InstanceType = "t2.2xlarge"
-	InstanceTypeT3Nano             InstanceType = "t3.nano"
-	InstanceTypeT3Micro            InstanceType = "t3.micro"
-	InstanceTypeT3Small            InstanceType = "t3.small"
-	InstanceTypeT3Medium           InstanceType = "t3.medium"
-	InstanceTypeT3Large            InstanceType = "t3.large"
-	InstanceTypeT3Xlarge           InstanceType = "t3.xlarge"
-	InstanceTypeT32xlarge          InstanceType = "t3.2xlarge"
-	InstanceTypeT3aNano            InstanceType = "t3a.nano"
-	InstanceTypeT3aMicro           InstanceType = "t3a.micro"
-	InstanceTypeT3aSmall           InstanceType = "t3a.small"
-	InstanceTypeT3aMedium          InstanceType = "t3a.medium"
-	InstanceTypeT3aLarge           InstanceType = "t3a.large"
-	InstanceTypeT3aXlarge          InstanceType = "t3a.xlarge"
-	InstanceTypeT3a2xlarge         InstanceType = "t3a.2xlarge"
-	InstanceTypeT4gNano            InstanceType = "t4g.nano"
-	InstanceTypeT4gMicro           InstanceType = "t4g.micro"
-	InstanceTypeT4gSmall           InstanceType = "t4g.small"
-	InstanceTypeT4gMedium          InstanceType = "t4g.medium"
-	InstanceTypeT4gLarge           InstanceType = "t4g.large"
-	InstanceTypeT4gXlarge          InstanceType = "t4g.xlarge"
-	InstanceTypeT4g2xlarge         InstanceType = "t4g.2xlarge"
-	InstanceTypeU6tb156xlarge      InstanceType = "u-6tb1.56xlarge"
-	InstanceTypeU6tb1112xlarge     InstanceType = "u-6tb1.112xlarge"
-	InstanceTypeU9tb1112xlarge     InstanceType = "u-9tb1.112xlarge"
-	InstanceTypeU12tb1112xlarge    InstanceType = "u-12tb1.112xlarge"
-	InstanceTypeU6tb1Metal         InstanceType = "u-6tb1.metal"
-	InstanceTypeU9tb1Metal         InstanceType = "u-9tb1.metal"
-	InstanceTypeU12tb1Metal        InstanceType = "u-12tb1.metal"
-	InstanceTypeU18tb1Metal        InstanceType = "u-18tb1.metal"
-	InstanceTypeU24tb1Metal        InstanceType = "u-24tb1.metal"
-	InstanceTypeVt13xlarge         InstanceType = "vt1.3xlarge"
-	InstanceTypeVt16xlarge         InstanceType = "vt1.6xlarge"
-	InstanceTypeVt124xlarge        InstanceType = "vt1.24xlarge"
-	InstanceTypeX116xlarge         InstanceType = "x1.16xlarge"
-	InstanceTypeX132xlarge         InstanceType = "x1.32xlarge"
-	InstanceTypeX1eXlarge          InstanceType = "x1e.xlarge"
-	InstanceTypeX1e2xlarge         InstanceType = "x1e.2xlarge"
-	InstanceTypeX1e4xlarge         InstanceType = "x1e.4xlarge"
-	InstanceTypeX1e8xlarge         InstanceType = "x1e.8xlarge"
-	InstanceTypeX1e16xlarge        InstanceType = "x1e.16xlarge"
-	InstanceTypeX1e32xlarge        InstanceType = "x1e.32xlarge"
-	InstanceTypeX2iezn2xlarge      InstanceType = "x2iezn.2xlarge"
-	InstanceTypeX2iezn4xlarge      InstanceType = "x2iezn.4xlarge"
-	InstanceTypeX2iezn6xlarge      InstanceType = "x2iezn.6xlarge"
-	InstanceTypeX2iezn8xlarge      InstanceType = "x2iezn.8xlarge"
-	InstanceTypeX2iezn12xlarge     InstanceType = "x2iezn.12xlarge"
-	InstanceTypeX2ieznMetal        InstanceType = "x2iezn.metal"
-	InstanceTypeX2gdMedium         InstanceType = "x2gd.medium"
-	InstanceTypeX2gdLarge          InstanceType = "x2gd.large"
-	InstanceTypeX2gdXlarge         InstanceType = "x2gd.xlarge"
-	InstanceTypeX2gd2xlarge        InstanceType = "x2gd.2xlarge"
-	InstanceTypeX2gd4xlarge        InstanceType = "x2gd.4xlarge"
-	InstanceTypeX2gd8xlarge        InstanceType = "x2gd.8xlarge"
-	InstanceTypeX2gd12xlarge       InstanceType = "x2gd.12xlarge"
-	InstanceTypeX2gd16xlarge       InstanceType = "x2gd.16xlarge"
-	InstanceTypeX2gdMetal          InstanceType = "x2gd.metal"
-	InstanceTypeZ1dLarge           InstanceType = "z1d.large"
-	InstanceTypeZ1dXlarge          InstanceType = "z1d.xlarge"
-	InstanceTypeZ1d2xlarge         InstanceType = "z1d.2xlarge"
-	InstanceTypeZ1d3xlarge         InstanceType = "z1d.3xlarge"
-	InstanceTypeZ1d6xlarge         InstanceType = "z1d.6xlarge"
-	InstanceTypeZ1d12xlarge        InstanceType = "z1d.12xlarge"
-	InstanceTypeZ1dMetal           InstanceType = "z1d.metal"
-	InstanceTypeX2idn16xlarge      InstanceType = "x2idn.16xlarge"
-	InstanceTypeX2idn24xlarge      InstanceType = "x2idn.24xlarge"
-	InstanceTypeX2idn32xlarge      InstanceType = "x2idn.32xlarge"
-	InstanceTypeX2iednXlarge       InstanceType = "x2iedn.xlarge"
-	InstanceTypeX2iedn2xlarge      InstanceType = "x2iedn.2xlarge"
-	InstanceTypeX2iedn4xlarge      InstanceType = "x2iedn.4xlarge"
-	InstanceTypeX2iedn8xlarge      InstanceType = "x2iedn.8xlarge"
-	InstanceTypeX2iedn16xlarge     InstanceType = "x2iedn.16xlarge"
-	InstanceTypeX2iedn24xlarge     InstanceType = "x2iedn.24xlarge"
-	InstanceTypeX2iedn32xlarge     InstanceType = "x2iedn.32xlarge"
-	InstanceTypeC6aLarge           InstanceType = "c6a.large"
-	InstanceTypeC6aXlarge          InstanceType = "c6a.xlarge"
-	InstanceTypeC6a2xlarge         InstanceType = "c6a.2xlarge"
-	InstanceTypeC6a4xlarge         InstanceType = "c6a.4xlarge"
-	InstanceTypeC6a8xlarge         InstanceType = "c6a.8xlarge"
-	InstanceTypeC6a12xlarge        InstanceType = "c6a.12xlarge"
-	InstanceTypeC6a16xlarge        InstanceType = "c6a.16xlarge"
-	InstanceTypeC6a24xlarge        InstanceType = "c6a.24xlarge"
-	InstanceTypeC6a32xlarge        InstanceType = "c6a.32xlarge"
-	InstanceTypeC6a48xlarge        InstanceType = "c6a.48xlarge"
-	InstanceTypeC6aMetal           InstanceType = "c6a.metal"
-	InstanceTypeM6aMetal           InstanceType = "m6a.metal"
-	InstanceTypeI4iLarge           InstanceType = "i4i.large"
-	InstanceTypeI4iXlarge          InstanceType = "i4i.xlarge"
-	InstanceTypeI4i2xlarge         InstanceType = "i4i.2xlarge"
-	InstanceTypeI4i4xlarge         InstanceType = "i4i.4xlarge"
-	InstanceTypeI4i8xlarge         InstanceType = "i4i.8xlarge"
-	InstanceTypeI4i16xlarge        InstanceType = "i4i.16xlarge"
-	InstanceTypeI4i32xlarge        InstanceType = "i4i.32xlarge"
-	InstanceTypeI4iMetal           InstanceType = "i4i.metal"
-	InstanceTypeX2idnMetal         InstanceType = "x2idn.metal"
-	InstanceTypeX2iednMetal        InstanceType = "x2iedn.metal"
-	InstanceTypeC7gMedium          InstanceType = "c7g.medium"
-	InstanceTypeC7gLarge           InstanceType = "c7g.large"
-	InstanceTypeC7gXlarge          InstanceType = "c7g.xlarge"
-	InstanceTypeC7g2xlarge         InstanceType = "c7g.2xlarge"
-	InstanceTypeC7g4xlarge         InstanceType = "c7g.4xlarge"
-	InstanceTypeC7g8xlarge         InstanceType = "c7g.8xlarge"
-	InstanceTypeC7g12xlarge        InstanceType = "c7g.12xlarge"
-	InstanceTypeC7g16xlarge        InstanceType = "c7g.16xlarge"
-	InstanceTypeMac2Metal          InstanceType = "mac2.metal"
-	InstanceTypeC6idLarge          InstanceType = "c6id.large"
-	InstanceTypeC6idXlarge         InstanceType = "c6id.xlarge"
-	InstanceTypeC6id2xlarge        InstanceType = "c6id.2xlarge"
-	InstanceTypeC6id4xlarge        InstanceType = "c6id.4xlarge"
-	InstanceTypeC6id8xlarge        InstanceType = "c6id.8xlarge"
-	InstanceTypeC6id12xlarge       InstanceType = "c6id.12xlarge"
-	InstanceTypeC6id16xlarge       InstanceType = "c6id.16xlarge"
-	InstanceTypeC6id24xlarge       InstanceType = "c6id.24xlarge"
-	InstanceTypeC6id32xlarge       InstanceType = "c6id.32xlarge"
-	InstanceTypeC6idMetal          InstanceType = "c6id.metal"
-	InstanceTypeM6idLarge          InstanceType = "m6id.large"
-	InstanceTypeM6idXlarge         InstanceType = "m6id.xlarge"
-	InstanceTypeM6id2xlarge        InstanceType = "m6id.2xlarge"
-	InstanceTypeM6id4xlarge        InstanceType = "m6id.4xlarge"
-	InstanceTypeM6id8xlarge        InstanceType = "m6id.8xlarge"
-	InstanceTypeM6id12xlarge       InstanceType = "m6id.12xlarge"
-	InstanceTypeM6id16xlarge       InstanceType = "m6id.16xlarge"
-	InstanceTypeM6id24xlarge       InstanceType = "m6id.24xlarge"
-	InstanceTypeM6id32xlarge       InstanceType = "m6id.32xlarge"
-	InstanceTypeM6idMetal          InstanceType = "m6id.metal"
-	InstanceTypeR6idLarge          InstanceType = "r6id.large"
-	InstanceTypeR6idXlarge         InstanceType = "r6id.xlarge"
-	InstanceTypeR6id2xlarge        InstanceType = "r6id.2xlarge"
-	InstanceTypeR6id4xlarge        InstanceType = "r6id.4xlarge"
-	InstanceTypeR6id8xlarge        InstanceType = "r6id.8xlarge"
-	InstanceTypeR6id12xlarge       InstanceType = "r6id.12xlarge"
-	InstanceTypeR6id16xlarge       InstanceType = "r6id.16xlarge"
-	InstanceTypeR6id24xlarge       InstanceType = "r6id.24xlarge"
-	InstanceTypeR6id32xlarge       InstanceType = "r6id.32xlarge"
-	InstanceTypeR6idMetal          InstanceType = "r6id.metal"
-	InstanceTypeR6aLarge           InstanceType = "r6a.large"
-	InstanceTypeR6aXlarge          InstanceType = "r6a.xlarge"
-	InstanceTypeR6a2xlarge         InstanceType = "r6a.2xlarge"
-	InstanceTypeR6a4xlarge         InstanceType = "r6a.4xlarge"
-	InstanceTypeR6a8xlarge         InstanceType = "r6a.8xlarge"
-	InstanceTypeR6a12xlarge        InstanceType = "r6a.12xlarge"
-	InstanceTypeR6a16xlarge        InstanceType = "r6a.16xlarge"
-	InstanceTypeR6a24xlarge        InstanceType = "r6a.24xlarge"
-	InstanceTypeR6a32xlarge        InstanceType = "r6a.32xlarge"
-	InstanceTypeR6a48xlarge        InstanceType = "r6a.48xlarge"
-	InstanceTypeR6aMetal           InstanceType = "r6a.metal"
-	InstanceTypeP4de24xlarge       InstanceType = "p4de.24xlarge"
-	InstanceTypeU3tb156xlarge      InstanceType = "u-3tb1.56xlarge"
-	InstanceTypeU18tb1112xlarge    InstanceType = "u-18tb1.112xlarge"
-	InstanceTypeU24tb1112xlarge    InstanceType = "u-24tb1.112xlarge"
-	InstanceTypeTrn12xlarge        InstanceType = "trn1.2xlarge"
-	InstanceTypeTrn132xlarge       InstanceType = "trn1.32xlarge"
-	InstanceTypeHpc6id32xlarge     InstanceType = "hpc6id.32xlarge"
-	InstanceTypeC6inLarge          InstanceType = "c6in.large"
-	InstanceTypeC6inXlarge         InstanceType = "c6in.xlarge"
-	InstanceTypeC6in2xlarge        InstanceType = "c6in.2xlarge"
-	InstanceTypeC6in4xlarge        InstanceType = "c6in.4xlarge"
-	InstanceTypeC6in8xlarge        InstanceType = "c6in.8xlarge"
-	InstanceTypeC6in12xlarge       InstanceType = "c6in.12xlarge"
-	InstanceTypeC6in16xlarge       InstanceType = "c6in.16xlarge"
-	InstanceTypeC6in24xlarge       InstanceType = "c6in.24xlarge"
-	InstanceTypeC6in32xlarge       InstanceType = "c6in.32xlarge"
-	InstanceTypeM6inLarge          InstanceType = "m6in.large"
-	InstanceTypeM6inXlarge         InstanceType = "m6in.xlarge"
-	InstanceTypeM6in2xlarge        InstanceType = "m6in.2xlarge"
-	InstanceTypeM6in4xlarge        InstanceType = "m6in.4xlarge"
-	InstanceTypeM6in8xlarge        InstanceType = "m6in.8xlarge"
-	InstanceTypeM6in12xlarge       InstanceType = "m6in.12xlarge"
-	InstanceTypeM6in16xlarge       InstanceType = "m6in.16xlarge"
-	InstanceTypeM6in24xlarge       InstanceType = "m6in.24xlarge"
-	InstanceTypeM6in32xlarge       InstanceType = "m6in.32xlarge"
-	InstanceTypeM6idnLarge         InstanceType = "m6idn.large"
-	InstanceTypeM6idnXlarge        InstanceType = "m6idn.xlarge"
-	InstanceTypeM6idn2xlarge       InstanceType = "m6idn.2xlarge"
-	InstanceTypeM6idn4xlarge       InstanceType = "m6idn.4xlarge"
-	InstanceTypeM6idn8xlarge       InstanceType = "m6idn.8xlarge"
-	InstanceTypeM6idn12xlarge      InstanceType = "m6idn.12xlarge"
-	InstanceTypeM6idn16xlarge      InstanceType = "m6idn.16xlarge"
-	InstanceTypeM6idn24xlarge      InstanceType = "m6idn.24xlarge"
-	InstanceTypeM6idn32xlarge      InstanceType = "m6idn.32xlarge"
-	InstanceTypeR6inLarge          InstanceType = "r6in.large"
-	InstanceTypeR6inXlarge         InstanceType = "r6in.xlarge"
-	InstanceTypeR6in2xlarge        InstanceType = "r6in.2xlarge"
-	InstanceTypeR6in4xlarge        InstanceType = "r6in.4xlarge"
-	InstanceTypeR6in8xlarge        InstanceType = "r6in.8xlarge"
-	InstanceTypeR6in12xlarge       InstanceType = "r6in.12xlarge"
-	InstanceTypeR6in16xlarge       InstanceType = "r6in.16xlarge"
-	InstanceTypeR6in24xlarge       InstanceType = "r6in.24xlarge"
-	InstanceTypeR6in32xlarge       InstanceType = "r6in.32xlarge"
-	InstanceTypeR6idnLarge         InstanceType = "r6idn.large"
-	InstanceTypeR6idnXlarge        InstanceType = "r6idn.xlarge"
-	InstanceTypeR6idn2xlarge       InstanceType = "r6idn.2xlarge"
-	InstanceTypeR6idn4xlarge       InstanceType = "r6idn.4xlarge"
-	InstanceTypeR6idn8xlarge       InstanceType = "r6idn.8xlarge"
-	InstanceTypeR6idn12xlarge      InstanceType = "r6idn.12xlarge"
-	InstanceTypeR6idn16xlarge      InstanceType = "r6idn.16xlarge"
-	InstanceTypeR6idn24xlarge      InstanceType = "r6idn.24xlarge"
-	InstanceTypeR6idn32xlarge      InstanceType = "r6idn.32xlarge"
-	InstanceTypeC7gMetal           InstanceType = "c7g.metal"
-	InstanceTypeM7gMedium          InstanceType = "m7g.medium"
-	InstanceTypeM7gLarge           InstanceType = "m7g.large"
-	InstanceTypeM7gXlarge          InstanceType = "m7g.xlarge"
-	InstanceTypeM7g2xlarge         InstanceType = "m7g.2xlarge"
-	InstanceTypeM7g4xlarge         InstanceType = "m7g.4xlarge"
-	InstanceTypeM7g8xlarge         InstanceType = "m7g.8xlarge"
-	InstanceTypeM7g12xlarge        InstanceType = "m7g.12xlarge"
-	InstanceTypeM7g16xlarge        InstanceType = "m7g.16xlarge"
-	InstanceTypeM7gMetal           InstanceType = "m7g.metal"
-	InstanceTypeR7gMedium          InstanceType = "r7g.medium"
-	InstanceTypeR7gLarge           InstanceType = "r7g.large"
-	InstanceTypeR7gXlarge          InstanceType = "r7g.xlarge"
-	InstanceTypeR7g2xlarge         InstanceType = "r7g.2xlarge"
-	InstanceTypeR7g4xlarge         InstanceType = "r7g.4xlarge"
-	InstanceTypeR7g8xlarge         InstanceType = "r7g.8xlarge"
-	InstanceTypeR7g12xlarge        InstanceType = "r7g.12xlarge"
-	InstanceTypeR7g16xlarge        InstanceType = "r7g.16xlarge"
-	InstanceTypeR7gMetal           InstanceType = "r7g.metal"
-	InstanceTypeC6inMetal          InstanceType = "c6in.metal"
-	InstanceTypeM6inMetal          InstanceType = "m6in.metal"
-	InstanceTypeM6idnMetal         InstanceType = "m6idn.metal"
-	InstanceTypeR6inMetal          InstanceType = "r6in.metal"
-	InstanceTypeR6idnMetal         InstanceType = "r6idn.metal"
-	InstanceTypeInf2Xlarge         InstanceType = "inf2.xlarge"
-	InstanceTypeInf28xlarge        InstanceType = "inf2.8xlarge"
-	InstanceTypeInf224xlarge       InstanceType = "inf2.24xlarge"
-	InstanceTypeInf248xlarge       InstanceType = "inf2.48xlarge"
-	InstanceTypeTrn1n32xlarge      InstanceType = "trn1n.32xlarge"
-	InstanceTypeI4gLarge           InstanceType = "i4g.large"
-	InstanceTypeI4gXlarge          InstanceType = "i4g.xlarge"
-	InstanceTypeI4g2xlarge         InstanceType = "i4g.2xlarge"
-	InstanceTypeI4g4xlarge         InstanceType = "i4g.4xlarge"
-	InstanceTypeI4g8xlarge         InstanceType = "i4g.8xlarge"
-	InstanceTypeI4g16xlarge        InstanceType = "i4g.16xlarge"
-	InstanceTypeHpc7g4xlarge       InstanceType = "hpc7g.4xlarge"
-	InstanceTypeHpc7g8xlarge       InstanceType = "hpc7g.8xlarge"
-	InstanceTypeHpc7g16xlarge      InstanceType = "hpc7g.16xlarge"
-	InstanceTypeC7gnMedium         InstanceType = "c7gn.medium"
-	InstanceTypeC7gnLarge          InstanceType = "c7gn.large"
-	InstanceTypeC7gnXlarge         InstanceType = "c7gn.xlarge"
-	InstanceTypeC7gn2xlarge        InstanceType = "c7gn.2xlarge"
-	InstanceTypeC7gn4xlarge        InstanceType = "c7gn.4xlarge"
-	InstanceTypeC7gn8xlarge        InstanceType = "c7gn.8xlarge"
-	InstanceTypeC7gn12xlarge       InstanceType = "c7gn.12xlarge"
-	InstanceTypeC7gn16xlarge       InstanceType = "c7gn.16xlarge"
-	InstanceTypeP548xlarge         InstanceType = "p5.48xlarge"
-	InstanceTypeM7iLarge           InstanceType = "m7i.large"
-	InstanceTypeM7iXlarge          InstanceType = "m7i.xlarge"
-	InstanceTypeM7i2xlarge         InstanceType = "m7i.2xlarge"
-	InstanceTypeM7i4xlarge         InstanceType = "m7i.4xlarge"
-	InstanceTypeM7i8xlarge         InstanceType = "m7i.8xlarge"
-	InstanceTypeM7i12xlarge        InstanceType = "m7i.12xlarge"
-	InstanceTypeM7i16xlarge        InstanceType = "m7i.16xlarge"
-	InstanceTypeM7i24xlarge        InstanceType = "m7i.24xlarge"
-	InstanceTypeM7i48xlarge        InstanceType = "m7i.48xlarge"
-	InstanceTypeM7iFlexLarge       InstanceType = "m7i-flex.large"
-	InstanceTypeM7iFlexXlarge      InstanceType = "m7i-flex.xlarge"
-	InstanceTypeM7iFlex2xlarge     InstanceType = "m7i-flex.2xlarge"
-	InstanceTypeM7iFlex4xlarge     InstanceType = "m7i-flex.4xlarge"
-	InstanceTypeM7iFlex8xlarge     InstanceType = "m7i-flex.8xlarge"
-	InstanceTypeM7aMedium          InstanceType = "m7a.medium"
-	InstanceTypeM7aLarge           InstanceType = "m7a.large"
-	InstanceTypeM7aXlarge          InstanceType = "m7a.xlarge"
-	InstanceTypeM7a2xlarge         InstanceType = "m7a.2xlarge"
-	InstanceTypeM7a4xlarge         InstanceType = "m7a.4xlarge"
-	InstanceTypeM7a8xlarge         InstanceType = "m7a.8xlarge"
-	InstanceTypeM7a12xlarge        InstanceType = "m7a.12xlarge"
-	InstanceTypeM7a16xlarge        InstanceType = "m7a.16xlarge"
-	InstanceTypeM7a24xlarge        InstanceType = "m7a.24xlarge"
-	InstanceTypeM7a32xlarge        InstanceType = "m7a.32xlarge"
-	InstanceTypeM7a48xlarge        InstanceType = "m7a.48xlarge"
-	InstanceTypeM7aMetal48xl       InstanceType = "m7a.metal-48xl"
-	InstanceTypeHpc7a12xlarge      InstanceType = "hpc7a.12xlarge"
-	InstanceTypeHpc7a24xlarge      InstanceType = "hpc7a.24xlarge"
-	InstanceTypeHpc7a48xlarge      InstanceType = "hpc7a.48xlarge"
-	InstanceTypeHpc7a96xlarge      InstanceType = "hpc7a.96xlarge"
-	InstanceTypeC7gdMedium         InstanceType = "c7gd.medium"
-	InstanceTypeC7gdLarge          InstanceType = "c7gd.large"
-	InstanceTypeC7gdXlarge         InstanceType = "c7gd.xlarge"
-	InstanceTypeC7gd2xlarge        InstanceType = "c7gd.2xlarge"
-	InstanceTypeC7gd4xlarge        InstanceType = "c7gd.4xlarge"
-	InstanceTypeC7gd8xlarge        InstanceType = "c7gd.8xlarge"
-	InstanceTypeC7gd12xlarge       InstanceType = "c7gd.12xlarge"
-	InstanceTypeC7gd16xlarge       InstanceType = "c7gd.16xlarge"
-	InstanceTypeM7gdMedium         InstanceType = "m7gd.medium"
-	InstanceTypeM7gdLarge          InstanceType = "m7gd.large"
-	InstanceTypeM7gdXlarge         InstanceType = "m7gd.xlarge"
-	InstanceTypeM7gd2xlarge        InstanceType = "m7gd.2xlarge"
-	InstanceTypeM7gd4xlarge        InstanceType = "m7gd.4xlarge"
-	InstanceTypeM7gd8xlarge        InstanceType = "m7gd.8xlarge"
-	InstanceTypeM7gd12xlarge       InstanceType = "m7gd.12xlarge"
-	InstanceTypeM7gd16xlarge       InstanceType = "m7gd.16xlarge"
-	InstanceTypeR7gdMedium         InstanceType = "r7gd.medium"
-	InstanceTypeR7gdLarge          InstanceType = "r7gd.large"
-	InstanceTypeR7gdXlarge         InstanceType = "r7gd.xlarge"
-	InstanceTypeR7gd2xlarge        InstanceType = "r7gd.2xlarge"
-	InstanceTypeR7gd4xlarge        InstanceType = "r7gd.4xlarge"
-	InstanceTypeR7gd8xlarge        InstanceType = "r7gd.8xlarge"
-	InstanceTypeR7gd12xlarge       InstanceType = "r7gd.12xlarge"
-	InstanceTypeR7gd16xlarge       InstanceType = "r7gd.16xlarge"
-	InstanceTypeR7aMedium          InstanceType = "r7a.medium"
-	InstanceTypeR7aLarge           InstanceType = "r7a.large"
-	InstanceTypeR7aXlarge          InstanceType = "r7a.xlarge"
-	InstanceTypeR7a2xlarge         InstanceType = "r7a.2xlarge"
-	InstanceTypeR7a4xlarge         InstanceType = "r7a.4xlarge"
-	InstanceTypeR7a8xlarge         InstanceType = "r7a.8xlarge"
-	InstanceTypeR7a12xlarge        InstanceType = "r7a.12xlarge"
-	InstanceTypeR7a16xlarge        InstanceType = "r7a.16xlarge"
-	InstanceTypeR7a24xlarge        InstanceType = "r7a.24xlarge"
-	InstanceTypeR7a32xlarge        InstanceType = "r7a.32xlarge"
-	InstanceTypeR7a48xlarge        InstanceType = "r7a.48xlarge"
-	InstanceTypeC7iLarge           InstanceType = "c7i.large"
-	InstanceTypeC7iXlarge          InstanceType = "c7i.xlarge"
-	InstanceTypeC7i2xlarge         InstanceType = "c7i.2xlarge"
-	InstanceTypeC7i4xlarge         InstanceType = "c7i.4xlarge"
-	InstanceTypeC7i8xlarge         InstanceType = "c7i.8xlarge"
-	InstanceTypeC7i12xlarge        InstanceType = "c7i.12xlarge"
-	InstanceTypeC7i16xlarge        InstanceType = "c7i.16xlarge"
-	InstanceTypeC7i24xlarge        InstanceType = "c7i.24xlarge"
-	InstanceTypeC7i48xlarge        InstanceType = "c7i.48xlarge"
-	InstanceTypeMac2M2proMetal     InstanceType = "mac2-m2pro.metal"
-	InstanceTypeR7izLarge          InstanceType = "r7iz.large"
-	InstanceTypeR7izXlarge         InstanceType = "r7iz.xlarge"
-	InstanceTypeR7iz2xlarge        InstanceType = "r7iz.2xlarge"
-	InstanceTypeR7iz4xlarge        InstanceType = "r7iz.4xlarge"
-	InstanceTypeR7iz8xlarge        InstanceType = "r7iz.8xlarge"
-	InstanceTypeR7iz12xlarge       InstanceType = "r7iz.12xlarge"
-	InstanceTypeR7iz16xlarge       InstanceType = "r7iz.16xlarge"
-	InstanceTypeR7iz32xlarge       InstanceType = "r7iz.32xlarge"
-	InstanceTypeC7aMedium          InstanceType = "c7a.medium"
-	InstanceTypeC7aLarge           InstanceType = "c7a.large"
-	InstanceTypeC7aXlarge          InstanceType = "c7a.xlarge"
-	InstanceTypeC7a2xlarge         InstanceType = "c7a.2xlarge"
-	InstanceTypeC7a4xlarge         InstanceType = "c7a.4xlarge"
-	InstanceTypeC7a8xlarge         InstanceType = "c7a.8xlarge"
-	InstanceTypeC7a12xlarge        InstanceType = "c7a.12xlarge"
-	InstanceTypeC7a16xlarge        InstanceType = "c7a.16xlarge"
-	InstanceTypeC7a24xlarge        InstanceType = "c7a.24xlarge"
-	InstanceTypeC7a32xlarge        InstanceType = "c7a.32xlarge"
-	InstanceTypeC7a48xlarge        InstanceType = "c7a.48xlarge"
-	InstanceTypeC7aMetal48xl       InstanceType = "c7a.metal-48xl"
-	InstanceTypeR7aMetal48xl       InstanceType = "r7a.metal-48xl"
-	InstanceTypeR7iLarge           InstanceType = "r7i.large"
-	InstanceTypeR7iXlarge          InstanceType = "r7i.xlarge"
-	InstanceTypeR7i2xlarge         InstanceType = "r7i.2xlarge"
-	InstanceTypeR7i4xlarge         InstanceType = "r7i.4xlarge"
-	InstanceTypeR7i8xlarge         InstanceType = "r7i.8xlarge"
-	InstanceTypeR7i12xlarge        InstanceType = "r7i.12xlarge"
-	InstanceTypeR7i16xlarge        InstanceType = "r7i.16xlarge"
-	InstanceTypeR7i24xlarge        InstanceType = "r7i.24xlarge"
-	InstanceTypeR7i48xlarge        InstanceType = "r7i.48xlarge"
-	InstanceTypeDl2q24xlarge       InstanceType = "dl2q.24xlarge"
-	InstanceTypeMac2M2Metal        InstanceType = "mac2-m2.metal"
-	InstanceTypeI4i12xlarge        InstanceType = "i4i.12xlarge"
-	InstanceTypeI4i24xlarge        InstanceType = "i4i.24xlarge"
-	InstanceTypeC7iMetal24xl       InstanceType = "c7i.metal-24xl"
-	InstanceTypeC7iMetal48xl       InstanceType = "c7i.metal-48xl"
-	InstanceTypeM7iMetal24xl       InstanceType = "m7i.metal-24xl"
-	InstanceTypeM7iMetal48xl       InstanceType = "m7i.metal-48xl"
-	InstanceTypeR7iMetal24xl       InstanceType = "r7i.metal-24xl"
-	InstanceTypeR7iMetal48xl       InstanceType = "r7i.metal-48xl"
-	InstanceTypeR7izMetal16xl      InstanceType = "r7iz.metal-16xl"
-	InstanceTypeR7izMetal32xl      InstanceType = "r7iz.metal-32xl"
-	InstanceTypeC7gdMetal          InstanceType = "c7gd.metal"
-	InstanceTypeM7gdMetal          InstanceType = "m7gd.metal"
-	InstanceTypeR7gdMetal          InstanceType = "r7gd.metal"
-	InstanceTypeG6Xlarge           InstanceType = "g6.xlarge"
-	InstanceTypeG62xlarge          InstanceType = "g6.2xlarge"
-	InstanceTypeG64xlarge          InstanceType = "g6.4xlarge"
-	InstanceTypeG68xlarge          InstanceType = "g6.8xlarge"
-	InstanceTypeG612xlarge         InstanceType = "g6.12xlarge"
-	InstanceTypeG616xlarge         InstanceType = "g6.16xlarge"
-	InstanceTypeG624xlarge         InstanceType = "g6.24xlarge"
-	InstanceTypeG648xlarge         InstanceType = "g6.48xlarge"
-	InstanceTypeGr64xlarge         InstanceType = "gr6.4xlarge"
-	InstanceTypeGr68xlarge         InstanceType = "gr6.8xlarge"
-	InstanceTypeC7iFlexLarge       InstanceType = "c7i-flex.large"
-	InstanceTypeC7iFlexXlarge      InstanceType = "c7i-flex.xlarge"
-	InstanceTypeC7iFlex2xlarge     InstanceType = "c7i-flex.2xlarge"
-	InstanceTypeC7iFlex4xlarge     InstanceType = "c7i-flex.4xlarge"
-	InstanceTypeC7iFlex8xlarge     InstanceType = "c7i-flex.8xlarge"
-	InstanceTypeU7i12tb224xlarge   InstanceType = "u7i-12tb.224xlarge"
-	InstanceTypeU7in16tb224xlarge  InstanceType = "u7in-16tb.224xlarge"
-	InstanceTypeU7in24tb224xlarge  InstanceType = "u7in-24tb.224xlarge"
-	InstanceTypeU7in32tb224xlarge  InstanceType = "u7in-32tb.224xlarge"
-	InstanceTypeU7ib12tb224xlarge  InstanceType = "u7ib-12tb.224xlarge"
-	InstanceTypeC7gnMetal          InstanceType = "c7gn.metal"
-	InstanceTypeR8gMedium          InstanceType = "r8g.medium"
-	InstanceTypeR8gLarge           InstanceType = "r8g.large"
-	InstanceTypeR8gXlarge          InstanceType = "r8g.xlarge"
-	InstanceTypeR8g2xlarge         InstanceType = "r8g.2xlarge"
-	InstanceTypeR8g4xlarge         InstanceType = "r8g.4xlarge"
-	InstanceTypeR8g8xlarge         InstanceType = "r8g.8xlarge"
-	InstanceTypeR8g12xlarge        InstanceType = "r8g.12xlarge"
-	InstanceTypeR8g16xlarge        InstanceType = "r8g.16xlarge"
-	InstanceTypeR8g24xlarge        InstanceType = "r8g.24xlarge"
-	InstanceTypeR8g48xlarge        InstanceType = "r8g.48xlarge"
-	InstanceTypeR8gMetal24xl       InstanceType = "r8g.metal-24xl"
-	InstanceTypeR8gMetal48xl       InstanceType = "r8g.metal-48xl"
-	InstanceTypeMac2M1ultraMetal   InstanceType = "mac2-m1ultra.metal"
-	InstanceTypeG6eXlarge          InstanceType = "g6e.xlarge"
-	InstanceTypeG6e2xlarge         InstanceType = "g6e.2xlarge"
-	InstanceTypeG6e4xlarge         InstanceType = "g6e.4xlarge"
-	InstanceTypeG6e8xlarge         InstanceType = "g6e.8xlarge"
-	InstanceTypeG6e12xlarge        InstanceType = "g6e.12xlarge"
-	InstanceTypeG6e16xlarge        InstanceType = "g6e.16xlarge"
-	InstanceTypeG6e24xlarge        InstanceType = "g6e.24xlarge"
-	InstanceTypeG6e48xlarge        InstanceType = "g6e.48xlarge"
-	InstanceTypeC8gMedium          InstanceType = "c8g.medium"
-	InstanceTypeC8gLarge           InstanceType = "c8g.large"
-	InstanceTypeC8gXlarge          InstanceType = "c8g.xlarge"
-	InstanceTypeC8g2xlarge         InstanceType = "c8g.2xlarge"
-	InstanceTypeC8g4xlarge         InstanceType = "c8g.4xlarge"
-	InstanceTypeC8g8xlarge         InstanceType = "c8g.8xlarge"
-	InstanceTypeC8g12xlarge        InstanceType = "c8g.12xlarge"
-	InstanceTypeC8g16xlarge        InstanceType = "c8g.16xlarge"
-	InstanceTypeC8g24xlarge        InstanceType = "c8g.24xlarge"
-	InstanceTypeC8g48xlarge        InstanceType = "c8g.48xlarge"
-	InstanceTypeC8gMetal24xl       InstanceType = "c8g.metal-24xl"
-	InstanceTypeC8gMetal48xl       InstanceType = "c8g.metal-48xl"
-	InstanceTypeM8gMedium          InstanceType = "m8g.medium"
-	InstanceTypeM8gLarge           InstanceType = "m8g.large"
-	InstanceTypeM8gXlarge          InstanceType = "m8g.xlarge"
-	InstanceTypeM8g2xlarge         InstanceType = "m8g.2xlarge"
-	InstanceTypeM8g4xlarge         InstanceType = "m8g.4xlarge"
-	InstanceTypeM8g8xlarge         InstanceType = "m8g.8xlarge"
-	InstanceTypeM8g12xlarge        InstanceType = "m8g.12xlarge"
-	InstanceTypeM8g16xlarge        InstanceType = "m8g.16xlarge"
-	InstanceTypeM8g24xlarge        InstanceType = "m8g.24xlarge"
-	InstanceTypeM8g48xlarge        InstanceType = "m8g.48xlarge"
-	InstanceTypeM8gMetal24xl       InstanceType = "m8g.metal-24xl"
-	InstanceTypeM8gMetal48xl       InstanceType = "m8g.metal-48xl"
-	InstanceTypeX8gMedium          InstanceType = "x8g.medium"
-	InstanceTypeX8gLarge           InstanceType = "x8g.large"
-	InstanceTypeX8gXlarge          InstanceType = "x8g.xlarge"
-	InstanceTypeX8g2xlarge         InstanceType = "x8g.2xlarge"
-	InstanceTypeX8g4xlarge         InstanceType = "x8g.4xlarge"
-	InstanceTypeX8g8xlarge         InstanceType = "x8g.8xlarge"
-	InstanceTypeX8g12xlarge        InstanceType = "x8g.12xlarge"
-	InstanceTypeX8g16xlarge        InstanceType = "x8g.16xlarge"
-	InstanceTypeX8g24xlarge        InstanceType = "x8g.24xlarge"
-	InstanceTypeX8g48xlarge        InstanceType = "x8g.48xlarge"
-	InstanceTypeX8gMetal24xl       InstanceType = "x8g.metal-24xl"
-	InstanceTypeX8gMetal48xl       InstanceType = "x8g.metal-48xl"
-	InstanceTypeI7ieLarge          InstanceType = "i7ie.large"
-	InstanceTypeI7ieXlarge         InstanceType = "i7ie.xlarge"
-	InstanceTypeI7ie2xlarge        InstanceType = "i7ie.2xlarge"
-	InstanceTypeI7ie3xlarge        InstanceType = "i7ie.3xlarge"
-	InstanceTypeI7ie6xlarge        InstanceType = "i7ie.6xlarge"
-	InstanceTypeI7ie12xlarge       InstanceType = "i7ie.12xlarge"
-	InstanceTypeI7ie18xlarge       InstanceType = "i7ie.18xlarge"
-	InstanceTypeI7ie24xlarge       InstanceType = "i7ie.24xlarge"
-	InstanceTypeI7ie48xlarge       InstanceType = "i7ie.48xlarge"
-	InstanceTypeI8gLarge           InstanceType = "i8g.large"
-	InstanceTypeI8gXlarge          InstanceType = "i8g.xlarge"
-	InstanceTypeI8g2xlarge         InstanceType = "i8g.2xlarge"
-	InstanceTypeI8g4xlarge         InstanceType = "i8g.4xlarge"
-	InstanceTypeI8g8xlarge         InstanceType = "i8g.8xlarge"
-	InstanceTypeI8g12xlarge        InstanceType = "i8g.12xlarge"
-	InstanceTypeI8g16xlarge        InstanceType = "i8g.16xlarge"
-	InstanceTypeI8g24xlarge        InstanceType = "i8g.24xlarge"
-	InstanceTypeI8gMetal24xl       InstanceType = "i8g.metal-24xl"
-	InstanceTypeU7i6tb112xlarge    InstanceType = "u7i-6tb.112xlarge"
-	InstanceTypeU7i8tb112xlarge    InstanceType = "u7i-8tb.112xlarge"
-	InstanceTypeU7inh32tb480xlarge InstanceType = "u7inh-32tb.480xlarge"
-	InstanceTypeP5e48xlarge        InstanceType = "p5e.48xlarge"
-	InstanceTypeP5en48xlarge       InstanceType = "p5en.48xlarge"
-	InstanceTypeF212xlarge         InstanceType = "f2.12xlarge"
-	InstanceTypeF248xlarge         InstanceType = "f2.48xlarge"
-	InstanceTypeTrn248xlarge       InstanceType = "trn2.48xlarge"
-	InstanceTypeC7iFlex12xlarge    InstanceType = "c7i-flex.12xlarge"
-	InstanceTypeC7iFlex16xlarge    InstanceType = "c7i-flex.16xlarge"
-	InstanceTypeM7iFlex12xlarge    InstanceType = "m7i-flex.12xlarge"
-	InstanceTypeM7iFlex16xlarge    InstanceType = "m7i-flex.16xlarge"
-	InstanceTypeI7ieMetal24xl      InstanceType = "i7ie.metal-24xl"
-	InstanceTypeI7ieMetal48xl      InstanceType = "i7ie.metal-48xl"
-	InstanceTypeI8g48xlarge        InstanceType = "i8g.48xlarge"
-	InstanceTypeC8gdMedium         InstanceType = "c8gd.medium"
-	InstanceTypeC8gdLarge          InstanceType = "c8gd.large"
-	InstanceTypeC8gdXlarge         InstanceType = "c8gd.xlarge"
-	InstanceTypeC8gd2xlarge        InstanceType = "c8gd.2xlarge"
-	InstanceTypeC8gd4xlarge        InstanceType = "c8gd.4xlarge"
-	InstanceTypeC8gd8xlarge        InstanceType = "c8gd.8xlarge"
-	InstanceTypeC8gd12xlarge       InstanceType = "c8gd.12xlarge"
-	InstanceTypeC8gd16xlarge       InstanceType = "c8gd.16xlarge"
-	InstanceTypeC8gd24xlarge       InstanceType = "c8gd.24xlarge"
-	InstanceTypeC8gd48xlarge       InstanceType = "c8gd.48xlarge"
-	InstanceTypeC8gdMetal24xl      InstanceType = "c8gd.metal-24xl"
-	InstanceTypeC8gdMetal48xl      InstanceType = "c8gd.metal-48xl"
-	InstanceTypeI7iLarge           InstanceType = "i7i.large"
-	InstanceTypeI7iXlarge          InstanceType = "i7i.xlarge"
-	InstanceTypeI7i2xlarge         InstanceType = "i7i.2xlarge"
-	InstanceTypeI7i4xlarge         InstanceType = "i7i.4xlarge"
-	InstanceTypeI7i8xlarge         InstanceType = "i7i.8xlarge"
-	InstanceTypeI7i12xlarge        InstanceType = "i7i.12xlarge"
-	InstanceTypeI7i16xlarge        InstanceType = "i7i.16xlarge"
-	InstanceTypeI7i24xlarge        InstanceType = "i7i.24xlarge"
-	InstanceTypeI7i48xlarge        InstanceType = "i7i.48xlarge"
-	InstanceTypeI7iMetal24xl       InstanceType = "i7i.metal-24xl"
-	InstanceTypeI7iMetal48xl       InstanceType = "i7i.metal-48xl"
-	InstanceTypeP6B20048xlarge     InstanceType = "p6-b200.48xlarge"
-	InstanceTypeM8gdMedium         InstanceType = "m8gd.medium"
-	InstanceTypeM8gdLarge          InstanceType = "m8gd.large"
-	InstanceTypeM8gdXlarge         InstanceType = "m8gd.xlarge"
-	InstanceTypeM8gd2xlarge        InstanceType = "m8gd.2xlarge"
-	InstanceTypeM8gd4xlarge        InstanceType = "m8gd.4xlarge"
-	InstanceTypeM8gd8xlarge        InstanceType = "m8gd.8xlarge"
-	InstanceTypeM8gd12xlarge       InstanceType = "m8gd.12xlarge"
-	InstanceTypeM8gd16xlarge       InstanceType = "m8gd.16xlarge"
-	InstanceTypeM8gd24xlarge       InstanceType = "m8gd.24xlarge"
-	InstanceTypeM8gd48xlarge       InstanceType = "m8gd.48xlarge"
-	InstanceTypeM8gdMetal24xl      InstanceType = "m8gd.metal-24xl"
-	InstanceTypeM8gdMetal48xl      InstanceType = "m8gd.metal-48xl"
-	InstanceTypeR8gdMedium         InstanceType = "r8gd.medium"
-	InstanceTypeR8gdLarge          InstanceType = "r8gd.large"
-	InstanceTypeR8gdXlarge         InstanceType = "r8gd.xlarge"
-	InstanceTypeR8gd2xlarge        InstanceType = "r8gd.2xlarge"
-	InstanceTypeR8gd4xlarge        InstanceType = "r8gd.4xlarge"
-	InstanceTypeR8gd8xlarge        InstanceType = "r8gd.8xlarge"
-	InstanceTypeR8gd12xlarge       InstanceType = "r8gd.12xlarge"
-	InstanceTypeR8gd16xlarge       InstanceType = "r8gd.16xlarge"
-	InstanceTypeR8gd24xlarge       InstanceType = "r8gd.24xlarge"
-	InstanceTypeR8gd48xlarge       InstanceType = "r8gd.48xlarge"
-	InstanceTypeR8gdMetal24xl      InstanceType = "r8gd.metal-24xl"
-	InstanceTypeR8gdMetal48xl      InstanceType = "r8gd.metal-48xl"
-	InstanceTypeC8gnMedium         InstanceType = "c8gn.medium"
-	InstanceTypeC8gnLarge          InstanceType = "c8gn.large"
-	InstanceTypeC8gnXlarge         InstanceType = "c8gn.xlarge"
-	InstanceTypeC8gn2xlarge        InstanceType = "c8gn.2xlarge"
-	InstanceTypeC8gn4xlarge        InstanceType = "c8gn.4xlarge"
-	InstanceTypeC8gn8xlarge        InstanceType = "c8gn.8xlarge"
-	InstanceTypeC8gn12xlarge       InstanceType = "c8gn.12xlarge"
-	InstanceTypeC8gn16xlarge       InstanceType = "c8gn.16xlarge"
-	InstanceTypeC8gn24xlarge       InstanceType = "c8gn.24xlarge"
-	InstanceTypeC8gn48xlarge       InstanceType = "c8gn.48xlarge"
-	InstanceTypeC8gnMetal24xl      InstanceType = "c8gn.metal-24xl"
-	InstanceTypeC8gnMetal48xl      InstanceType = "c8gn.metal-48xl"
-	InstanceTypeF26xlarge          InstanceType = "f2.6xlarge"
-	InstanceTypeP6eGb20036xlarge   InstanceType = "p6e-gb200.36xlarge"
-	InstanceTypeG6fLarge           InstanceType = "g6f.large"
-	InstanceTypeG6fXlarge          InstanceType = "g6f.xlarge"
-	InstanceTypeG6f2xlarge         InstanceType = "g6f.2xlarge"
-	InstanceTypeG6f4xlarge         InstanceType = "g6f.4xlarge"
-	InstanceTypeGr6f4xlarge        InstanceType = "gr6f.4xlarge"
-	InstanceTypeP54xlarge          InstanceType = "p5.4xlarge"
-	InstanceTypeR8iLarge           InstanceType = "r8i.large"
-	InstanceTypeR8iXlarge          InstanceType = "r8i.xlarge"
-	InstanceTypeR8i2xlarge         InstanceType = "r8i.2xlarge"
-	InstanceTypeR8i4xlarge         InstanceType = "r8i.4xlarge"
-	InstanceTypeR8i8xlarge         InstanceType = "r8i.8xlarge"
-	InstanceTypeR8i12xlarge        InstanceType = "r8i.12xlarge"
-	InstanceTypeR8i16xlarge        InstanceType = "r8i.16xlarge"
-	InstanceTypeR8i24xlarge        InstanceType = "r8i.24xlarge"
-	InstanceTypeR8i32xlarge        InstanceType = "r8i.32xlarge"
-	InstanceTypeR8i48xlarge        InstanceType = "r8i.48xlarge"
-	InstanceTypeR8i96xlarge        InstanceType = "r8i.96xlarge"
-	InstanceTypeR8iMetal48xl       InstanceType = "r8i.metal-48xl"
-	InstanceTypeR8iMetal96xl       InstanceType = "r8i.metal-96xl"
-	InstanceTypeR8iFlexLarge       InstanceType = "r8i-flex.large"
-	InstanceTypeR8iFlexXlarge      InstanceType = "r8i-flex.xlarge"
-	InstanceTypeR8iFlex2xlarge     InstanceType = "r8i-flex.2xlarge"
-	InstanceTypeR8iFlex4xlarge     InstanceType = "r8i-flex.4xlarge"
-	InstanceTypeR8iFlex8xlarge     InstanceType = "r8i-flex.8xlarge"
-	InstanceTypeR8iFlex12xlarge    InstanceType = "r8i-flex.12xlarge"
-	InstanceTypeR8iFlex16xlarge    InstanceType = "r8i-flex.16xlarge"
-	InstanceTypeM8iLarge           InstanceType = "m8i.large"
-	InstanceTypeM8iXlarge          InstanceType = "m8i.xlarge"
-	InstanceTypeM8i2xlarge         InstanceType = "m8i.2xlarge"
-	InstanceTypeM8i4xlarge         InstanceType = "m8i.4xlarge"
-	InstanceTypeM8i8xlarge         InstanceType = "m8i.8xlarge"
-	InstanceTypeM8i12xlarge        InstanceType = "m8i.12xlarge"
-	InstanceTypeM8i16xlarge        InstanceType = "m8i.16xlarge"
-	InstanceTypeM8i24xlarge        InstanceType = "m8i.24xlarge"
-	InstanceTypeM8i32xlarge        InstanceType = "m8i.32xlarge"
-	InstanceTypeM8i48xlarge        InstanceType = "m8i.48xlarge"
-	InstanceTypeM8i96xlarge        InstanceType = "m8i.96xlarge"
-	InstanceTypeM8iMetal48xl       InstanceType = "m8i.metal-48xl"
-	InstanceTypeM8iMetal96xl       InstanceType = "m8i.metal-96xl"
-	InstanceTypeM8iFlexLarge       InstanceType = "m8i-flex.large"
-	InstanceTypeM8iFlexXlarge      InstanceType = "m8i-flex.xlarge"
-	InstanceTypeM8iFlex2xlarge     InstanceType = "m8i-flex.2xlarge"
-	InstanceTypeM8iFlex4xlarge     InstanceType = "m8i-flex.4xlarge"
-	InstanceTypeM8iFlex8xlarge     InstanceType = "m8i-flex.8xlarge"
-	InstanceTypeM8iFlex12xlarge    InstanceType = "m8i-flex.12xlarge"
-	InstanceTypeM8iFlex16xlarge    InstanceType = "m8i-flex.16xlarge"
-	InstanceTypeI8geLarge          InstanceType = "i8ge.large"
-	InstanceTypeI8geXlarge         InstanceType = "i8ge.xlarge"
-	InstanceTypeI8ge2xlarge        InstanceType = "i8ge.2xlarge"
-	InstanceTypeI8ge3xlarge        InstanceType = "i8ge.3xlarge"
-	InstanceTypeI8ge6xlarge        InstanceType = "i8ge.6xlarge"
-	InstanceTypeI8ge12xlarge       InstanceType = "i8ge.12xlarge"
-	InstanceTypeI8ge18xlarge       InstanceType = "i8ge.18xlarge"
-	InstanceTypeI8ge24xlarge       InstanceType = "i8ge.24xlarge"
-	InstanceTypeI8ge48xlarge       InstanceType = "i8ge.48xlarge"
-	InstanceTypeI8geMetal24xl      InstanceType = "i8ge.metal-24xl"
-	InstanceTypeI8geMetal48xl      InstanceType = "i8ge.metal-48xl"
-	InstanceTypeMacM4Metal         InstanceType = "mac-m4.metal"
-	InstanceTypeMacM4proMetal      InstanceType = "mac-m4pro.metal"
-	InstanceTypeR8gnMedium         InstanceType = "r8gn.medium"
-	InstanceTypeR8gnLarge          InstanceType = "r8gn.large"
-	InstanceTypeR8gnXlarge         InstanceType = "r8gn.xlarge"
-	InstanceTypeR8gn2xlarge        InstanceType = "r8gn.2xlarge"
-	InstanceTypeR8gn4xlarge        InstanceType = "r8gn.4xlarge"
-	InstanceTypeR8gn8xlarge        InstanceType = "r8gn.8xlarge"
-	InstanceTypeR8gn12xlarge       InstanceType = "r8gn.12xlarge"
-	InstanceTypeR8gn16xlarge       InstanceType = "r8gn.16xlarge"
-	InstanceTypeR8gn24xlarge       InstanceType = "r8gn.24xlarge"
-	InstanceTypeR8gn48xlarge       InstanceType = "r8gn.48xlarge"
-	InstanceTypeR8gnMetal24xl      InstanceType = "r8gn.metal-24xl"
-	InstanceTypeR8gnMetal48xl      InstanceType = "r8gn.metal-48xl"
-	InstanceTypeC8iLarge           InstanceType = "c8i.large"
-	InstanceTypeC8iXlarge          InstanceType = "c8i.xlarge"
-	InstanceTypeC8i2xlarge         InstanceType = "c8i.2xlarge"
-	InstanceTypeC8i4xlarge         InstanceType = "c8i.4xlarge"
-	InstanceTypeC8i8xlarge         InstanceType = "c8i.8xlarge"
-	InstanceTypeC8i12xlarge        InstanceType = "c8i.12xlarge"
-	InstanceTypeC8i16xlarge        InstanceType = "c8i.16xlarge"
-	InstanceTypeC8i24xlarge        InstanceType = "c8i.24xlarge"
-	InstanceTypeC8i32xlarge        InstanceType = "c8i.32xlarge"
-	InstanceTypeC8i48xlarge        InstanceType = "c8i.48xlarge"
-	InstanceTypeC8i96xlarge        InstanceType = "c8i.96xlarge"
-	InstanceTypeC8iMetal48xl       InstanceType = "c8i.metal-48xl"
-	InstanceTypeC8iMetal96xl       InstanceType = "c8i.metal-96xl"
-	InstanceTypeC8iFlexLarge       InstanceType = "c8i-flex.large"
-	InstanceTypeC8iFlexXlarge      InstanceType = "c8i-flex.xlarge"
-	InstanceTypeC8iFlex2xlarge     InstanceType = "c8i-flex.2xlarge"
-	InstanceTypeC8iFlex4xlarge     InstanceType = "c8i-flex.4xlarge"
-	InstanceTypeC8iFlex8xlarge     InstanceType = "c8i-flex.8xlarge"
-	InstanceTypeC8iFlex12xlarge    InstanceType = "c8i-flex.12xlarge"
-	InstanceTypeC8iFlex16xlarge    InstanceType = "c8i-flex.16xlarge"
-	InstanceTypeR8gbMedium         InstanceType = "r8gb.medium"
-	InstanceTypeR8gbLarge          InstanceType = "r8gb.large"
-	InstanceTypeR8gbXlarge         InstanceType = "r8gb.xlarge"
-	InstanceTypeR8gb2xlarge        InstanceType = "r8gb.2xlarge"
-	InstanceTypeR8gb4xlarge        InstanceType = "r8gb.4xlarge"
-	InstanceTypeR8gb8xlarge        InstanceType = "r8gb.8xlarge"
-	InstanceTypeR8gb12xlarge       InstanceType = "r8gb.12xlarge"
-	InstanceTypeR8gb16xlarge       InstanceType = "r8gb.16xlarge"
-	InstanceTypeR8gb24xlarge       InstanceType = "r8gb.24xlarge"
-	InstanceTypeR8gbMetal24xl      InstanceType = "r8gb.metal-24xl"
-	InstanceTypeM8aMedium          InstanceType = "m8a.medium"
-	InstanceTypeM8aLarge           InstanceType = "m8a.large"
-	InstanceTypeM8aXlarge          InstanceType = "m8a.xlarge"
-	InstanceTypeM8a2xlarge         InstanceType = "m8a.2xlarge"
-	InstanceTypeM8a4xlarge         InstanceType = "m8a.4xlarge"
-	InstanceTypeM8a8xlarge         InstanceType = "m8a.8xlarge"
-	InstanceTypeM8a12xlarge        InstanceType = "m8a.12xlarge"
-	InstanceTypeM8a16xlarge        InstanceType = "m8a.16xlarge"
-	InstanceTypeM8a24xlarge        InstanceType = "m8a.24xlarge"
-	InstanceTypeM8a48xlarge        InstanceType = "m8a.48xlarge"
-	InstanceTypeM8aMetal24xl       InstanceType = "m8a.metal-24xl"
-	InstanceTypeM8aMetal48xl       InstanceType = "m8a.metal-48xl"
+	InstanceTypeA1Medium          InstanceType = "a1.medium"
+	InstanceTypeA1Large           InstanceType = "a1.large"
+	InstanceTypeA1Xlarge          InstanceType = "a1.xlarge"
+	InstanceTypeA12xlarge         InstanceType = "a1.2xlarge"
+	InstanceTypeA14xlarge         InstanceType = "a1.4xlarge"
+	InstanceTypeA1Metal           InstanceType = "a1.metal"
+	InstanceTypeC1Medium          InstanceType = "c1.medium"
+	InstanceTypeC1Xlarge          InstanceType = "c1.xlarge"
+	InstanceTypeC3Large           InstanceType = "c3.large"
+	InstanceTypeC3Xlarge          InstanceType = "c3.xlarge"
+	InstanceTypeC32xlarge         InstanceType = "c3.2xlarge"
+	InstanceTypeC34xlarge         InstanceType = "c3.4xlarge"
+	InstanceTypeC38xlarge         InstanceType = "c3.8xlarge"
+	InstanceTypeC4Large           InstanceType = "c4.large"
+	InstanceTypeC4Xlarge          InstanceType = "c4.xlarge"
+	InstanceTypeC42xlarge         InstanceType = "c4.2xlarge"
+	InstanceTypeC44xlarge         InstanceType = "c4.4xlarge"
+	InstanceTypeC48xlarge         InstanceType = "c4.8xlarge"
+	InstanceTypeC5Large           InstanceType = "c5.large"
+	InstanceTypeC5Xlarge          InstanceType = "c5.xlarge"
+	InstanceTypeC52xlarge         InstanceType = "c5.2xlarge"
+	InstanceTypeC54xlarge         InstanceType = "c5.4xlarge"
+	InstanceTypeC59xlarge         InstanceType = "c5.9xlarge"
+	InstanceTypeC512xlarge        InstanceType = "c5.12xlarge"
+	InstanceTypeC518xlarge        InstanceType = "c5.18xlarge"
+	InstanceTypeC524xlarge        InstanceType = "c5.24xlarge"
+	InstanceTypeC5Metal           InstanceType = "c5.metal"
+	InstanceTypeC5aLarge          InstanceType = "c5a.large"
+	InstanceTypeC5aXlarge         InstanceType = "c5a.xlarge"
+	InstanceTypeC5a2xlarge        InstanceType = "c5a.2xlarge"
+	InstanceTypeC5a4xlarge        InstanceType = "c5a.4xlarge"
+	InstanceTypeC5a8xlarge        InstanceType = "c5a.8xlarge"
+	InstanceTypeC5a12xlarge       InstanceType = "c5a.12xlarge"
+	InstanceTypeC5a16xlarge       InstanceType = "c5a.16xlarge"
+	InstanceTypeC5a24xlarge       InstanceType = "c5a.24xlarge"
+	InstanceTypeC5adLarge         InstanceType = "c5ad.large"
+	InstanceTypeC5adXlarge        InstanceType = "c5ad.xlarge"
+	InstanceTypeC5ad2xlarge       InstanceType = "c5ad.2xlarge"
+	InstanceTypeC5ad4xlarge       InstanceType = "c5ad.4xlarge"
+	InstanceTypeC5ad8xlarge       InstanceType = "c5ad.8xlarge"
+	InstanceTypeC5ad12xlarge      InstanceType = "c5ad.12xlarge"
+	InstanceTypeC5ad16xlarge      InstanceType = "c5ad.16xlarge"
+	InstanceTypeC5ad24xlarge      InstanceType = "c5ad.24xlarge"
+	InstanceTypeC5dLarge          InstanceType = "c5d.large"
+	InstanceTypeC5dXlarge         InstanceType = "c5d.xlarge"
+	InstanceTypeC5d2xlarge        InstanceType = "c5d.2xlarge"
+	InstanceTypeC5d4xlarge        InstanceType = "c5d.4xlarge"
+	InstanceTypeC5d9xlarge        InstanceType = "c5d.9xlarge"
+	InstanceTypeC5d12xlarge       InstanceType = "c5d.12xlarge"
+	InstanceTypeC5d18xlarge       InstanceType = "c5d.18xlarge"
+	InstanceTypeC5d24xlarge       InstanceType = "c5d.24xlarge"
+	InstanceTypeC5dMetal          InstanceType = "c5d.metal"
+	InstanceTypeC5nLarge          InstanceType = "c5n.large"
+	InstanceTypeC5nXlarge         InstanceType = "c5n.xlarge"
+	InstanceTypeC5n2xlarge        InstanceType = "c5n.2xlarge"
+	InstanceTypeC5n4xlarge        InstanceType = "c5n.4xlarge"
+	InstanceTypeC5n9xlarge        InstanceType = "c5n.9xlarge"
+	InstanceTypeC5n18xlarge       InstanceType = "c5n.18xlarge"
+	InstanceTypeC5nMetal          InstanceType = "c5n.metal"
+	InstanceTypeC6gMedium         InstanceType = "c6g.medium"
+	InstanceTypeC6gLarge          InstanceType = "c6g.large"
+	InstanceTypeC6gXlarge         InstanceType = "c6g.xlarge"
+	InstanceTypeC6g2xlarge        InstanceType = "c6g.2xlarge"
+	InstanceTypeC6g4xlarge        InstanceType = "c6g.4xlarge"
+	InstanceTypeC6g8xlarge        InstanceType = "c6g.8xlarge"
+	InstanceTypeC6g12xlarge       InstanceType = "c6g.12xlarge"
+	InstanceTypeC6g16xlarge       InstanceType = "c6g.16xlarge"
+	InstanceTypeC6gMetal          InstanceType = "c6g.metal"
+	InstanceTypeC6gdMedium        InstanceType = "c6gd.medium"
+	InstanceTypeC6gdLarge         InstanceType = "c6gd.large"
+	InstanceTypeC6gdXlarge        InstanceType = "c6gd.xlarge"
+	InstanceTypeC6gd2xlarge       InstanceType = "c6gd.2xlarge"
+	InstanceTypeC6gd4xlarge       InstanceType = "c6gd.4xlarge"
+	InstanceTypeC6gd8xlarge       InstanceType = "c6gd.8xlarge"
+	InstanceTypeC6gd12xlarge      InstanceType = "c6gd.12xlarge"
+	InstanceTypeC6gd16xlarge      InstanceType = "c6gd.16xlarge"
+	InstanceTypeC6gdMetal         InstanceType = "c6gd.metal"
+	InstanceTypeC6gnMedium        InstanceType = "c6gn.medium"
+	InstanceTypeC6gnLarge         InstanceType = "c6gn.large"
+	InstanceTypeC6gnXlarge        InstanceType = "c6gn.xlarge"
+	InstanceTypeC6gn2xlarge       InstanceType = "c6gn.2xlarge"
+	InstanceTypeC6gn4xlarge       InstanceType = "c6gn.4xlarge"
+	InstanceTypeC6gn8xlarge       InstanceType = "c6gn.8xlarge"
+	InstanceTypeC6gn12xlarge      InstanceType = "c6gn.12xlarge"
+	InstanceTypeC6gn16xlarge      InstanceType = "c6gn.16xlarge"
+	InstanceTypeC6iLarge          InstanceType = "c6i.large"
+	InstanceTypeC6iXlarge         InstanceType = "c6i.xlarge"
+	InstanceTypeC6i2xlarge        InstanceType = "c6i.2xlarge"
+	InstanceTypeC6i4xlarge        InstanceType = "c6i.4xlarge"
+	InstanceTypeC6i8xlarge        InstanceType = "c6i.8xlarge"
+	InstanceTypeC6i12xlarge       InstanceType = "c6i.12xlarge"
+	InstanceTypeC6i16xlarge       InstanceType = "c6i.16xlarge"
+	InstanceTypeC6i24xlarge       InstanceType = "c6i.24xlarge"
+	InstanceTypeC6i32xlarge       InstanceType = "c6i.32xlarge"
+	InstanceTypeC6iMetal          InstanceType = "c6i.metal"
+	InstanceTypeCc14xlarge        InstanceType = "cc1.4xlarge"
+	InstanceTypeCc28xlarge        InstanceType = "cc2.8xlarge"
+	InstanceTypeCg14xlarge        InstanceType = "cg1.4xlarge"
+	InstanceTypeCr18xlarge        InstanceType = "cr1.8xlarge"
+	InstanceTypeD2Xlarge          InstanceType = "d2.xlarge"
+	InstanceTypeD22xlarge         InstanceType = "d2.2xlarge"
+	InstanceTypeD24xlarge         InstanceType = "d2.4xlarge"
+	InstanceTypeD28xlarge         InstanceType = "d2.8xlarge"
+	InstanceTypeD3Xlarge          InstanceType = "d3.xlarge"
+	InstanceTypeD32xlarge         InstanceType = "d3.2xlarge"
+	InstanceTypeD34xlarge         InstanceType = "d3.4xlarge"
+	InstanceTypeD38xlarge         InstanceType = "d3.8xlarge"
+	InstanceTypeD3enXlarge        InstanceType = "d3en.xlarge"
+	InstanceTypeD3en2xlarge       InstanceType = "d3en.2xlarge"
+	InstanceTypeD3en4xlarge       InstanceType = "d3en.4xlarge"
+	InstanceTypeD3en6xlarge       InstanceType = "d3en.6xlarge"
+	InstanceTypeD3en8xlarge       InstanceType = "d3en.8xlarge"
+	InstanceTypeD3en12xlarge      InstanceType = "d3en.12xlarge"
+	InstanceTypeDl124xlarge       InstanceType = "dl1.24xlarge"
+	InstanceTypeF12xlarge         InstanceType = "f1.2xlarge"
+	InstanceTypeF14xlarge         InstanceType = "f1.4xlarge"
+	InstanceTypeF116xlarge        InstanceType = "f1.16xlarge"
+	InstanceTypeG22xlarge         InstanceType = "g2.2xlarge"
+	InstanceTypeG28xlarge         InstanceType = "g2.8xlarge"
+	InstanceTypeG34xlarge         InstanceType = "g3.4xlarge"
+	InstanceTypeG38xlarge         InstanceType = "g3.8xlarge"
+	InstanceTypeG316xlarge        InstanceType = "g3.16xlarge"
+	InstanceTypeG3sXlarge         InstanceType = "g3s.xlarge"
+	InstanceTypeG4adXlarge        InstanceType = "g4ad.xlarge"
+	InstanceTypeG4ad2xlarge       InstanceType = "g4ad.2xlarge"
+	InstanceTypeG4ad4xlarge       InstanceType = "g4ad.4xlarge"
+	InstanceTypeG4ad8xlarge       InstanceType = "g4ad.8xlarge"
+	InstanceTypeG4ad16xlarge      InstanceType = "g4ad.16xlarge"
+	InstanceTypeG4dnXlarge        InstanceType = "g4dn.xlarge"
+	InstanceTypeG4dn2xlarge       InstanceType = "g4dn.2xlarge"
+	InstanceTypeG4dn4xlarge       InstanceType = "g4dn.4xlarge"
+	InstanceTypeG4dn8xlarge       InstanceType = "g4dn.8xlarge"
+	InstanceTypeG4dn12xlarge      InstanceType = "g4dn.12xlarge"
+	InstanceTypeG4dn16xlarge      InstanceType = "g4dn.16xlarge"
+	InstanceTypeG4dnMetal         InstanceType = "g4dn.metal"
+	InstanceTypeG5Xlarge          InstanceType = "g5.xlarge"
+	InstanceTypeG52xlarge         InstanceType = "g5.2xlarge"
+	InstanceTypeG54xlarge         InstanceType = "g5.4xlarge"
+	InstanceTypeG58xlarge         InstanceType = "g5.8xlarge"
+	InstanceTypeG512xlarge        InstanceType = "g5.12xlarge"
+	InstanceTypeG516xlarge        InstanceType = "g5.16xlarge"
+	InstanceTypeG524xlarge        InstanceType = "g5.24xlarge"
+	InstanceTypeG548xlarge        InstanceType = "g5.48xlarge"
+	InstanceTypeG5gXlarge         InstanceType = "g5g.xlarge"
+	InstanceTypeG5g2xlarge        InstanceType = "g5g.2xlarge"
+	InstanceTypeG5g4xlarge        InstanceType = "g5g.4xlarge"
+	InstanceTypeG5g8xlarge        InstanceType = "g5g.8xlarge"
+	InstanceTypeG5g16xlarge       InstanceType = "g5g.16xlarge"
+	InstanceTypeG5gMetal          InstanceType = "g5g.metal"
+	InstanceTypeHi14xlarge        InstanceType = "hi1.4xlarge"
+	InstanceTypeHpc6a48xlarge     InstanceType = "hpc6a.48xlarge"
+	InstanceTypeHs18xlarge        InstanceType = "hs1.8xlarge"
+	InstanceTypeH12xlarge         InstanceType = "h1.2xlarge"
+	InstanceTypeH14xlarge         InstanceType = "h1.4xlarge"
+	InstanceTypeH18xlarge         InstanceType = "h1.8xlarge"
+	InstanceTypeH116xlarge        InstanceType = "h1.16xlarge"
+	InstanceTypeI2Xlarge          InstanceType = "i2.xlarge"
+	InstanceTypeI22xlarge         InstanceType = "i2.2xlarge"
+	InstanceTypeI24xlarge         InstanceType = "i2.4xlarge"
+	InstanceTypeI28xlarge         InstanceType = "i2.8xlarge"
+	InstanceTypeI3Large           InstanceType = "i3.large"
+	InstanceTypeI3Xlarge          InstanceType = "i3.xlarge"
+	InstanceTypeI32xlarge         InstanceType = "i3.2xlarge"
+	InstanceTypeI34xlarge         InstanceType = "i3.4xlarge"
+	InstanceTypeI38xlarge         InstanceType = "i3.8xlarge"
+	InstanceTypeI316xlarge        InstanceType = "i3.16xlarge"
+	InstanceTypeI3Metal           InstanceType = "i3.metal"
+	InstanceTypeI3enLarge         InstanceType = "i3en.large"
+	InstanceTypeI3enXlarge        InstanceType = "i3en.xlarge"
+	InstanceTypeI3en2xlarge       InstanceType = "i3en.2xlarge"
+	InstanceTypeI3en3xlarge       InstanceType = "i3en.3xlarge"
+	InstanceTypeI3en6xlarge       InstanceType = "i3en.6xlarge"
+	InstanceTypeI3en12xlarge      InstanceType = "i3en.12xlarge"
+	InstanceTypeI3en24xlarge      InstanceType = "i3en.24xlarge"
+	InstanceTypeI3enMetal         InstanceType = "i3en.metal"
+	InstanceTypeIm4gnLarge        InstanceType = "im4gn.large"
+	InstanceTypeIm4gnXlarge       InstanceType = "im4gn.xlarge"
+	InstanceTypeIm4gn2xlarge      InstanceType = "im4gn.2xlarge"
+	InstanceTypeIm4gn4xlarge      InstanceType = "im4gn.4xlarge"
+	InstanceTypeIm4gn8xlarge      InstanceType = "im4gn.8xlarge"
+	InstanceTypeIm4gn16xlarge     InstanceType = "im4gn.16xlarge"
+	InstanceTypeInf1Xlarge        InstanceType = "inf1.xlarge"
+	InstanceTypeInf12xlarge       InstanceType = "inf1.2xlarge"
+	InstanceTypeInf16xlarge       InstanceType = "inf1.6xlarge"
+	InstanceTypeInf124xlarge      InstanceType = "inf1.24xlarge"
+	InstanceTypeIs4genMedium      InstanceType = "is4gen.medium"
+	InstanceTypeIs4genLarge       InstanceType = "is4gen.large"
+	InstanceTypeIs4genXlarge      InstanceType = "is4gen.xlarge"
+	InstanceTypeIs4gen2xlarge     InstanceType = "is4gen.2xlarge"
+	InstanceTypeIs4gen4xlarge     InstanceType = "is4gen.4xlarge"
+	InstanceTypeIs4gen8xlarge     InstanceType = "is4gen.8xlarge"
+	InstanceTypeM1Small           InstanceType = "m1.small"
+	InstanceTypeM1Medium          InstanceType = "m1.medium"
+	InstanceTypeM1Large           InstanceType = "m1.large"
+	InstanceTypeM1Xlarge          InstanceType = "m1.xlarge"
+	InstanceTypeM2Xlarge          InstanceType = "m2.xlarge"
+	InstanceTypeM22xlarge         InstanceType = "m2.2xlarge"
+	InstanceTypeM24xlarge         InstanceType = "m2.4xlarge"
+	InstanceTypeM3Medium          InstanceType = "m3.medium"
+	InstanceTypeM3Large           InstanceType = "m3.large"
+	InstanceTypeM3Xlarge          InstanceType = "m3.xlarge"
+	InstanceTypeM32xlarge         InstanceType = "m3.2xlarge"
+	InstanceTypeM4Large           InstanceType = "m4.large"
+	InstanceTypeM4Xlarge          InstanceType = "m4.xlarge"
+	InstanceTypeM42xlarge         InstanceType = "m4.2xlarge"
+	InstanceTypeM44xlarge         InstanceType = "m4.4xlarge"
+	InstanceTypeM410xlarge        InstanceType = "m4.10xlarge"
+	InstanceTypeM416xlarge        InstanceType = "m4.16xlarge"
+	InstanceTypeM5Large           InstanceType = "m5.large"
+	InstanceTypeM5Xlarge          InstanceType = "m5.xlarge"
+	InstanceTypeM52xlarge         InstanceType = "m5.2xlarge"
+	InstanceTypeM54xlarge         InstanceType = "m5.4xlarge"
+	InstanceTypeM58xlarge         InstanceType = "m5.8xlarge"
+	InstanceTypeM512xlarge        InstanceType = "m5.12xlarge"
+	InstanceTypeM516xlarge        InstanceType = "m5.16xlarge"
+	InstanceTypeM524xlarge        InstanceType = "m5.24xlarge"
+	InstanceTypeM5Metal           InstanceType = "m5.metal"
+	InstanceTypeM5aLarge          InstanceType = "m5a.large"
+	InstanceTypeM5aXlarge         InstanceType = "m5a.xlarge"
+	InstanceTypeM5a2xlarge        InstanceType = "m5a.2xlarge"
+	InstanceTypeM5a4xlarge        InstanceType = "m5a.4xlarge"
+	InstanceTypeM5a8xlarge        InstanceType = "m5a.8xlarge"
+	InstanceTypeM5a12xlarge       InstanceType = "m5a.12xlarge"
+	InstanceTypeM5a16xlarge       InstanceType = "m5a.16xlarge"
+	InstanceTypeM5a24xlarge       InstanceType = "m5a.24xlarge"
+	InstanceTypeM5adLarge         InstanceType = "m5ad.large"
+	InstanceTypeM5adXlarge        InstanceType = "m5ad.xlarge"
+	InstanceTypeM5ad2xlarge       InstanceType = "m5ad.2xlarge"
+	InstanceTypeM5ad4xlarge       InstanceType = "m5ad.4xlarge"
+	InstanceTypeM5ad8xlarge       InstanceType = "m5ad.8xlarge"
+	InstanceTypeM5ad12xlarge      InstanceType = "m5ad.12xlarge"
+	InstanceTypeM5ad16xlarge      InstanceType = "m5ad.16xlarge"
+	InstanceTypeM5ad24xlarge      InstanceType = "m5ad.24xlarge"
+	InstanceTypeM5dLarge          InstanceType = "m5d.large"
+	InstanceTypeM5dXlarge         InstanceType = "m5d.xlarge"
+	InstanceTypeM5d2xlarge        InstanceType = "m5d.2xlarge"
+	InstanceTypeM5d4xlarge        InstanceType = "m5d.4xlarge"
+	InstanceTypeM5d8xlarge        InstanceType = "m5d.8xlarge"
+	InstanceTypeM5d12xlarge       InstanceType = "m5d.12xlarge"
+	InstanceTypeM5d16xlarge       InstanceType = "m5d.16xlarge"
+	InstanceTypeM5d24xlarge       InstanceType = "m5d.24xlarge"
+	InstanceTypeM5dMetal          InstanceType = "m5d.metal"
+	InstanceTypeM5dnLarge         InstanceType = "m5dn.large"
+	InstanceTypeM5dnXlarge        InstanceType = "m5dn.xlarge"
+	InstanceTypeM5dn2xlarge       InstanceType = "m5dn.2xlarge"
+	InstanceTypeM5dn4xlarge       InstanceType = "m5dn.4xlarge"
+	InstanceTypeM5dn8xlarge       InstanceType = "m5dn.8xlarge"
+	InstanceTypeM5dn12xlarge      InstanceType = "m5dn.12xlarge"
+	InstanceTypeM5dn16xlarge      InstanceType = "m5dn.16xlarge"
+	InstanceTypeM5dn24xlarge      InstanceType = "m5dn.24xlarge"
+	InstanceTypeM5dnMetal         InstanceType = "m5dn.metal"
+	InstanceTypeM5nLarge          InstanceType = "m5n.large"
+	InstanceTypeM5nXlarge         InstanceType = "m5n.xlarge"
+	InstanceTypeM5n2xlarge        InstanceType = "m5n.2xlarge"
+	InstanceTypeM5n4xlarge        InstanceType = "m5n.4xlarge"
+	InstanceTypeM5n8xlarge        InstanceType = "m5n.8xlarge"
+	InstanceTypeM5n12xlarge       InstanceType = "m5n.12xlarge"
+	InstanceTypeM5n16xlarge       InstanceType = "m5n.16xlarge"
+	InstanceTypeM5n24xlarge       InstanceType = "m5n.24xlarge"
+	InstanceTypeM5nMetal          InstanceType = "m5n.metal"
+	InstanceTypeM5znLarge         InstanceType = "m5zn.large"
+	InstanceTypeM5znXlarge        InstanceType = "m5zn.xlarge"
+	InstanceTypeM5zn2xlarge       InstanceType = "m5zn.2xlarge"
+	InstanceTypeM5zn3xlarge       InstanceType = "m5zn.3xlarge"
+	InstanceTypeM5zn6xlarge       InstanceType = "m5zn.6xlarge"
+	InstanceTypeM5zn12xlarge      InstanceType = "m5zn.12xlarge"
+	InstanceTypeM5znMetal         InstanceType = "m5zn.metal"
+	InstanceTypeM6aLarge          InstanceType = "m6a.large"
+	InstanceTypeM6aXlarge         InstanceType = "m6a.xlarge"
+	InstanceTypeM6a2xlarge        InstanceType = "m6a.2xlarge"
+	InstanceTypeM6a4xlarge        InstanceType = "m6a.4xlarge"
+	InstanceTypeM6a8xlarge        InstanceType = "m6a.8xlarge"
+	InstanceTypeM6a12xlarge       InstanceType = "m6a.12xlarge"
+	InstanceTypeM6a16xlarge       InstanceType = "m6a.16xlarge"
+	InstanceTypeM6a24xlarge       InstanceType = "m6a.24xlarge"
+	InstanceTypeM6a32xlarge       InstanceType = "m6a.32xlarge"
+	InstanceTypeM6a48xlarge       InstanceType = "m6a.48xlarge"
+	InstanceTypeM6gMetal          InstanceType = "m6g.metal"
+	InstanceTypeM6gMedium         InstanceType = "m6g.medium"
+	InstanceTypeM6gLarge          InstanceType = "m6g.large"
+	InstanceTypeM6gXlarge         InstanceType = "m6g.xlarge"
+	InstanceTypeM6g2xlarge        InstanceType = "m6g.2xlarge"
+	InstanceTypeM6g4xlarge        InstanceType = "m6g.4xlarge"
+	InstanceTypeM6g8xlarge        InstanceType = "m6g.8xlarge"
+	InstanceTypeM6g12xlarge       InstanceType = "m6g.12xlarge"
+	InstanceTypeM6g16xlarge       InstanceType = "m6g.16xlarge"
+	InstanceTypeM6gdMetal         InstanceType = "m6gd.metal"
+	InstanceTypeM6gdMedium        InstanceType = "m6gd.medium"
+	InstanceTypeM6gdLarge         InstanceType = "m6gd.large"
+	InstanceTypeM6gdXlarge        InstanceType = "m6gd.xlarge"
+	InstanceTypeM6gd2xlarge       InstanceType = "m6gd.2xlarge"
+	InstanceTypeM6gd4xlarge       InstanceType = "m6gd.4xlarge"
+	InstanceTypeM6gd8xlarge       InstanceType = "m6gd.8xlarge"
+	InstanceTypeM6gd12xlarge      InstanceType = "m6gd.12xlarge"
+	InstanceTypeM6gd16xlarge      InstanceType = "m6gd.16xlarge"
+	InstanceTypeM6iLarge          InstanceType = "m6i.large"
+	InstanceTypeM6iXlarge         InstanceType = "m6i.xlarge"
+	InstanceTypeM6i2xlarge        InstanceType = "m6i.2xlarge"
+	InstanceTypeM6i4xlarge        InstanceType = "m6i.4xlarge"
+	InstanceTypeM6i8xlarge        InstanceType = "m6i.8xlarge"
+	InstanceTypeM6i12xlarge       InstanceType = "m6i.12xlarge"
+	InstanceTypeM6i16xlarge       InstanceType = "m6i.16xlarge"
+	InstanceTypeM6i24xlarge       InstanceType = "m6i.24xlarge"
+	InstanceTypeM6i32xlarge       InstanceType = "m6i.32xlarge"
+	InstanceTypeM6iMetal          InstanceType = "m6i.metal"
+	InstanceTypeMac1Metal         InstanceType = "mac1.metal"
+	InstanceTypeP2Xlarge          InstanceType = "p2.xlarge"
+	InstanceTypeP28xlarge         InstanceType = "p2.8xlarge"
+	InstanceTypeP216xlarge        InstanceType = "p2.16xlarge"
+	InstanceTypeP32xlarge         InstanceType = "p3.2xlarge"
+	InstanceTypeP38xlarge         InstanceType = "p3.8xlarge"
+	InstanceTypeP316xlarge        InstanceType = "p3.16xlarge"
+	InstanceTypeP3dn24xlarge      InstanceType = "p3dn.24xlarge"
+	InstanceTypeP4d24xlarge       InstanceType = "p4d.24xlarge"
+	InstanceTypeR3Large           InstanceType = "r3.large"
+	InstanceTypeR3Xlarge          InstanceType = "r3.xlarge"
+	InstanceTypeR32xlarge         InstanceType = "r3.2xlarge"
+	InstanceTypeR34xlarge         InstanceType = "r3.4xlarge"
+	InstanceTypeR38xlarge         InstanceType = "r3.8xlarge"
+	InstanceTypeR4Large           InstanceType = "r4.large"
+	InstanceTypeR4Xlarge          InstanceType = "r4.xlarge"
+	InstanceTypeR42xlarge         InstanceType = "r4.2xlarge"
+	InstanceTypeR44xlarge         InstanceType = "r4.4xlarge"
+	InstanceTypeR48xlarge         InstanceType = "r4.8xlarge"
+	InstanceTypeR416xlarge        InstanceType = "r4.16xlarge"
+	InstanceTypeR5Large           InstanceType = "r5.large"
+	InstanceTypeR5Xlarge          InstanceType = "r5.xlarge"
+	InstanceTypeR52xlarge         InstanceType = "r5.2xlarge"
+	InstanceTypeR54xlarge         InstanceType = "r5.4xlarge"
+	InstanceTypeR58xlarge         InstanceType = "r5.8xlarge"
+	InstanceTypeR512xlarge        InstanceType = "r5.12xlarge"
+	InstanceTypeR516xlarge        InstanceType = "r5.16xlarge"
+	InstanceTypeR524xlarge        InstanceType = "r5.24xlarge"
+	InstanceTypeR5Metal           InstanceType = "r5.metal"
+	InstanceTypeR5aLarge          InstanceType = "r5a.large"
+	InstanceTypeR5aXlarge         InstanceType = "r5a.xlarge"
+	InstanceTypeR5a2xlarge        InstanceType = "r5a.2xlarge"
+	InstanceTypeR5a4xlarge        InstanceType = "r5a.4xlarge"
+	InstanceTypeR5a8xlarge        InstanceType = "r5a.8xlarge"
+	InstanceTypeR5a12xlarge       InstanceType = "r5a.12xlarge"
+	InstanceTypeR5a16xlarge       InstanceType = "r5a.16xlarge"
+	InstanceTypeR5a24xlarge       InstanceType = "r5a.24xlarge"
+	InstanceTypeR5adLarge         InstanceType = "r5ad.large"
+	InstanceTypeR5adXlarge        InstanceType = "r5ad.xlarge"
+	InstanceTypeR5ad2xlarge       InstanceType = "r5ad.2xlarge"
+	InstanceTypeR5ad4xlarge       InstanceType = "r5ad.4xlarge"
+	InstanceTypeR5ad8xlarge       InstanceType = "r5ad.8xlarge"
+	InstanceTypeR5ad12xlarge      InstanceType = "r5ad.12xlarge"
+	InstanceTypeR5ad16xlarge      InstanceType = "r5ad.16xlarge"
+	InstanceTypeR5ad24xlarge      InstanceType = "r5ad.24xlarge"
+	InstanceTypeR5bLarge          InstanceType = "r5b.large"
+	InstanceTypeR5bXlarge         InstanceType = "r5b.xlarge"
+	InstanceTypeR5b2xlarge        InstanceType = "r5b.2xlarge"
+	InstanceTypeR5b4xlarge        InstanceType = "r5b.4xlarge"
+	InstanceTypeR5b8xlarge        InstanceType = "r5b.8xlarge"
+	InstanceTypeR5b12xlarge       InstanceType = "r5b.12xlarge"
+	InstanceTypeR5b16xlarge       InstanceType = "r5b.16xlarge"
+	InstanceTypeR5b24xlarge       InstanceType = "r5b.24xlarge"
+	InstanceTypeR5bMetal          InstanceType = "r5b.metal"
+	InstanceTypeR5dLarge          InstanceType = "r5d.large"
+	InstanceTypeR5dXlarge         InstanceType = "r5d.xlarge"
+	InstanceTypeR5d2xlarge        InstanceType = "r5d.2xlarge"
+	InstanceTypeR5d4xlarge        InstanceType = "r5d.4xlarge"
+	InstanceTypeR5d8xlarge        InstanceType = "r5d.8xlarge"
+	InstanceTypeR5d12xlarge       InstanceType = "r5d.12xlarge"
+	InstanceTypeR5d16xlarge       InstanceType = "r5d.16xlarge"
+	InstanceTypeR5d24xlarge       InstanceType = "r5d.24xlarge"
+	InstanceTypeR5dMetal          InstanceType = "r5d.metal"
+	InstanceTypeR5dnLarge         InstanceType = "r5dn.large"
+	InstanceTypeR5dnXlarge        InstanceType = "r5dn.xlarge"
+	InstanceTypeR5dn2xlarge       InstanceType = "r5dn.2xlarge"
+	InstanceTypeR5dn4xlarge       InstanceType = "r5dn.4xlarge"
+	InstanceTypeR5dn8xlarge       InstanceType = "r5dn.8xlarge"
+	InstanceTypeR5dn12xlarge      InstanceType = "r5dn.12xlarge"
+	InstanceTypeR5dn16xlarge      InstanceType = "r5dn.16xlarge"
+	InstanceTypeR5dn24xlarge      InstanceType = "r5dn.24xlarge"
+	InstanceTypeR5dnMetal         InstanceType = "r5dn.metal"
+	InstanceTypeR5nLarge          InstanceType = "r5n.large"
+	InstanceTypeR5nXlarge         InstanceType = "r5n.xlarge"
+	InstanceTypeR5n2xlarge        InstanceType = "r5n.2xlarge"
+	InstanceTypeR5n4xlarge        InstanceType = "r5n.4xlarge"
+	InstanceTypeR5n8xlarge        InstanceType = "r5n.8xlarge"
+	InstanceTypeR5n12xlarge       InstanceType = "r5n.12xlarge"
+	InstanceTypeR5n16xlarge       InstanceType = "r5n.16xlarge"
+	InstanceTypeR5n24xlarge       InstanceType = "r5n.24xlarge"
+	InstanceTypeR5nMetal          InstanceType = "r5n.metal"
+	InstanceTypeR6gMedium         InstanceType = "r6g.medium"
+	InstanceTypeR6gLarge          InstanceType = "r6g.large"
+	InstanceTypeR6gXlarge         InstanceType = "r6g.xlarge"
+	InstanceTypeR6g2xlarge        InstanceType = "r6g.2xlarge"
+	InstanceTypeR6g4xlarge        InstanceType = "r6g.4xlarge"
+	InstanceTypeR6g8xlarge        InstanceType = "r6g.8xlarge"
+	InstanceTypeR6g12xlarge       InstanceType = "r6g.12xlarge"
+	InstanceTypeR6g16xlarge       InstanceType = "r6g.16xlarge"
+	InstanceTypeR6gMetal          InstanceType = "r6g.metal"
+	InstanceTypeR6gdMedium        InstanceType = "r6gd.medium"
+	InstanceTypeR6gdLarge         InstanceType = "r6gd.large"
+	InstanceTypeR6gdXlarge        InstanceType = "r6gd.xlarge"
+	InstanceTypeR6gd2xlarge       InstanceType = "r6gd.2xlarge"
+	InstanceTypeR6gd4xlarge       InstanceType = "r6gd.4xlarge"
+	InstanceTypeR6gd8xlarge       InstanceType = "r6gd.8xlarge"
+	InstanceTypeR6gd12xlarge      InstanceType = "r6gd.12xlarge"
+	InstanceTypeR6gd16xlarge      InstanceType = "r6gd.16xlarge"
+	InstanceTypeR6gdMetal         InstanceType = "r6gd.metal"
+	InstanceTypeR6iLarge          InstanceType = "r6i.large"
+	InstanceTypeR6iXlarge         InstanceType = "r6i.xlarge"
+	InstanceTypeR6i2xlarge        InstanceType = "r6i.2xlarge"
+	InstanceTypeR6i4xlarge        InstanceType = "r6i.4xlarge"
+	InstanceTypeR6i8xlarge        InstanceType = "r6i.8xlarge"
+	InstanceTypeR6i12xlarge       InstanceType = "r6i.12xlarge"
+	InstanceTypeR6i16xlarge       InstanceType = "r6i.16xlarge"
+	InstanceTypeR6i24xlarge       InstanceType = "r6i.24xlarge"
+	InstanceTypeR6i32xlarge       InstanceType = "r6i.32xlarge"
+	InstanceTypeR6iMetal          InstanceType = "r6i.metal"
+	InstanceTypeT1Micro           InstanceType = "t1.micro"
+	InstanceTypeT2Nano            InstanceType = "t2.nano"
+	InstanceTypeT2Micro           InstanceType = "t2.micro"
+	InstanceTypeT2Small           InstanceType = "t2.small"
+	InstanceTypeT2Medium          InstanceType = "t2.medium"
+	InstanceTypeT2Large           InstanceType = "t2.large"
+	InstanceTypeT2Xlarge          InstanceType = "t2.xlarge"
+	InstanceTypeT22xlarge         InstanceType = "t2.2xlarge"
+	InstanceTypeT3Nano            InstanceType = "t3.nano"
+	InstanceTypeT3Micro           InstanceType = "t3.micro"
+	InstanceTypeT3Small           InstanceType = "t3.small"
+	InstanceTypeT3Medium          InstanceType = "t3.medium"
+	InstanceTypeT3Large           InstanceType = "t3.large"
+	InstanceTypeT3Xlarge          InstanceType = "t3.xlarge"
+	InstanceTypeT32xlarge         InstanceType = "t3.2xlarge"
+	InstanceTypeT3aNano           InstanceType = "t3a.nano"
+	InstanceTypeT3aMicro          InstanceType = "t3a.micro"
+	InstanceTypeT3aSmall          InstanceType = "t3a.small"
+	InstanceTypeT3aMedium         InstanceType = "t3a.medium"
+	InstanceTypeT3aLarge          InstanceType = "t3a.large"
+	InstanceTypeT3aXlarge         InstanceType = "t3a.xlarge"
+	InstanceTypeT3a2xlarge        InstanceType = "t3a.2xlarge"
+	InstanceTypeT4gNano           InstanceType = "t4g.nano"
+	InstanceTypeT4gMicro          InstanceType = "t4g.micro"
+	InstanceTypeT4gSmall          InstanceType = "t4g.small"
+	InstanceTypeT4gMedium         InstanceType = "t4g.medium"
+	InstanceTypeT4gLarge          InstanceType = "t4g.large"
+	InstanceTypeT4gXlarge         InstanceType = "t4g.xlarge"
+	InstanceTypeT4g2xlarge        InstanceType = "t4g.2xlarge"
+	InstanceTypeU6tb156xlarge     InstanceType = "u-6tb1.56xlarge"
+	InstanceTypeU6tb1112xlarge    InstanceType = "u-6tb1.112xlarge"
+	InstanceTypeU9tb1112xlarge    InstanceType = "u-9tb1.112xlarge"
+	InstanceTypeU12tb1112xlarge   InstanceType = "u-12tb1.112xlarge"
+	InstanceTypeU6tb1Metal        InstanceType = "u-6tb1.metal"
+	InstanceTypeU9tb1Metal        InstanceType = "u-9tb1.metal"
+	InstanceTypeU12tb1Metal       InstanceType = "u-12tb1.metal"
+	InstanceTypeU18tb1Metal       InstanceType = "u-18tb1.metal"
+	InstanceTypeU24tb1Metal       InstanceType = "u-24tb1.metal"
+	InstanceTypeVt13xlarge        InstanceType = "vt1.3xlarge"
+	InstanceTypeVt16xlarge        InstanceType = "vt1.6xlarge"
+	InstanceTypeVt124xlarge       InstanceType = "vt1.24xlarge"
+	InstanceTypeX116xlarge        InstanceType = "x1.16xlarge"
+	InstanceTypeX132xlarge        InstanceType = "x1.32xlarge"
+	InstanceTypeX1eXlarge         InstanceType = "x1e.xlarge"
+	InstanceTypeX1e2xlarge        InstanceType = "x1e.2xlarge"
+	InstanceTypeX1e4xlarge        InstanceType = "x1e.4xlarge"
+	InstanceTypeX1e8xlarge        InstanceType = "x1e.8xlarge"
+	InstanceTypeX1e16xlarge       InstanceType = "x1e.16xlarge"
+	InstanceTypeX1e32xlarge       InstanceType = "x1e.32xlarge"
+	InstanceTypeX2iezn2xlarge     InstanceType = "x2iezn.2xlarge"
+	InstanceTypeX2iezn4xlarge     InstanceType = "x2iezn.4xlarge"
+	InstanceTypeX2iezn6xlarge     InstanceType = "x2iezn.6xlarge"
+	InstanceTypeX2iezn8xlarge     InstanceType = "x2iezn.8xlarge"
+	InstanceTypeX2iezn12xlarge    InstanceType = "x2iezn.12xlarge"
+	InstanceTypeX2ieznMetal       InstanceType = "x2iezn.metal"
+	InstanceTypeX2gdMedium        InstanceType = "x2gd.medium"
+	InstanceTypeX2gdLarge         InstanceType = "x2gd.large"
+	InstanceTypeX2gdXlarge        InstanceType = "x2gd.xlarge"
+	InstanceTypeX2gd2xlarge       InstanceType = "x2gd.2xlarge"
+	InstanceTypeX2gd4xlarge       InstanceType = "x2gd.4xlarge"
+	InstanceTypeX2gd8xlarge       InstanceType = "x2gd.8xlarge"
+	InstanceTypeX2gd12xlarge      InstanceType = "x2gd.12xlarge"
+	InstanceTypeX2gd16xlarge      InstanceType = "x2gd.16xlarge"
+	InstanceTypeX2gdMetal         InstanceType = "x2gd.metal"
+	InstanceTypeZ1dLarge          InstanceType = "z1d.large"
+	InstanceTypeZ1dXlarge         InstanceType = "z1d.xlarge"
+	InstanceTypeZ1d2xlarge        InstanceType = "z1d.2xlarge"
+	InstanceTypeZ1d3xlarge        InstanceType = "z1d.3xlarge"
+	InstanceTypeZ1d6xlarge        InstanceType = "z1d.6xlarge"
+	InstanceTypeZ1d12xlarge       InstanceType = "z1d.12xlarge"
+	InstanceTypeZ1dMetal          InstanceType = "z1d.metal"
+	InstanceTypeX2idn16xlarge     InstanceType = "x2idn.16xlarge"
+	InstanceTypeX2idn24xlarge     InstanceType = "x2idn.24xlarge"
+	InstanceTypeX2idn32xlarge     InstanceType = "x2idn.32xlarge"
+	InstanceTypeX2iednXlarge      InstanceType = "x2iedn.xlarge"
+	InstanceTypeX2iedn2xlarge     InstanceType = "x2iedn.2xlarge"
+	InstanceTypeX2iedn4xlarge     InstanceType = "x2iedn.4xlarge"
+	InstanceTypeX2iedn8xlarge     InstanceType = "x2iedn.8xlarge"
+	InstanceTypeX2iedn16xlarge    InstanceType = "x2iedn.16xlarge"
+	InstanceTypeX2iedn24xlarge    InstanceType = "x2iedn.24xlarge"
+	InstanceTypeX2iedn32xlarge    InstanceType = "x2iedn.32xlarge"
+	InstanceTypeC6aLarge          InstanceType = "c6a.large"
+	InstanceTypeC6aXlarge         InstanceType = "c6a.xlarge"
+	InstanceTypeC6a2xlarge        InstanceType = "c6a.2xlarge"
+	InstanceTypeC6a4xlarge        InstanceType = "c6a.4xlarge"
+	InstanceTypeC6a8xlarge        InstanceType = "c6a.8xlarge"
+	InstanceTypeC6a12xlarge       InstanceType = "c6a.12xlarge"
+	InstanceTypeC6a16xlarge       InstanceType = "c6a.16xlarge"
+	InstanceTypeC6a24xlarge       InstanceType = "c6a.24xlarge"
+	InstanceTypeC6a32xlarge       InstanceType = "c6a.32xlarge"
+	InstanceTypeC6a48xlarge       InstanceType = "c6a.48xlarge"
+	InstanceTypeC6aMetal          InstanceType = "c6a.metal"
+	InstanceTypeM6aMetal          InstanceType = "m6a.metal"
+	InstanceTypeI4iLarge          InstanceType = "i4i.large"
+	InstanceTypeI4iXlarge         InstanceType = "i4i.xlarge"
+	InstanceTypeI4i2xlarge        InstanceType = "i4i.2xlarge"
+	InstanceTypeI4i4xlarge        InstanceType = "i4i.4xlarge"
+	InstanceTypeI4i8xlarge        InstanceType = "i4i.8xlarge"
+	InstanceTypeI4i16xlarge       InstanceType = "i4i.16xlarge"
+	InstanceTypeI4i32xlarge       InstanceType = "i4i.32xlarge"
+	InstanceTypeI4iMetal          InstanceType = "i4i.metal"
+	InstanceTypeX2idnMetal        InstanceType = "x2idn.metal"
+	InstanceTypeX2iednMetal       InstanceType = "x2iedn.metal"
+	InstanceTypeC7gMedium         InstanceType = "c7g.medium"
+	InstanceTypeC7gLarge          InstanceType = "c7g.large"
+	InstanceTypeC7gXlarge         InstanceType = "c7g.xlarge"
+	InstanceTypeC7g2xlarge        InstanceType = "c7g.2xlarge"
+	InstanceTypeC7g4xlarge        InstanceType = "c7g.4xlarge"
+	InstanceTypeC7g8xlarge        InstanceType = "c7g.8xlarge"
+	InstanceTypeC7g12xlarge       InstanceType = "c7g.12xlarge"
+	InstanceTypeC7g16xlarge       InstanceType = "c7g.16xlarge"
+	InstanceTypeMac2Metal         InstanceType = "mac2.metal"
+	InstanceTypeC6idLarge         InstanceType = "c6id.large"
+	InstanceTypeC6idXlarge        InstanceType = "c6id.xlarge"
+	InstanceTypeC6id2xlarge       InstanceType = "c6id.2xlarge"
+	InstanceTypeC6id4xlarge       InstanceType = "c6id.4xlarge"
+	InstanceTypeC6id8xlarge       InstanceType = "c6id.8xlarge"
+	InstanceTypeC6id12xlarge      InstanceType = "c6id.12xlarge"
+	InstanceTypeC6id16xlarge      InstanceType = "c6id.16xlarge"
+	InstanceTypeC6id24xlarge      InstanceType = "c6id.24xlarge"
+	InstanceTypeC6id32xlarge      InstanceType = "c6id.32xlarge"
+	InstanceTypeC6idMetal         InstanceType = "c6id.metal"
+	InstanceTypeM6idLarge         InstanceType = "m6id.large"
+	InstanceTypeM6idXlarge        InstanceType = "m6id.xlarge"
+	InstanceTypeM6id2xlarge       InstanceType = "m6id.2xlarge"
+	InstanceTypeM6id4xlarge       InstanceType = "m6id.4xlarge"
+	InstanceTypeM6id8xlarge       InstanceType = "m6id.8xlarge"
+	InstanceTypeM6id12xlarge      InstanceType = "m6id.12xlarge"
+	InstanceTypeM6id16xlarge      InstanceType = "m6id.16xlarge"
+	InstanceTypeM6id24xlarge      InstanceType = "m6id.24xlarge"
+	InstanceTypeM6id32xlarge      InstanceType = "m6id.32xlarge"
+	InstanceTypeM6idMetal         InstanceType = "m6id.metal"
+	InstanceTypeR6idLarge         InstanceType = "r6id.large"
+	InstanceTypeR6idXlarge        InstanceType = "r6id.xlarge"
+	InstanceTypeR6id2xlarge       InstanceType = "r6id.2xlarge"
+	InstanceTypeR6id4xlarge       InstanceType = "r6id.4xlarge"
+	InstanceTypeR6id8xlarge       InstanceType = "r6id.8xlarge"
+	InstanceTypeR6id12xlarge      InstanceType = "r6id.12xlarge"
+	InstanceTypeR6id16xlarge      InstanceType = "r6id.16xlarge"
+	InstanceTypeR6id24xlarge      InstanceType = "r6id.24xlarge"
+	InstanceTypeR6id32xlarge      InstanceType = "r6id.32xlarge"
+	InstanceTypeR6idMetal         InstanceType = "r6id.metal"
+	InstanceTypeR6aLarge          InstanceType = "r6a.large"
+	InstanceTypeR6aXlarge         InstanceType = "r6a.xlarge"
+	InstanceTypeR6a2xlarge        InstanceType = "r6a.2xlarge"
+	InstanceTypeR6a4xlarge        InstanceType = "r6a.4xlarge"
+	InstanceTypeR6a8xlarge        InstanceType = "r6a.8xlarge"
+	InstanceTypeR6a12xlarge       InstanceType = "r6a.12xlarge"
+	InstanceTypeR6a16xlarge       InstanceType = "r6a.16xlarge"
+	InstanceTypeR6a24xlarge       InstanceType = "r6a.24xlarge"
+	InstanceTypeR6a32xlarge       InstanceType = "r6a.32xlarge"
+	InstanceTypeR6a48xlarge       InstanceType = "r6a.48xlarge"
+	InstanceTypeR6aMetal          InstanceType = "r6a.metal"
+	InstanceTypeP4de24xlarge      InstanceType = "p4de.24xlarge"
+	InstanceTypeU3tb156xlarge     InstanceType = "u-3tb1.56xlarge"
+	InstanceTypeU18tb1112xlarge   InstanceType = "u-18tb1.112xlarge"
+	InstanceTypeU24tb1112xlarge   InstanceType = "u-24tb1.112xlarge"
+	InstanceTypeTrn12xlarge       InstanceType = "trn1.2xlarge"
+	InstanceTypeTrn132xlarge      InstanceType = "trn1.32xlarge"
+	InstanceTypeHpc6id32xlarge    InstanceType = "hpc6id.32xlarge"
+	InstanceTypeC6inLarge         InstanceType = "c6in.large"
+	InstanceTypeC6inXlarge        InstanceType = "c6in.xlarge"
+	InstanceTypeC6in2xlarge       InstanceType = "c6in.2xlarge"
+	InstanceTypeC6in4xlarge       InstanceType = "c6in.4xlarge"
+	InstanceTypeC6in8xlarge       InstanceType = "c6in.8xlarge"
+	InstanceTypeC6in12xlarge      InstanceType = "c6in.12xlarge"
+	InstanceTypeC6in16xlarge      InstanceType = "c6in.16xlarge"
+	InstanceTypeC6in24xlarge      InstanceType = "c6in.24xlarge"
+	InstanceTypeC6in32xlarge      InstanceType = "c6in.32xlarge"
+	InstanceTypeM6inLarge         InstanceType = "m6in.large"
+	InstanceTypeM6inXlarge        InstanceType = "m6in.xlarge"
+	InstanceTypeM6in2xlarge       InstanceType = "m6in.2xlarge"
+	InstanceTypeM6in4xlarge       InstanceType = "m6in.4xlarge"
+	InstanceTypeM6in8xlarge       InstanceType = "m6in.8xlarge"
+	InstanceTypeM6in12xlarge      InstanceType = "m6in.12xlarge"
+	InstanceTypeM6in16xlarge      InstanceType = "m6in.16xlarge"
+	InstanceTypeM6in24xlarge      InstanceType = "m6in.24xlarge"
+	InstanceTypeM6in32xlarge      InstanceType = "m6in.32xlarge"
+	InstanceTypeM6idnLarge        InstanceType = "m6idn.large"
+	InstanceTypeM6idnXlarge       InstanceType = "m6idn.xlarge"
+	InstanceTypeM6idn2xlarge      InstanceType = "m6idn.2xlarge"
+	InstanceTypeM6idn4xlarge      InstanceType = "m6idn.4xlarge"
+	InstanceTypeM6idn8xlarge      InstanceType = "m6idn.8xlarge"
+	InstanceTypeM6idn12xlarge     InstanceType = "m6idn.12xlarge"
+	InstanceTypeM6idn16xlarge     InstanceType = "m6idn.16xlarge"
+	InstanceTypeM6idn24xlarge     InstanceType = "m6idn.24xlarge"
+	InstanceTypeM6idn32xlarge     InstanceType = "m6idn.32xlarge"
+	InstanceTypeR6inLarge         InstanceType = "r6in.large"
+	InstanceTypeR6inXlarge        InstanceType = "r6in.xlarge"
+	InstanceTypeR6in2xlarge       InstanceType = "r6in.2xlarge"
+	InstanceTypeR6in4xlarge       InstanceType = "r6in.4xlarge"
+	InstanceTypeR6in8xlarge       InstanceType = "r6in.8xlarge"
+	InstanceTypeR6in12xlarge      InstanceType = "r6in.12xlarge"
+	InstanceTypeR6in16xlarge      InstanceType = "r6in.16xlarge"
+	InstanceTypeR6in24xlarge      InstanceType = "r6in.24xlarge"
+	InstanceTypeR6in32xlarge      InstanceType = "r6in.32xlarge"
+	InstanceTypeR6idnLarge        InstanceType = "r6idn.large"
+	InstanceTypeR6idnXlarge       InstanceType = "r6idn.xlarge"
+	InstanceTypeR6idn2xlarge      InstanceType = "r6idn.2xlarge"
+	InstanceTypeR6idn4xlarge      InstanceType = "r6idn.4xlarge"
+	InstanceTypeR6idn8xlarge      InstanceType = "r6idn.8xlarge"
+	InstanceTypeR6idn12xlarge     InstanceType = "r6idn.12xlarge"
+	InstanceTypeR6idn16xlarge     InstanceType = "r6idn.16xlarge"
+	InstanceTypeR6idn24xlarge     InstanceType = "r6idn.24xlarge"
+	InstanceTypeR6idn32xlarge     InstanceType = "r6idn.32xlarge"
+	InstanceTypeC7gMetal          InstanceType = "c7g.metal"
+	InstanceTypeM7gMedium         InstanceType = "m7g.medium"
+	InstanceTypeM7gLarge          InstanceType = "m7g.large"
+	InstanceTypeM7gXlarge         InstanceType = "m7g.xlarge"
+	InstanceTypeM7g2xlarge        InstanceType = "m7g.2xlarge"
+	InstanceTypeM7g4xlarge        InstanceType = "m7g.4xlarge"
+	InstanceTypeM7g8xlarge        InstanceType = "m7g.8xlarge"
+	InstanceTypeM7g12xlarge       InstanceType = "m7g.12xlarge"
+	InstanceTypeM7g16xlarge       InstanceType = "m7g.16xlarge"
+	InstanceTypeM7gMetal          InstanceType = "m7g.metal"
+	InstanceTypeR7gMedium         InstanceType = "r7g.medium"
+	InstanceTypeR7gLarge          InstanceType = "r7g.large"
+	InstanceTypeR7gXlarge         InstanceType = "r7g.xlarge"
+	InstanceTypeR7g2xlarge        InstanceType = "r7g.2xlarge"
+	InstanceTypeR7g4xlarge        InstanceType = "r7g.4xlarge"
+	InstanceTypeR7g8xlarge        InstanceType = "r7g.8xlarge"
+	InstanceTypeR7g12xlarge       InstanceType = "r7g.12xlarge"
+	InstanceTypeR7g16xlarge       InstanceType = "r7g.16xlarge"
+	InstanceTypeR7gMetal          InstanceType = "r7g.metal"
+	InstanceTypeC6inMetal         InstanceType = "c6in.metal"
+	InstanceTypeM6inMetal         InstanceType = "m6in.metal"
+	InstanceTypeM6idnMetal        InstanceType = "m6idn.metal"
+	InstanceTypeR6inMetal         InstanceType = "r6in.metal"
+	InstanceTypeR6idnMetal        InstanceType = "r6idn.metal"
+	InstanceTypeInf2Xlarge        InstanceType = "inf2.xlarge"
+	InstanceTypeInf28xlarge       InstanceType = "inf2.8xlarge"
+	InstanceTypeInf224xlarge      InstanceType = "inf2.24xlarge"
+	InstanceTypeInf248xlarge      InstanceType = "inf2.48xlarge"
+	InstanceTypeTrn1n32xlarge     InstanceType = "trn1n.32xlarge"
+	InstanceTypeI4gLarge          InstanceType = "i4g.large"
+	InstanceTypeI4gXlarge         InstanceType = "i4g.xlarge"
+	InstanceTypeI4g2xlarge        InstanceType = "i4g.2xlarge"
+	InstanceTypeI4g4xlarge        InstanceType = "i4g.4xlarge"
+	InstanceTypeI4g8xlarge        InstanceType = "i4g.8xlarge"
+	InstanceTypeI4g16xlarge       InstanceType = "i4g.16xlarge"
+	InstanceTypeHpc7g4xlarge      InstanceType = "hpc7g.4xlarge"
+	InstanceTypeHpc7g8xlarge      InstanceType = "hpc7g.8xlarge"
+	InstanceTypeHpc7g16xlarge     InstanceType = "hpc7g.16xlarge"
+	InstanceTypeC7gnMedium        InstanceType = "c7gn.medium"
+	InstanceTypeC7gnLarge         InstanceType = "c7gn.large"
+	InstanceTypeC7gnXlarge        InstanceType = "c7gn.xlarge"
+	InstanceTypeC7gn2xlarge       InstanceType = "c7gn.2xlarge"
+	InstanceTypeC7gn4xlarge       InstanceType = "c7gn.4xlarge"
+	InstanceTypeC7gn8xlarge       InstanceType = "c7gn.8xlarge"
+	InstanceTypeC7gn12xlarge      InstanceType = "c7gn.12xlarge"
+	InstanceTypeC7gn16xlarge      InstanceType = "c7gn.16xlarge"
+	InstanceTypeP548xlarge        InstanceType = "p5.48xlarge"
+	InstanceTypeM7iLarge          InstanceType = "m7i.large"
+	InstanceTypeM7iXlarge         InstanceType = "m7i.xlarge"
+	InstanceTypeM7i2xlarge        InstanceType = "m7i.2xlarge"
+	InstanceTypeM7i4xlarge        InstanceType = "m7i.4xlarge"
+	InstanceTypeM7i8xlarge        InstanceType = "m7i.8xlarge"
+	InstanceTypeM7i12xlarge       InstanceType = "m7i.12xlarge"
+	InstanceTypeM7i16xlarge       InstanceType = "m7i.16xlarge"
+	InstanceTypeM7i24xlarge       InstanceType = "m7i.24xlarge"
+	InstanceTypeM7i48xlarge       InstanceType = "m7i.48xlarge"
+	InstanceTypeM7iFlexLarge      InstanceType = "m7i-flex.large"
+	InstanceTypeM7iFlexXlarge     InstanceType = "m7i-flex.xlarge"
+	InstanceTypeM7iFlex2xlarge    InstanceType = "m7i-flex.2xlarge"
+	InstanceTypeM7iFlex4xlarge    InstanceType = "m7i-flex.4xlarge"
+	InstanceTypeM7iFlex8xlarge    InstanceType = "m7i-flex.8xlarge"
+	InstanceTypeM7aMedium         InstanceType = "m7a.medium"
+	InstanceTypeM7aLarge          InstanceType = "m7a.large"
+	InstanceTypeM7aXlarge         InstanceType = "m7a.xlarge"
+	InstanceTypeM7a2xlarge        InstanceType = "m7a.2xlarge"
+	InstanceTypeM7a4xlarge        InstanceType = "m7a.4xlarge"
+	InstanceTypeM7a8xlarge        InstanceType = "m7a.8xlarge"
+	InstanceTypeM7a12xlarge       InstanceType = "m7a.12xlarge"
+	InstanceTypeM7a16xlarge       InstanceType = "m7a.16xlarge"
+	InstanceTypeM7a24xlarge       InstanceType = "m7a.24xlarge"
+	InstanceTypeM7a32xlarge       InstanceType = "m7a.32xlarge"
+	InstanceTypeM7a48xlarge       InstanceType = "m7a.48xlarge"
+	InstanceTypeM7aMetal48xl      InstanceType = "m7a.metal-48xl"
+	InstanceTypeHpc7a12xlarge     InstanceType = "hpc7a.12xlarge"
+	InstanceTypeHpc7a24xlarge     InstanceType = "hpc7a.24xlarge"
+	InstanceTypeHpc7a48xlarge     InstanceType = "hpc7a.48xlarge"
+	InstanceTypeHpc7a96xlarge     InstanceType = "hpc7a.96xlarge"
+	InstanceTypeC7gdMedium        InstanceType = "c7gd.medium"
+	InstanceTypeC7gdLarge         InstanceType = "c7gd.large"
+	InstanceTypeC7gdXlarge        InstanceType = "c7gd.xlarge"
+	InstanceTypeC7gd2xlarge       InstanceType = "c7gd.2xlarge"
+	InstanceTypeC7gd4xlarge       InstanceType = "c7gd.4xlarge"
+	InstanceTypeC7gd8xlarge       InstanceType = "c7gd.8xlarge"
+	InstanceTypeC7gd12xlarge      InstanceType = "c7gd.12xlarge"
+	InstanceTypeC7gd16xlarge      InstanceType = "c7gd.16xlarge"
+	InstanceTypeM7gdMedium        InstanceType = "m7gd.medium"
+	InstanceTypeM7gdLarge         InstanceType = "m7gd.large"
+	InstanceTypeM7gdXlarge        InstanceType = "m7gd.xlarge"
+	InstanceTypeM7gd2xlarge       InstanceType = "m7gd.2xlarge"
+	InstanceTypeM7gd4xlarge       InstanceType = "m7gd.4xlarge"
+	InstanceTypeM7gd8xlarge       InstanceType = "m7gd.8xlarge"
+	InstanceTypeM7gd12xlarge      InstanceType = "m7gd.12xlarge"
+	InstanceTypeM7gd16xlarge      InstanceType = "m7gd.16xlarge"
+	InstanceTypeR7gdMedium        InstanceType = "r7gd.medium"
+	InstanceTypeR7gdLarge         InstanceType = "r7gd.large"
+	InstanceTypeR7gdXlarge        InstanceType = "r7gd.xlarge"
+	InstanceTypeR7gd2xlarge       InstanceType = "r7gd.2xlarge"
+	InstanceTypeR7gd4xlarge       InstanceType = "r7gd.4xlarge"
+	InstanceTypeR7gd8xlarge       InstanceType = "r7gd.8xlarge"
+	InstanceTypeR7gd12xlarge      InstanceType = "r7gd.12xlarge"
+	InstanceTypeR7gd16xlarge      InstanceType = "r7gd.16xlarge"
+	InstanceTypeR7aMedium         InstanceType = "r7a.medium"
+	InstanceTypeR7aLarge          InstanceType = "r7a.large"
+	InstanceTypeR7aXlarge         InstanceType = "r7a.xlarge"
+	InstanceTypeR7a2xlarge        InstanceType = "r7a.2xlarge"
+	InstanceTypeR7a4xlarge        InstanceType = "r7a.4xlarge"
+	InstanceTypeR7a8xlarge        InstanceType = "r7a.8xlarge"
+	InstanceTypeR7a12xlarge       InstanceType = "r7a.12xlarge"
+	InstanceTypeR7a16xlarge       InstanceType = "r7a.16xlarge"
+	InstanceTypeR7a24xlarge       InstanceType = "r7a.24xlarge"
+	InstanceTypeR7a32xlarge       InstanceType = "r7a.32xlarge"
+	InstanceTypeR7a48xlarge       InstanceType = "r7a.48xlarge"
+	InstanceTypeC7iLarge          InstanceType = "c7i.large"
+	InstanceTypeC7iXlarge         InstanceType = "c7i.xlarge"
+	InstanceTypeC7i2xlarge        InstanceType = "c7i.2xlarge"
+	InstanceTypeC7i4xlarge        InstanceType = "c7i.4xlarge"
+	InstanceTypeC7i8xlarge        InstanceType = "c7i.8xlarge"
+	InstanceTypeC7i12xlarge       InstanceType = "c7i.12xlarge"
+	InstanceTypeC7i16xlarge       InstanceType = "c7i.16xlarge"
+	InstanceTypeC7i24xlarge       InstanceType = "c7i.24xlarge"
+	InstanceTypeC7i48xlarge       InstanceType = "c7i.48xlarge"
+	InstanceTypeMac2M2proMetal    InstanceType = "mac2-m2pro.metal"
+	InstanceTypeR7izLarge         InstanceType = "r7iz.large"
+	InstanceTypeR7izXlarge        InstanceType = "r7iz.xlarge"
+	InstanceTypeR7iz2xlarge       InstanceType = "r7iz.2xlarge"
+	InstanceTypeR7iz4xlarge       InstanceType = "r7iz.4xlarge"
+	InstanceTypeR7iz8xlarge       InstanceType = "r7iz.8xlarge"
+	InstanceTypeR7iz12xlarge      InstanceType = "r7iz.12xlarge"
+	InstanceTypeR7iz16xlarge      InstanceType = "r7iz.16xlarge"
+	InstanceTypeR7iz32xlarge      InstanceType = "r7iz.32xlarge"
+	InstanceTypeC7aMedium         InstanceType = "c7a.medium"
+	InstanceTypeC7aLarge          InstanceType = "c7a.large"
+	InstanceTypeC7aXlarge         InstanceType = "c7a.xlarge"
+	InstanceTypeC7a2xlarge        InstanceType = "c7a.2xlarge"
+	InstanceTypeC7a4xlarge        InstanceType = "c7a.4xlarge"
+	InstanceTypeC7a8xlarge        InstanceType = "c7a.8xlarge"
+	InstanceTypeC7a12xlarge       InstanceType = "c7a.12xlarge"
+	InstanceTypeC7a16xlarge       InstanceType = "c7a.16xlarge"
+	InstanceTypeC7a24xlarge       InstanceType = "c7a.24xlarge"
+	InstanceTypeC7a32xlarge       InstanceType = "c7a.32xlarge"
+	InstanceTypeC7a48xlarge       InstanceType = "c7a.48xlarge"
+	InstanceTypeC7aMetal48xl      InstanceType = "c7a.metal-48xl"
+	InstanceTypeR7aMetal48xl      InstanceType = "r7a.metal-48xl"
+	InstanceTypeR7iLarge          InstanceType = "r7i.large"
+	InstanceTypeR7iXlarge         InstanceType = "r7i.xlarge"
+	InstanceTypeR7i2xlarge        InstanceType = "r7i.2xlarge"
+	InstanceTypeR7i4xlarge        InstanceType = "r7i.4xlarge"
+	InstanceTypeR7i8xlarge        InstanceType = "r7i.8xlarge"
+	InstanceTypeR7i12xlarge       InstanceType = "r7i.12xlarge"
+	InstanceTypeR7i16xlarge       InstanceType = "r7i.16xlarge"
+	InstanceTypeR7i24xlarge       InstanceType = "r7i.24xlarge"
+	InstanceTypeR7i48xlarge       InstanceType = "r7i.48xlarge"
+	InstanceTypeDl2q24xlarge      InstanceType = "dl2q.24xlarge"
+	InstanceTypeMac2M2Metal       InstanceType = "mac2-m2.metal"
+	InstanceTypeI4i12xlarge       InstanceType = "i4i.12xlarge"
+	InstanceTypeI4i24xlarge       InstanceType = "i4i.24xlarge"
+	InstanceTypeC7iMetal24xl      InstanceType = "c7i.metal-24xl"
+	InstanceTypeC7iMetal48xl      InstanceType = "c7i.metal-48xl"
+	InstanceTypeM7iMetal24xl      InstanceType = "m7i.metal-24xl"
+	InstanceTypeM7iMetal48xl      InstanceType = "m7i.metal-48xl"
+	InstanceTypeR7iMetal24xl      InstanceType = "r7i.metal-24xl"
+	InstanceTypeR7iMetal48xl      InstanceType = "r7i.metal-48xl"
+	InstanceTypeR7izMetal16xl     InstanceType = "r7iz.metal-16xl"
+	InstanceTypeR7izMetal32xl     InstanceType = "r7iz.metal-32xl"
+	InstanceTypeC7gdMetal         InstanceType = "c7gd.metal"
+	InstanceTypeM7gdMetal         InstanceType = "m7gd.metal"
+	InstanceTypeR7gdMetal         InstanceType = "r7gd.metal"
+	InstanceTypeG6Xlarge          InstanceType = "g6.xlarge"
+	InstanceTypeG62xlarge         InstanceType = "g6.2xlarge"
+	InstanceTypeG64xlarge         InstanceType = "g6.4xlarge"
+	InstanceTypeG68xlarge         InstanceType = "g6.8xlarge"
+	InstanceTypeG612xlarge        InstanceType = "g6.12xlarge"
+	InstanceTypeG616xlarge        InstanceType = "g6.16xlarge"
+	InstanceTypeG624xlarge        InstanceType = "g6.24xlarge"
+	InstanceTypeG648xlarge        InstanceType = "g6.48xlarge"
+	InstanceTypeGr64xlarge        InstanceType = "gr6.4xlarge"
+	InstanceTypeGr68xlarge        InstanceType = "gr6.8xlarge"
+	InstanceTypeC7iFlexLarge      InstanceType = "c7i-flex.large"
+	InstanceTypeC7iFlexXlarge     InstanceType = "c7i-flex.xlarge"
+	InstanceTypeC7iFlex2xlarge    InstanceType = "c7i-flex.2xlarge"
+	InstanceTypeC7iFlex4xlarge    InstanceType = "c7i-flex.4xlarge"
+	InstanceTypeC7iFlex8xlarge    InstanceType = "c7i-flex.8xlarge"
+	InstanceTypeU7i12tb224xlarge  InstanceType = "u7i-12tb.224xlarge"
+	InstanceTypeU7in16tb224xlarge InstanceType = "u7in-16tb.224xlarge"
+	InstanceTypeU7in24tb224xlarge InstanceType = "u7in-24tb.224xlarge"
+	InstanceTypeU7in32tb224xlarge InstanceType = "u7in-32tb.224xlarge"
+	InstanceTypeU7ib12tb224xlarge InstanceType = "u7ib-12tb.224xlarge"
+	InstanceTypeC7gnMetal         InstanceType = "c7gn.metal"
+	InstanceTypeR8gMedium         InstanceType = "r8g.medium"
+	InstanceTypeR8gLarge          InstanceType = "r8g.large"
+	InstanceTypeR8gXlarge         InstanceType = "r8g.xlarge"
+	InstanceTypeR8g2xlarge        InstanceType = "r8g.2xlarge"
+	InstanceTypeR8g4xlarge        InstanceType = "r8g.4xlarge"
+	InstanceTypeR8g8xlarge        InstanceType = "r8g.8xlarge"
+	InstanceTypeR8g12xlarge       InstanceType = "r8g.12xlarge"
+	InstanceTypeR8g16xlarge       InstanceType = "r8g.16xlarge"
+	InstanceTypeR8g24xlarge       InstanceType = "r8g.24xlarge"
+	InstanceTypeR8g48xlarge       InstanceType = "r8g.48xlarge"
+	InstanceTypeR8gMetal24xl      InstanceType = "r8g.metal-24xl"
+	InstanceTypeR8gMetal48xl      InstanceType = "r8g.metal-48xl"
+	InstanceTypeMac2M1ultraMetal  InstanceType = "mac2-m1ultra.metal"
 )
 
 // Values returns all known values for InstanceType. Note that this can be
@@ -5650,258 +4791,6 @@ func (InstanceType) Values() []InstanceType {
 		"r8g.metal-24xl",
 		"r8g.metal-48xl",
 		"mac2-m1ultra.metal",
-		"g6e.xlarge",
-		"g6e.2xlarge",
-		"g6e.4xlarge",
-		"g6e.8xlarge",
-		"g6e.12xlarge",
-		"g6e.16xlarge",
-		"g6e.24xlarge",
-		"g6e.48xlarge",
-		"c8g.medium",
-		"c8g.large",
-		"c8g.xlarge",
-		"c8g.2xlarge",
-		"c8g.4xlarge",
-		"c8g.8xlarge",
-		"c8g.12xlarge",
-		"c8g.16xlarge",
-		"c8g.24xlarge",
-		"c8g.48xlarge",
-		"c8g.metal-24xl",
-		"c8g.metal-48xl",
-		"m8g.medium",
-		"m8g.large",
-		"m8g.xlarge",
-		"m8g.2xlarge",
-		"m8g.4xlarge",
-		"m8g.8xlarge",
-		"m8g.12xlarge",
-		"m8g.16xlarge",
-		"m8g.24xlarge",
-		"m8g.48xlarge",
-		"m8g.metal-24xl",
-		"m8g.metal-48xl",
-		"x8g.medium",
-		"x8g.large",
-		"x8g.xlarge",
-		"x8g.2xlarge",
-		"x8g.4xlarge",
-		"x8g.8xlarge",
-		"x8g.12xlarge",
-		"x8g.16xlarge",
-		"x8g.24xlarge",
-		"x8g.48xlarge",
-		"x8g.metal-24xl",
-		"x8g.metal-48xl",
-		"i7ie.large",
-		"i7ie.xlarge",
-		"i7ie.2xlarge",
-		"i7ie.3xlarge",
-		"i7ie.6xlarge",
-		"i7ie.12xlarge",
-		"i7ie.18xlarge",
-		"i7ie.24xlarge",
-		"i7ie.48xlarge",
-		"i8g.large",
-		"i8g.xlarge",
-		"i8g.2xlarge",
-		"i8g.4xlarge",
-		"i8g.8xlarge",
-		"i8g.12xlarge",
-		"i8g.16xlarge",
-		"i8g.24xlarge",
-		"i8g.metal-24xl",
-		"u7i-6tb.112xlarge",
-		"u7i-8tb.112xlarge",
-		"u7inh-32tb.480xlarge",
-		"p5e.48xlarge",
-		"p5en.48xlarge",
-		"f2.12xlarge",
-		"f2.48xlarge",
-		"trn2.48xlarge",
-		"c7i-flex.12xlarge",
-		"c7i-flex.16xlarge",
-		"m7i-flex.12xlarge",
-		"m7i-flex.16xlarge",
-		"i7ie.metal-24xl",
-		"i7ie.metal-48xl",
-		"i8g.48xlarge",
-		"c8gd.medium",
-		"c8gd.large",
-		"c8gd.xlarge",
-		"c8gd.2xlarge",
-		"c8gd.4xlarge",
-		"c8gd.8xlarge",
-		"c8gd.12xlarge",
-		"c8gd.16xlarge",
-		"c8gd.24xlarge",
-		"c8gd.48xlarge",
-		"c8gd.metal-24xl",
-		"c8gd.metal-48xl",
-		"i7i.large",
-		"i7i.xlarge",
-		"i7i.2xlarge",
-		"i7i.4xlarge",
-		"i7i.8xlarge",
-		"i7i.12xlarge",
-		"i7i.16xlarge",
-		"i7i.24xlarge",
-		"i7i.48xlarge",
-		"i7i.metal-24xl",
-		"i7i.metal-48xl",
-		"p6-b200.48xlarge",
-		"m8gd.medium",
-		"m8gd.large",
-		"m8gd.xlarge",
-		"m8gd.2xlarge",
-		"m8gd.4xlarge",
-		"m8gd.8xlarge",
-		"m8gd.12xlarge",
-		"m8gd.16xlarge",
-		"m8gd.24xlarge",
-		"m8gd.48xlarge",
-		"m8gd.metal-24xl",
-		"m8gd.metal-48xl",
-		"r8gd.medium",
-		"r8gd.large",
-		"r8gd.xlarge",
-		"r8gd.2xlarge",
-		"r8gd.4xlarge",
-		"r8gd.8xlarge",
-		"r8gd.12xlarge",
-		"r8gd.16xlarge",
-		"r8gd.24xlarge",
-		"r8gd.48xlarge",
-		"r8gd.metal-24xl",
-		"r8gd.metal-48xl",
-		"c8gn.medium",
-		"c8gn.large",
-		"c8gn.xlarge",
-		"c8gn.2xlarge",
-		"c8gn.4xlarge",
-		"c8gn.8xlarge",
-		"c8gn.12xlarge",
-		"c8gn.16xlarge",
-		"c8gn.24xlarge",
-		"c8gn.48xlarge",
-		"c8gn.metal-24xl",
-		"c8gn.metal-48xl",
-		"f2.6xlarge",
-		"p6e-gb200.36xlarge",
-		"g6f.large",
-		"g6f.xlarge",
-		"g6f.2xlarge",
-		"g6f.4xlarge",
-		"gr6f.4xlarge",
-		"p5.4xlarge",
-		"r8i.large",
-		"r8i.xlarge",
-		"r8i.2xlarge",
-		"r8i.4xlarge",
-		"r8i.8xlarge",
-		"r8i.12xlarge",
-		"r8i.16xlarge",
-		"r8i.24xlarge",
-		"r8i.32xlarge",
-		"r8i.48xlarge",
-		"r8i.96xlarge",
-		"r8i.metal-48xl",
-		"r8i.metal-96xl",
-		"r8i-flex.large",
-		"r8i-flex.xlarge",
-		"r8i-flex.2xlarge",
-		"r8i-flex.4xlarge",
-		"r8i-flex.8xlarge",
-		"r8i-flex.12xlarge",
-		"r8i-flex.16xlarge",
-		"m8i.large",
-		"m8i.xlarge",
-		"m8i.2xlarge",
-		"m8i.4xlarge",
-		"m8i.8xlarge",
-		"m8i.12xlarge",
-		"m8i.16xlarge",
-		"m8i.24xlarge",
-		"m8i.32xlarge",
-		"m8i.48xlarge",
-		"m8i.96xlarge",
-		"m8i.metal-48xl",
-		"m8i.metal-96xl",
-		"m8i-flex.large",
-		"m8i-flex.xlarge",
-		"m8i-flex.2xlarge",
-		"m8i-flex.4xlarge",
-		"m8i-flex.8xlarge",
-		"m8i-flex.12xlarge",
-		"m8i-flex.16xlarge",
-		"i8ge.large",
-		"i8ge.xlarge",
-		"i8ge.2xlarge",
-		"i8ge.3xlarge",
-		"i8ge.6xlarge",
-		"i8ge.12xlarge",
-		"i8ge.18xlarge",
-		"i8ge.24xlarge",
-		"i8ge.48xlarge",
-		"i8ge.metal-24xl",
-		"i8ge.metal-48xl",
-		"mac-m4.metal",
-		"mac-m4pro.metal",
-		"r8gn.medium",
-		"r8gn.large",
-		"r8gn.xlarge",
-		"r8gn.2xlarge",
-		"r8gn.4xlarge",
-		"r8gn.8xlarge",
-		"r8gn.12xlarge",
-		"r8gn.16xlarge",
-		"r8gn.24xlarge",
-		"r8gn.48xlarge",
-		"r8gn.metal-24xl",
-		"r8gn.metal-48xl",
-		"c8i.large",
-		"c8i.xlarge",
-		"c8i.2xlarge",
-		"c8i.4xlarge",
-		"c8i.8xlarge",
-		"c8i.12xlarge",
-		"c8i.16xlarge",
-		"c8i.24xlarge",
-		"c8i.32xlarge",
-		"c8i.48xlarge",
-		"c8i.96xlarge",
-		"c8i.metal-48xl",
-		"c8i.metal-96xl",
-		"c8i-flex.large",
-		"c8i-flex.xlarge",
-		"c8i-flex.2xlarge",
-		"c8i-flex.4xlarge",
-		"c8i-flex.8xlarge",
-		"c8i-flex.12xlarge",
-		"c8i-flex.16xlarge",
-		"r8gb.medium",
-		"r8gb.large",
-		"r8gb.xlarge",
-		"r8gb.2xlarge",
-		"r8gb.4xlarge",
-		"r8gb.8xlarge",
-		"r8gb.12xlarge",
-		"r8gb.16xlarge",
-		"r8gb.24xlarge",
-		"r8gb.metal-24xl",
-		"m8a.medium",
-		"m8a.large",
-		"m8a.xlarge",
-		"m8a.2xlarge",
-		"m8a.4xlarge",
-		"m8a.8xlarge",
-		"m8a.12xlarge",
-		"m8a.16xlarge",
-		"m8a.24xlarge",
-		"m8a.48xlarge",
-		"m8a.metal-24xl",
-		"m8a.metal-48xl",
 	}
 }
 
@@ -5959,47 +4848,6 @@ func (InterfaceProtocolType) Values() []InterfaceProtocolType {
 	return []InterfaceProtocolType{
 		"VLAN",
 		"GRE",
-	}
-}
-
-type InternetGatewayBlockMode string
-
-// Enum values for InternetGatewayBlockMode
-const (
-	InternetGatewayBlockModeOff                InternetGatewayBlockMode = "off"
-	InternetGatewayBlockModeBlockBidirectional InternetGatewayBlockMode = "block-bidirectional"
-	InternetGatewayBlockModeBlockIngress       InternetGatewayBlockMode = "block-ingress"
-)
-
-// Values returns all known values for InternetGatewayBlockMode. Note that this
-// can be expanded in the future, and so it is only as up to date as the client.
-//
-// The ordering of this slice is not guaranteed to be stable across updates.
-func (InternetGatewayBlockMode) Values() []InternetGatewayBlockMode {
-	return []InternetGatewayBlockMode{
-		"off",
-		"block-bidirectional",
-		"block-ingress",
-	}
-}
-
-type InternetGatewayExclusionMode string
-
-// Enum values for InternetGatewayExclusionMode
-const (
-	InternetGatewayExclusionModeAllowBidirectional InternetGatewayExclusionMode = "allow-bidirectional"
-	InternetGatewayExclusionModeAllowEgress        InternetGatewayExclusionMode = "allow-egress"
-)
-
-// Values returns all known values for InternetGatewayExclusionMode. Note that
-// this can be expanded in the future, and so it is only as up to date as the
-// client.
-//
-// The ordering of this slice is not guaranteed to be stable across updates.
-func (InternetGatewayExclusionMode) Values() []InternetGatewayExclusionMode {
-	return []InternetGatewayExclusionMode{
-		"allow-bidirectional",
-		"allow-egress",
 	}
 }
 
@@ -6160,25 +5008,6 @@ func (IpamManagementState) Values() []IpamManagementState {
 		"managed",
 		"unmanaged",
 		"ignored",
-	}
-}
-
-type IpamMeteredAccount string
-
-// Enum values for IpamMeteredAccount
-const (
-	IpamMeteredAccountIpamOwner     IpamMeteredAccount = "ipam-owner"
-	IpamMeteredAccountResourceOwner IpamMeteredAccount = "resource-owner"
-)
-
-// Values returns all known values for IpamMeteredAccount. Note that this can be
-// expanded in the future, and so it is only as up to date as the client.
-//
-// The ordering of this slice is not guaranteed to be stable across updates.
-func (IpamMeteredAccount) Values() []IpamMeteredAccount {
-	return []IpamMeteredAccount{
-		"ipam-owner",
-		"resource-owner",
 	}
 }
 
@@ -7063,56 +5892,6 @@ func (LocalGatewayRouteType) Values() []LocalGatewayRouteType {
 	}
 }
 
-type LocalGatewayVirtualInterfaceConfigurationState string
-
-// Enum values for LocalGatewayVirtualInterfaceConfigurationState
-const (
-	LocalGatewayVirtualInterfaceConfigurationStatePending   LocalGatewayVirtualInterfaceConfigurationState = "pending"
-	LocalGatewayVirtualInterfaceConfigurationStateAvailable LocalGatewayVirtualInterfaceConfigurationState = "available"
-	LocalGatewayVirtualInterfaceConfigurationStateDeleting  LocalGatewayVirtualInterfaceConfigurationState = "deleting"
-	LocalGatewayVirtualInterfaceConfigurationStateDeleted   LocalGatewayVirtualInterfaceConfigurationState = "deleted"
-)
-
-// Values returns all known values for
-// LocalGatewayVirtualInterfaceConfigurationState. Note that this can be expanded
-// in the future, and so it is only as up to date as the client.
-//
-// The ordering of this slice is not guaranteed to be stable across updates.
-func (LocalGatewayVirtualInterfaceConfigurationState) Values() []LocalGatewayVirtualInterfaceConfigurationState {
-	return []LocalGatewayVirtualInterfaceConfigurationState{
-		"pending",
-		"available",
-		"deleting",
-		"deleted",
-	}
-}
-
-type LocalGatewayVirtualInterfaceGroupConfigurationState string
-
-// Enum values for LocalGatewayVirtualInterfaceGroupConfigurationState
-const (
-	LocalGatewayVirtualInterfaceGroupConfigurationStatePending    LocalGatewayVirtualInterfaceGroupConfigurationState = "pending"
-	LocalGatewayVirtualInterfaceGroupConfigurationStateIncomplete LocalGatewayVirtualInterfaceGroupConfigurationState = "incomplete"
-	LocalGatewayVirtualInterfaceGroupConfigurationStateAvailable  LocalGatewayVirtualInterfaceGroupConfigurationState = "available"
-	LocalGatewayVirtualInterfaceGroupConfigurationStateDeleting   LocalGatewayVirtualInterfaceGroupConfigurationState = "deleting"
-	LocalGatewayVirtualInterfaceGroupConfigurationStateDeleted    LocalGatewayVirtualInterfaceGroupConfigurationState = "deleted"
-)
-
-// Values returns all known values for
-// LocalGatewayVirtualInterfaceGroupConfigurationState. Note that this can be
-// expanded in the future, and so it is only as up to date as the client.
-//
-// The ordering of this slice is not guaranteed to be stable across updates.
-func (LocalGatewayVirtualInterfaceGroupConfigurationState) Values() []LocalGatewayVirtualInterfaceGroupConfigurationState {
-	return []LocalGatewayVirtualInterfaceGroupConfigurationState{
-		"pending",
-		"incomplete",
-		"available",
-		"deleting",
-		"deleted",
-	}
-}
-
 type LocalStorage string
 
 // Enum values for LocalStorage
@@ -7239,87 +6018,6 @@ func (LogDestinationType) Values() []LogDestinationType {
 	}
 }
 
-type MacModificationTaskState string
-
-// Enum values for MacModificationTaskState
-const (
-	MacModificationTaskStateSuccessful MacModificationTaskState = "successful"
-	MacModificationTaskStateFailed     MacModificationTaskState = "failed"
-	MacModificationTaskStateInprogress MacModificationTaskState = "in-progress"
-	MacModificationTaskStatePending    MacModificationTaskState = "pending"
-)
-
-// Values returns all known values for MacModificationTaskState. Note that this
-// can be expanded in the future, and so it is only as up to date as the client.
-//
-// The ordering of this slice is not guaranteed to be stable across updates.
-func (MacModificationTaskState) Values() []MacModificationTaskState {
-	return []MacModificationTaskState{
-		"successful",
-		"failed",
-		"in-progress",
-		"pending",
-	}
-}
-
-type MacModificationTaskType string
-
-// Enum values for MacModificationTaskType
-const (
-	MacModificationTaskTypeSIPModification           MacModificationTaskType = "sip-modification"
-	MacModificationTaskTypeVolumeOwnershipDelegation MacModificationTaskType = "volume-ownership-delegation"
-)
-
-// Values returns all known values for MacModificationTaskType. Note that this can
-// be expanded in the future, and so it is only as up to date as the client.
-//
-// The ordering of this slice is not guaranteed to be stable across updates.
-func (MacModificationTaskType) Values() []MacModificationTaskType {
-	return []MacModificationTaskType{
-		"sip-modification",
-		"volume-ownership-delegation",
-	}
-}
-
-type MacSystemIntegrityProtectionSettingStatus string
-
-// Enum values for MacSystemIntegrityProtectionSettingStatus
-const (
-	MacSystemIntegrityProtectionSettingStatusEnabled  MacSystemIntegrityProtectionSettingStatus = "enabled"
-	MacSystemIntegrityProtectionSettingStatusDisabled MacSystemIntegrityProtectionSettingStatus = "disabled"
-)
-
-// Values returns all known values for MacSystemIntegrityProtectionSettingStatus.
-// Note that this can be expanded in the future, and so it is only as up to date as
-// the client.
-//
-// The ordering of this slice is not guaranteed to be stable across updates.
-func (MacSystemIntegrityProtectionSettingStatus) Values() []MacSystemIntegrityProtectionSettingStatus {
-	return []MacSystemIntegrityProtectionSettingStatus{
-		"enabled",
-		"disabled",
-	}
-}
-
-type ManagedBy string
-
-// Enum values for ManagedBy
-const (
-	ManagedByAccount           ManagedBy = "account"
-	ManagedByDeclarativePolicy ManagedBy = "declarative-policy"
-)
-
-// Values returns all known values for ManagedBy. Note that this can be expanded
-// in the future, and so it is only as up to date as the client.
-//
-// The ordering of this slice is not guaranteed to be stable across updates.
-func (ManagedBy) Values() []ManagedBy {
-	return []ManagedBy{
-		"account",
-		"declarative-policy",
-	}
-}
-
 type MarketType string
 
 // Enum values for MarketType
@@ -7377,107 +6075,6 @@ func (MetadataDefaultHttpTokensState) Values() []MetadataDefaultHttpTokensState 
 		"optional",
 		"required",
 		"no-preference",
-	}
-}
-
-type Metric string
-
-// Enum values for Metric
-const (
-	MetricReservationTotalCapacityHrsVcpu       Metric = "reservation-total-capacity-hrs-vcpu"
-	MetricReservationTotalCapacityHrsInst       Metric = "reservation-total-capacity-hrs-inst"
-	MetricReservationMaxSizeVcpu                Metric = "reservation-max-size-vcpu"
-	MetricReservationMaxSizeInst                Metric = "reservation-max-size-inst"
-	MetricReservationMinSizeVcpu                Metric = "reservation-min-size-vcpu"
-	MetricReservationMinSizeInst                Metric = "reservation-min-size-inst"
-	MetricReservationUnusedTotalCapacityHrsVcpu Metric = "reservation-unused-total-capacity-hrs-vcpu"
-	MetricReservationUnusedTotalCapacityHrsInst Metric = "reservation-unused-total-capacity-hrs-inst"
-	MetricReservationUnusedTotalEstimatedCost   Metric = "reservation-unused-total-estimated-cost"
-	MetricReservationMaxUnusedSizeVcpu          Metric = "reservation-max-unused-size-vcpu"
-	MetricReservationMaxUnusedSizeInst          Metric = "reservation-max-unused-size-inst"
-	MetricReservationMinUnusedSizeVcpu          Metric = "reservation-min-unused-size-vcpu"
-	MetricReservationMinUnusedSizeInst          Metric = "reservation-min-unused-size-inst"
-	MetricReservationMaxUtilization             Metric = "reservation-max-utilization"
-	MetricReservationMinUtilization             Metric = "reservation-min-utilization"
-	MetricReservationAvgUtilizationVcpu         Metric = "reservation-avg-utilization-vcpu"
-	MetricReservationAvgUtilizationInst         Metric = "reservation-avg-utilization-inst"
-	MetricReservationTotalCount                 Metric = "reservation-total-count"
-	MetricReservationTotalEstimatedCost         Metric = "reservation-total-estimated-cost"
-	MetricReservationAvgFutureSizeVcpu          Metric = "reservation-avg-future-size-vcpu"
-	MetricReservationAvgFutureSizeInst          Metric = "reservation-avg-future-size-inst"
-	MetricReservationMinFutureSizeVcpu          Metric = "reservation-min-future-size-vcpu"
-	MetricReservationMinFutureSizeInst          Metric = "reservation-min-future-size-inst"
-	MetricReservationMaxFutureSizeVcpu          Metric = "reservation-max-future-size-vcpu"
-	MetricReservationMaxFutureSizeInst          Metric = "reservation-max-future-size-inst"
-	MetricReservationAvgCommittedSizeVcpu       Metric = "reservation-avg-committed-size-vcpu"
-	MetricReservationAvgCommittedSizeInst       Metric = "reservation-avg-committed-size-inst"
-	MetricReservationMaxCommittedSizeVcpu       Metric = "reservation-max-committed-size-vcpu"
-	MetricReservationMaxCommittedSizeInst       Metric = "reservation-max-committed-size-inst"
-	MetricReservationMinCommittedSizeVcpu       Metric = "reservation-min-committed-size-vcpu"
-	MetricReservationMinCommittedSizeInst       Metric = "reservation-min-committed-size-inst"
-	MetricReservedTotalUsageHrsVcpu             Metric = "reserved-total-usage-hrs-vcpu"
-	MetricReservedTotalUsageHrsInst             Metric = "reserved-total-usage-hrs-inst"
-	MetricReservedTotalEstimatedCost            Metric = "reserved-total-estimated-cost"
-	MetricUnreservedTotalUsageHrsVcpu           Metric = "unreserved-total-usage-hrs-vcpu"
-	MetricUnreservedTotalUsageHrsInst           Metric = "unreserved-total-usage-hrs-inst"
-	MetricUnreservedTotalEstimatedCost          Metric = "unreserved-total-estimated-cost"
-	MetricSpotTotalUsageHrsVcpu                 Metric = "spot-total-usage-hrs-vcpu"
-	MetricSpotTotalUsageHrsInst                 Metric = "spot-total-usage-hrs-inst"
-	MetricSpotTotalEstimatedCost                Metric = "spot-total-estimated-cost"
-	MetricSpotAvgRunTimeBeforeInterruptionInst  Metric = "spot-avg-run-time-before-interruption-inst"
-	MetricSpotMaxRunTimeBeforeInterruptionInst  Metric = "spot-max-run-time-before-interruption-inst"
-	MetricSpotMinRunTimeBeforeInterruptionInst  Metric = "spot-min-run-time-before-interruption-inst"
-)
-
-// Values returns all known values for Metric. Note that this can be expanded in
-// the future, and so it is only as up to date as the client.
-//
-// The ordering of this slice is not guaranteed to be stable across updates.
-func (Metric) Values() []Metric {
-	return []Metric{
-		"reservation-total-capacity-hrs-vcpu",
-		"reservation-total-capacity-hrs-inst",
-		"reservation-max-size-vcpu",
-		"reservation-max-size-inst",
-		"reservation-min-size-vcpu",
-		"reservation-min-size-inst",
-		"reservation-unused-total-capacity-hrs-vcpu",
-		"reservation-unused-total-capacity-hrs-inst",
-		"reservation-unused-total-estimated-cost",
-		"reservation-max-unused-size-vcpu",
-		"reservation-max-unused-size-inst",
-		"reservation-min-unused-size-vcpu",
-		"reservation-min-unused-size-inst",
-		"reservation-max-utilization",
-		"reservation-min-utilization",
-		"reservation-avg-utilization-vcpu",
-		"reservation-avg-utilization-inst",
-		"reservation-total-count",
-		"reservation-total-estimated-cost",
-		"reservation-avg-future-size-vcpu",
-		"reservation-avg-future-size-inst",
-		"reservation-min-future-size-vcpu",
-		"reservation-min-future-size-inst",
-		"reservation-max-future-size-vcpu",
-		"reservation-max-future-size-inst",
-		"reservation-avg-committed-size-vcpu",
-		"reservation-avg-committed-size-inst",
-		"reservation-max-committed-size-vcpu",
-		"reservation-max-committed-size-inst",
-		"reservation-min-committed-size-vcpu",
-		"reservation-min-committed-size-inst",
-		"reserved-total-usage-hrs-vcpu",
-		"reserved-total-usage-hrs-inst",
-		"reserved-total-estimated-cost",
-		"unreserved-total-usage-hrs-vcpu",
-		"unreserved-total-usage-hrs-inst",
-		"unreserved-total-estimated-cost",
-		"spot-total-usage-hrs-vcpu",
-		"spot-total-usage-hrs-inst",
-		"spot-total-estimated-cost",
-		"spot-avg-run-time-before-interruption-inst",
-		"spot-max-run-time-before-interruption-inst",
-		"spot-min-run-time-before-interruption-inst",
 	}
 }
 
@@ -7660,10 +6257,9 @@ type NetworkInterfaceCreationType string
 
 // Enum values for NetworkInterfaceCreationType
 const (
-	NetworkInterfaceCreationTypeEfa     NetworkInterfaceCreationType = "efa"
-	NetworkInterfaceCreationTypeEfaOnly NetworkInterfaceCreationType = "efa-only"
-	NetworkInterfaceCreationTypeBranch  NetworkInterfaceCreationType = "branch"
-	NetworkInterfaceCreationTypeTrunk   NetworkInterfaceCreationType = "trunk"
+	NetworkInterfaceCreationTypeEfa    NetworkInterfaceCreationType = "efa"
+	NetworkInterfaceCreationTypeBranch NetworkInterfaceCreationType = "branch"
+	NetworkInterfaceCreationTypeTrunk  NetworkInterfaceCreationType = "trunk"
 )
 
 // Values returns all known values for NetworkInterfaceCreationType. Note that
@@ -7674,7 +6270,6 @@ const (
 func (NetworkInterfaceCreationType) Values() []NetworkInterfaceCreationType {
 	return []NetworkInterfaceCreationType{
 		"efa",
-		"efa-only",
 		"branch",
 		"trunk",
 	}
@@ -7736,7 +6331,6 @@ const (
 	NetworkInterfaceTypeInterface                     NetworkInterfaceType = "interface"
 	NetworkInterfaceTypeNatGateway                    NetworkInterfaceType = "natGateway"
 	NetworkInterfaceTypeEfa                           NetworkInterfaceType = "efa"
-	NetworkInterfaceTypeEfaOnly                       NetworkInterfaceType = "efa-only"
 	NetworkInterfaceTypeTrunk                         NetworkInterfaceType = "trunk"
 	NetworkInterfaceTypeLoadBalancer                  NetworkInterfaceType = "load_balancer"
 	NetworkInterfaceTypeNetworkLoadBalancer           NetworkInterfaceType = "network_load_balancer"
@@ -7762,7 +6356,6 @@ func (NetworkInterfaceType) Values() []NetworkInterfaceType {
 		"interface",
 		"natGateway",
 		"efa",
-		"efa-only",
 		"trunk",
 		"load_balancer",
 		"network_load_balancer",
@@ -7899,25 +6492,6 @@ func (OperationType) Values() []OperationType {
 	return []OperationType{
 		"add",
 		"remove",
-	}
-}
-
-type OutputFormat string
-
-// Enum values for OutputFormat
-const (
-	OutputFormatCsv     OutputFormat = "csv"
-	OutputFormatParquet OutputFormat = "parquet"
-)
-
-// Values returns all known values for OutputFormat. Note that this can be
-// expanded in the future, and so it is only as up to date as the client.
-//
-// The ordering of this slice is not guaranteed to be stable across updates.
-func (OutputFormat) Values() []OutputFormat {
-	return []OutputFormat{
-		"csv",
-		"parquet",
 	}
 }
 
@@ -8248,46 +6822,6 @@ func (ProtocolValue) Values() []ProtocolValue {
 	}
 }
 
-type PublicIpDnsOption string
-
-// Enum values for PublicIpDnsOption
-const (
-	PublicIpDnsOptionPublicDualStackDnsName PublicIpDnsOption = "public-dual-stack-dns-name"
-	PublicIpDnsOptionPublicIpv4DnsName      PublicIpDnsOption = "public-ipv4-dns-name"
-	PublicIpDnsOptionPublicIpv6DnsName      PublicIpDnsOption = "public-ipv6-dns-name"
-)
-
-// Values returns all known values for PublicIpDnsOption. Note that this can be
-// expanded in the future, and so it is only as up to date as the client.
-//
-// The ordering of this slice is not guaranteed to be stable across updates.
-func (PublicIpDnsOption) Values() []PublicIpDnsOption {
-	return []PublicIpDnsOption{
-		"public-dual-stack-dns-name",
-		"public-ipv4-dns-name",
-		"public-ipv6-dns-name",
-	}
-}
-
-type RebootMigrationSupport string
-
-// Enum values for RebootMigrationSupport
-const (
-	RebootMigrationSupportUnsupported RebootMigrationSupport = "unsupported"
-	RebootMigrationSupportSupported   RebootMigrationSupport = "supported"
-)
-
-// Values returns all known values for RebootMigrationSupport. Note that this can
-// be expanded in the future, and so it is only as up to date as the client.
-//
-// The ordering of this slice is not guaranteed to be stable across updates.
-func (RebootMigrationSupport) Values() []RebootMigrationSupport {
-	return []RebootMigrationSupport{
-		"unsupported",
-		"supported",
-	}
-}
-
 type RecurringChargeFrequency string
 
 // Enum values for RecurringChargeFrequency
@@ -8384,29 +6918,6 @@ func (ReportInstanceReasonCodes) Values() []ReportInstanceReasonCodes {
 	}
 }
 
-type ReportState string
-
-// Enum values for ReportState
-const (
-	ReportStateRunning   ReportState = "running"
-	ReportStateCancelled ReportState = "cancelled"
-	ReportStateComplete  ReportState = "complete"
-	ReportStateError     ReportState = "error"
-)
-
-// Values returns all known values for ReportState. Note that this can be expanded
-// in the future, and so it is only as up to date as the client.
-//
-// The ordering of this slice is not guaranteed to be stable across updates.
-func (ReportState) Values() []ReportState {
-	return []ReportState{
-		"running",
-		"cancelled",
-		"complete",
-		"error",
-	}
-}
-
 type ReportStatusType string
 
 // Enum values for ReportStatusType
@@ -8426,39 +6937,13 @@ func (ReportStatusType) Values() []ReportStatusType {
 	}
 }
 
-type ReservationEndDateType string
-
-// Enum values for ReservationEndDateType
-const (
-	ReservationEndDateTypeLimited   ReservationEndDateType = "limited"
-	ReservationEndDateTypeUnlimited ReservationEndDateType = "unlimited"
-)
-
-// Values returns all known values for ReservationEndDateType. Note that this can
-// be expanded in the future, and so it is only as up to date as the client.
-//
-// The ordering of this slice is not guaranteed to be stable across updates.
-func (ReservationEndDateType) Values() []ReservationEndDateType {
-	return []ReservationEndDateType{
-		"limited",
-		"unlimited",
-	}
-}
-
 type ReservationState string
 
 // Enum values for ReservationState
 const (
-	ReservationStateActive         ReservationState = "active"
-	ReservationStateExpired        ReservationState = "expired"
-	ReservationStateCancelled      ReservationState = "cancelled"
-	ReservationStateScheduled      ReservationState = "scheduled"
-	ReservationStatePending        ReservationState = "pending"
-	ReservationStateFailed         ReservationState = "failed"
-	ReservationStateDelayed        ReservationState = "delayed"
-	ReservationStateUnsupported    ReservationState = "unsupported"
 	ReservationStatePaymentPending ReservationState = "payment-pending"
 	ReservationStatePaymentFailed  ReservationState = "payment-failed"
+	ReservationStateActive         ReservationState = "active"
 	ReservationStateRetired        ReservationState = "retired"
 )
 
@@ -8468,36 +6953,10 @@ const (
 // The ordering of this slice is not guaranteed to be stable across updates.
 func (ReservationState) Values() []ReservationState {
 	return []ReservationState{
-		"active",
-		"expired",
-		"cancelled",
-		"scheduled",
-		"pending",
-		"failed",
-		"delayed",
-		"unsupported",
 		"payment-pending",
 		"payment-failed",
+		"active",
 		"retired",
-	}
-}
-
-type ReservationType string
-
-// Enum values for ReservationType
-const (
-	ReservationTypeCapacityBlock ReservationType = "capacity-block"
-	ReservationTypeOdcr          ReservationType = "odcr"
-)
-
-// Values returns all known values for ReservationType. Note that this can be
-// expanded in the future, and so it is only as up to date as the client.
-//
-// The ordering of this slice is not guaranteed to be stable across updates.
-func (ReservationType) Values() []ReservationType {
-	return []ReservationType{
-		"capacity-block",
-		"odcr",
 	}
 }
 
@@ -8571,7 +7030,6 @@ const (
 	ResourceTypeCustomerGateway                                        ResourceType = "customer-gateway"
 	ResourceTypeCarrierGateway                                         ResourceType = "carrier-gateway"
 	ResourceTypeCoipPool                                               ResourceType = "coip-pool"
-	ResourceTypeDeclarativePoliciesReport                              ResourceType = "declarative-policies-report"
 	ResourceTypeDedicatedHost                                          ResourceType = "dedicated-host"
 	ResourceTypeDhcpOptions                                            ResourceType = "dhcp-options"
 	ResourceTypeEgressOnlyInternetGateway                              ResourceType = "egress-only-internet-gateway"
@@ -8583,7 +7041,6 @@ const (
 	ResourceTypeFpgaImage                                              ResourceType = "fpga-image"
 	ResourceTypeHostReservation                                        ResourceType = "host-reservation"
 	ResourceTypeImage                                                  ResourceType = "image"
-	ResourceTypeImageUsageReport                                       ResourceType = "image-usage-report"
 	ResourceTypeImportImageTask                                        ResourceType = "import-image-task"
 	ResourceTypeImportSnapshotTask                                     ResourceType = "import-snapshot-task"
 	ResourceTypeInstance                                               ResourceType = "instance"
@@ -8609,7 +7066,6 @@ const (
 	ResourceTypeNetworkInsightsPath                                    ResourceType = "network-insights-path"
 	ResourceTypeNetworkInsightsAccessScope                             ResourceType = "network-insights-access-scope"
 	ResourceTypeNetworkInsightsAccessScopeAnalysis                     ResourceType = "network-insights-access-scope-analysis"
-	ResourceTypeOutpostLag                                             ResourceType = "outpost-lag"
 	ResourceTypePlacementGroup                                         ResourceType = "placement-group"
 	ResourceTypePrefixList                                             ResourceType = "prefix-list"
 	ResourceTypeReplaceRootVolumeTask                                  ResourceType = "replace-root-volume-task"
@@ -8617,7 +7073,6 @@ const (
 	ResourceTypeRouteTable                                             ResourceType = "route-table"
 	ResourceTypeSecurityGroup                                          ResourceType = "security-group"
 	ResourceTypeSecurityGroupRule                                      ResourceType = "security-group-rule"
-	ResourceTypeServiceLinkVirtualInterface                            ResourceType = "service-link-virtual-interface"
 	ResourceTypeSnapshot                                               ResourceType = "snapshot"
 	ResourceTypeSpotFleetRequest                                       ResourceType = "spot-fleet-request"
 	ResourceTypeSpotInstancesRequest                                   ResourceType = "spot-instances-request"
@@ -8653,17 +7108,10 @@ const (
 	ResourceTypeVerifiedAccessTrustProvider                            ResourceType = "verified-access-trust-provider"
 	ResourceTypeVpnConnectionDeviceType                                ResourceType = "vpn-connection-device-type"
 	ResourceTypeVpcBlockPublicAccessExclusion                          ResourceType = "vpc-block-public-access-exclusion"
-	ResourceTypeRouteServer                                            ResourceType = "route-server"
-	ResourceTypeRouteServerEndpoint                                    ResourceType = "route-server-endpoint"
-	ResourceTypeRouteServerPeer                                        ResourceType = "route-server-peer"
 	ResourceTypeIpamResourceDiscovery                                  ResourceType = "ipam-resource-discovery"
 	ResourceTypeIpamResourceDiscoveryAssociation                       ResourceType = "ipam-resource-discovery-association"
 	ResourceTypeInstanceConnectEndpoint                                ResourceType = "instance-connect-endpoint"
-	ResourceTypeVerifiedAccessEndpointTarget                           ResourceType = "verified-access-endpoint-target"
 	ResourceTypeIpamExternalResourceVerificationToken                  ResourceType = "ipam-external-resource-verification-token"
-	ResourceTypeCapacityBlock                                          ResourceType = "capacity-block"
-	ResourceTypeMacModificationTask                                    ResourceType = "mac-modification-task"
-	ResourceTypeCapacityManagerDataExport                              ResourceType = "capacity-manager-data-export"
 )
 
 // Values returns all known values for ResourceType. Note that this can be
@@ -8677,7 +7125,6 @@ func (ResourceType) Values() []ResourceType {
 		"customer-gateway",
 		"carrier-gateway",
 		"coip-pool",
-		"declarative-policies-report",
 		"dedicated-host",
 		"dhcp-options",
 		"egress-only-internet-gateway",
@@ -8689,7 +7136,6 @@ func (ResourceType) Values() []ResourceType {
 		"fpga-image",
 		"host-reservation",
 		"image",
-		"image-usage-report",
 		"import-image-task",
 		"import-snapshot-task",
 		"instance",
@@ -8715,7 +7161,6 @@ func (ResourceType) Values() []ResourceType {
 		"network-insights-path",
 		"network-insights-access-scope",
 		"network-insights-access-scope-analysis",
-		"outpost-lag",
 		"placement-group",
 		"prefix-list",
 		"replace-root-volume-task",
@@ -8723,7 +7168,6 @@ func (ResourceType) Values() []ResourceType {
 		"route-table",
 		"security-group",
 		"security-group-rule",
-		"service-link-virtual-interface",
 		"snapshot",
 		"spot-fleet-request",
 		"spot-instances-request",
@@ -8759,17 +7203,10 @@ func (ResourceType) Values() []ResourceType {
 		"verified-access-trust-provider",
 		"vpn-connection-device-type",
 		"vpc-block-public-access-exclusion",
-		"route-server",
-		"route-server-endpoint",
-		"route-server-peer",
 		"ipam-resource-discovery",
 		"ipam-resource-discovery-association",
 		"instance-connect-endpoint",
-		"verified-access-endpoint-target",
 		"ipam-external-resource-verification-token",
-		"capacity-block",
-		"mac-modification-task",
-		"capacity-manager-data-export",
 	}
 }
 
@@ -8822,7 +7259,6 @@ const (
 	RouteOriginCreateRouteTable          RouteOrigin = "CreateRouteTable"
 	RouteOriginCreateRoute               RouteOrigin = "CreateRoute"
 	RouteOriginEnableVgwRoutePropagation RouteOrigin = "EnableVgwRoutePropagation"
-	RouteOriginAdvertisement             RouteOrigin = "Advertisement"
 )
 
 // Values returns all known values for RouteOrigin. Note that this can be expanded
@@ -8834,276 +7270,6 @@ func (RouteOrigin) Values() []RouteOrigin {
 		"CreateRouteTable",
 		"CreateRoute",
 		"EnableVgwRoutePropagation",
-		"Advertisement",
-	}
-}
-
-type RouteServerAssociationState string
-
-// Enum values for RouteServerAssociationState
-const (
-	RouteServerAssociationStateAssociating    RouteServerAssociationState = "associating"
-	RouteServerAssociationStateAssociated     RouteServerAssociationState = "associated"
-	RouteServerAssociationStateDisassociating RouteServerAssociationState = "disassociating"
-)
-
-// Values returns all known values for RouteServerAssociationState. Note that this
-// can be expanded in the future, and so it is only as up to date as the client.
-//
-// The ordering of this slice is not guaranteed to be stable across updates.
-func (RouteServerAssociationState) Values() []RouteServerAssociationState {
-	return []RouteServerAssociationState{
-		"associating",
-		"associated",
-		"disassociating",
-	}
-}
-
-type RouteServerBfdState string
-
-// Enum values for RouteServerBfdState
-const (
-	RouteServerBfdStateUp   RouteServerBfdState = "up"
-	RouteServerBfdStateDown RouteServerBfdState = "down"
-)
-
-// Values returns all known values for RouteServerBfdState. Note that this can be
-// expanded in the future, and so it is only as up to date as the client.
-//
-// The ordering of this slice is not guaranteed to be stable across updates.
-func (RouteServerBfdState) Values() []RouteServerBfdState {
-	return []RouteServerBfdState{
-		"up",
-		"down",
-	}
-}
-
-type RouteServerBgpState string
-
-// Enum values for RouteServerBgpState
-const (
-	RouteServerBgpStateUp   RouteServerBgpState = "up"
-	RouteServerBgpStateDown RouteServerBgpState = "down"
-)
-
-// Values returns all known values for RouteServerBgpState. Note that this can be
-// expanded in the future, and so it is only as up to date as the client.
-//
-// The ordering of this slice is not guaranteed to be stable across updates.
-func (RouteServerBgpState) Values() []RouteServerBgpState {
-	return []RouteServerBgpState{
-		"up",
-		"down",
-	}
-}
-
-type RouteServerEndpointState string
-
-// Enum values for RouteServerEndpointState
-const (
-	RouteServerEndpointStatePending      RouteServerEndpointState = "pending"
-	RouteServerEndpointStateAvailable    RouteServerEndpointState = "available"
-	RouteServerEndpointStateDeleting     RouteServerEndpointState = "deleting"
-	RouteServerEndpointStateDeleted      RouteServerEndpointState = "deleted"
-	RouteServerEndpointStateFailing      RouteServerEndpointState = "failing"
-	RouteServerEndpointStateFailed       RouteServerEndpointState = "failed"
-	RouteServerEndpointStateDeleteFailed RouteServerEndpointState = "delete-failed"
-)
-
-// Values returns all known values for RouteServerEndpointState. Note that this
-// can be expanded in the future, and so it is only as up to date as the client.
-//
-// The ordering of this slice is not guaranteed to be stable across updates.
-func (RouteServerEndpointState) Values() []RouteServerEndpointState {
-	return []RouteServerEndpointState{
-		"pending",
-		"available",
-		"deleting",
-		"deleted",
-		"failing",
-		"failed",
-		"delete-failed",
-	}
-}
-
-type RouteServerPeerLivenessMode string
-
-// Enum values for RouteServerPeerLivenessMode
-const (
-	RouteServerPeerLivenessModeBfd          RouteServerPeerLivenessMode = "bfd"
-	RouteServerPeerLivenessModeBgpKeepalive RouteServerPeerLivenessMode = "bgp-keepalive"
-)
-
-// Values returns all known values for RouteServerPeerLivenessMode. Note that this
-// can be expanded in the future, and so it is only as up to date as the client.
-//
-// The ordering of this slice is not guaranteed to be stable across updates.
-func (RouteServerPeerLivenessMode) Values() []RouteServerPeerLivenessMode {
-	return []RouteServerPeerLivenessMode{
-		"bfd",
-		"bgp-keepalive",
-	}
-}
-
-type RouteServerPeerState string
-
-// Enum values for RouteServerPeerState
-const (
-	RouteServerPeerStatePending   RouteServerPeerState = "pending"
-	RouteServerPeerStateAvailable RouteServerPeerState = "available"
-	RouteServerPeerStateDeleting  RouteServerPeerState = "deleting"
-	RouteServerPeerStateDeleted   RouteServerPeerState = "deleted"
-	RouteServerPeerStateFailing   RouteServerPeerState = "failing"
-	RouteServerPeerStateFailed    RouteServerPeerState = "failed"
-)
-
-// Values returns all known values for RouteServerPeerState. Note that this can be
-// expanded in the future, and so it is only as up to date as the client.
-//
-// The ordering of this slice is not guaranteed to be stable across updates.
-func (RouteServerPeerState) Values() []RouteServerPeerState {
-	return []RouteServerPeerState{
-		"pending",
-		"available",
-		"deleting",
-		"deleted",
-		"failing",
-		"failed",
-	}
-}
-
-type RouteServerPersistRoutesAction string
-
-// Enum values for RouteServerPersistRoutesAction
-const (
-	RouteServerPersistRoutesActionEnable  RouteServerPersistRoutesAction = "enable"
-	RouteServerPersistRoutesActionDisable RouteServerPersistRoutesAction = "disable"
-	RouteServerPersistRoutesActionReset   RouteServerPersistRoutesAction = "reset"
-)
-
-// Values returns all known values for RouteServerPersistRoutesAction. Note that
-// this can be expanded in the future, and so it is only as up to date as the
-// client.
-//
-// The ordering of this slice is not guaranteed to be stable across updates.
-func (RouteServerPersistRoutesAction) Values() []RouteServerPersistRoutesAction {
-	return []RouteServerPersistRoutesAction{
-		"enable",
-		"disable",
-		"reset",
-	}
-}
-
-type RouteServerPersistRoutesState string
-
-// Enum values for RouteServerPersistRoutesState
-const (
-	RouteServerPersistRoutesStateEnabling  RouteServerPersistRoutesState = "enabling"
-	RouteServerPersistRoutesStateEnabled   RouteServerPersistRoutesState = "enabled"
-	RouteServerPersistRoutesStateResetting RouteServerPersistRoutesState = "resetting"
-	RouteServerPersistRoutesStateDisabling RouteServerPersistRoutesState = "disabling"
-	RouteServerPersistRoutesStateDisabled  RouteServerPersistRoutesState = "disabled"
-	RouteServerPersistRoutesStateModifying RouteServerPersistRoutesState = "modifying"
-)
-
-// Values returns all known values for RouteServerPersistRoutesState. Note that
-// this can be expanded in the future, and so it is only as up to date as the
-// client.
-//
-// The ordering of this slice is not guaranteed to be stable across updates.
-func (RouteServerPersistRoutesState) Values() []RouteServerPersistRoutesState {
-	return []RouteServerPersistRoutesState{
-		"enabling",
-		"enabled",
-		"resetting",
-		"disabling",
-		"disabled",
-		"modifying",
-	}
-}
-
-type RouteServerPropagationState string
-
-// Enum values for RouteServerPropagationState
-const (
-	RouteServerPropagationStatePending   RouteServerPropagationState = "pending"
-	RouteServerPropagationStateAvailable RouteServerPropagationState = "available"
-	RouteServerPropagationStateDeleting  RouteServerPropagationState = "deleting"
-)
-
-// Values returns all known values for RouteServerPropagationState. Note that this
-// can be expanded in the future, and so it is only as up to date as the client.
-//
-// The ordering of this slice is not guaranteed to be stable across updates.
-func (RouteServerPropagationState) Values() []RouteServerPropagationState {
-	return []RouteServerPropagationState{
-		"pending",
-		"available",
-		"deleting",
-	}
-}
-
-type RouteServerRouteInstallationStatus string
-
-// Enum values for RouteServerRouteInstallationStatus
-const (
-	RouteServerRouteInstallationStatusInstalled RouteServerRouteInstallationStatus = "installed"
-	RouteServerRouteInstallationStatusRejected  RouteServerRouteInstallationStatus = "rejected"
-)
-
-// Values returns all known values for RouteServerRouteInstallationStatus. Note
-// that this can be expanded in the future, and so it is only as up to date as the
-// client.
-//
-// The ordering of this slice is not guaranteed to be stable across updates.
-func (RouteServerRouteInstallationStatus) Values() []RouteServerRouteInstallationStatus {
-	return []RouteServerRouteInstallationStatus{
-		"installed",
-		"rejected",
-	}
-}
-
-type RouteServerRouteStatus string
-
-// Enum values for RouteServerRouteStatus
-const (
-	RouteServerRouteStatusInRib RouteServerRouteStatus = "in-rib"
-	RouteServerRouteStatusInFib RouteServerRouteStatus = "in-fib"
-)
-
-// Values returns all known values for RouteServerRouteStatus. Note that this can
-// be expanded in the future, and so it is only as up to date as the client.
-//
-// The ordering of this slice is not guaranteed to be stable across updates.
-func (RouteServerRouteStatus) Values() []RouteServerRouteStatus {
-	return []RouteServerRouteStatus{
-		"in-rib",
-		"in-fib",
-	}
-}
-
-type RouteServerState string
-
-// Enum values for RouteServerState
-const (
-	RouteServerStatePending   RouteServerState = "pending"
-	RouteServerStateAvailable RouteServerState = "available"
-	RouteServerStateModifying RouteServerState = "modifying"
-	RouteServerStateDeleting  RouteServerState = "deleting"
-	RouteServerStateDeleted   RouteServerState = "deleted"
-)
-
-// Values returns all known values for RouteServerState. Note that this can be
-// expanded in the future, and so it is only as up to date as the client.
-//
-// The ordering of this slice is not guaranteed to be stable across updates.
-func (RouteServerState) Values() []RouteServerState {
-	return []RouteServerState{
-		"pending",
-		"available",
-		"modifying",
-		"deleting",
-		"deleted",
 	}
 }
 
@@ -9113,7 +7279,6 @@ type RouteState string
 const (
 	RouteStateActive    RouteState = "active"
 	RouteStateBlackhole RouteState = "blackhole"
-	RouteStateFiltered  RouteState = "filtered"
 )
 
 // Values returns all known values for RouteState. Note that this can be expanded
@@ -9124,7 +7289,6 @@ func (RouteState) Values() []RouteState {
 	return []RouteState{
 		"active",
 		"blackhole",
-		"filtered",
 	}
 }
 
@@ -9173,23 +7337,6 @@ func (RuleAction) Values() []RuleAction {
 	}
 }
 
-type Schedule string
-
-// Enum values for Schedule
-const (
-	ScheduleHourly Schedule = "hourly"
-)
-
-// Values returns all known values for Schedule. Note that this can be expanded in
-// the future, and so it is only as up to date as the client.
-//
-// The ordering of this slice is not guaranteed to be stable across updates.
-func (Schedule) Values() []Schedule {
-	return []Schedule{
-		"hourly",
-	}
-}
-
 type Scope string
 
 // Enum values for Scope
@@ -9229,34 +7376,6 @@ func (SecurityGroupReferencingSupportValue) Values() []SecurityGroupReferencingS
 	}
 }
 
-type SecurityGroupVpcAssociationState string
-
-// Enum values for SecurityGroupVpcAssociationState
-const (
-	SecurityGroupVpcAssociationStateAssociating          SecurityGroupVpcAssociationState = "associating"
-	SecurityGroupVpcAssociationStateAssociated           SecurityGroupVpcAssociationState = "associated"
-	SecurityGroupVpcAssociationStateAssociationFailed    SecurityGroupVpcAssociationState = "association-failed"
-	SecurityGroupVpcAssociationStateDisassociating       SecurityGroupVpcAssociationState = "disassociating"
-	SecurityGroupVpcAssociationStateDisassociated        SecurityGroupVpcAssociationState = "disassociated"
-	SecurityGroupVpcAssociationStateDisassociationFailed SecurityGroupVpcAssociationState = "disassociation-failed"
-)
-
-// Values returns all known values for SecurityGroupVpcAssociationState. Note that
-// this can be expanded in the future, and so it is only as up to date as the
-// client.
-//
-// The ordering of this slice is not guaranteed to be stable across updates.
-func (SecurityGroupVpcAssociationState) Values() []SecurityGroupVpcAssociationState {
-	return []SecurityGroupVpcAssociationState{
-		"associating",
-		"associated",
-		"association-failed",
-		"disassociating",
-		"disassociated",
-		"disassociation-failed",
-	}
-}
-
 type SelfServicePortal string
 
 // Enum values for SelfServicePortal
@@ -9292,51 +7411,6 @@ func (ServiceConnectivityType) Values() []ServiceConnectivityType {
 	return []ServiceConnectivityType{
 		"ipv4",
 		"ipv6",
-	}
-}
-
-type ServiceLinkVirtualInterfaceConfigurationState string
-
-// Enum values for ServiceLinkVirtualInterfaceConfigurationState
-const (
-	ServiceLinkVirtualInterfaceConfigurationStatePending   ServiceLinkVirtualInterfaceConfigurationState = "pending"
-	ServiceLinkVirtualInterfaceConfigurationStateAvailable ServiceLinkVirtualInterfaceConfigurationState = "available"
-	ServiceLinkVirtualInterfaceConfigurationStateDeleting  ServiceLinkVirtualInterfaceConfigurationState = "deleting"
-	ServiceLinkVirtualInterfaceConfigurationStateDeleted   ServiceLinkVirtualInterfaceConfigurationState = "deleted"
-)
-
-// Values returns all known values for
-// ServiceLinkVirtualInterfaceConfigurationState. Note that this can be expanded in
-// the future, and so it is only as up to date as the client.
-//
-// The ordering of this slice is not guaranteed to be stable across updates.
-func (ServiceLinkVirtualInterfaceConfigurationState) Values() []ServiceLinkVirtualInterfaceConfigurationState {
-	return []ServiceLinkVirtualInterfaceConfigurationState{
-		"pending",
-		"available",
-		"deleting",
-		"deleted",
-	}
-}
-
-type ServiceManaged string
-
-// Enum values for ServiceManaged
-const (
-	ServiceManagedAlb  ServiceManaged = "alb"
-	ServiceManagedNlb  ServiceManaged = "nlb"
-	ServiceManagedRnat ServiceManaged = "rnat"
-)
-
-// Values returns all known values for ServiceManaged. Note that this can be
-// expanded in the future, and so it is only as up to date as the client.
-//
-// The ordering of this slice is not guaranteed to be stable across updates.
-func (ServiceManaged) Values() []ServiceManaged {
-	return []ServiceManaged{
-		"alb",
-		"nlb",
-		"rnat",
 	}
 }
 
@@ -9443,50 +7517,6 @@ func (SnapshotBlockPublicAccessState) Values() []SnapshotBlockPublicAccessState 
 		"block-all-sharing",
 		"block-new-sharing",
 		"unblocked",
-	}
-}
-
-type SnapshotLocationEnum string
-
-// Enum values for SnapshotLocationEnum
-const (
-	SnapshotLocationEnumRegional SnapshotLocationEnum = "regional"
-	SnapshotLocationEnumLocal    SnapshotLocationEnum = "local"
-)
-
-// Values returns all known values for SnapshotLocationEnum. Note that this can be
-// expanded in the future, and so it is only as up to date as the client.
-//
-// The ordering of this slice is not guaranteed to be stable across updates.
-func (SnapshotLocationEnum) Values() []SnapshotLocationEnum {
-	return []SnapshotLocationEnum{
-		"regional",
-		"local",
-	}
-}
-
-type SnapshotReturnCodes string
-
-// Enum values for SnapshotReturnCodes
-const (
-	SnapshotReturnCodesSuccess                 SnapshotReturnCodes = "success"
-	SnapshotReturnCodesWarnSkipped             SnapshotReturnCodes = "skipped"
-	SnapshotReturnCodesErrorMissingPermissions SnapshotReturnCodes = "missing-permissions"
-	SnapshotReturnCodesErrorCodeInternalError  SnapshotReturnCodes = "internal-error"
-	SnapshotReturnCodesErrorCodeClientError    SnapshotReturnCodes = "client-error"
-)
-
-// Values returns all known values for SnapshotReturnCodes. Note that this can be
-// expanded in the future, and so it is only as up to date as the client.
-//
-// The ordering of this slice is not guaranteed to be stable across updates.
-func (SnapshotReturnCodes) Values() []SnapshotReturnCodes {
-	return []SnapshotReturnCodes{
-		"success",
-		"skipped",
-		"missing-permissions",
-		"internal-error",
-		"client-error",
 	}
 }
 
@@ -9660,7 +7690,6 @@ const (
 	StateRejected          State = "Rejected"
 	StateFailed            State = "Failed"
 	StateExpired           State = "Expired"
-	StatePartial           State = "Partial"
 )
 
 // Values returns all known values for State. Note that this can be expanded in
@@ -9677,7 +7706,6 @@ func (State) Values() []State {
 		"Rejected",
 		"Failed",
 		"Expired",
-		"Partial",
 	}
 }
 
@@ -9847,11 +7875,9 @@ type SubnetState string
 
 // Enum values for SubnetState
 const (
-	SubnetStatePending                    SubnetState = "pending"
-	SubnetStateAvailable                  SubnetState = "available"
-	SubnetStateUnavailable                SubnetState = "unavailable"
-	SubnetStateFailed                     SubnetState = "failed"
-	SubnetStateFailedInsufficientCapacity SubnetState = "failed-insufficient-capacity"
+	SubnetStatePending     SubnetState = "pending"
+	SubnetStateAvailable   SubnetState = "available"
+	SubnetStateUnavailable SubnetState = "unavailable"
 )
 
 // Values returns all known values for SubnetState. Note that this can be expanded
@@ -9863,8 +7889,6 @@ func (SubnetState) Values() []SubnetState {
 		"pending",
 		"available",
 		"unavailable",
-		"failed",
-		"failed-insufficient-capacity",
 	}
 }
 
@@ -10077,27 +8101,6 @@ func (TrafficDirection) Values() []TrafficDirection {
 	}
 }
 
-type TrafficIpAddressType string
-
-// Enum values for TrafficIpAddressType
-const (
-	TrafficIpAddressTypeIpv4      TrafficIpAddressType = "ipv4"
-	TrafficIpAddressTypeIpv6      TrafficIpAddressType = "ipv6"
-	TrafficIpAddressTypeDualStack TrafficIpAddressType = "dual-stack"
-)
-
-// Values returns all known values for TrafficIpAddressType. Note that this can be
-// expanded in the future, and so it is only as up to date as the client.
-//
-// The ordering of this slice is not guaranteed to be stable across updates.
-func (TrafficIpAddressType) Values() []TrafficIpAddressType {
-	return []TrafficIpAddressType{
-		"ipv4",
-		"ipv6",
-		"dual-stack",
-	}
-}
-
 type TrafficMirrorFilterRuleField string
 
 // Enum values for TrafficMirrorFilterRuleField
@@ -10221,25 +8224,6 @@ func (TrafficType) Values() []TrafficType {
 	}
 }
 
-type TransferType string
-
-// Enum values for TransferType
-const (
-	TransferTypeTimeBased TransferType = "time-based"
-	TransferTypeStandard  TransferType = "standard"
-)
-
-// Values returns all known values for TransferType. Note that this can be
-// expanded in the future, and so it is only as up to date as the client.
-//
-// The ordering of this slice is not guaranteed to be stable across updates.
-func (TransferType) Values() []TransferType {
-	return []TransferType{
-		"time-based",
-		"standard",
-	}
-}
-
 type TransitGatewayAssociationState string
 
 // Enum values for TransitGatewayAssociationState
@@ -10274,7 +8258,6 @@ const (
 	TransitGatewayAttachmentResourceTypeConnect              TransitGatewayAttachmentResourceType = "connect"
 	TransitGatewayAttachmentResourceTypePeering              TransitGatewayAttachmentResourceType = "peering"
 	TransitGatewayAttachmentResourceTypeTgwPeering           TransitGatewayAttachmentResourceType = "tgw-peering"
-	TransitGatewayAttachmentResourceTypeNetworkFunction      TransitGatewayAttachmentResourceType = "network-function"
 )
 
 // Values returns all known values for TransitGatewayAttachmentResourceType. Note
@@ -10290,7 +8273,6 @@ func (TransitGatewayAttachmentResourceType) Values() []TransitGatewayAttachmentR
 		"connect",
 		"peering",
 		"tgw-peering",
-		"network-function",
 	}
 }
 
@@ -10815,7 +8797,6 @@ type VerifiedAccessEndpointProtocol string
 const (
 	VerifiedAccessEndpointProtocolHttp  VerifiedAccessEndpointProtocol = "http"
 	VerifiedAccessEndpointProtocolHttps VerifiedAccessEndpointProtocol = "https"
-	VerifiedAccessEndpointProtocolTcp   VerifiedAccessEndpointProtocol = "tcp"
 )
 
 // Values returns all known values for VerifiedAccessEndpointProtocol. Note that
@@ -10827,7 +8808,6 @@ func (VerifiedAccessEndpointProtocol) Values() []VerifiedAccessEndpointProtocol 
 	return []VerifiedAccessEndpointProtocol{
 		"http",
 		"https",
-		"tcp",
 	}
 }
 
@@ -10863,8 +8843,6 @@ type VerifiedAccessEndpointType string
 const (
 	VerifiedAccessEndpointTypeLoadBalancer     VerifiedAccessEndpointType = "load-balancer"
 	VerifiedAccessEndpointTypeNetworkInterface VerifiedAccessEndpointType = "network-interface"
-	VerifiedAccessEndpointTypeRds              VerifiedAccessEndpointType = "rds"
-	VerifiedAccessEndpointTypeCidr             VerifiedAccessEndpointType = "cidr"
 )
 
 // Values returns all known values for VerifiedAccessEndpointType. Note that this
@@ -10875,8 +8853,6 @@ func (VerifiedAccessEndpointType) Values() []VerifiedAccessEndpointType {
 	return []VerifiedAccessEndpointType{
 		"load-balancer",
 		"network-interface",
-		"rds",
-		"cidr",
 	}
 }
 
@@ -11020,7 +8996,6 @@ const (
 	VolumeStatusInfoStatusOk               VolumeStatusInfoStatus = "ok"
 	VolumeStatusInfoStatusImpaired         VolumeStatusInfoStatus = "impaired"
 	VolumeStatusInfoStatusInsufficientData VolumeStatusInfoStatus = "insufficient-data"
-	VolumeStatusInfoStatusWarning          VolumeStatusInfoStatus = "warning"
 )
 
 // Values returns all known values for VolumeStatusInfoStatus. Note that this can
@@ -11032,7 +9007,6 @@ func (VolumeStatusInfoStatus) Values() []VolumeStatusInfoStatus {
 		"ok",
 		"impaired",
 		"insufficient-data",
-		"warning",
 	}
 }
 
@@ -11040,9 +9014,8 @@ type VolumeStatusName string
 
 // Enum values for VolumeStatusName
 const (
-	VolumeStatusNameIoEnabled           VolumeStatusName = "io-enabled"
-	VolumeStatusNameIoPerformance       VolumeStatusName = "io-performance"
-	VolumeStatusNameInitializationState VolumeStatusName = "initialization-state"
+	VolumeStatusNameIoEnabled     VolumeStatusName = "io-enabled"
+	VolumeStatusNameIoPerformance VolumeStatusName = "io-performance"
 )
 
 // Values returns all known values for VolumeStatusName. Note that this can be
@@ -11053,7 +9026,6 @@ func (VolumeStatusName) Values() []VolumeStatusName {
 	return []VolumeStatusName{
 		"io-enabled",
 		"io-performance",
-		"initialization-state",
 	}
 }
 
@@ -11107,83 +9079,6 @@ func (VpcAttributeName) Values() []VpcAttributeName {
 	}
 }
 
-type VpcBlockPublicAccessExclusionsAllowed string
-
-// Enum values for VpcBlockPublicAccessExclusionsAllowed
-const (
-	VpcBlockPublicAccessExclusionsAllowedAllowed    VpcBlockPublicAccessExclusionsAllowed = "allowed"
-	VpcBlockPublicAccessExclusionsAllowedNotAllowed VpcBlockPublicAccessExclusionsAllowed = "not-allowed"
-)
-
-// Values returns all known values for VpcBlockPublicAccessExclusionsAllowed. Note
-// that this can be expanded in the future, and so it is only as up to date as the
-// client.
-//
-// The ordering of this slice is not guaranteed to be stable across updates.
-func (VpcBlockPublicAccessExclusionsAllowed) Values() []VpcBlockPublicAccessExclusionsAllowed {
-	return []VpcBlockPublicAccessExclusionsAllowed{
-		"allowed",
-		"not-allowed",
-	}
-}
-
-type VpcBlockPublicAccessExclusionState string
-
-// Enum values for VpcBlockPublicAccessExclusionState
-const (
-	VpcBlockPublicAccessExclusionStateCreateInProgress  VpcBlockPublicAccessExclusionState = "create-in-progress"
-	VpcBlockPublicAccessExclusionStateCreateComplete    VpcBlockPublicAccessExclusionState = "create-complete"
-	VpcBlockPublicAccessExclusionStateCreateFailed      VpcBlockPublicAccessExclusionState = "create-failed"
-	VpcBlockPublicAccessExclusionStateUpdateInProgress  VpcBlockPublicAccessExclusionState = "update-in-progress"
-	VpcBlockPublicAccessExclusionStateUpdateComplete    VpcBlockPublicAccessExclusionState = "update-complete"
-	VpcBlockPublicAccessExclusionStateUpdateFailed      VpcBlockPublicAccessExclusionState = "update-failed"
-	VpcBlockPublicAccessExclusionStateDeleteInProgress  VpcBlockPublicAccessExclusionState = "delete-in-progress"
-	VpcBlockPublicAccessExclusionStateDeleteComplete    VpcBlockPublicAccessExclusionState = "delete-complete"
-	VpcBlockPublicAccessExclusionStateDisableInProgress VpcBlockPublicAccessExclusionState = "disable-in-progress"
-	VpcBlockPublicAccessExclusionStateDisableComplete   VpcBlockPublicAccessExclusionState = "disable-complete"
-)
-
-// Values returns all known values for VpcBlockPublicAccessExclusionState. Note
-// that this can be expanded in the future, and so it is only as up to date as the
-// client.
-//
-// The ordering of this slice is not guaranteed to be stable across updates.
-func (VpcBlockPublicAccessExclusionState) Values() []VpcBlockPublicAccessExclusionState {
-	return []VpcBlockPublicAccessExclusionState{
-		"create-in-progress",
-		"create-complete",
-		"create-failed",
-		"update-in-progress",
-		"update-complete",
-		"update-failed",
-		"delete-in-progress",
-		"delete-complete",
-		"disable-in-progress",
-		"disable-complete",
-	}
-}
-
-type VpcBlockPublicAccessState string
-
-// Enum values for VpcBlockPublicAccessState
-const (
-	VpcBlockPublicAccessStateDefaultState     VpcBlockPublicAccessState = "default-state"
-	VpcBlockPublicAccessStateUpdateInProgress VpcBlockPublicAccessState = "update-in-progress"
-	VpcBlockPublicAccessStateUpdateComplete   VpcBlockPublicAccessState = "update-complete"
-)
-
-// Values returns all known values for VpcBlockPublicAccessState. Note that this
-// can be expanded in the future, and so it is only as up to date as the client.
-//
-// The ordering of this slice is not guaranteed to be stable across updates.
-func (VpcBlockPublicAccessState) Values() []VpcBlockPublicAccessState {
-	return []VpcBlockPublicAccessState{
-		"default-state",
-		"update-in-progress",
-		"update-complete",
-	}
-}
-
 type VpcCidrBlockStateCode string
 
 // Enum values for VpcCidrBlockStateCode
@@ -11211,82 +9106,6 @@ func (VpcCidrBlockStateCode) Values() []VpcCidrBlockStateCode {
 	}
 }
 
-type VpcEncryptionControlExclusionState string
-
-// Enum values for VpcEncryptionControlExclusionState
-const (
-	VpcEncryptionControlExclusionStateEnabling  VpcEncryptionControlExclusionState = "enabling"
-	VpcEncryptionControlExclusionStateEnabled   VpcEncryptionControlExclusionState = "enabled"
-	VpcEncryptionControlExclusionStateDisabling VpcEncryptionControlExclusionState = "disabling"
-	VpcEncryptionControlExclusionStateDisabled  VpcEncryptionControlExclusionState = "disabled"
-)
-
-// Values returns all known values for VpcEncryptionControlExclusionState. Note
-// that this can be expanded in the future, and so it is only as up to date as the
-// client.
-//
-// The ordering of this slice is not guaranteed to be stable across updates.
-func (VpcEncryptionControlExclusionState) Values() []VpcEncryptionControlExclusionState {
-	return []VpcEncryptionControlExclusionState{
-		"enabling",
-		"enabled",
-		"disabling",
-		"disabled",
-	}
-}
-
-type VpcEncryptionControlMode string
-
-// Enum values for VpcEncryptionControlMode
-const (
-	VpcEncryptionControlModeMonitor VpcEncryptionControlMode = "monitor"
-	VpcEncryptionControlModeEnforce VpcEncryptionControlMode = "enforce"
-)
-
-// Values returns all known values for VpcEncryptionControlMode. Note that this
-// can be expanded in the future, and so it is only as up to date as the client.
-//
-// The ordering of this slice is not guaranteed to be stable across updates.
-func (VpcEncryptionControlMode) Values() []VpcEncryptionControlMode {
-	return []VpcEncryptionControlMode{
-		"monitor",
-		"enforce",
-	}
-}
-
-type VpcEncryptionControlState string
-
-// Enum values for VpcEncryptionControlState
-const (
-	VpcEncryptionControlStateEnforceInProgress VpcEncryptionControlState = "enforce-in-progress"
-	VpcEncryptionControlStateMonitorInProgress VpcEncryptionControlState = "monitor-in-progress"
-	VpcEncryptionControlStateEnforceFailed     VpcEncryptionControlState = "enforce-failed"
-	VpcEncryptionControlStateMonitorFailed     VpcEncryptionControlState = "monitor-failed"
-	VpcEncryptionControlStateDeleting          VpcEncryptionControlState = "deleting"
-	VpcEncryptionControlStateDeleted           VpcEncryptionControlState = "deleted"
-	VpcEncryptionControlStateAvailable         VpcEncryptionControlState = "available"
-	VpcEncryptionControlStateCreating          VpcEncryptionControlState = "creating"
-	VpcEncryptionControlStateDeleteFailed      VpcEncryptionControlState = "delete-failed"
-)
-
-// Values returns all known values for VpcEncryptionControlState. Note that this
-// can be expanded in the future, and so it is only as up to date as the client.
-//
-// The ordering of this slice is not guaranteed to be stable across updates.
-func (VpcEncryptionControlState) Values() []VpcEncryptionControlState {
-	return []VpcEncryptionControlState{
-		"enforce-in-progress",
-		"monitor-in-progress",
-		"enforce-failed",
-		"monitor-failed",
-		"deleting",
-		"deleted",
-		"available",
-		"creating",
-		"delete-failed",
-	}
-}
-
 type VpcEndpointType string
 
 // Enum values for VpcEndpointType
@@ -11294,8 +9113,6 @@ const (
 	VpcEndpointTypeInterface           VpcEndpointType = "Interface"
 	VpcEndpointTypeGateway             VpcEndpointType = "Gateway"
 	VpcEndpointTypeGatewayLoadBalancer VpcEndpointType = "GatewayLoadBalancer"
-	VpcEndpointTypeResource            VpcEndpointType = "Resource"
-	VpcEndpointTypeServiceNetwork      VpcEndpointType = "ServiceNetwork"
 )
 
 // Values returns all known values for VpcEndpointType. Note that this can be
@@ -11307,8 +9124,6 @@ func (VpcEndpointType) Values() []VpcEndpointType {
 		"Interface",
 		"Gateway",
 		"GatewayLoadBalancer",
-		"Resource",
-		"ServiceNetwork",
 	}
 }
 
@@ -11455,27 +9270,6 @@ const (
 func (VpnStaticRouteSource) Values() []VpnStaticRouteSource {
 	return []VpnStaticRouteSource{
 		"Static",
-	}
-}
-
-type VpnTunnelProvisioningStatus string
-
-// Enum values for VpnTunnelProvisioningStatus
-const (
-	VpnTunnelProvisioningStatusAvailable VpnTunnelProvisioningStatus = "available"
-	VpnTunnelProvisioningStatusPending   VpnTunnelProvisioningStatus = "pending"
-	VpnTunnelProvisioningStatusFailed    VpnTunnelProvisioningStatus = "failed"
-)
-
-// Values returns all known values for VpnTunnelProvisioningStatus. Note that this
-// can be expanded in the future, and so it is only as up to date as the client.
-//
-// The ordering of this slice is not guaranteed to be stable across updates.
-func (VpnTunnelProvisioningStatus) Values() []VpnTunnelProvisioningStatus {
-	return []VpnTunnelProvisioningStatus{
-		"available",
-		"pending",
-		"failed",
 	}
 }
 

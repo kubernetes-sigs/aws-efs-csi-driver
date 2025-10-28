@@ -40,7 +40,7 @@ type UpdateFileSystemInput struct {
 	// want to provision for a file system that you're creating. Required if
 	// ThroughputMode is set to provisioned . Valid values are 1-3414 MiBps, with the
 	// upper limit depending on Region. To increase this limit, contact Amazon Web
-	// ServicesSupport. For more information, see [Amazon EFS quotas that you can increase]in the Amazon EFS User Guide.
+	// Services Support. For more information, see [Amazon EFS quotas that you can increase]in the Amazon EFS User Guide.
 	//
 	// [Amazon EFS quotas that you can increase]: https://docs.aws.amazon.com/efs/latest/ug/limits.html#soft-limits
 	ProvisionedThroughputInMibps *float64
@@ -89,7 +89,7 @@ type UpdateFileSystemOutput struct {
 	// This member is required.
 	OwnerId *string
 
-	// The performance mode of the file system.
+	// The Performance mode of the file system.
 	//
 	// This member is required.
 	PerformanceMode types.PerformanceMode
@@ -204,9 +204,6 @@ func (c *Client) addOperationUpdateFileSystemMiddlewares(stack *middleware.Stack
 	if err = addRecordResponseTiming(stack); err != nil {
 		return err
 	}
-	if err = addSpanRetryLoop(stack, options); err != nil {
-		return err
-	}
 	if err = addClientUserAgent(stack, options); err != nil {
 		return err
 	}
@@ -223,9 +220,6 @@ func (c *Client) addOperationUpdateFileSystemMiddlewares(stack *middleware.Stack
 		return err
 	}
 	if err = addUserAgentRetryMode(stack, options); err != nil {
-		return err
-	}
-	if err = addCredentialSource(stack, options); err != nil {
 		return err
 	}
 	if err = addOpUpdateFileSystemValidationMiddleware(stack); err != nil {
@@ -247,48 +241,6 @@ func (c *Client) addOperationUpdateFileSystemMiddlewares(stack *middleware.Stack
 		return err
 	}
 	if err = addDisableHTTPSMiddleware(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptBeforeRetryLoop(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptAttempt(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptExecution(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptBeforeSerialization(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptAfterSerialization(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptBeforeSigning(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptAfterSigning(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptTransmit(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptBeforeDeserialization(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptAfterDeserialization(stack, options); err != nil {
-		return err
-	}
-	if err = addSpanInitializeStart(stack); err != nil {
-		return err
-	}
-	if err = addSpanInitializeEnd(stack); err != nil {
-		return err
-	}
-	if err = addSpanBuildRequestStart(stack); err != nil {
-		return err
-	}
-	if err = addSpanBuildRequestEnd(stack); err != nil {
 		return err
 	}
 	return nil

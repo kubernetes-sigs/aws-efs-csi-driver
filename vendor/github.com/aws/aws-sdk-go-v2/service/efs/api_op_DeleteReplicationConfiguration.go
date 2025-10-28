@@ -6,7 +6,6 @@ import (
 	"context"
 	"fmt"
 	awsmiddleware "github.com/aws/aws-sdk-go-v2/aws/middleware"
-	"github.com/aws/aws-sdk-go-v2/service/efs/types"
 	"github.com/aws/smithy-go/middleware"
 	smithyhttp "github.com/aws/smithy-go/transport/http"
 )
@@ -41,23 +40,6 @@ type DeleteReplicationConfigurationInput struct {
 	//
 	// This member is required.
 	SourceFileSystemId *string
-
-	// When replicating across Amazon Web Services accounts or across Amazon Web
-	// Services Regions, Amazon EFS deletes the replication configuration from both the
-	// source and destination account or Region ( ALL_CONFIGURATIONS ) by default. If
-	// there's a configuration or permissions issue that prevents Amazon EFS from
-	// deleting the replication configuration from both sides, you can use the
-	// LOCAL_CONFIGURATION_ONLY mode to delete the replication configuration from only
-	// the local side (the account or Region from which the delete is performed).
-	//
-	// Only use the LOCAL_CONFIGURATION_ONLY mode in the case that Amazon EFS is
-	// unable to delete the replication configuration in both the source and
-	// destination account or Region. Deleting the local configuration leaves the
-	// configuration in the other account or Region unrecoverable.
-	//
-	// Additionally, do not use this mode for same-account, same-region replication as
-	// doing so results in a BadRequest exception error.
-	DeletionMode types.DeletionMode
 
 	noSmithyDocumentSerde
 }
@@ -112,9 +94,6 @@ func (c *Client) addOperationDeleteReplicationConfigurationMiddlewares(stack *mi
 	if err = addRecordResponseTiming(stack); err != nil {
 		return err
 	}
-	if err = addSpanRetryLoop(stack, options); err != nil {
-		return err
-	}
 	if err = addClientUserAgent(stack, options); err != nil {
 		return err
 	}
@@ -131,9 +110,6 @@ func (c *Client) addOperationDeleteReplicationConfigurationMiddlewares(stack *mi
 		return err
 	}
 	if err = addUserAgentRetryMode(stack, options); err != nil {
-		return err
-	}
-	if err = addCredentialSource(stack, options); err != nil {
 		return err
 	}
 	if err = addOpDeleteReplicationConfigurationValidationMiddleware(stack); err != nil {
@@ -155,48 +131,6 @@ func (c *Client) addOperationDeleteReplicationConfigurationMiddlewares(stack *mi
 		return err
 	}
 	if err = addDisableHTTPSMiddleware(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptBeforeRetryLoop(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptAttempt(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptExecution(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptBeforeSerialization(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptAfterSerialization(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptBeforeSigning(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptAfterSigning(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptTransmit(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptBeforeDeserialization(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptAfterDeserialization(stack, options); err != nil {
-		return err
-	}
-	if err = addSpanInitializeStart(stack); err != nil {
-		return err
-	}
-	if err = addSpanInitializeEnd(stack); err != nil {
-		return err
-	}
-	if err = addSpanBuildRequestStart(stack); err != nil {
-		return err
-	}
-	if err = addSpanBuildRequestEnd(stack); err != nil {
 		return err
 	}
 	return nil

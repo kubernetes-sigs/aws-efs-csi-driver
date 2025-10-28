@@ -41,21 +41,6 @@ type ModifyIpamResourceDiscoveryInput struct {
 	// select as operating Regions.
 	AddOperatingRegions []types.AddIpamOperatingRegion
 
-	// Add an Organizational Unit (OU) exclusion to your IPAM. If your IPAM is
-	// integrated with Amazon Web Services Organizations and you add an organizational
-	// unit (OU) exclusion, IPAM will not manage the IP addresses in accounts in that
-	// OU exclusion. There is a limit on the number of exclusions you can create. For
-	// more information, see [Quotas for your IPAM]in the Amazon VPC IPAM User Guide.
-	//
-	// The resulting set of exclusions must not result in "overlap", meaning two or
-	// more OU exclusions must not exclude the same OU. For more information and
-	// examples, see the Amazon Web Services CLI request process in [Add or remove OU exclusions]in the Amazon VPC
-	// User Guide.
-	//
-	// [Quotas for your IPAM]: https://docs.aws.amazon.com/vpc/latest/ipam/quotas-ipam.html
-	// [Add or remove OU exclusions]: https://docs.aws.amazon.com/vpc/latest/ipam/exclude-ous.html#exclude-ous-create-delete
-	AddOrganizationalUnitExclusions []types.AddIpamOrganizationalUnitExclusion
-
 	// A resource discovery description.
 	Description *string
 
@@ -67,21 +52,6 @@ type ModifyIpamResourceDiscoveryInput struct {
 
 	// Remove operating Regions.
 	RemoveOperatingRegions []types.RemoveIpamOperatingRegion
-
-	// Remove an Organizational Unit (OU) exclusion to your IPAM. If your IPAM is
-	// integrated with Amazon Web Services Organizations and you add an organizational
-	// unit (OU) exclusion, IPAM will not manage the IP addresses in accounts in that
-	// OU exclusion. There is a limit on the number of exclusions you can create. For
-	// more information, see [Quotas for your IPAM]in the Amazon VPC IPAM User Guide.
-	//
-	// The resulting set of exclusions must not result in "overlap", meaning two or
-	// more OU exclusions must not exclude the same OU. For more information and
-	// examples, see the Amazon Web Services CLI request process in [Add or remove OU exclusions]in the Amazon VPC
-	// User Guide.
-	//
-	// [Quotas for your IPAM]: https://docs.aws.amazon.com/vpc/latest/ipam/quotas-ipam.html
-	// [Add or remove OU exclusions]: https://docs.aws.amazon.com/vpc/latest/ipam/exclude-ous.html#exclude-ous-create-delete
-	RemoveOrganizationalUnitExclusions []types.RemoveIpamOrganizationalUnitExclusion
 
 	noSmithyDocumentSerde
 }
@@ -161,9 +131,6 @@ func (c *Client) addOperationModifyIpamResourceDiscoveryMiddlewares(stack *middl
 	if err = addUserAgentRetryMode(stack, options); err != nil {
 		return err
 	}
-	if err = addCredentialSource(stack, options); err != nil {
-		return err
-	}
 	if err = addOpModifyIpamResourceDiscoveryValidationMiddleware(stack); err != nil {
 		return err
 	}
@@ -183,36 +150,6 @@ func (c *Client) addOperationModifyIpamResourceDiscoveryMiddlewares(stack *middl
 		return err
 	}
 	if err = addDisableHTTPSMiddleware(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptBeforeRetryLoop(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptAttempt(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptExecution(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptBeforeSerialization(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptAfterSerialization(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptBeforeSigning(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptAfterSigning(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptTransmit(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptBeforeDeserialization(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptAfterDeserialization(stack, options); err != nil {
 		return err
 	}
 	if err = addSpanInitializeStart(stack); err != nil {

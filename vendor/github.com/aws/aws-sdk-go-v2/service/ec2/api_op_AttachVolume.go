@@ -12,15 +12,13 @@ import (
 	"time"
 )
 
-// Attaches an Amazon EBS volume to a running or stopped instance, and exposes it
-// to the instance with the specified device name.
+// Attaches an EBS volume to a running or stopped instance and exposes it to the
+// instance with the specified device name.
 //
-// The maximum number of Amazon EBS volumes that you can attach to an instance
-// depends on the instance type. If you exceed the volume attachment limit for an
-// instance type, the attachment request fails with the AttachmentLimitExceeded
-// error. For more information, see [Instance volume limits].
+// Encrypted EBS volumes must be attached to instances that support Amazon EBS
+// encryption. For more information, see [Amazon EBS encryption]in the Amazon EBS User Guide.
 //
-// After you attach an EBS volume, you must make it available for use. For more
+// After you attach an EBS volume, you must make it available. For more
 // information, see [Make an EBS volume available for use].
 //
 // If a volume has an Amazon Web Services Marketplace product code:
@@ -38,9 +36,9 @@ import (
 //
 // For more information, see [Attach an Amazon EBS volume to an instance] in the Amazon EBS User Guide.
 //
+// [Amazon EBS encryption]: https://docs.aws.amazon.com/ebs/latest/userguide/ebs-encryption.html
 // [Make an EBS volume available for use]: https://docs.aws.amazon.com/ebs/latest/userguide/ebs-using-volumes.html
 // [Attach an Amazon EBS volume to an instance]: https://docs.aws.amazon.com/ebs/latest/userguide/ebs-attaching-volume.html
-// [Instance volume limits]: https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/volume_limits.html
 func (c *Client) AttachVolume(ctx context.Context, params *AttachVolumeInput, optFns ...func(*Options)) (*AttachVolumeOutput, error) {
 	if params == nil {
 		params = &AttachVolumeInput{}
@@ -86,8 +84,7 @@ type AttachVolumeInput struct {
 // Describes volume attachment details.
 type AttachVolumeOutput struct {
 
-	// The ARN of the Amazon Web Services-managed resource to which the volume is
-	// attached.
+	// The ARN of the Amazon ECS or Fargate task to which the volume is attached.
 	AssociatedResource *string
 
 	// The time stamp when the attachment initiated.
@@ -98,21 +95,18 @@ type AttachVolumeOutput struct {
 
 	// The device name.
 	//
-	// If the volume is attached to an Amazon Web Services-managed resource, this
-	// parameter returns null .
+	// If the volume is attached to a Fargate task, this parameter returns null .
 	Device *string
 
 	// The ID of the instance.
 	//
-	// If the volume is attached to an Amazon Web Services-managed resource, this
-	// parameter returns null .
+	// If the volume is attached to a Fargate task, this parameter returns null .
 	InstanceId *string
 
-	// The service principal of the Amazon Web Services service that owns the
-	// underlying resource to which the volume is attached.
+	// The service principal of Amazon Web Services service that owns the underlying
+	// instance to which the volume is attached.
 	//
-	// This parameter is returned only for volumes that are attached to Amazon Web
-	// Services-managed resources.
+	// This parameter is returned only for volumes that are attached to Fargate tasks.
 	InstanceOwningService *string
 
 	// The attachment state of the volume.
@@ -191,9 +185,6 @@ func (c *Client) addOperationAttachVolumeMiddlewares(stack *middleware.Stack, op
 	if err = addUserAgentRetryMode(stack, options); err != nil {
 		return err
 	}
-	if err = addCredentialSource(stack, options); err != nil {
-		return err
-	}
 	if err = addOpAttachVolumeValidationMiddleware(stack); err != nil {
 		return err
 	}
@@ -213,36 +204,6 @@ func (c *Client) addOperationAttachVolumeMiddlewares(stack *middleware.Stack, op
 		return err
 	}
 	if err = addDisableHTTPSMiddleware(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptBeforeRetryLoop(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptAttempt(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptExecution(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptBeforeSerialization(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptAfterSerialization(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptBeforeSigning(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptAfterSigning(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptTransmit(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptBeforeDeserialization(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptAfterDeserialization(stack, options); err != nil {
 		return err
 	}
 	if err = addSpanInitializeStart(stack); err != nil {

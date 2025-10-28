@@ -11,8 +11,8 @@ import (
 	smithyhttp "github.com/aws/smithy-go/transport/http"
 )
 
-// Shuts down the specified instances. This operation is [idempotent]; if you terminate an
-// instance more than once, each call succeeds.
+// Shuts down the specified instances. This operation is idempotent; if you
+// terminate an instance more than once, each call succeeds.
 //
 // If you specify multiple instances and the request fails (for example, because
 // of a single incorrect instance ID), none of the instances are terminated.
@@ -53,29 +53,19 @@ import (
 // By default, Amazon EC2 deletes all EBS volumes that were attached when the
 // instance launched. Volumes attached after instance launch continue running.
 //
-// By default, the TerminateInstances operation includes a graceful operating
-// system (OS) shutdown. To bypass the graceful shutdown, use the skipOsShutdown
-// parameter; however, this might risk data integrity.
-//
 // You can stop, start, and terminate EBS-backed instances. You can only terminate
 // instance store-backed instances. What happens to an instance differs if you stop
-// or terminate it. For example, when you stop an instance, the root device and any
-// other devices attached to the instance persist. When you terminate an instance,
-// any attached EBS volumes with the DeleteOnTermination block device mapping
-// parameter set to true are automatically deleted. For more information about the
-// differences between stopping and terminating instances, see [Amazon EC2 instance state changes]in the Amazon EC2
-// User Guide.
+// it or terminate it. For example, when you stop an instance, the root device and
+// any other devices attached to the instance persist. When you terminate an
+// instance, any attached EBS volumes with the DeleteOnTermination block device
+// mapping parameter set to true are automatically deleted. For more information
+// about the differences between stopping and terminating instances, see [Instance lifecycle]in the
+// Amazon EC2 User Guide.
 //
-// When you terminate an instance, we attempt to terminate it forcibly after a
-// short while. If your instance appears stuck in the shutting-down state after a
-// period of time, there might be an issue with the underlying host computer. For
-// more information about terminating and troubleshooting terminating your
-// instances, see [Terminate Amazon EC2 instances]and [Troubleshooting terminating your instance] in the Amazon EC2 User Guide.
+// For more information about troubleshooting, see [Troubleshooting terminating your instance] in the Amazon EC2 User Guide.
 //
-// [idempotent]: https://docs.aws.amazon.com/ec2/latest/devguide/ec2-api-idempotency.html
+// [Instance lifecycle]: https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-instance-lifecycle.html
 // [Troubleshooting terminating your instance]: https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/TroubleshootingInstancesShuttingDown.html
-// [Amazon EC2 instance state changes]: https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-instance-lifecycle.html
-// [Terminate Amazon EC2 instances]: https://docs.aws.amazon.com/
 func (c *Client) TerminateInstances(ctx context.Context, params *TerminateInstancesInput, optFns ...func(*Options)) (*TerminateInstancesOutput, error) {
 	if params == nil {
 		params = &TerminateInstancesInput{}
@@ -101,23 +91,11 @@ type TerminateInstancesInput struct {
 	// This member is required.
 	InstanceIds []string
 
-	// Checks whether you have the required permissions for the operation, without
+	// Checks whether you have the required permissions for the action, without
 	// actually making the request, and provides an error response. If you have the
 	// required permissions, the error response is DryRunOperation . Otherwise, it is
 	// UnauthorizedOperation .
 	DryRun *bool
-
-	// Forces the instances to terminate. The instance will first attempt a graceful
-	// shutdown, which includes flushing file system caches and metadata. If the
-	// graceful shutdown fails to complete within the timeout period, the instance
-	// shuts down forcibly without flushing the file system caches and metadata.
-	Force *bool
-
-	// Specifies whether to bypass the graceful OS shutdown process when the instance
-	// is terminated.
-	//
-	// Default: false
-	SkipOsShutdown *bool
 
 	noSmithyDocumentSerde
 }
@@ -197,9 +175,6 @@ func (c *Client) addOperationTerminateInstancesMiddlewares(stack *middleware.Sta
 	if err = addUserAgentRetryMode(stack, options); err != nil {
 		return err
 	}
-	if err = addCredentialSource(stack, options); err != nil {
-		return err
-	}
 	if err = addOpTerminateInstancesValidationMiddleware(stack); err != nil {
 		return err
 	}
@@ -219,36 +194,6 @@ func (c *Client) addOperationTerminateInstancesMiddlewares(stack *middleware.Sta
 		return err
 	}
 	if err = addDisableHTTPSMiddleware(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptBeforeRetryLoop(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptAttempt(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptExecution(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptBeforeSerialization(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptAfterSerialization(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptBeforeSigning(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptAfterSigning(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptTransmit(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptBeforeDeserialization(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptAfterDeserialization(stack, options); err != nil {
 		return err
 	}
 	if err = addSpanInitializeStart(stack); err != nil {

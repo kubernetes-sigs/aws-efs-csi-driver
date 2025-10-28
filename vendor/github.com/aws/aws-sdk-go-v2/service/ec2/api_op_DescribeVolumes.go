@@ -72,23 +72,15 @@ type DescribeVolumesInput struct {
 	//
 	//   - availability-zone - The Availability Zone in which the volume was created.
 	//
-	//   - availability-zone-id - The ID of the Availability Zone in which the volume
-	//   was created.
-	//
 	//   - create-time - The time stamp when the volume was created.
 	//
 	//   - encrypted - Indicates whether the volume is encrypted ( true | false )
 	//
-	//   - fast-restored - Indicates whether the volume was created from a snapshot
-	//   that is enabled for fast snapshot restore ( true | false ).
-	//
 	//   - multi-attach-enabled - Indicates whether the volume is enabled for
 	//   Multi-Attach ( true | false )
 	//
-	//   - operator.managed - A Boolean that indicates whether this is a managed volume.
-	//
-	//   - operator.principal - The principal that manages the volume. Only valid for
-	//   managed volumes, where managed is true .
+	//   - fast-restored - Indicates whether the volume was created from a snapshot
+	//   that is enabled for fast snapshot restore ( true | false ).
 	//
 	//   - size - The size of the volume, in GiB.
 	//
@@ -207,9 +199,6 @@ func (c *Client) addOperationDescribeVolumesMiddlewares(stack *middleware.Stack,
 	if err = addUserAgentRetryMode(stack, options); err != nil {
 		return err
 	}
-	if err = addCredentialSource(stack, options); err != nil {
-		return err
-	}
 	if err = stack.Initialize.Add(newServiceMetadataMiddleware_opDescribeVolumes(options.Region), middleware.Before); err != nil {
 		return err
 	}
@@ -226,36 +215,6 @@ func (c *Client) addOperationDescribeVolumesMiddlewares(stack *middleware.Stack,
 		return err
 	}
 	if err = addDisableHTTPSMiddleware(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptBeforeRetryLoop(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptAttempt(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptExecution(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptBeforeSerialization(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptAfterSerialization(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptBeforeSigning(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptAfterSigning(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptTransmit(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptBeforeDeserialization(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptAfterDeserialization(stack, options); err != nil {
 		return err
 	}
 	if err = addSpanInitializeStart(stack); err != nil {
@@ -474,9 +433,6 @@ func volumeAvailableStateRetryable(ctx context.Context, input *DescribeVolumesIn
 		}
 	}
 
-	if err != nil {
-		return false, err
-	}
 	return true, nil
 }
 
@@ -672,9 +628,6 @@ func volumeDeletedStateRetryable(ctx context.Context, input *DescribeVolumesInpu
 		}
 	}
 
-	if err != nil {
-		return false, err
-	}
 	return true, nil
 }
 
@@ -878,9 +831,6 @@ func volumeInUseStateRetryable(ctx context.Context, input *DescribeVolumesInput,
 		}
 	}
 
-	if err != nil {
-		return false, err
-	}
 	return true, nil
 }
 

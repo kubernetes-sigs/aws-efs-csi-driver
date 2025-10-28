@@ -15,7 +15,7 @@ import (
 // Availability Zone in your default VPC. You can have only one default subnet per
 // Availability Zone. For more information, see [Create a default subnet]in the Amazon VPC User Guide.
 //
-// [Create a default subnet]: https://docs.aws.amazon.com/vpc/latest/userguide/work-with-default-vpc.html#create-default-subnet
+// [Create a default subnet]: https://docs.aws.amazon.com/vpc/latest/userguide/default-vpc.html#create-default-subnet
 func (c *Client) CreateDefaultSubnet(ctx context.Context, params *CreateDefaultSubnetInput, optFns ...func(*Options)) (*CreateDefaultSubnetOutput, error) {
 	if params == nil {
 		params = &CreateDefaultSubnetInput{}
@@ -35,13 +35,8 @@ type CreateDefaultSubnetInput struct {
 
 	// The Availability Zone in which to create the default subnet.
 	//
-	// Either AvailabilityZone or AvailabilityZoneId must be specified, but not both.
+	// This member is required.
 	AvailabilityZone *string
-
-	// The ID of the Availability Zone.
-	//
-	// Either AvailabilityZone or AvailabilityZoneId must be specified, but not both.
-	AvailabilityZoneId *string
 
 	// Checks whether you have the required permissions for the action, without
 	// actually making the request, and provides an error response. If you have the
@@ -132,7 +127,7 @@ func (c *Client) addOperationCreateDefaultSubnetMiddlewares(stack *middleware.St
 	if err = addUserAgentRetryMode(stack, options); err != nil {
 		return err
 	}
-	if err = addCredentialSource(stack, options); err != nil {
+	if err = addOpCreateDefaultSubnetValidationMiddleware(stack); err != nil {
 		return err
 	}
 	if err = stack.Initialize.Add(newServiceMetadataMiddleware_opCreateDefaultSubnet(options.Region), middleware.Before); err != nil {
@@ -151,36 +146,6 @@ func (c *Client) addOperationCreateDefaultSubnetMiddlewares(stack *middleware.St
 		return err
 	}
 	if err = addDisableHTTPSMiddleware(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptBeforeRetryLoop(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptAttempt(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptExecution(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptBeforeSerialization(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptAfterSerialization(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptBeforeSigning(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptAfterSigning(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptTransmit(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptBeforeDeserialization(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptAfterDeserialization(stack, options); err != nil {
 		return err
 	}
 	if err = addSpanInitializeStart(stack); err != nil {

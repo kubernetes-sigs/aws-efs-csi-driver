@@ -35,9 +35,6 @@ type ModifyVerifiedAccessInstanceInput struct {
 	// This member is required.
 	VerifiedAccessInstanceId *string
 
-	// The custom subdomain.
-	CidrEndpointsCustomSubDomain *string
-
 	// A unique, case-sensitive token that you provide to ensure idempotency of your
 	// modification request. For more information, see [Ensuring idempotency].
 	//
@@ -131,9 +128,6 @@ func (c *Client) addOperationModifyVerifiedAccessInstanceMiddlewares(stack *midd
 	if err = addUserAgentRetryMode(stack, options); err != nil {
 		return err
 	}
-	if err = addCredentialSource(stack, options); err != nil {
-		return err
-	}
 	if err = addIdempotencyToken_opModifyVerifiedAccessInstanceMiddleware(stack, options); err != nil {
 		return err
 	}
@@ -156,36 +150,6 @@ func (c *Client) addOperationModifyVerifiedAccessInstanceMiddlewares(stack *midd
 		return err
 	}
 	if err = addDisableHTTPSMiddleware(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptBeforeRetryLoop(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptAttempt(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptExecution(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptBeforeSerialization(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptAfterSerialization(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptBeforeSigning(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptAfterSigning(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptTransmit(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptBeforeDeserialization(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptAfterDeserialization(stack, options); err != nil {
 		return err
 	}
 	if err = addSpanInitializeStart(stack); err != nil {

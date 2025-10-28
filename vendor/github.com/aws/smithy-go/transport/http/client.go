@@ -6,7 +6,6 @@ import (
 	"net/http"
 
 	smithy "github.com/aws/smithy-go"
-	"github.com/aws/smithy-go/metrics"
 	"github.com/aws/smithy-go/middleware"
 	"github.com/aws/smithy-go/tracing"
 )
@@ -29,30 +28,13 @@ func (fn ClientDoFunc) Do(r *http.Request) (*http.Response, error) {
 // implementation is http.Client.
 type ClientHandler struct {
 	client ClientDo
-
-	Meter metrics.Meter // For HTTP client metrics.
 }
 
 // NewClientHandler returns an initialized middleware handler for the client.
-//
-// Deprecated: Use [NewClientHandlerWithOptions].
 func NewClientHandler(client ClientDo) ClientHandler {
-	return NewClientHandlerWithOptions(client)
-}
-
-// NewClientHandlerWithOptions returns an initialized middleware handler for the client
-// with applied options.
-func NewClientHandlerWithOptions(client ClientDo, opts ...func(*ClientHandler)) ClientHandler {
-	h := ClientHandler{
+	return ClientHandler{
 		client: client,
 	}
-	for _, opt := range opts {
-		opt(&h)
-	}
-	if h.Meter == nil {
-		h.Meter = metrics.NopMeterProvider{}.Meter("")
-	}
-	return h
 }
 
 // Handle implements the middleware Handler interface, that will invoke the
@@ -63,11 +45,6 @@ func (c ClientHandler) Handle(ctx context.Context, input interface{}) (
 ) {
 	ctx, span := tracing.StartSpan(ctx, "DoHTTPRequest")
 	defer span.End()
-
-	ctx, client, err := withMetrics(ctx, c.client, c.Meter)
-	if err != nil {
-		return nil, metadata, fmt.Errorf("instrument with HTTP metrics: %w", err)
-	}
 
 	req, ok := input.(*Request)
 	if !ok {
@@ -89,7 +66,7 @@ func (c ClientHandler) Handle(ctx context.Context, input interface{}) (
 		span.SetProperty("http.request_content_length", length)
 	}
 
-	resp, err := client.Do(builtRequest)
+	resp, err := c.client.Do(builtRequest)
 	if resp == nil {
 		// Ensure a http response value is always present to prevent unexpected
 		// panics.

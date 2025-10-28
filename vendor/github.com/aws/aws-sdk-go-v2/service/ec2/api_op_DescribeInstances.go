@@ -38,19 +38,12 @@ import (
 // describe instances and specify only instance IDs that are in an unaffected zone,
 // the call works normally.
 //
-// The Amazon EC2 API follows an eventual consistency model. This means that the
-// result of an API command you run that creates or modifies resources might not be
-// immediately available to all subsequent commands you run. For guidance on how to
-// manage eventual consistency, see [Eventual consistency in the Amazon EC2 API]in the Amazon EC2 Developer Guide.
-//
 // We strongly recommend using only paginated requests. Unpaginated requests are
 // susceptible to throttling and timeouts.
 //
 // The order of the elements in the response, including those within nested
 // structures, might vary. Applications should not assume the elements appear in a
 // particular order.
-//
-// [Eventual consistency in the Amazon EC2 API]: https://docs.aws.amazon.com/ec2/latest/devguide/eventual-consistency.html
 func (c *Client) DescribeInstances(ctx context.Context, params *DescribeInstancesInput, optFns ...func(*Options)) (*DescribeInstancesOutput, error) {
 	if params == nil {
 		params = &DescribeInstancesInput{}
@@ -68,7 +61,7 @@ func (c *Client) DescribeInstances(ctx context.Context, params *DescribeInstance
 
 type DescribeInstancesInput struct {
 
-	// Checks whether you have the required permissions for the operation, without
+	// Checks whether you have the required permissions for the action, without
 	// actually making the request, and provides an error response. If you have the
 	// required permissions, the error response is DryRunOperation . Otherwise, it is
 	// UnauthorizedOperation .
@@ -82,8 +75,6 @@ type DescribeInstancesInput struct {
 	//   - architecture - The instance architecture ( i386 | x86_64 | arm64 ).
 	//
 	//   - availability-zone - The Availability Zone of the instance.
-	//
-	//   - availability-zone-id - The ID of the Availability Zone of the instance.
 	//
 	//   - block-device-mapping.attach-time - The attach time for an EBS volume mapped
 	//   to the instance, for example, 2022-09-15T17:15:20.000Z .
@@ -148,6 +139,9 @@ type DescribeInstancesInput struct {
 	//
 	//   - iam-instance-profile.id - The instance profile associated with the instance.
 	//   Specified as an ID.
+	//
+	//   - iam-instance-profile.name - The instance profile associated with the
+	//   instance. Specified as an name.
 	//
 	//   - image-id - The ID of the image used to launch the instance.
 	//
@@ -319,13 +313,6 @@ type DescribeInstancesInput struct {
 	//
 	//   - network-interface.network-interface-id - The ID of the network interface.
 	//
-	//   - network-interface.operator.managed - A Boolean that indicates whether the
-	//   instance has a managed network interface.
-	//
-	//   - network-interface.operator.principal - The principal that manages the
-	//   network interface. Only valid for instances with managed network interfaces,
-	//   where managed is true .
-	//
 	//   - network-interface.outpost-arn - The ARN of the Outpost.
 	//
 	//   - network-interface.owner-id - The ID of the owner of the network interface.
@@ -360,15 +347,6 @@ type DescribeInstancesInput struct {
 	//
 	//   - network-interface.vpc-id - The ID of the VPC for the network interface.
 	//
-	//   - network-performance-options.bandwidth-weighting - Where the performance
-	//   boost is applied, if applicable. Valid values: default , vpc-1 , ebs-1 .
-	//
-	//   - operator.managed - A Boolean that indicates whether this is a managed
-	//   instance.
-	//
-	//   - operator.principal - The principal that manages the instance. Only valid for
-	//   managed instances, where managed is true .
-	//
 	//   - outpost-arn - The Amazon Resource Name (ARN) of the Outpost.
 	//
 	//   - owner-id - The Amazon Web Services account ID of the instance owner.
@@ -381,13 +359,13 @@ type DescribeInstancesInput struct {
 	//
 	//   - platform-details - The platform ( Linux/UNIX | Red Hat BYOL Linux | Red Hat
 	//   Enterprise Linux | Red Hat Enterprise Linux with HA | Red Hat Enterprise
-	//   Linux with High Availability | Red Hat Enterprise Linux with SQL Server
-	//   Standard and HA | Red Hat Enterprise Linux with SQL Server Enterprise and HA |
-	//   Red Hat Enterprise Linux with SQL Server Standard | Red Hat Enterprise Linux
-	//   with SQL Server Web | Red Hat Enterprise Linux with SQL Server Enterprise |
-	//   SQL Server Enterprise | SQL Server Standard | SQL Server Web | SUSE Linux |
-	//   Ubuntu Pro | Windows | Windows BYOL | Windows with SQL Server Enterprise |
-	//   Windows with SQL Server Standard | Windows with SQL Server Web ).
+	//   Linux with SQL Server Standard and HA | Red Hat Enterprise Linux with SQL
+	//   Server Enterprise and HA | Red Hat Enterprise Linux with SQL Server Standard |
+	//   Red Hat Enterprise Linux with SQL Server Web | Red Hat Enterprise Linux with
+	//   SQL Server Enterprise | SQL Server Enterprise | SQL Server Standard | SQL
+	//   Server Web | SUSE Linux | Ubuntu Pro | Windows | Windows BYOL | Windows with
+	//   SQL Server Enterprise | Windows with SQL Server Standard | Windows with SQL
+	//   Server Web ).
 	//
 	//   - private-dns-name - The private IPv4 DNS name of the instance.
 	//
@@ -580,9 +558,6 @@ func (c *Client) addOperationDescribeInstancesMiddlewares(stack *middleware.Stac
 	if err = addUserAgentRetryMode(stack, options); err != nil {
 		return err
 	}
-	if err = addCredentialSource(stack, options); err != nil {
-		return err
-	}
 	if err = stack.Initialize.Add(newServiceMetadataMiddleware_opDescribeInstances(options.Region), middleware.Before); err != nil {
 		return err
 	}
@@ -599,36 +574,6 @@ func (c *Client) addOperationDescribeInstancesMiddlewares(stack *middleware.Stac
 		return err
 	}
 	if err = addDisableHTTPSMiddleware(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptBeforeRetryLoop(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptAttempt(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptExecution(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptBeforeSerialization(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptAfterSerialization(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptBeforeSigning(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptAfterSigning(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptTransmit(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptBeforeDeserialization(stack, options); err != nil {
-		return err
-	}
-	if err = addInterceptAfterDeserialization(stack, options); err != nil {
 		return err
 	}
 	if err = addSpanInitializeStart(stack); err != nil {
@@ -832,9 +777,6 @@ func instanceExistsStateRetryable(ctx context.Context, input *DescribeInstancesI
 		}
 	}
 
-	if err != nil {
-		return false, err
-	}
 	return true, nil
 }
 
@@ -1011,11 +953,7 @@ func instanceRunningStateRetryable(ctx context.Context, input *DescribeInstances
 		var v5 []types.InstanceStateName
 		for _, v := range v4 {
 			v6 := v.State
-			var v7 types.InstanceStateName
-			if v6 != nil {
-				v8 := v6.Name
-				v7 = v8
-			}
+			v7 := v6.Name
 			v5 = append(v5, v7)
 		}
 		expectedValue := "running"
@@ -1046,11 +984,7 @@ func instanceRunningStateRetryable(ctx context.Context, input *DescribeInstances
 		var v5 []types.InstanceStateName
 		for _, v := range v4 {
 			v6 := v.State
-			var v7 types.InstanceStateName
-			if v6 != nil {
-				v8 := v6.Name
-				v7 = v8
-			}
+			v7 := v6.Name
 			v5 = append(v5, v7)
 		}
 		expectedValue := "shutting-down"
@@ -1081,11 +1015,7 @@ func instanceRunningStateRetryable(ctx context.Context, input *DescribeInstances
 		var v5 []types.InstanceStateName
 		for _, v := range v4 {
 			v6 := v.State
-			var v7 types.InstanceStateName
-			if v6 != nil {
-				v8 := v6.Name
-				v7 = v8
-			}
+			v7 := v6.Name
 			v5 = append(v5, v7)
 		}
 		expectedValue := "terminated"
@@ -1116,11 +1046,7 @@ func instanceRunningStateRetryable(ctx context.Context, input *DescribeInstances
 		var v5 []types.InstanceStateName
 		for _, v := range v4 {
 			v6 := v.State
-			var v7 types.InstanceStateName
-			if v6 != nil {
-				v8 := v6.Name
-				v7 = v8
-			}
+			v7 := v6.Name
 			v5 = append(v5, v7)
 		}
 		expectedValue := "stopping"
@@ -1149,9 +1075,6 @@ func instanceRunningStateRetryable(ctx context.Context, input *DescribeInstances
 		}
 	}
 
-	if err != nil {
-		return false, err
-	}
 	return true, nil
 }
 
@@ -1328,11 +1251,7 @@ func instanceStoppedStateRetryable(ctx context.Context, input *DescribeInstances
 		var v5 []types.InstanceStateName
 		for _, v := range v4 {
 			v6 := v.State
-			var v7 types.InstanceStateName
-			if v6 != nil {
-				v8 := v6.Name
-				v7 = v8
-			}
+			v7 := v6.Name
 			v5 = append(v5, v7)
 		}
 		expectedValue := "stopped"
@@ -1363,11 +1282,7 @@ func instanceStoppedStateRetryable(ctx context.Context, input *DescribeInstances
 		var v5 []types.InstanceStateName
 		for _, v := range v4 {
 			v6 := v.State
-			var v7 types.InstanceStateName
-			if v6 != nil {
-				v8 := v6.Name
-				v7 = v8
-			}
+			v7 := v6.Name
 			v5 = append(v5, v7)
 		}
 		expectedValue := "pending"
@@ -1398,11 +1313,7 @@ func instanceStoppedStateRetryable(ctx context.Context, input *DescribeInstances
 		var v5 []types.InstanceStateName
 		for _, v := range v4 {
 			v6 := v.State
-			var v7 types.InstanceStateName
-			if v6 != nil {
-				v8 := v6.Name
-				v7 = v8
-			}
+			v7 := v6.Name
 			v5 = append(v5, v7)
 		}
 		expectedValue := "terminated"
@@ -1419,9 +1330,6 @@ func instanceStoppedStateRetryable(ctx context.Context, input *DescribeInstances
 		}
 	}
 
-	if err != nil {
-		return false, err
-	}
 	return true, nil
 }
 
@@ -1598,11 +1506,7 @@ func instanceTerminatedStateRetryable(ctx context.Context, input *DescribeInstan
 		var v5 []types.InstanceStateName
 		for _, v := range v4 {
 			v6 := v.State
-			var v7 types.InstanceStateName
-			if v6 != nil {
-				v8 := v6.Name
-				v7 = v8
-			}
+			v7 := v6.Name
 			v5 = append(v5, v7)
 		}
 		expectedValue := "terminated"
@@ -1633,11 +1537,7 @@ func instanceTerminatedStateRetryable(ctx context.Context, input *DescribeInstan
 		var v5 []types.InstanceStateName
 		for _, v := range v4 {
 			v6 := v.State
-			var v7 types.InstanceStateName
-			if v6 != nil {
-				v8 := v6.Name
-				v7 = v8
-			}
+			v7 := v6.Name
 			v5 = append(v5, v7)
 		}
 		expectedValue := "pending"
@@ -1668,11 +1568,7 @@ func instanceTerminatedStateRetryable(ctx context.Context, input *DescribeInstan
 		var v5 []types.InstanceStateName
 		for _, v := range v4 {
 			v6 := v.State
-			var v7 types.InstanceStateName
-			if v6 != nil {
-				v8 := v6.Name
-				v7 = v8
-			}
+			v7 := v6.Name
 			v5 = append(v5, v7)
 		}
 		expectedValue := "stopping"
@@ -1689,9 +1585,6 @@ func instanceTerminatedStateRetryable(ctx context.Context, input *DescribeInstan
 		}
 	}
 
-	if err != nil {
-		return false, err
-	}
 	return true, nil
 }
 
