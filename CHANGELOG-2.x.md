@@ -1,3 +1,6 @@
+# V2.1.14
+* Upgrade aws-sdk-go-v2 to latest version ([#1729](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1729), [@DavidXU12345](https://github.com/DavidXU12345))
+
 # V2.1.13
 * Update Dependencies ([#1709](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1709), [@zmaguire](https://github.com/zmaguire))
 * Set PosixUser.Uid correctly in ListAccessPoints ([#1707](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1707), [@yerzhan7](https://github.com/yerzhan7))
