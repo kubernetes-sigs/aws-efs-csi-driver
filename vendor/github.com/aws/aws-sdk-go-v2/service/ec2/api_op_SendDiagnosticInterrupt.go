@@ -50,7 +50,7 @@ type SendDiagnosticInterruptInput struct {
 	// This member is required.
 	InstanceId *string
 
-	// Checks whether you have the required permissions for the action, without
+	// Checks whether you have the required permissions for the operation, without
 	// actually making the request, and provides an error response. If you have the
 	// required permissions, the error response is DryRunOperation . Otherwise, it is
 	// UnauthorizedOperation .
@@ -130,6 +130,9 @@ func (c *Client) addOperationSendDiagnosticInterruptMiddlewares(stack *middlewar
 	if err = addUserAgentRetryMode(stack, options); err != nil {
 		return err
 	}
+	if err = addCredentialSource(stack, options); err != nil {
+		return err
+	}
 	if err = addOpSendDiagnosticInterruptValidationMiddleware(stack); err != nil {
 		return err
 	}
@@ -149,6 +152,36 @@ func (c *Client) addOperationSendDiagnosticInterruptMiddlewares(stack *middlewar
 		return err
 	}
 	if err = addDisableHTTPSMiddleware(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptBeforeRetryLoop(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptAttempt(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptExecution(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptBeforeSerialization(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptAfterSerialization(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptBeforeSigning(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptAfterSigning(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptTransmit(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptBeforeDeserialization(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptAfterDeserialization(stack, options); err != nil {
 		return err
 	}
 	if err = addSpanInitializeStart(stack); err != nil {
