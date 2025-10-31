@@ -12,6 +12,7 @@ metadata:
     {{- end }}
 spec:
   replicas: {{ .Values.controller.replicaCount }}
+  revisionHistoryLimit: {{ .Values.controller.revisionHistoryLimit }}
   selector:
     matchLabels:
       app: {{ .Values.controller.name }}
