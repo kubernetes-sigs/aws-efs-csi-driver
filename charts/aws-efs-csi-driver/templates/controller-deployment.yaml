@@ -109,14 +109,22 @@ spec:
             - name: healthz
               containerPort: {{ .Values.controller.healthPort }}
               protocol: TCP
+          {{- with .Values.controller.livenessProbe }}
           livenessProbe:
-            httpGet:
-              path: /healthz
-              port: healthz
-            initialDelaySeconds: 10
-            timeoutSeconds: 3
-            periodSeconds: 10
-            failureThreshold: 5
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- if .Values.controller.readinessProbe }}
+          {{- if not (empty .Values.controller.readinessProbe) }}
+          readinessProbe:
+            {{- toYaml .Values.controller.readinessProbe | nindent 12 }}
+          {{- end }}
+          {{- end }}
+          {{- if .Values.controller.startupProbe }}
+          {{- if not (empty .Values.controller.startupProbe) }}
+          startupProbe:
+            {{- toYaml .Values.controller.startupProbe | nindent 12 }}
+          {{- end }}
+          {{- end }}
           {{- with .Values.controller.resources }}
           resources: {{ toYaml . | nindent 12 }}
           {{- end }}

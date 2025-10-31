@@ -1,4 +1,10 @@
 # Helm chart
+# v3.2.5
+* Add configurable probe support for controller and node components
+  * Add configurable `livenessProbe`, `readinessProbe`, and `startupProbe` settings
+  * Maintain backward compatibility by using existing hardcoded values as defaults
+  * Enable optional readiness and startup probes that can be configured independently
+  * Support all standard Kubernetes probe configuration options (initialDelaySeconds, timeoutSeconds, periodSeconds, failureThreshold)
 # v3.2.4
 * Bump app/driver version to `v2.1.13`
 # v3.2.3
