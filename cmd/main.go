@@ -47,6 +47,8 @@ func main() {
 		maxInflightMountCalls      = flag.Int64("max-inflight-mount-calls", driver.UnsetMaxInflightMountCounts, "New NodePublishVolume operation will be blocked if maximum number of inflight calls is reached. If maxInflightMountCallsOptIn is true, it has to be set to a positive value.")
 		volumeAttachLimitOptIn     = flag.Bool("volume-attach-limit-opt-in", false, "Opt in to use volume attach limit.")
 		volumeAttachLimit          = flag.Int64("volume-attach-limit", driver.UnsetVolumeAttachLimit, "Maximum number of volumes that can be attached to a node. If volumeAttachLimitOptIn is true, it has to be set to a positive value.")
+		forceUnmountAfterTimeout   = flag.Bool("force-unmount-after-timeout", false, "Enable force unmount if normal unmount times out during NodeUnpublishVolume.")
+		unmountTimeout             = flag.Duration("unmount-timeout", driver.DefaultUnmountTimeout, "Timeout for unmounting a volume during NodePublishVolume when forceUnmountAfterTimeout is true. If the timeout is reached, the volume will be forcibly unmounted. The default value is 30 seconds.")
 	)
 	klog.InitFlags(nil)
 	flag.Parse()
@@ -65,7 +67,7 @@ func main() {
 	if err != nil {
 		klog.Fatalln(err)
 	}
-	drv := driver.NewDriver(*endpoint, etcAmazonEfs, *efsUtilsStaticFilesPath, *tags, *volMetricsOptIn, *volMetricsRefreshPeriod, *volMetricsFsRateLimit, *deleteAccessPointRootDir, *adaptiveRetryMode, *maxInflightMountCallsOptIn, *maxInflightMountCalls, *volumeAttachLimitOptIn, *volumeAttachLimit)
+	drv := driver.NewDriver(*endpoint, etcAmazonEfs, *efsUtilsStaticFilesPath, *tags, *volMetricsOptIn, *volMetricsRefreshPeriod, *volMetricsFsRateLimit, *deleteAccessPointRootDir, *adaptiveRetryMode, *maxInflightMountCallsOptIn, *maxInflightMountCalls, *volumeAttachLimitOptIn, *volumeAttachLimit, *forceUnmountAfterTimeout, *unmountTimeout)
 	if err := drv.Run(); err != nil {
 		klog.Fatalln(err)
 	}
