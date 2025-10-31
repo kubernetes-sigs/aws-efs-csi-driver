@@ -21,6 +21,8 @@ import (
 
 	"github.com/kubernetes-sigs/aws-efs-csi-driver/pkg/cloud"
 	"github.com/kubernetes-sigs/aws-efs-csi-driver/pkg/driver/mocks"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/kubernetes/fake"
 )
 
 func TestCreateVolume(t *testing.T) {
@@ -3354,6 +3356,238 @@ func TestCreateVolume(t *testing.T) {
 				mockCtl.Finish()
 			},
 		},
+		{
+			name: "Success: Filesystem ID from ConfigMap",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockCloud := mocks.NewMockCloud(mockCtl)
+
+				driver := &Driver{
+					endpoint:     endpoint,
+					cloud:        mockCloud,
+					gidAllocator: NewGidAllocator(),
+					lockManager:  NewLockManagerMap(),
+				}
+
+				// Mock Kubernetes client with ConfigMap
+				originalClient := cloud.DefaultKubernetesAPIClient
+				defer func() { cloud.DefaultKubernetesAPIClient = originalClient }()
+
+				mockK8sClient := createMockClientWithConfigMap("default", "efs-config", map[string]string{
+					"fileSystemId": fsId,
+				})
+				cloud.DefaultKubernetesAPIClient = func() (kubernetes.Interface, error) {
+					return mockK8sClient, nil
+				}
+
+				req := &csi.CreateVolumeRequest{
+					Name: volumeName,
+					VolumeCapabilities: []*csi.VolumeCapability{
+						stdVolCap,
+					},
+					CapacityRange: &csi.CapacityRange{
+						RequiredBytes: capacityRange,
+					},
+					Parameters: map[string]string{
+						ProvisioningMode:      "efs-ap",
+						FileSystemIdConfigRef: "default/efs-config/fileSystemId",
+						DirectoryPerms:        "777",
+						Uid:                   "1000",
+						Gid:                   "1001",
+					},
+				}
+
+				ctx := context.Background()
+				fileSystem := &cloud.FileSystem{
+					FileSystemId: fsId,
+				}
+				accessPoint := &cloud.AccessPoint{
+					AccessPointId: apId,
+					FileSystemId:  fsId,
+				}
+
+				mockCloud.EXPECT().DescribeFileSystem(gomock.Eq(ctx), gomock.Eq(fsId)).Return(fileSystem, nil)
+				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Eq(volumeName), gomock.Any()).Return(accessPoint, nil)
+
+				res, err := driver.CreateVolume(ctx, req)
+
+				if err != nil {
+					t.Fatalf("CreateVolume failed: %v", err)
+				}
+
+				if res.Volume == nil {
+					t.Fatal("Volume is nil")
+				}
+
+				if res.Volume.VolumeId != volumeId {
+					t.Fatalf("Volume Id mismatched. Expected: %v, Actual: %v", volumeId, res.Volume.VolumeId)
+				}
+				mockCtl.Finish()
+			},
+		},
+		{
+			name: "Success: Filesystem ID from Secret",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockCloud := mocks.NewMockCloud(mockCtl)
+
+				driver := &Driver{
+					endpoint:     endpoint,
+					cloud:        mockCloud,
+					gidAllocator: NewGidAllocator(),
+					lockManager:  NewLockManagerMap(),
+				}
+
+				// Mock Kubernetes client with Secret
+				originalClient := cloud.DefaultKubernetesAPIClient
+				defer func() { cloud.DefaultKubernetesAPIClient = originalClient }()
+
+				mockK8sClient := createMockClientWithSecret("kube-system", "efs-secret", map[string][]byte{
+					"fileSystemId": []byte(fsId),
+				})
+				cloud.DefaultKubernetesAPIClient = func() (kubernetes.Interface, error) {
+					return mockK8sClient, nil
+				}
+
+				req := &csi.CreateVolumeRequest{
+					Name: volumeName,
+					VolumeCapabilities: []*csi.VolumeCapability{
+						stdVolCap,
+					},
+					CapacityRange: &csi.CapacityRange{
+						RequiredBytes: capacityRange,
+					},
+					Parameters: map[string]string{
+						ProvisioningMode:      "efs-ap",
+						FileSystemIdSecretRef: "kube-system/efs-secret/fileSystemId",
+						DirectoryPerms:        "777",
+						Uid:                   "1000",
+						Gid:                   "1001",
+					},
+				}
+
+				ctx := context.Background()
+				fileSystem := &cloud.FileSystem{
+					FileSystemId: fsId,
+				}
+				accessPoint := &cloud.AccessPoint{
+					AccessPointId: apId,
+					FileSystemId:  fsId,
+				}
+
+				mockCloud.EXPECT().DescribeFileSystem(gomock.Eq(ctx), gomock.Eq(fsId)).Return(fileSystem, nil)
+				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Eq(volumeName), gomock.Any()).Return(accessPoint, nil)
+
+				res, err := driver.CreateVolume(ctx, req)
+
+				if err != nil {
+					t.Fatalf("CreateVolume failed: %v", err)
+				}
+
+				if res.Volume == nil {
+					t.Fatal("Volume is nil")
+				}
+
+				if res.Volume.VolumeId != volumeId {
+					t.Fatalf("Volume Id mismatched. Expected: %v, Actual: %v", volumeId, res.Volume.VolumeId)
+				}
+				mockCtl.Finish()
+			},
+		},
+		{
+			name: "Fail: ConfigMap not found",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockCloud := mocks.NewMockCloud(mockCtl)
+
+				driver := &Driver{
+					endpoint:     endpoint,
+					cloud:        mockCloud,
+					gidAllocator: NewGidAllocator(),
+					lockManager:  NewLockManagerMap(),
+				}
+
+				// Mock Kubernetes client with empty clientset (no configmap)
+				originalClient := cloud.DefaultKubernetesAPIClient
+				defer func() { cloud.DefaultKubernetesAPIClient = originalClient }()
+
+				mockK8sClient := createMockClientWithError("configmap not found")
+				cloud.DefaultKubernetesAPIClient = func() (kubernetes.Interface, error) {
+					return mockK8sClient, nil
+				}
+
+				req := &csi.CreateVolumeRequest{
+					Name: volumeName,
+					VolumeCapabilities: []*csi.VolumeCapability{
+						stdVolCap,
+					},
+					CapacityRange: &csi.CapacityRange{
+						RequiredBytes: capacityRange,
+					},
+					Parameters: map[string]string{
+						ProvisioningMode:      "efs-ap",
+						FileSystemIdConfigRef: "default/nonexistent/fileSystemId",
+						DirectoryPerms:        "777",
+					},
+				}
+
+				ctx := context.Background()
+				_, err := driver.CreateVolume(ctx, req)
+
+				if err == nil {
+					t.Fatal("CreateVolume should have failed due to missing ConfigMap")
+				}
+
+				mockCtl.Finish()
+			},
+		},
+		{
+			name: "Fail: Secret not found",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockCloud := mocks.NewMockCloud(mockCtl)
+
+				driver := &Driver{
+					endpoint:     endpoint,
+					cloud:        mockCloud,
+					gidAllocator: NewGidAllocator(),
+					lockManager:  NewLockManagerMap(),
+				}
+
+				// Mock Kubernetes client with empty clientset (no secret)
+				originalClient := cloud.DefaultKubernetesAPIClient
+				defer func() { cloud.DefaultKubernetesAPIClient = originalClient }()
+
+				mockK8sClient := createMockClientWithError("secret not found")
+				cloud.DefaultKubernetesAPIClient = func() (kubernetes.Interface, error) {
+					return mockK8sClient, nil
+				}
+
+				req := &csi.CreateVolumeRequest{
+					Name: volumeName,
+					VolumeCapabilities: []*csi.VolumeCapability{
+						stdVolCap,
+					},
+					CapacityRange: &csi.CapacityRange{
+						RequiredBytes: capacityRange,
+					},
+					Parameters: map[string]string{
+						ProvisioningMode:      "efs-ap",
+						FileSystemIdSecretRef: "kube-system/nonexistent/fileSystemId",
+						DirectoryPerms:        "777",
+					},
+				}
+
+				ctx := context.Background()
+				_, err := driver.CreateVolume(ctx, req)
+
+				if err == nil {
+					t.Fatal("CreateVolume should have failed due to missing Secret")
+				}
+
+				mockCtl.Finish()
+			},
+		},
 	}
 
 	for _, tc := range testCases {
@@ -4608,6 +4842,11 @@ func TestControllerGetCapabilities(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ControllerGetCapabilities failed: %v", err)
 	}
+}
+
+// Helper function to create mock client that returns error
+func createMockClientWithError(errorMsg string) kubernetes.Interface {
+	return fake.NewSimpleClientset()
 }
 
 func verifyPathWhenUUIDIncluded(pathToVerify string, expectedPathWithoutUUID string) bool {

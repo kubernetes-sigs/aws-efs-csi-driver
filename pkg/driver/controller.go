@@ -48,6 +48,8 @@ const (
 	DirectoryPerms        = "directoryPerms"
 	EnsureUniqueDirectory = "ensureUniqueDirectory"
 	FsId                  = "fileSystemId"
+	FileSystemIdConfigRef = "fileSystemIdConfigRef"
+	FileSystemIdSecretRef = "fileSystemIdSecretRef"
 	Gid                   = "gid"
 	GidMin                = "gidRangeStart"
 	GidMax                = "gidRangeEnd"
@@ -150,14 +152,11 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 		CapacityGiB: volSize,
 	}
 
-	if value, ok := volumeParams[FsId]; ok {
-		if strings.TrimSpace(value) == "" {
-			return nil, status.Errorf(codes.InvalidArgument, "Parameter %v cannot be empty", FsId)
-		}
-		accessPointsOptions.FileSystemId = value
-	} else {
-		return nil, status.Errorf(codes.InvalidArgument, "Missing %v parameter", FsId)
+	value, err := findFileSystemId(ctx, volumeParams)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "Failed to resolve filesystem Id %v", err)
 	}
+	accessPointsOptions.FileSystemId = value
 
 	localCloud, roleArn, crossAccountDNSEnabled, err = getCloud(req.GetSecrets(), d)
 	if err != nil {
