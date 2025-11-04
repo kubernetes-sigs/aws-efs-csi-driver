@@ -28,7 +28,7 @@ The following CSI interfaces are implemented:
 | Parameters            | Values | Default         | Optional | Description                                                                                                                                                                                                                                                                                                                                                                                   |
 |-----------------------|--------|-----------------|----------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | provisioningMode      | efs-ap |                 | false    | Type of volume provisioned by efs. Currently, Access Points are supported.                                                                                                                                                                                                                                                                                                                    |
-| fileSystemId          |        |                 | false    | File System under which access points are created.                                                                                                                                                                                                                                                                                                                                            | 
+| fileSystemId          |        |                 | false    | File System under which access points are created.                                                                                                                                                                                                                                                                                                                                            |
 | directoryPerms        |        |                 | false    | Directory permissions for [Access Point root directory](https://docs.aws.amazon.com/efs/latest/ug/efs-access-points.html#enforce-root-directory-access-point) creation.                                                                                                                                                                                                                       |
 | uid                   |        |                 | true     | POSIX user Id to be applied for [Access Point root directory](https://docs.aws.amazon.com/efs/latest/ug/efs-access-points.html#enforce-root-directory-access-point) creation.                                                                                                                                                                                                                 |
 | gid                   |        |                 | true     | POSIX group Id to be applied for [Access Point root directory](https://docs.aws.amazon.com/efs/latest/ug/efs-access-points.html#enforce-root-directory-access-point) creation.                                                                                                                                                                                                                |
@@ -42,7 +42,7 @@ The following CSI interfaces are implemented:
 
 **Note**
 * Custom Posix group Id range for Access Point root directory must include both `gidRangeStart` and `gidRangeEnd` parameters. These parameters are optional only if both are omitted. If you specify one, the other becomes mandatory.
-* When using a custom Posix group ID range, there is a possibility for the driver to run out of available POSIX group Ids. We suggest ensuring custom group ID range is large enough or create a new storage class with a new file system to provision additional volumes. 
+* When using a custom Posix group ID range, there is a possibility for the driver to run out of available POSIX group Ids. We suggest ensuring custom group ID range is large enough or create a new storage class with a new file system to provision additional volumes.
 * `az` under storage class parameter is not be confused with efs-utils mount option `az`. The `az` mount option is used for cross-az mount or efs one zone file system mount within the same aws account as the cluster.
 * Using dynamic provisioning, [user identity enforcement]((https://docs.aws.amazon.com/efs/latest/ug/efs-access-points.html#enforce-identity-access-points)) is always applied.
  * When user enforcement is enabled, Amazon EFS replaces the NFS client's user and group IDs with the identity configured on the access point for all file system operations.
@@ -61,7 +61,7 @@ One of the advantages of using Amazon EFS is that it provides [encryption in tra
 
 Encryption in transit is enabled by default in the master branch version of the driver. To disable it and mount volumes using plain NFSv4, set the `volumeAttributes` field `encryptInTransit` to `"false"` in your persistent volume manifest. For an example manifest, see the [encryption in transit example](../examples/kubernetes/encryption_in_transit/specs/pv.yaml).
 
-**Note**  
+**Note**
 Kubernetes version 1.13 or later is required if you are using this feature in Kubernetes.
 
 ## Amazon EFS CSI Driver on Kubernetes
@@ -125,10 +125,10 @@ The following sections are Kubernetes specific. If you are a Kubernetes user, us
 | v1.6.0                        | amazon/aws-efs-csi-driver:v1.6.0 |
 | v1.5.9                        | amazon/aws-efs-csi-driver:v1.5.9 |
 | v1.5.8                        | amazon/aws-efs-csi-driver:v1.5.8 |
-| v1.5.7                        | amazon/aws-efs-csi-driver:v1.5.7 |                                  
+| v1.5.7                        | amazon/aws-efs-csi-driver:v1.5.7 |
 | v1.5.6                        | amazon/aws-efs-csi-driver:v1.5.6 |
 | v1.5.5                        | amazon/aws-efs-csi-driver:v1.5.5 |
-| v1.5.4                        | amazon/aws-efs-csi-driver:v1.5.4 |                                  
+| v1.5.4                        | amazon/aws-efs-csi-driver:v1.5.4 |
 | v1.5.3                        | amazon/aws-efs-csi-driver:v1.5.3 |
 | v1.5.2                        | amazon/aws-efs-csi-driver:v1.5.2 |
 | v1.5.1                        | amazon/aws-efs-csi-driver:v1.5.1 |
@@ -166,7 +166,7 @@ The following sections are Kubernetes specific. If you are a Kubernetes user, us
 |----------------|-------------------------------------------------------------------------------|
 | v2.1.14        | public.ecr.aws/efs-csi-driver/amazon/aws-efs-csi-driver:v2.1.14               |
 
-**Note**  
+**Note**
 You can find previous efs-csi-driver versions' images from [here](https://gallery.ecr.aws/efs-csi-driver/amazon/aws-efs-csi-driver)
 
 ### Features
@@ -177,7 +177,7 @@ You can find previous efs-csi-driver versions' images from [here](https://galler
 * Cross account mount - Amazon EFS file systems from different aws accounts can be mounted from an Amazon EKS cluster.
 * Multiarch - Amazon EFS CSI driver image is now multiarch on ECR
 
-**Note**  
+**Note**
 Since Amazon EFS is an elastic file system, it doesn't really enforce any file system capacity. The actual storage capacity value in persistent volume and persistent volume claim is not used when creating the file system. However, since the storage capacity is a required field by Kubernetes, you must specify the value and you can use any valid value for the capacity.
 
 ### Installation
@@ -200,12 +200,12 @@ This feature is activated by default, and cluster administrators should use the 
 + The AWS CLI installed and configured on your device or AWS CloudShell. To install the latest version, see [Installing, updating, and uninstalling the AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-install.html) and [Quick configuration with `aws configure`](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-quickstart.html#cli-configure-quickstart-config) in the AWS Command Line Interface User Guide. The AWS CLI version installed in the AWS CloudShell may also be several versions behind the latest version. To update it, see [Installing AWS CLI to your home directory](https://docs.aws.amazon.com/cloudshell/latest/userguide/vm-specs.html#install-cli-software) in the AWS CloudShell User Guide.
 + The `kubectl` command line tool is installed on your device or AWS CloudShell. The version can be the same as or up to one minor version earlier or later than the Kubernetes version of your cluster. To install or upgrade `kubectl`, see [Installing or updating `kubectl`](install-kubectl.md).
 
-**Note**  
+**Note**
 A Pod running on AWS Fargate automatically mounts an Amazon EFS file system, without needing the manual driver installation steps described on this page.
 
 #### Set up driver permission
 The driver requires IAM permission to talk to Amazon EFS to manage the volume on user's behalf. There are several methods to grant driver IAM permission:
-* Using the EKS Pod Identity Add-on - [Install the EKS Pod Identity add-on to your EKS cluster](https://docs.aws.amazon.com/eks/latest/userguide/pod-id-agent-setup.html). This doesn't need the efs-csi-driver to be installed through EKS add-on, it can be used no matter the method of installation of the efs-csi-driver. If this installation method is used, the ```AmazonEFSCSIDriverPolicy``` policy has to be added to the cluster's node group's IAM role. 
+* Using the EKS Pod Identity Add-on - [Install the EKS Pod Identity add-on to your EKS cluster](https://docs.aws.amazon.com/eks/latest/userguide/pod-id-agent-setup.html). This doesn't need the efs-csi-driver to be installed through EKS add-on, it can be used no matter the method of installation of the efs-csi-driver. If this installation method is used, the ```AmazonEFSCSIDriverPolicy``` policy has to be added to the cluster's node group's IAM role.
 * Using IAM role for service account – Create an [IAM Role for service accounts](https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts.html) with the required permissions in [iam-policy-example.json](./iam-policy-example.json). Uncomment annotations and put the IAM role ARN in the [service-account manifest](../deploy/kubernetes/base/controller-serviceaccount.yaml). For example steps, see [Create an IAM policy and role for Amazon EKS](./iam-policy-create.md).
 * Using IAM [instance profile](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_use_switch-role-ec2_instance-profiles.html) – Grant all the worker nodes with [required permissions](./iam-policy-example.json) by attaching the policy to the instance profile of the worker.
 
@@ -250,7 +250,7 @@ This procedure requires Helm V3 or later. To install or upgrade Helm, see [Using
    --set controller.serviceAccount.create=false \
    --set controller.serviceAccount.name=efs-csi-controller-sa
    ```
-   
+
    If you don't have outbound access to the Internet, add the following arguments.
    ```sh
    --set sidecars.livenessProbe.image.repository=602401143452.dkr.ecr.region-code.amazonaws.com/eks/livenessprobe \
@@ -262,7 +262,7 @@ This procedure requires Helm V3 or later. To install or upgrade Helm, see [Using
    ```sh
    --set useFIPS=true
    ```
-**Note**  
+**Note**
 `hostNetwork: true` (should be added under spec/deployment on kubernetes installations where AWS metadata is not reachable from pod network. To fix the following error `NoCredentialProviders: no valid providers in chain` this parameter should be added.)
 
 ------
@@ -278,7 +278,7 @@ If you want to download the image with a manifest, we recommend first trying the
    kubectl kustomize \
        "github.com/kubernetes-sigs/aws-efs-csi-driver/deploy/kubernetes/overlays/stable/ecr/?ref=release-2.X" > private-ecr-driver.yaml
    ```
-   **Note**  
+   **Note**
    If you encounter an issue that you aren't able to resolve by adding IAM permissions, try the [Manifest \(public registry\)](#-manifest-public-registry-) steps instead.
 
 2. In the following command, replace `region-code` with the AWS Region that your cluster is in. Then run the modified command to replace `us-west-2` in the file with your AWS Region.
@@ -385,12 +385,12 @@ Container Memory Limit = ((volume-attach-limit × 12) + (max-inflight-mount-call
 Enabling the vol-metrics-opt-in parameter activates the gathering of inode and disk usage data. This functionality, particularly in scenarios with larger file systems, may result in an uptick in memory usage due to the detailed aggregation of file system information. We advise users with large-scale file systems to consider this aspect when utilizing this feature.
 
 
-### Container Arguments for deployment(controller) 
+### Container Arguments for deployment(controller)
 | Parameters                  | Values | Default | Optional | Description                                                                                                                                                                                                                                                   |
 |-----------------------------|--------|---------|----------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | delete-access-point-root-dir|        | false  | true     | Opt in to delete access point root directory by DeleteVolume. By default, DeleteVolume will delete the access point behind Persistent Volume and deleting access point will not delete the access point root directory or its contents.                       |
 | adaptive-retry-mode         |        | true   | true     | Opt out to use standard sdk retry mode for EFS API calls. By default, Driver will use adaptive mode for the sdk retry configuration which heavily rate limits EFS API requests to reduce throttling if throttling is observed.                                |
-| tags                         |       |         | true     | Space separated key:value pairs which will be added as tags for Amazon EFS resources. For example, '--tags=name:efs-tag-test date:Jan24'. To include a ':' in the tag name or value, use \ as an escape character, for example '--tags="tag\:name:tag\:value" |
+| tags                         |       |         | true     | Space separated key:value pairs which will be added as tags for Amazon EFS resources. For example, '--tags=name:efs-tag-test date:Jan24'. To include a ':' or ' ' in the tag name or value, use \ as an escape character, for example '--tags="tag\:name:tag\:my\ value" |
 ### Upgrading the Amazon EFS CSI Driver
 
 
@@ -450,17 +450,17 @@ Before following the examples, you need to:
 * [Use Access Points](../examples/kubernetes/access_points/README.md)
 
 ## Resource limits
-The controller container has different memory / CPU requirements based on the workload scale, concurrency, and configurations. When configuring your controller with `delete-access-point-root-dir=true`, we recommend setting higher resource limits if your workload requires many concurrent volume deletions. For example, for a workload that requires 100 concurrent PVC deletions, we recommend setting a minimum CPU limit of 3000m and a minimum memory limit of 2.5 GiB. 
+The controller container has different memory / CPU requirements based on the workload scale, concurrency, and configurations. When configuring your controller with `delete-access-point-root-dir=true`, we recommend setting higher resource limits if your workload requires many concurrent volume deletions. For example, for a workload that requires 100 concurrent PVC deletions, we recommend setting a minimum CPU limit of 3000m and a minimum memory limit of 2.5 GiB.
 
 Alternatively, if you would prefer not to allocate these resources to your controller container, we advise lowering concurrency by lowering the `--worker-threads` argument of the [external-provisioner](https://github.com/kubernetes-csi/external-provisioner).
 
 ## Timeouts
-For most highly concurrent workloads, we recommend increasing the default timeout argument set in the [external-provisioner](https://github.com/kubernetes-csi/external-provisioner) from 15 seconds to 60 seconds. This will avoid provisioning failures due to throttling and resource contention in the controller container. 
+For most highly concurrent workloads, we recommend increasing the default timeout argument set in the [external-provisioner](https://github.com/kubernetes-csi/external-provisioner) from 15 seconds to 60 seconds. This will avoid provisioning failures due to throttling and resource contention in the controller container.
 
 
 ## Using botocore to retrieve mount target ip address when dns name cannot be resolved
 * Amazon EFS CSI driver supports using botocore to retrieve mount target ip address when dns name cannot be resolved, e.g., when user is mounting a file system in another VPC, botocore comes preinstalled on efs-csi-driver which can solve this DNS issue.
-* IAM policy prerequisites to use this feature :  
+* IAM policy prerequisites to use this feature :
   Allow ```elasticfilesystem:DescribeMountTargets``` and ```ec2:DescribeAvailabilityZones``` actions in your policy attached to the Amazon EKS service account role, refer to example policy [here](https://github.com/kubernetes-sigs/aws-efs-csi-driver/blob/master/docs/iam-policy-example.json#L9-L10).
 
 ## Development
