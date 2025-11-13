@@ -36,6 +36,7 @@ const (
 	AgentNotReadyNodeTaintKey   = "efs.csi.aws.com/agent-not-ready"
 	UnsetMaxInflightMountCounts = -1
 	UnsetVolumeAttachLimit      = -1
+	DefaultUnmountTimeout       = 30 * time.Second
 )
 
 type Driver struct {
@@ -57,9 +58,11 @@ type Driver struct {
 	lockManager              LockManagerMap
 	inFlightMountTracker     *InFlightMountTracker
 	volumeAttachLimit        int64
+	forceUnmountAfterTimeout bool
+	unmountTimeout           time.Duration
 }
 
-func NewDriver(endpoint, efsUtilsCfgPath, efsUtilsStaticFilesPath, tags string, volMetricsOptIn bool, volMetricsRefreshPeriod float64, volMetricsFsRateLimit int, deleteAccessPointRootDir bool, adaptiveRetryMode bool, maxInflightMountCallsOptIn bool, maxInflightMountCalls int64, volumeAttachLimitOptIn bool, volumeAttachLimit int64) *Driver {
+func NewDriver(endpoint, efsUtilsCfgPath, efsUtilsStaticFilesPath, tags string, volMetricsOptIn bool, volMetricsRefreshPeriod float64, volMetricsFsRateLimit int, deleteAccessPointRootDir bool, adaptiveRetryMode bool, maxInflightMountCallsOptIn bool, maxInflightMountCalls int64, volumeAttachLimitOptIn bool, volumeAttachLimit int64, forceUnmountAfterTimeout bool, unmountTimeout time.Duration) *Driver {
 	cloud, err := cloud.NewCloud(adaptiveRetryMode)
 	if err != nil {
 		klog.Fatalln(err)
@@ -85,6 +88,8 @@ func NewDriver(endpoint, efsUtilsCfgPath, efsUtilsStaticFilesPath, tags string, 
 		lockManager:              NewLockManagerMap(),
 		inFlightMountTracker:     NewInFlightMountTracker(getMaxInflightMountCalls(maxInflightMountCallsOptIn, maxInflightMountCalls)),
 		volumeAttachLimit:        getVolumeAttachLimit(volumeAttachLimitOptIn, volumeAttachLimit),
+		forceUnmountAfterTimeout: forceUnmountAfterTimeout,
+		unmountTimeout:           unmountTimeout,
 	}
 }
 

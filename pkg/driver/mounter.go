@@ -21,7 +21,7 @@ import (
 
 // Mounter is an interface for mount operations
 type Mounter interface {
-	mount_utils.Interface
+	mount_utils.MounterForceUnmounter
 	MakeDir(pathname string) error
 	Stat(pathname string) (os.FileInfo, error)
 	GetDeviceName(mountPath string) (string, int, error)
@@ -29,12 +29,12 @@ type Mounter interface {
 }
 
 type NodeMounter struct {
-	mount_utils.Interface
+	mount_utils.MounterForceUnmounter
 }
 
 func newNodeMounter() Mounter {
 	return &NodeMounter{
-		Interface: mount_utils.New(""),
+		MounterForceUnmounter: mount_utils.New("").(mount_utils.MounterForceUnmounter),
 	}
 }
 
@@ -57,7 +57,7 @@ func (m *NodeMounter) GetDeviceName(mountPath string) (string, int, error) {
 }
 
 func (m *NodeMounter) IsLikelyNotMountPoint(target string) (bool, error) {
-	notMnt, err := m.Interface.IsLikelyNotMountPoint(target)
+	notMnt, err := m.MounterForceUnmounter.IsLikelyNotMountPoint(target)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return false, nil
