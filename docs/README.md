@@ -171,7 +171,7 @@ You can find previous efs-csi-driver versions' images from [here](https://galler
 
 ### Features
 * Static provisioning - Amazon EFS file system needs to be created manually first, then it could be mounted inside container as a persistent volume (PV) using the driver.
-* Dynamic provisioning - Uses a persistent volume claim (PVC) to dynamically provision a persistent volume (PV). On Creating a PVC, kuberenetes requests Amazon EFS to create an Access Point in a file system which will be used to mount the PV.
+* Dynamic provisioning - Uses a persistent volume claim (PVC) to dynamically provision a persistent volume (PV). On Creating a PVC, Kubernetes requests Amazon EFS to create an Access Point in a file system which will be used to mount the PV.
 * Mount Options - Mount options can be specified in the persistent volume (PV) or storage class for dynamic provisioning to define how the volume should be mounted.
 * Encryption of data in transit - Amazon EFS file systems are mounted with encryption in transit enabled by default in the master branch version of the driver.
 * Cross account mount - Amazon EFS file systems from different aws accounts can be mounted from an Amazon EKS cluster.
