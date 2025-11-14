@@ -30,30 +30,17 @@ import (
 const etcAmazonEfs = "/etc/amazon/efs"
 
 func main() {
-	var (
-		endpoint                 = flag.String("endpoint", "unix://tmp/csi.sock", "CSI Endpoint")
-		version                  = flag.Bool("version", false, "Print the version and exit")
-		efsUtilsCfgDirPath       = flag.String("efs-utils-config-dir-path", "/var/amazon/efs", "The preferred path for the efs-utils config directory. efs-utils-config-legacy-dir-path will be used if it is not empty, otherwise efs-utils-config-dir-path will be used.")
-		efsUtilsCfgLegacyDirPath = flag.String("efs-utils-config-legacy-dir-path", "/etc/amazon/efs-legacy", "The path to the legacy efs-utils config directory mounted from the host path /etc/amazon/efs")
-		efsUtilsStaticFilesPath  = flag.String("efs-utils-static-files-path", "/etc/amazon/efs-static-files/", "The path to efs-utils static files directory")
-		volMetricsOptIn          = flag.Bool("vol-metrics-opt-in", false, "Opt in to emit volume metrics")
-		volMetricsRefreshPeriod  = flag.Float64("vol-metrics-refresh-period", 240, "Refresh period for volume metrics in minutes")
-		volMetricsFsRateLimit    = flag.Int("vol-metrics-fs-rate-limit", 5, "Volume metrics routines rate limiter per file system")
-		deleteAccessPointRootDir = flag.Bool("delete-access-point-root-dir", false,
-			"Opt in to delete access point root directory by DeleteVolume. By default, DeleteVolume will delete the access point behind Persistent Volume and deleting access point will not delete the access point root directory or its contents.")
-		adaptiveRetryMode          = flag.Bool("adaptive-retry-mode", true, "Opt out to use standard sdk retry configuration. By default, adaptive retry mode will be used to more heavily client side rate limit EFS API requests.")
-		tags                       = flag.String("tags", "", "Space separated key:value pairs which will be added as tags for EFS resources. For example, 'environment:prod region:us-east-1'")
-		maxInflightMountCallsOptIn = flag.Bool("max-inflight-mount-calls-opt-in", false, "Opt in to use max inflight mount calls limit.")
-		maxInflightMountCalls      = flag.Int64("max-inflight-mount-calls", driver.UnsetMaxInflightMountCounts, "New NodePublishVolume operation will be blocked if maximum number of inflight calls is reached. If maxInflightMountCallsOptIn is true, it has to be set to a positive value.")
-		volumeAttachLimitOptIn     = flag.Bool("volume-attach-limit-opt-in", false, "Opt in to use volume attach limit.")
-		volumeAttachLimit          = flag.Int64("volume-attach-limit", driver.UnsetVolumeAttachLimit, "Maximum number of volumes that can be attached to a node. If volumeAttachLimitOptIn is true, it has to be set to a positive value.")
-		forceUnmountAfterTimeout   = flag.Bool("force-unmount-after-timeout", false, "Enable force unmount if normal unmount times out during NodeUnpublishVolume.")
-		unmountTimeout             = flag.Duration("unmount-timeout", driver.DefaultUnmountTimeout, "Timeout for unmounting a volume during NodePublishVolume when forceUnmountAfterTimeout is true. If the timeout is reached, the volume will be forcibly unmounted. The default value is 30 seconds.")
-	)
 	klog.InitFlags(nil)
+
+	options := driver.NewOptions()
 	flag.Parse()
 
-	if *version {
+	if err := options.Validate(); err != nil {
+		klog.ErrorS(err, "Invalid options")
+		klog.FlushAndExit(klog.ExitFlushTimeout, 1)
+	}
+
+	if *options.Version {
 		info, err := driver.GetVersionJSON()
 		if err != nil {
 			klog.Fatalln(err)
@@ -63,11 +50,11 @@ func main() {
 	}
 
 	// chose which configuration directory we will use and create a symlink to it
-	err := driver.InitConfigDir(*efsUtilsCfgLegacyDirPath, *efsUtilsCfgDirPath, etcAmazonEfs)
+	err := driver.InitConfigDir(*options.EfsUtilsCfgLegacyDirPath, *options.EfsUtilsCfgDirPath, etcAmazonEfs)
 	if err != nil {
 		klog.Fatalln(err)
 	}
-	drv := driver.NewDriver(*endpoint, etcAmazonEfs, *efsUtilsStaticFilesPath, *tags, *volMetricsOptIn, *volMetricsRefreshPeriod, *volMetricsFsRateLimit, *deleteAccessPointRootDir, *adaptiveRetryMode, *maxInflightMountCallsOptIn, *maxInflightMountCalls, *volumeAttachLimitOptIn, *volumeAttachLimit, *forceUnmountAfterTimeout, *unmountTimeout)
+	drv := driver.NewDriver(options, etcAmazonEfs)
 	if err := drv.Run(); err != nil {
 		klog.Fatalln(err)
 	}
