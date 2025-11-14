@@ -96,6 +96,10 @@ spec:
             - name: AWS_USE_FIPS_ENDPOINT
               value: "true"
             {{- end }}
+            {{- if .Values.node.serviceAccount.disableMutation }}
+            - name: DISABLE_TAINT_WATCHER
+              value: "true"
+            {{- end }}
             - name: PORT_RANGE_UPPER_BOUND
               value: "{{ .Values.portRangeUpperBound }}"
             {{- with .Values.node.env }}
