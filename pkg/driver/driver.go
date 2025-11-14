@@ -33,10 +33,7 @@ const (
 	driverName = "efs.csi.aws.com"
 
 	// AgentNotReadyTaintKey contains the key of taints to be removed on driver startup
-	AgentNotReadyNodeTaintKey   = "efs.csi.aws.com/agent-not-ready"
-	UnsetMaxInflightMountCounts = -1
-	UnsetVolumeAttachLimit      = -1
-	DefaultUnmountTimeout       = 30 * time.Second
+	AgentNotReadyNodeTaintKey = "efs.csi.aws.com/agent-not-ready"
 )
 
 type Driver struct {
@@ -62,34 +59,34 @@ type Driver struct {
 	unmountTimeout           time.Duration
 }
 
-func NewDriver(endpoint, efsUtilsCfgPath, efsUtilsStaticFilesPath, tags string, volMetricsOptIn bool, volMetricsRefreshPeriod float64, volMetricsFsRateLimit int, deleteAccessPointRootDir bool, adaptiveRetryMode bool, maxInflightMountCallsOptIn bool, maxInflightMountCalls int64, volumeAttachLimitOptIn bool, volumeAttachLimit int64, forceUnmountAfterTimeout bool, unmountTimeout time.Duration) *Driver {
-	cloud, err := cloud.NewCloud(adaptiveRetryMode)
+func NewDriver(options *Options, efsUtilsCfgPath string) *Driver {
+	cloud, err := cloud.NewCloud(*options.AdaptiveRetryMode)
 	if err != nil {
 		klog.Fatalln(err)
 	}
 
-	nodeCaps := SetNodeCapOptInFeatures(volMetricsOptIn)
-	watchdog := newExecWatchdog(efsUtilsCfgPath, efsUtilsStaticFilesPath, "amazon-efs-mount-watchdog")
+	nodeCaps := SetNodeCapOptInFeatures(*options.VolMetricsOptIn)
+	watchdog := newExecWatchdog(efsUtilsCfgPath, *options.EfsUtilsStaticFilesPath, "amazon-efs-mount-watchdog")
 	return &Driver{
-		endpoint:                 endpoint,
+		endpoint:                 *options.Endpoint,
 		nodeID:                   cloud.GetMetadata().GetInstanceID(),
 		mounter:                  newNodeMounter(),
 		efsWatchdog:              watchdog,
 		cloud:                    cloud,
 		nodeCaps:                 nodeCaps,
 		volStatter:               NewVolStatter(),
-		volMetricsOptIn:          volMetricsOptIn,
-		volMetricsRefreshPeriod:  volMetricsRefreshPeriod,
-		volMetricsFsRateLimit:    volMetricsFsRateLimit,
+		volMetricsOptIn:          *options.VolMetricsOptIn,
+		volMetricsRefreshPeriod:  *options.VolMetricsRefreshPeriod,
+		volMetricsFsRateLimit:    *options.VolMetricsFsRateLimit,
 		gidAllocator:             NewGidAllocator(),
-		deleteAccessPointRootDir: deleteAccessPointRootDir,
-		adaptiveRetryMode:        adaptiveRetryMode,
-		tags:                     parseTagsFromStr(strings.TrimSpace(tags)),
+		deleteAccessPointRootDir: *options.DeleteAccessPointRootDir,
+		adaptiveRetryMode:        *options.AdaptiveRetryMode,
+		tags:                     parseTagsFromStr(strings.TrimSpace(*options.Tags)),
 		lockManager:              NewLockManagerMap(),
-		inFlightMountTracker:     NewInFlightMountTracker(getMaxInflightMountCalls(maxInflightMountCallsOptIn, maxInflightMountCalls)),
-		volumeAttachLimit:        getVolumeAttachLimit(volumeAttachLimitOptIn, volumeAttachLimit),
-		forceUnmountAfterTimeout: forceUnmountAfterTimeout,
-		unmountTimeout:           unmountTimeout,
+		inFlightMountTracker:     NewInFlightMountTracker(getMaxInflightMountCalls(*options.MaxInflightMountCallsOptIn, *options.MaxInflightMountCalls)),
+		volumeAttachLimit:        getVolumeAttachLimit(*options.VolumeAttachLimitOptIn, *options.VolumeAttachLimit),
+		forceUnmountAfterTimeout: *options.ForceUnmountAfterTimeout,
+		unmountTimeout:           *options.UnmountTimeout,
 	}
 }
 
