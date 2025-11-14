@@ -136,6 +136,9 @@ controller:
   #    topologyKey: kubernetes.io/hostname
   #    whenUnsatisfiable: ScheduleAnyway
   topologySpreadConstraints: []
+  # Enable reading filesystem IDs from configmap/secret
+  fileSystemIdRefs:
+    enabled: false
 
 ## Node daemonset variables
 
@@ -219,8 +222,6 @@ storageClasses: []
 #   annotations:
 #     # Use that annotation if you want this to your default storageclass
 #     storageclass.kubernetes.io/is-default-class: "true"
-#   mountOptions:
-#   - tls
 #   parameters:
 #     provisioningMode: efs-ap
 #     fileSystemId: fs-1122aabb
