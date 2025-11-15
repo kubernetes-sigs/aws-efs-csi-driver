@@ -4,6 +4,8 @@
 
 The [Amazon Elastic File System](https://aws.amazon.com/efs/) Container Storage Interface (CSI) Driver implements the [CSI](https://github.com/container-storage-interface/spec/blob/master/spec.md) specification for container orchestrators to manage the lifecycle of Amazon EFS file systems.
 
+> **Note:** The latest release version may not include the most recent code changes in master branch. Please check the [changelog](../CHANGELOG-2.x.md) for updates included in the corresponding release versions.
+
 ### CSI Specification Compatibility Matrix
 | Amazon EFS CSI Driver \ CSI Spec Version | v0.3.0| v1.1.0 | v1.2.0 |
 |------------------------------------------|-------|--------|--------|
@@ -28,7 +30,9 @@ The following CSI interfaces are implemented:
 | Parameters            | Values | Default         | Optional | Description                                                                                                                                                                                                                                                                                                                                                                                   |
 |-----------------------|--------|-----------------|----------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | provisioningMode      | efs-ap |                 | false    | Type of volume provisioned by efs. Currently, Access Points are supported.                                                                                                                                                                                                                                                                                                                    |
-| fileSystemId          |        |                 | false    | File System under which access points are created.                                                                                                                                                                                                                                                                                                                                            | 
+| fileSystemId          |        |                 | true*    | File System under which access points are created. See footnote for usage details.                                                                                                                                                                                                                                             |
+| fileSystemIdConfigRef |        |                 | true*    | Reference to a ConfigMap containing the filesystem ID in format `namespace/name/key`. See footnote for usage details.                                                                                                                                                                                                           |
+| fileSystemIdSecretRef |        |                 | true*    | Reference to a Secret containing the filesystem ID in format `namespace/name/key`. See footnote for usage details.                                                                                                                                                                                                                |
 | directoryPerms        |        |                 | false    | Directory permissions for [Access Point root directory](https://docs.aws.amazon.com/efs/latest/ug/efs-access-points.html#enforce-root-directory-access-point) creation.                                                                                                                                                                                                                       |
 | uid                   |        |                 | true     | POSIX user Id to be applied for [Access Point root directory](https://docs.aws.amazon.com/efs/latest/ug/efs-access-points.html#enforce-root-directory-access-point) creation.                                                                                                                                                                                                                 |
 | gid                   |        |                 | true     | POSIX group Id to be applied for [Access Point root directory](https://docs.aws.amazon.com/efs/latest/ug/efs-access-points.html#enforce-root-directory-access-point) creation.                                                                                                                                                                                                                |
@@ -38,9 +42,10 @@ The following CSI interfaces are implemented:
 | subPathPattern        |        | `/${.PV.name}`  | true     | The template used to construct the subPath under which each of the access points created under Dynamic Provisioning. Can be made up of fixed strings and limited variables, is akin to the 'subPathPattern' variable on the [nfs-subdir-external-provisioner](https://github.com/kubernetes-sigs/nfs-subdir-external-provisioner) chart. Supports `.PVC.name`,`.PVC.namespace` and `.PV.name` |
 | ensureUniqueDirectory |        | true            | true     | **NOTE: Only set this to false if you're sure this is the behaviour you want**.<br/> Used when dynamic provisioning is enabled, if set to true, appends the a UID to the pattern specified in `subPathPattern` to ensure that access points will not accidentally point at the same directory.                                                                                                |
 | az                    |        | ""              | true     | Used for cross-account mount. `az` under storage class parameter is optional. If specified, mount target associated with the az will be used for cross-account mount. If not specified, a random mount target will be picked for cross account mount                                                                                                                                          |
-| reuseAccessPoint      |        | false           | true     | When set to true, it creates the Access Point client-token from the provided PVC name. So that the AccessPoint can be replicated from a different cluster if same PVC name and storageclass configuration are used.                                                                                                                                                                                    |
+| reuseAccessPoint      |        | false           | true     | When set to true, it creates the Access Point client-token from the provided PVC name. So that the AccessPoint can be replicated from a different cluster if same PVC name and storageclass configuration are used. This feature is currently only supported for a single filesystem per account/region. If attempting to reuse access points across multiple clusters and filesystems within the same region, volume provisioning will fail. If you wish to use the same EFS accesspoint across different clusters for multiple filesystems in a single region, we recommend manually creating the access points and [statically provisioning](https://github.com/kubernetes-sigs/aws-efs-csi-driver/tree/master/examples/kubernetes/access_points) those volumes.                                                                                                                                                                            |
 
 **Note**
+* **Filesystem ID Source (marked with \*)**: Exactly one of `fileSystemId`, `fileSystemIdConfigRef`, or `fileSystemIdSecretRef` must be specified to provide the EFS filesystem ID. For detailed usage guide, see the [ConfigMap and Secret Resolution Guide](./filesystem-id-resolution.md).
 * Custom Posix group Id range for Access Point root directory must include both `gidRangeStart` and `gidRangeEnd` parameters. These parameters are optional only if both are omitted. If you specify one, the other becomes mandatory.
 * When using a custom Posix group ID range, there is a possibility for the driver to run out of available POSIX group Ids. We suggest ensuring custom group ID range is large enough or create a new storage class with a new file system to provision additional volumes. 
 * `az` under storage class parameter is not be confused with efs-utils mount option `az`. The `az` mount option is used for cross-az mount or efs one zone file system mount within the same aws account as the cluster.
@@ -49,6 +54,7 @@ The following CSI interfaces are implemented:
  * The uid/gid configured on the access point is either the uid/gid specified in the storage class, a value in the gidRangeStart-gidRangeEnd (used as both uid/gid) specified in the storage class, or is a value selected by the driver is no uid/gid or gidRange is specified.
  * We suggest using [static provisioning](https://github.com/kubernetes-sigs/aws-efs-csi-driver/blob/master/examples/kubernetes/static_provisioning/README.md) if you do not wish to use user identity enforcement.
 
+---
 If you want to pass any other mountOptions to Amazon EFS CSI driver while mounting, they can be passed in through the Persistent Volume or the Storage Class objects, depending on whether static or dynamic provisioning is used. The following are examples of some mountOptions that can be passed:
 * **lookupcache**: Specifies how the kernel manages its cache of directory entries for a given mount point. Mode can be one of all, none, pos, or positive. Each mode has different functions and for more information you can refer to this [link](https://linux.die.net/man/5/nfs).
 * **iam**: Use the CSI Node Pod's IAM identity to authenticate with Amazon EFS.
@@ -89,6 +95,10 @@ The following sections are Kubernetes specific. If you are a Kubernetes user, us
 | Amazon EFS CSI Driver Version | Image                            |
 |-------------------------------|----------------------------------|
 | master branch                 | amazon/aws-efs-csi-driver:master |
+| v2.1.14                       | amazon/aws-efs-csi-driver:v2.1.14|
+| v2.1.13                       | amazon/aws-efs-csi-driver:v2.1.13|
+| v2.1.12                       | amazon/aws-efs-csi-driver:v2.1.12|
+| v2.1.11                       | amazon/aws-efs-csi-driver:v2.1.11|
 | v2.1.10                       | amazon/aws-efs-csi-driver:v2.1.10|
 | v2.1.9                        | amazon/aws-efs-csi-driver:v2.1.9 |
 | v2.1.8                        | amazon/aws-efs-csi-driver:v2.1.8 |
@@ -160,14 +170,14 @@ The following sections are Kubernetes specific. If you are a Kubernetes user, us
 ### ECR Image
 | Driver Version | [ECR](https://gallery.ecr.aws/efs-csi-driver/amazon/aws-efs-csi-driver) Image |
 |----------------|-------------------------------------------------------------------------------|
-| v2.1.10        | public.ecr.aws/efs-csi-driver/amazon/aws-efs-csi-driver:v2.1.10               |
+| v2.1.14        | public.ecr.aws/efs-csi-driver/amazon/aws-efs-csi-driver:v2.1.14               |
 
 **Note**  
 You can find previous efs-csi-driver versions' images from [here](https://gallery.ecr.aws/efs-csi-driver/amazon/aws-efs-csi-driver)
 
 ### Features
 * Static provisioning - Amazon EFS file system needs to be created manually first, then it could be mounted inside container as a persistent volume (PV) using the driver.
-* Dynamic provisioning - Uses a persistent volume claim (PVC) to dynamically provision a persistent volume (PV). On Creating a PVC, kuberenetes requests Amazon EFS to create an Access Point in a file system which will be used to mount the PV.
+* Dynamic provisioning - Uses a persistent volume claim (PVC) to dynamically provision a persistent volume (PV). On Creating a PVC, Kubernetes requests Amazon EFS to create an Access Point in a file system which will be used to mount the PV.
 * Mount Options - Mount options can be specified in the persistent volume (PV) or storage class for dynamic provisioning to define how the volume should be mounted.
 * Encryption of data in transit - Amazon EFS file systems are mounted with encryption in transit enabled by default in the master branch version of the driver.
 * Cross account mount - Amazon EFS file systems from different aws accounts can be mounted from an Amazon EKS cluster.
@@ -351,8 +361,35 @@ After deploying the driver, you can continue to these sections:
 |-----------------------------|--------|---------|----------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | vol-metrics-opt-in          |        | false   | true     | Opt in to emit volume metrics.                                                                                                                                                                                                          |
 | vol-metrics-refresh-period  |        | 240     | true     | Refresh period for volume metrics in minutes.                                                                                                                                                                                           |
-| vol-metrics-fs-rate-limit   |        | 5       | true     | Volume metrics routines rate limiter per file system.                                                                                                                                                                                   |
+| max-inflight-mount-calls-opt-in   |        | false       | true     | Opt in to use max inflight mount calls limit.                                                                                                                                                                                   |
+| max-inflight-mount-calls   |        | -1       | true     | New NodePublishVolume operation will be blocked if maximum number of inflight calls is reached. If maxInflightMountCallsOptIn is true, it has to be set to a positive value.                                                                                                                                                                                  |
+| volume-attach-limit-opt-in   |        | false       | true     | Opt in to use volume attach limit.                                                                                                                                                                                   |
+| volume-attach-limit   |        |  -1      | true     | Maximum number of volumes that can be attached to a node. If volumeAttachLimitOptIn is true, it has to be set to a positive value.                                                                                                                                                                 |
+| force-unmount-after-timeout   |        |  false      | true     | Enable force unmount if normal unmount times out during NodeUnpublishVolume                                                                                                                                                                 |
+| unmount-timeout   |        |  30s      | true     | Timeout for unmounting a volume during NodePublishVolume when forceUnmountAfterTimeout is true. If the timeout is reached, the volume will be forcibly unmounted. The default value is 30 seconds.                                                                                                                                                                 |
 
+#### Force Unmount After Timeout
+The `force-unmount-after-timeout` feature addresses issues when `NodeUnpublishVolume` gets called infinite times and hangs indefinitely due to broken NFS connections. When enabled, if a normal unmount operation exceeds the configured timeout, the driver will forcibly unmount the volume to prevent indefinite hanging and allow the operation to complete.
+
+#### Suggestion for setting max-inflight-mount-calls and volume-attach-limit
+
+To prevent out-of-memory (OOM) issues in the efs-plugin container, configure these parameters based on your container's memory limit:
+
+- Each EFS volume consumes **~12 MiB** of memory (for the efs-proxy process)
+- Each concurrent mount operation consumes **~30 MiB** of memory during peak usage
+  - A single mount operation typically takes **~100 milliseconds** to complete
+  - For example, concurrent mount operations can occur when multiple pods are being scheduled simultaneously and need to mount EFS volumes
+
+#### Recommended formula
+```
+Container Memory Limit = ((volume-attach-limit × 12) + (max-inflight-mount-calls × 30)) × 1.5 MiB
+```
+
+#### Example calculation
+- For 50 volumes and 10 concurrent mounts: `((50 × 12) + (10 × 30)) × 1.5 = 1,350 MiB`
+- Set container memory limit to at least 1.4 GiB
+
+> **Note:** The 1.5x multiplier provides a safety buffer for other container processes and memory fluctuations.
 
 
 ##### Understanding the Impact of vol-metrics-opt-in:
@@ -360,11 +397,11 @@ Enabling the vol-metrics-opt-in parameter activates the gathering of inode and d
 
 
 ### Container Arguments for deployment(controller) 
-| Parameters                  | Values | Default | Optional | Description                                                                                                                                                                                                                            |
-|-----------------------------|--------|---------|----------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| delete-access-point-root-dir|        | false  | true     | Opt in to delete access point root directory by DeleteVolume. By default, DeleteVolume will delete the access point behind Persistent Volume and deleting access point will not delete the access point root directory or its contents. |
-| adaptive-retry-mode         |        | true   | true     | Opt out to use standard sdk retry mode for EFS API calls. By default, Driver will use adaptive mode for the sdk retry configuration which heavily rate limits EFS API requests to reduce throttling if throttling is observed.           |
-| tags                         |       |         | true     | Space separated key:value pairs which will be added as tags for Amazon EFS resources. For example, '--tags=name:efs-tag-test date:Jan24'                                                                                               |
+| Parameters                  | Values | Default | Optional | Description                                                                                                                                                                                                                                                   |
+|-----------------------------|--------|---------|----------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| delete-access-point-root-dir|        | false  | true     | Opt in to delete access point root directory by DeleteVolume. By default, DeleteVolume will delete the access point behind Persistent Volume and deleting access point will not delete the access point root directory or its contents.                       |
+| adaptive-retry-mode         |        | true   | true     | Opt out to use standard sdk retry mode for EFS API calls. By default, Driver will use adaptive mode for the sdk retry configuration which heavily rate limits EFS API requests to reduce throttling if throttling is observed.                                |
+| tags                         |       |         | true     | Space separated key:value pairs which will be added as tags for Amazon EFS resources. For example, '--tags=name:efs-tag-test date:Jan24'. To include a ':' in the tag name or value, use \ as an escape character, for example '--tags="tag\:name:tag\:value" |
 ### Upgrading the Amazon EFS CSI Driver
 
 
@@ -385,7 +422,7 @@ If you want to update to a specific version, first customize the driver yaml fil
 kubectl kustomize "github.com/kubernetes-sigs/aws-efs-csi-driver/deploy/kubernetes/overlays/stable/?ref=release-2.0" > driver.yaml
 ```
 
-Then, update all lines referencing `image: amazon/aws-efs-csi-driver` to the desired version (e.g., to `image: amazon/aws-efs-csi-driver:v2.1.10`) in the yaml file, and deploy driver yaml again:
+Then, update all lines referencing `image: amazon/aws-efs-csi-driver` to the desired version (e.g., to `image: amazon/aws-efs-csi-driver:v2.1.14`) in the yaml file, and deploy driver yaml again:
 ```sh
 kubectl apply -f driver.yaml
 ```

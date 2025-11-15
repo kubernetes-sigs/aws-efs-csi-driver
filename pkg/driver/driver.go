@@ -23,18 +23,20 @@ import (
 	"time"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
-	"google.golang.org/grpc"
-	"k8s.io/klog/v2"
-
 	"github.com/kubernetes-sigs/aws-efs-csi-driver/pkg/cloud"
 	"github.com/kubernetes-sigs/aws-efs-csi-driver/pkg/util"
+	"google.golang.org/grpc"
+	"k8s.io/klog/v2"
 )
 
 const (
 	driverName = "efs.csi.aws.com"
 
 	// AgentNotReadyTaintKey contains the key of taints to be removed on driver startup
-	AgentNotReadyNodeTaintKey = "efs.csi.aws.com/agent-not-ready"
+	AgentNotReadyNodeTaintKey   = "efs.csi.aws.com/agent-not-ready"
+	UnsetMaxInflightMountCounts = -1
+	UnsetVolumeAttachLimit      = -1
+	DefaultUnmountTimeout       = 30 * time.Second
 )
 
 type Driver struct {
@@ -54,10 +56,13 @@ type Driver struct {
 	adaptiveRetryMode        bool
 	tags                     map[string]string
 	lockManager              LockManagerMap
-	healthMonitor            *HealthMonitor
+	inFlightMountTracker     *InFlightMountTracker
+	volumeAttachLimit        int64
+	forceUnmountAfterTimeout bool
+	unmountTimeout           time.Duration
 }
 
-func NewDriver(endpoint, efsUtilsCfgPath, efsUtilsStaticFilesPath, tags string, volMetricsOptIn bool, volMetricsRefreshPeriod float64, volMetricsFsRateLimit int, deleteAccessPointRootDir bool, adaptiveRetryMode bool) *Driver {
+func NewDriver(endpoint, efsUtilsCfgPath, efsUtilsStaticFilesPath, tags string, volMetricsOptIn bool, volMetricsRefreshPeriod float64, volMetricsFsRateLimit int, deleteAccessPointRootDir bool, adaptiveRetryMode bool, maxInflightMountCallsOptIn bool, maxInflightMountCalls int64, volumeAttachLimitOptIn bool, volumeAttachLimit int64, forceUnmountAfterTimeout bool, unmountTimeout time.Duration) *Driver {
 	cloud, err := cloud.NewCloud(adaptiveRetryMode)
 	if err != nil {
 		klog.Fatalln(err)
@@ -86,7 +91,10 @@ func NewDriver(endpoint, efsUtilsCfgPath, efsUtilsStaticFilesPath, tags string, 
 		adaptiveRetryMode:        adaptiveRetryMode,
 		tags:                     parseTagsFromStr(strings.TrimSpace(tags)),
 		lockManager:              NewLockManagerMap(),
-		healthMonitor:            healthMonitor,
+		inFlightMountTracker:     NewInFlightMountTracker(getMaxInflightMountCalls(maxInflightMountCallsOptIn, maxInflightMountCalls)),
+		volumeAttachLimit:        getVolumeAttachLimit(volumeAttachLimitOptIn, volumeAttachLimit),
+		forceUnmountAfterTimeout: forceUnmountAfterTimeout,
+		unmountTimeout:           unmountTimeout,
 	}
 }
 
@@ -169,9 +177,31 @@ func parseTagsFromStr(tagStr string) map[string]string {
 		return m
 	}
 	tagsSplit := strings.Split(tagStr, " ")
-	for _, pair := range tagsSplit {
-		p := strings.Split(pair, ":")
-		m[p[0]] = p[1]
+	for _, currTag := range tagsSplit {
+		var nameBuilder strings.Builder
+		var valBuilder strings.Builder
+		var currBuilder *strings.Builder = &nameBuilder
+
+		for i := 0; i < len(currTag); i++ {
+			if currTag[i] == ':' {
+				if currBuilder == &valBuilder {
+					break
+				} else {
+					currBuilder = &valBuilder
+					continue
+				}
+			}
+
+			// Handle escape character
+			if currTag[i] == byte('\\') && currTag[i+1] == byte(':') {
+				currBuilder.WriteRune(':')
+				i++ // Skip an extra character
+				continue
+			}
+
+			currBuilder.WriteByte(currTag[i])
+		}
+		m[nameBuilder.String()] = valBuilder.String()
 	}
 	return m
 }

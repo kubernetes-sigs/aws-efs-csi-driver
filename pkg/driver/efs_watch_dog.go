@@ -16,7 +16,6 @@ package driver
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -121,6 +120,9 @@ stunnel_cafile = /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
 dns_name_suffix = cloud.adc-e.uk
 stunnel_cafile = /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
 
+[mount.eusc-de-east-1]
+dns_name_suffix = amazonaws.eu
+
 [mount-watchdog]
 enabled = true
 poll_interval_sec = 1
@@ -224,7 +226,6 @@ func (w *execWatchdog) setup(efsClientSource string) error {
 }
 
 /*
-*
 At image build time, static files installed by efs-utils in the config directory, i.e. CAs file, need
 to be saved in another place so that the other stateful files created at runtime, i.e. private key for
 client certificate, in the same config directory can be persisted to host with a host path volume.
@@ -240,7 +241,7 @@ func copyWithoutOverwriting(srcDir, dstDir string) error {
 		return err
 	}
 
-	entries, err := ioutil.ReadDir(srcDir)
+	entries, err := os.ReadDir(srcDir)
 	if err != nil {
 		return err
 	}
@@ -324,7 +325,7 @@ func (w *execWatchdog) runLoop(stopCh <-chan struct{}) {
 	for {
 		select {
 		case <-stopCh:
-			klog.Info("stopping...")
+			klog.V(4).Infof("stopping...")
 			break
 		default:
 			err := w.exec()
@@ -360,7 +361,7 @@ the newer stunnel binaries will fail to run as this option is no longer supporte
 To avoid any errors, we check for this config and remove it directly on startup.
 */
 func (w *execWatchdog) removeLibwrapOption(stateDir string) error {
-	stunnelFiles, err := ioutil.ReadDir(stateDir)
+	stunnelFiles, err := os.ReadDir(stateDir)
 	if err != nil {
 		return fmt.Errorf("error reading directory %s: %v", efsStateDir, err)
 	}
@@ -369,7 +370,7 @@ func (w *execWatchdog) removeLibwrapOption(stateDir string) error {
 		if strings.HasPrefix(file.Name(), "stunnel-config.") {
 			filePath := filepath.Join(stateDir, file.Name())
 			if err := removeLibwrapFromFile(filePath); err != nil {
-				klog.Warningf("Error proccessing stunnel file %s: %v", filePath, err)
+				klog.Warningf("Error processing stunnel file %s: %v", filePath, err)
 			}
 		}
 	}

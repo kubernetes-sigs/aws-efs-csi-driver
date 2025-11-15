@@ -1,3 +1,18 @@
+# V2.1.14
+* Upgrade aws-sdk-go-v2 to latest version ([#1729](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1729), [@DavidXU12345](https://github.com/DavidXU12345))
+
+# V2.1.13
+* Update Dependencies ([#1709](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1709), [@zmaguire](https://github.com/zmaguire))
+* Set PosixUser.Uid correctly in ListAccessPoints ([#1707](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1707), [@yerzhan7](https://github.com/yerzhan7))
+* Add maxInflightMountCalls and volumeAttachLimit args ([#1706](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1706), [@DavidXU12345](https://github.com/DavidXU12345))
+# V2.1.12
+* Update golang MV in DockerFile ([#1697](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1697), [@mondaljs](https://github.com/mondaljs))
+* Update Sidecar Versions to Resolve CVEs ([#1694](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1694), [@samuhale](https://github.com/samuhale))
+* Allow : in Tags with Escape Character ([#1693](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1693), [@samuhale](https://github.com/samuhale))
+# V2.1.11
+* Bump k8 version to default 1.33 for e2e tests([#1681](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1681), [@dankova22](https://github.com/dankova22))
+* Update openssl installation change in Dockerfile ([#1678](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1678), [@anthotse](https:///github.com/anthotse))
+* Fix spelling errors and modernize deprecated io/ioutil usage ([#1674](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1674), [@oyiz](https://github.com/oyuz))
 # V2.1.10
 * Update dependencies and fix go.sum ([#1663](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1663), [@anthotse](https://anthotse))
 * Implement ControllerModifyVolume function ([#1663](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1663), [@anthotse](https://anthotse))

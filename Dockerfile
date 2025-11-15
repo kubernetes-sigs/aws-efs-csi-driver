@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM public.ecr.aws/eks-distro-build-tooling/golang:1.24.0 as go-builder
+FROM public.ecr.aws/eks-distro-build-tooling/golang:1.25.0 as go-builder
 WORKDIR /go/src/github.com/kubernetes-sigs/aws-efs-csi-driver
 
 ARG TARGETOS
@@ -38,7 +38,7 @@ RUN mkdir -p /tmp/rpms && \
     then echo "Installing efs-utils from Amazon Linux 2 yum repo" && \
          yum -y install --downloadonly --downloaddir=/tmp/rpms amazon-efs-utils-1.35.0-1.amzn2.noarch; \
     else echo "Installing efs-utils from github using the latest git tag" && \
-         yum -y install systemd git rpm-build make openssl-devel curl && \
+         yum -y install systemd git rpm-build make openssl-devel curl golang cmake && \
          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y && \
          source $HOME/.cargo/env && \
          rustup update && \
@@ -63,6 +63,10 @@ COPY --from=rpm-provider /tmp/rpms/* /tmp/download/
 # cd, ls, cat, vim, tcpdump, are for debugging
 RUN clean_install amazon-efs-utils true && \
     clean_install crypto-policies true && \
+    # Remove existing OpenSSL packages and install version 3.0.8 packages. Newer OpenSSL version
+    # have an updated method of enabling fips, which we do not support yet.
+    remove_package "openssl openssl-libs openssl-fips-provider-latest" && \
+    clean_install "openssl-3.0.8 openssl-libs-3.0.8 openssl-fips-provider-certified-3.0.8" true && \
     install_binary \
         /usr/bin/cat \
         /usr/bin/cd \
@@ -75,7 +79,6 @@ RUN clean_install amazon-efs-utils true && \
         /usr/bin/mount \
         /usr/bin/umount \
         /sbin/mount.nfs4 \
-        /usr/bin/openssl \
         /usr/bin/sed \
         /usr/bin/stat \
         /usr/bin/stunnel \
