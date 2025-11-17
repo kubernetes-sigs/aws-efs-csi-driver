@@ -122,6 +122,7 @@ stunnel_cafile = /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
 
 [mount.eusc-de-east-1]
 dns_name_suffix = amazonaws.eu
+stunnel_cafile = /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
 
 [mount-watchdog]
 enabled = true
