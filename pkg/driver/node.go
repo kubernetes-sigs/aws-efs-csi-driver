@@ -240,28 +240,37 @@ func (d *Driver) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpublish
 		return nil, status.Error(codes.InvalidArgument, "Target path not provided")
 	}
 
-	// Check if target directory is a mount point. GetDeviceNameFromMount
-	// given a mnt point, finds the device from /proc/mounts
-	// returns the device name, reference count, and error code
-	_, refCount, err := d.mounter.GetDeviceName(target)
-	if err != nil {
-		format := "failed to check if volume is mounted: %v"
-		return nil, status.Errorf(codes.Internal, format, err)
+	if d.forceUnmountAfterTimeout {
+		klog.V(5).Infof("NodeUnpublishVolume: will retry unmount %s with force after timeout %v", target, d.unmountTimeout)
+		err := d.mounter.UnmountWithForce(target, d.unmountTimeout)
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "Could not unmountWithForce %q: %v", target, err)
+		}
+	} else {
+		// Check if target directory is a mount point. GetDeviceNameFromMount
+		// given a mnt point, finds the device from /proc/mounts
+		// returns the device name, reference count, and error code
+		_, refCount, err := d.mounter.GetDeviceName(target)
+		if err != nil {
+			format := "failed to check if volume is mounted: %v"
+			return nil, status.Errorf(codes.Internal, format, err)
+		}
+
+		// From the spec: If the volume corresponding to the volume_id
+		// is not staged to the staging_target_path, the Plugin MUST
+		// reply 0 OK.
+		if refCount == 0 {
+			klog.V(5).Infof("NodeUnpublishVolume: %s target not mounted", target)
+			return &csi.NodeUnpublishVolumeResponse{}, nil
+		}
+
+		klog.V(5).Infof("NodeUnpublishVolume: unmounting %s", target)
+		err = d.mounter.Unmount(target)
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "Could not unmount %q: %v", target, err)
+		}
 	}
 
-	// From the spec: If the volume corresponding to the volume_id
-	// is not staged to the staging_target_path, the Plugin MUST
-	// reply 0 OK.
-	if refCount == 0 {
-		klog.V(5).Infof("NodeUnpublishVolume: %s target not mounted", target)
-		return &csi.NodeUnpublishVolumeResponse{}, nil
-	}
-
-	klog.V(5).Infof("NodeUnpublishVolume: unmounting %s", target)
-	err = d.mounter.Unmount(target)
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "Could not unmount %q: %v", target, err)
-	}
 	klog.V(5).Infof("NodeUnpublishVolume: %s unmounted", target)
 
 	//TODO: If `du` is running on a volume, unmount waits for it to complete. We should stop `du` on unmount in the future for NodeUnpublish

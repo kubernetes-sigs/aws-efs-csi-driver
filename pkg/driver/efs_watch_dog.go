@@ -120,6 +120,10 @@ stunnel_cafile = /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
 dns_name_suffix = cloud.adc-e.uk
 stunnel_cafile = /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
 
+[mount.eusc-de-east-1]
+dns_name_suffix = amazonaws.eu
+stunnel_cafile = /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
+
 [mount-watchdog]
 enabled = true
 poll_interval_sec = 1
@@ -322,7 +326,7 @@ func (w *execWatchdog) runLoop(stopCh <-chan struct{}) {
 	for {
 		select {
 		case <-stopCh:
-			klog.Info("stopping...")
+			klog.V(4).Infof("stopping...")
 			break
 		default:
 			err := w.exec()
