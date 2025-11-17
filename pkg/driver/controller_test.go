@@ -4927,6 +4927,8 @@ func TestTaggingCapabilitites(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, tc.testFunc)
 	}
+}
+
 // Helper function to create mock client that returns error
 func createMockClientWithError(errorMsg string) kubernetes.Interface {
 	return fake.NewSimpleClientset()
