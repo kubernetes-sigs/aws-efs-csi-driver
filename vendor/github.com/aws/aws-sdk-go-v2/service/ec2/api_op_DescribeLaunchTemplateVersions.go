@@ -117,7 +117,7 @@ type DescribeLaunchTemplateVersionsInput struct {
 	//
 	// Default: false
 	//
-	// [Use a Systems Manager parameter instead of an AMI ID]: https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-launch-templates.html#use-an-ssm-parameter-instead-of-an-ami-id
+	// [Use a Systems Manager parameter instead of an AMI ID]: https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/create-launch-template.html#use-an-ssm-parameter-instead-of-an-ami-id
 	ResolveAlias *bool
 
 	// One or more versions of the launch template. Valid values depend on whether you
@@ -216,6 +216,9 @@ func (c *Client) addOperationDescribeLaunchTemplateVersionsMiddlewares(stack *mi
 	if err = addUserAgentRetryMode(stack, options); err != nil {
 		return err
 	}
+	if err = addCredentialSource(stack, options); err != nil {
+		return err
+	}
 	if err = stack.Initialize.Add(newServiceMetadataMiddleware_opDescribeLaunchTemplateVersions(options.Region), middleware.Before); err != nil {
 		return err
 	}
@@ -232,6 +235,36 @@ func (c *Client) addOperationDescribeLaunchTemplateVersionsMiddlewares(stack *mi
 		return err
 	}
 	if err = addDisableHTTPSMiddleware(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptBeforeRetryLoop(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptAttempt(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptExecution(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptBeforeSerialization(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptAfterSerialization(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptBeforeSigning(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptAfterSigning(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptTransmit(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptBeforeDeserialization(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptAfterDeserialization(stack, options); err != nil {
 		return err
 	}
 	if err = addSpanInitializeStart(stack); err != nil {

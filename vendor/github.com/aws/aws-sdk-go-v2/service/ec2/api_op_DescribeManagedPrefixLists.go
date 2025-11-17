@@ -13,8 +13,6 @@ import (
 
 // Describes your managed prefix lists and any Amazon Web Services-managed prefix
 // lists.
-//
-// To view the entries for your prefix list, use GetManagedPrefixListEntries.
 func (c *Client) DescribeManagedPrefixLists(ctx context.Context, params *DescribeManagedPrefixListsInput, optFns ...func(*Options)) (*DescribeManagedPrefixListsOutput, error) {
 	if params == nil {
 		params = &DescribeManagedPrefixListsInput{}
@@ -139,6 +137,9 @@ func (c *Client) addOperationDescribeManagedPrefixListsMiddlewares(stack *middle
 	if err = addUserAgentRetryMode(stack, options); err != nil {
 		return err
 	}
+	if err = addCredentialSource(stack, options); err != nil {
+		return err
+	}
 	if err = stack.Initialize.Add(newServiceMetadataMiddleware_opDescribeManagedPrefixLists(options.Region), middleware.Before); err != nil {
 		return err
 	}
@@ -155,6 +156,36 @@ func (c *Client) addOperationDescribeManagedPrefixListsMiddlewares(stack *middle
 		return err
 	}
 	if err = addDisableHTTPSMiddleware(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptBeforeRetryLoop(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptAttempt(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptExecution(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptBeforeSerialization(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptAfterSerialization(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptBeforeSigning(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptAfterSigning(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptTransmit(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptBeforeDeserialization(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptAfterDeserialization(stack, options); err != nil {
 		return err
 	}
 	if err = addSpanInitializeStart(stack); err != nil {

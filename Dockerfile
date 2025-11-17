@@ -38,7 +38,7 @@ RUN mkdir -p /tmp/rpms && \
     then echo "Installing efs-utils from Amazon Linux 2 yum repo" && \
          yum -y install --downloadonly --downloaddir=/tmp/rpms amazon-efs-utils-1.35.0-1.amzn2.noarch; \
     else echo "Installing efs-utils from github using the latest git tag" && \
-         yum -y install systemd git rpm-build make openssl-devel curl && \
+         yum -y install systemd git rpm-build make openssl-devel curl golang cmake && \
          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y && \
          source $HOME/.cargo/env && \
          rustup update && \

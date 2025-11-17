@@ -14,7 +14,7 @@ import (
 // Assigns private IPv4 addresses to a private NAT gateway. For more information,
 // see [Work with NAT gateways]in the Amazon VPC User Guide.
 //
-// [Work with NAT gateways]: https://docs.aws.amazon.com/vpc/latest/userguide/vpc-nat-gateway.html#nat-gateway-working-with
+// [Work with NAT gateways]: https://docs.aws.amazon.com/vpc/latest/userguide/nat-gateway-working-with.html
 func (c *Client) AssignPrivateNatGatewayAddress(ctx context.Context, params *AssignPrivateNatGatewayAddressInput, optFns ...func(*Options)) (*AssignPrivateNatGatewayAddressOutput, error) {
 	if params == nil {
 		params = &AssignPrivateNatGatewayAddressInput{}
@@ -131,6 +131,9 @@ func (c *Client) addOperationAssignPrivateNatGatewayAddressMiddlewares(stack *mi
 	if err = addUserAgentRetryMode(stack, options); err != nil {
 		return err
 	}
+	if err = addCredentialSource(stack, options); err != nil {
+		return err
+	}
 	if err = addOpAssignPrivateNatGatewayAddressValidationMiddleware(stack); err != nil {
 		return err
 	}
@@ -150,6 +153,36 @@ func (c *Client) addOperationAssignPrivateNatGatewayAddressMiddlewares(stack *mi
 		return err
 	}
 	if err = addDisableHTTPSMiddleware(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptBeforeRetryLoop(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptAttempt(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptExecution(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptBeforeSerialization(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptAfterSerialization(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptBeforeSigning(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptAfterSigning(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptTransmit(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptBeforeDeserialization(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptAfterDeserialization(stack, options); err != nil {
 		return err
 	}
 	if err = addSpanInitializeStart(stack); err != nil {

@@ -57,7 +57,7 @@ type DisassociateTrunkInterfaceOutput struct {
 	// [Ensuring idempotency]: https://docs.aws.amazon.com/ec2/latest/devguide/ec2-api-idempotency.html
 	ClientToken *string
 
-	// Returns true if the request succeeds; otherwise, it returns an error.
+	// Is true if the request succeeds and an error otherwise.
 	Return *bool
 
 	// Metadata pertaining to the operation's result.
@@ -130,6 +130,9 @@ func (c *Client) addOperationDisassociateTrunkInterfaceMiddlewares(stack *middle
 	if err = addUserAgentRetryMode(stack, options); err != nil {
 		return err
 	}
+	if err = addCredentialSource(stack, options); err != nil {
+		return err
+	}
 	if err = addIdempotencyToken_opDisassociateTrunkInterfaceMiddleware(stack, options); err != nil {
 		return err
 	}
@@ -152,6 +155,36 @@ func (c *Client) addOperationDisassociateTrunkInterfaceMiddlewares(stack *middle
 		return err
 	}
 	if err = addDisableHTTPSMiddleware(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptBeforeRetryLoop(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptAttempt(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptExecution(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptBeforeSerialization(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptAfterSerialization(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptBeforeSigning(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptAfterSigning(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptTransmit(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptBeforeDeserialization(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptAfterDeserialization(stack, options); err != nil {
 		return err
 	}
 	if err = addSpanInitializeStart(stack); err != nil {

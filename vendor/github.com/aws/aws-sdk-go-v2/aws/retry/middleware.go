@@ -8,7 +8,6 @@ import (
 	"strings"
 	"time"
 
-	privatemetrics "github.com/aws/aws-sdk-go-v2/aws/middleware/private/metrics"
 	internalcontext "github.com/aws/aws-sdk-go-v2/internal/context"
 	"github.com/aws/smithy-go"
 
@@ -261,7 +260,7 @@ func (r *Attempt) handleAttempt(
 	// Get a retry token that will be released after the
 	releaseRetryToken, retryTokenErr := r.retryer.GetRetryToken(ctx, err)
 	if retryTokenErr != nil {
-		return out, attemptResult, nopRelease, retryTokenErr
+		return out, attemptResult, nopRelease, errors.Join(err, retryTokenErr)
 	}
 
 	//------------------------------
@@ -271,13 +270,6 @@ func (r *Attempt) handleAttempt(
 	// that time. Potentially early exist if the sleep is canceled via the
 	// context.
 	retryDelay, reqErr := r.retryer.RetryDelay(attemptNum, err)
-	mctx := privatemetrics.Context(ctx)
-	if mctx != nil {
-		attempt, err := mctx.Data().LatestAttempt()
-		if err != nil {
-			attempt.RetryDelay = retryDelay
-		}
-	}
 	if reqErr != nil {
 		return out, attemptResult, releaseRetryToken, reqErr
 	}
