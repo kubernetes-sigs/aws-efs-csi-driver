@@ -1,6 +1,11 @@
+# V2.1.15
+* Golang upgrade ([#1738](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1738), [@DavidXU12345](https://github.com/DavidXU12345))
+* Update efs-utils conf for eu regions DNS ([#1737](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1737), [@dankova22](https://github.com/dankova22))
+* Update Dockerfile for new efs-utils dependencies ([#1736](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1736), [@dankova22](https://github.com/dankova22))
+* Specify fileSystemId from K8 ConfigMap/Secret ([#1724](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1724), [@aliyajo](https://github.com/aliyajo))
+* Add force unmount after timeout option ([#1710](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1710), [@DavidXU12345](https://github.com/DavidXU12345))
 # V2.1.14
 * Upgrade aws-sdk-go-v2 to latest version ([#1729](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1729), [@DavidXU12345](https://github.com/DavidXU12345))
-
 # V2.1.13
 * Update Dependencies ([#1709](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1709), [@zmaguire](https://github.com/zmaguire))
 * Set PosixUser.Uid correctly in ListAccessPoints ([#1707](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1707), [@yerzhan7](https://github.com/yerzhan7))
