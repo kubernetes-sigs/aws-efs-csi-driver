@@ -497,6 +497,11 @@ type JSONPatch struct {
 // This taint can be optionally applied by users to prevent startup race conditions such as
 // https://github.com/kubernetes/kubernetes/issues/95911
 func removeNotReadyTaint(k8sClient cloud.KubernetesAPIClient) error {
+	if os.Getenv("DISABLE_TAINT_WATCHER") != "" {
+		klog.V(4).InfoS("DISABLE_TAINT_WATCHER set, skipping taint removal")
+		return nil
+	}
+
 	nodeName := os.Getenv("CSI_NODE_NAME")
 	if nodeName == "" {
 		klog.V(4).InfoS("CSI_NODE_NAME missing, skipping taint removal")
