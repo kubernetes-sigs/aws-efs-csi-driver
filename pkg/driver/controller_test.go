@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"math/rand"
+	"reflect"
 	"regexp"
 	"strconv"
 	"sync"
@@ -802,7 +803,7 @@ func TestCreateVolume(t *testing.T) {
 				}
 
 				if driver.tags["cluster"] != "efs" || driver.tags["tag2:name2"] != "tag2:val2" {
-					t.Fatalf("Incorrect tags")
+					t.Fatalf("Incorrect tags %v", driver.tags)
 				}
 
 				req := &csi.CreateVolumeRequest{
@@ -862,7 +863,7 @@ func TestCreateVolume(t *testing.T) {
 					cloud:        mockCloud,
 					gidAllocator: NewGidAllocator(),
 					lockManager:  NewLockManagerMap(),
-					tags:         parseTagsFromStr("cluster-efs"),
+					tags:         parseTagsFromStr("cluster-efs:value1:value2"),
 				}
 
 				req := &csi.CreateVolumeRequest{
@@ -4841,6 +4842,90 @@ func TestControllerGetCapabilities(t *testing.T) {
 	_, err := driver.ControllerGetCapabilities(ctx, &csi.ControllerGetCapabilitiesRequest{})
 	if err != nil {
 		t.Fatalf("ControllerGetCapabilities failed: %v", err)
+	}
+}
+
+func TestTaggingCapabilitites(t *testing.T) {
+	testCases := []struct {
+		name     string
+		testFunc func(t *testing.T)
+	}{
+		{
+			name: "Success: complex split key value colon with backslash",
+			testFunc: func(t *testing.T) {
+				given := "aa\\:bb cc\\\\dd:ee\\:ff gg\\\\hh"
+				expected := []string{"aa:bb cc\\dd", "ee:ff gg\\hh"}
+				result := splitToList(given, byte(':'))
+				if !reflect.DeepEqual(result, expected) {
+					t.Fatalf("Incorrect tags: %v vs. %v", result, expected)
+				}
+			},
+		},
+		{
+			name: "Success: complex split key only colon with backslash",
+			testFunc: func(t *testing.T) {
+				given := "aa\\:bb cc\\\\dd\\\\"
+				expected := []string{"aa:bb cc\\dd\\"}
+				result := splitToList(given, byte(':'))
+				if !reflect.DeepEqual(result, expected) {
+					t.Fatalf("Incorrect tags: %v vs. %v", result, expected)
+				}
+			},
+		},
+		{
+			name: "Success: simple split whitespace",
+			testFunc: func(t *testing.T) {
+				given := "aa:bb cc:dd ee:ff"
+				expected := []string{"aa:bb", "cc:dd", "ee:ff"}
+				result := splitToList(given, byte(' '))
+				if !reflect.DeepEqual(result, expected) {
+					t.Fatalf("Incorrect tags: %v vs. %v", result, expected)
+				}
+			},
+		},
+		{
+			name: "Success: simple single tag",
+			testFunc: func(t *testing.T) {
+				expected := map[string]string{"happy": "case"}
+				result := parseTagsFromStr("happy:case")
+				if !reflect.DeepEqual(result, expected) {
+					t.Fatalf("Incorrect tags: %v vs. %v", result, expected)
+				}
+			},
+		},
+		{
+			name: "Success: simple multiple tags",
+			testFunc: func(t *testing.T) {
+				expected := map[string]string{"firstkey": "firstvalue", "secondkey": "secondvalue"}
+				result := parseTagsFromStr("firstkey:firstvalue secondkey:secondvalue")
+				if !reflect.DeepEqual(result, expected) {
+					t.Fatalf("Incorrect tags: %v vs. %v", result, expected)
+				}
+			},
+		},
+		{
+			name: "Success: complex key escaping",
+			testFunc: func(t *testing.T) {
+				expected := map[string]string{"first:key": "first value", "second key": "second:value"}
+				result := parseTagsFromStr("first\\:key:first\\ value second\\ key:second\\:value")
+				if !reflect.DeepEqual(result, expected) {
+					t.Fatalf("Incorrect tags: %v vs. %v", result, expected)
+				}
+			},
+		},
+		{
+			name: "Success: complex key escaping maintain backslash",
+			testFunc: func(t *testing.T) {
+				expected := map[string]string{"first:key": "first\\value", "second key": "second:value"}
+				result := parseTagsFromStr("first\\:key:first\\\\value second\\ key:second\\:value")
+				if !reflect.DeepEqual(result, expected) {
+					t.Fatalf("Incorrect tags: %v vs. %v", result, expected)
+				}
+			},
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, tc.testFunc)
 	}
 }
 
