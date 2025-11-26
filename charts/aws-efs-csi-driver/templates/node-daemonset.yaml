@@ -85,6 +85,8 @@ spec:
             - --max-inflight-mount-calls={{ hasKey .Values.node "maxInflightMountCalls" | ternary .Values.node.maxInflightMountCalls 10 }}
             - --volume-attach-limit-opt-in={{ hasKey .Values.node "volumeAttachLimitOptIn" | ternary .Values.node.volumeAttachLimitOptIn false }}
             - --volume-attach-limit={{ hasKey .Values.node "volumeAttachLimit" | ternary .Values.node.volumeAttachLimit 20 }}
+            - --force-unmount-after-timeout={{ hasKey .Values.node "forceUnmountAfterTimeout" | ternary .Values.node.forceUnmountAfterTimeout false }}
+            - --unmount-timeout={{ hasKey .Values.node "unmountTimeout" | ternary .Values.node.unmountTimeout "30s" }}
           env:
             - name: CSI_ENDPOINT
               value: unix:/csi/csi.sock
