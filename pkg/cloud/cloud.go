@@ -107,6 +107,7 @@ type Cloud interface {
 	ListAccessPoints(ctx context.Context, fileSystemId string) (accessPoints []*AccessPoint, err error)
 	DescribeFileSystem(ctx context.Context, fileSystemId string) (fs *FileSystem, err error)
 	DescribeMountTargets(ctx context.Context, fileSystemId, az string) (fs *MountTarget, err error)
+	DescribeMultipleMountTargets(ctx context.Context, fileSystemId, az string) (mountTargets []*MountTarget, err error)
 }
 
 type cloud struct {
@@ -414,6 +415,64 @@ func (c *cloud) DescribeMountTargets(ctx context.Context, fileSystemId, azName s
 		MountTargetId: *mountTarget.MountTargetId,
 		IPAddress:     *mountTarget.IpAddress,
 	}, nil
+}
+
+// DescribeMultipleMountTargets returns all available mount targets for multipathing support
+// This enables the driver to bind to multiple ENIs for improved throughput and resilience
+func (c *cloud) DescribeMultipleMountTargets(ctx context.Context, fileSystemId, azName string) (mountTargets []*MountTarget, err error) {
+	describeMtInput := &efs.DescribeMountTargetsInput{FileSystemId: &fileSystemId}
+	klog.V(5).Infof("Calling DescribeMultipleMountTargets with input: %+v", *describeMtInput)
+	res, err := c.efs.DescribeMountTargets(ctx, describeMtInput, func(o *efs.Options) {
+		o.Retryer = c.rm.describeMountTargetsRetryer
+	})
+	if err != nil {
+		if isAccessDenied(err) {
+			return nil, ErrAccessDenied
+		}
+		if isFileSystemNotFound(err) {
+			return nil, ErrNotFound
+		}
+		return nil, fmt.Errorf("Describe Multiple Mount Targets failed: %v", err)
+	}
+
+	mtDescriptions := res.MountTargets
+	if len(mtDescriptions) == 0 {
+		return nil, fmt.Errorf("Cannot find mount targets for file system %v. Please create mount targets for file system.", fileSystemId)
+	}
+
+	availableMountTargets := getAvailableMountTargets(mtDescriptions)
+	if len(availableMountTargets) == 0 {
+		return nil, fmt.Errorf("No mount target for file system %v is in available state. Please retry in 5 minutes.", fileSystemId)
+	}
+
+	// If AZ is specified, filter by AZ
+	if azName != "" {
+		var azMountTargets []types.MountTargetDescription
+		for _, mt := range availableMountTargets {
+			if *mt.AvailabilityZoneName == azName {
+				azMountTargets = append(azMountTargets, mt)
+			}
+		}
+		if len(azMountTargets) == 0 {
+			klog.Warningf("No mount targets found in AZ %s for file system %s, returning all available mount targets", azName, fileSystemId)
+			// Fall through to return all available mount targets
+		} else {
+			availableMountTargets = azMountTargets
+		}
+	}
+
+	// Convert to MountTarget structs
+	for _, mt := range availableMountTargets {
+		mountTargets = append(mountTargets, &MountTarget{
+			AZName:        *mt.AvailabilityZoneName,
+			AZId:          *mt.AvailabilityZoneId,
+			MountTargetId: *mt.MountTargetId,
+			IPAddress:     *mt.IpAddress,
+		})
+	}
+
+	klog.V(4).Infof("DescribeMultipleMountTargets returned %d mount targets for file system %s", len(mountTargets), fileSystemId)
+	return mountTargets, nil
 }
 
 func isFileSystemNotFound(err error) bool {

@@ -66,6 +66,9 @@ const (
 	PvcNameKey            = "csi.storage.k8s.io/pvc/name"
 	CrossAccount          = "crossaccount"
 	ApLockWaitTimeSec     = 3
+	Multipathing          = "multipathing"
+	MaxMultipathTargets   = "maxMultipathTargets"
+	DefaultMaxMultipathTargets = 4
 )
 
 var (
@@ -379,6 +382,27 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 
 	volContext := map[string]string{}
 
+	// Check if multipathing is enabled
+	multipathingEnabled := false
+	maxMultipathTargets := 0
+	if multipathingStr, ok := volumeParams[Multipathing]; ok {
+		var err error
+		multipathingEnabled, err = strconv.ParseBool(multipathingStr)
+		if err != nil {
+			klog.Warningf("Invalid multipathing parameter: %v", err)
+			multipathingEnabled = false
+		}
+	}
+
+	if multipathingStr, ok := volumeParams[MaxMultipathTargets]; ok {
+		var err error
+		maxMultipathTargets, err = strconv.Atoi(multipathingStr)
+		if err != nil {
+			klog.Warningf("Invalid maxMultipathTargets parameter: %v, using default", err)
+			maxMultipathTargets = 0
+		}
+	}
+
 	// Enable cross-account dns resolution or fetch mount target Ip for cross-account mount
 	if roleArn != "" {
 		if crossAccountDNSEnabled {
@@ -388,13 +412,51 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 			// not be used as a mount option in this case.
 			volContext[CrossAccount] = strconv.FormatBool(true)
 		} else {
-			mountTarget, err := localCloud.DescribeMountTargets(ctx, accessPointsOptions.FileSystemId, azName)
-			if err != nil {
-				klog.Warningf("Failed to describe mount targets for file system %v. Skip using `mounttargetip` mount option: %v", accessPointsOptions.FileSystemId, err)
-			} else {
-				volContext[MountTargetIp] = mountTarget.IPAddress
-			}
+			// Check if multipathing is enabled for non-cross-account mounts
+			if multipathingEnabled {
+				mountTargets, err := localCloud.DescribeMultipleMountTargets(ctx, accessPointsOptions.FileSystemId, azName)
+				if err != nil {
+					klog.Warningf("Failed to describe multiple mount targets for file system %v. Falling back to single mount target: %v", accessPointsOptions.FileSystemId, err)
+					mountTarget, err := localCloud.DescribeMountTargets(ctx, accessPointsOptions.FileSystemId, azName)
+					if err == nil {
+						volContext[MountTargetIp] = mountTarget.IPAddress
+					}
+				} else if len(mountTargets) > 0 {
+					// Store multipath information in volume context
+					// The node driver will use this to set up multipathing
+					var ips []string
+					for _, mt := range mountTargets {
+						ips = append(ips, mt.IPAddress)
+						klog.V(4).Infof("Adding mount target %s (AZ: %s) to multipath list", mt.IPAddress, mt.AZName)
+					}
 
+					// Limit the number of paths if requested
+					if maxMultipathTargets > 0 && len(ips) > maxMultipathTargets {
+						ips = ips[:maxMultipathTargets]
+						klog.V(4).Infof("Limited multipath targets to %d", maxMultipathTargets)
+					}
+
+					if len(ips) > 0 {
+						volContext[MountTargetIp] = ips[0]
+						// Store additional IPs for multipathing
+						for i, ip := range ips {
+							if i > 0 {
+								volContext[fmt.Sprintf("mounttargetip_%d", i)] = ip
+							}
+						}
+						volContext[Multipathing] = strconv.FormatBool(true)
+						klog.V(4).Infof("Enabled multipathing with %d mount targets", len(ips))
+					}
+				}
+			} else {
+				// Single mount target mode (default)
+				mountTarget, err := localCloud.DescribeMountTargets(ctx, accessPointsOptions.FileSystemId, azName)
+				if err != nil {
+					klog.Warningf("Failed to describe mount targets for file system %v. Skip using `mounttargetip` mount option: %v", accessPointsOptions.FileSystemId, err)
+				} else {
+					volContext[MountTargetIp] = mountTarget.IPAddress
+				}
+			}
 		}
 	}
 

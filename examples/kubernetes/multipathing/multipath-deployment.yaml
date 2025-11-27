@@ -1,0 +1,197 @@
+---
+# Example: EFS CSI Driver with Multipathing
+# This example demonstrates how to enable multipathing across multiple ENIs
+# on a host with multiple network interfaces for improved throughput and resilience.
+#
+# Prerequisites:
+# 1. EFS file system with multiple mount targets (one per AZ)
+# 2. EC2 instances with multiple ENIs attached (in potentially different subnets)
+# 3. VPC configured with multiple subnets across availability zones
+#
+# Benefits:
+# - Increased I/O throughput by distributing traffic across multiple NICs
+# - Better resilience through session trunking (RFC 5661)
+# - Automatic failover between network paths
+
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: efs-sc-multipath
+provisioner: efs.csi.aws.com
+parameters:
+  # Enable multipathing for this storage class
+  multipathing: "true"
+  
+  # Limit the number of mount targets to use for multipathing (optional)
+  # Defaults to all available mount targets
+  maxMultipathTargets: "2"
+  
+  # Provisioning mode: dynamic access point creation
+  provisioningMode: "efs-ap"
+  
+  # Specify the EFS file system ID
+  fileSystemId: "fs-1234567890abcdef0"
+  
+  # TLS encryption in transit (recommended with multipathing)
+  encrypted: "true"
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: efs-claim-multipath
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: efs-sc-multipath
+  resources:
+    requests:
+      storage: 10Gi
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: test-pod-multipath
+spec:
+  containers:
+    - name: test
+      image: busybox:latest
+      command: ["sh", "-c", "while true; do sleep 30; done"]
+      volumeMounts:
+        - name: efs-storage
+          mountPath: /data
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+  volumes:
+    - name: efs-storage
+      persistentVolumeClaim:
+        claimName: efs-claim-multipath
+  # Node affinity can be used to ensure the pod runs on 
+  # instances with multiple ENIs
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: node.kubernetes.io/instance-type
+                operator: In
+                values:
+                  - c5.2xlarge
+                  - c5.4xlarge
+                  - c6i.2xlarge
+                  - m5.2xlarge
+                  - r5.2xlarge
+                  # Add other instance types with multiple NICs
+
+---
+# Example 2: Deployment with multipathing enabled
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: data-processor-multipath
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: data-processor
+  template:
+    metadata:
+      labels:
+        app: data-processor
+    spec:
+      containers:
+        - name: processor
+          image: myapp:latest
+          volumeMounts:
+            - name: efs-data
+              mountPath: /shared-data
+          env:
+            - name: PARALLEL_WORKERS
+              value: "4"
+          resources:
+            requests:
+              cpu: 1
+              memory: 2Gi
+            limits:
+              cpu: 2
+              memory: 4Gi
+      volumes:
+        - name: efs-data
+          persistentVolumeClaim:
+            claimName: efs-claim-multipath
+      # Ensure pods run on instances with sufficient network bandwidth
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: karpenter.sh/capacity-type
+                    operator: In
+                    values:
+                      - on-demand
+                  - key: node.kubernetes.io/instance-type
+                    operator: In
+                    values:
+                      - c6i.4xlarge
+                      - m5.4xlarge
+
+---
+# Example 3: StatefulSet with multipathing for stateful workloads
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: db-app-multipath
+spec:
+  serviceName: db-app
+  replicas: 3
+  selector:
+    matchLabels:
+      app: db-app
+  template:
+    metadata:
+      labels:
+        app: db-app
+    spec:
+      containers:
+        - name: database
+          image: postgres:14
+          ports:
+            - containerPort: 5432
+          volumeMounts:
+            - name: db-storage
+              mountPath: /var/lib/postgresql
+          env:
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: password
+          resources:
+            requests:
+              cpu: 2
+              memory: 4Gi
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - db-app
+                topologyKey: kubernetes.io/hostname
+  volumeClaimTemplates:
+    - metadata:
+        name: db-storage
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        storageClassName: efs-sc-multipath
+        resources:
+          requests:
+            storage: 50Gi

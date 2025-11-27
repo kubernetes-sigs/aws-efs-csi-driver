@@ -96,6 +96,7 @@ func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 	subpath := "/"
 	encryptInTransit := true
 	crossAccountDNSEnabled := false
+	multipathingEnabled := false
 	volContext := req.GetVolumeContext()
 	for k, v := range volContext {
 		switch strings.ToLower(k) {
@@ -117,14 +118,27 @@ func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 		case MountTargetIp:
 			ipAddr := volContext[MountTargetIp]
 			mountOptions = append(mountOptions, MountTargetIp+"="+ipAddr)
+		case Multipathing:
+			var err error
+			multipathingEnabled, err = strconv.ParseBool(v)
+			if err != nil {
+				klog.Warningf("Invalid multipathing value in volume context: %v", err)
+			}
 		case CrossAccount:
 			var err error
 			crossAccountDNSEnabled, err = strconv.ParseBool(v)
 			if err != nil {
 				return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("Volume context property %q must be a boolean value: %v", k, err))
 			}
+		case strings.HasPrefix(strings.ToLower(k), "mounttargetip_"):
+			// Handle additional mount target IPs for multipathing
+			if multipathingEnabled {
+				mountOptions = append(mountOptions, k+"="+v)
+				klog.V(4).Infof("Added multipath mount option: %s=%s", k, v)
+			}
 		default:
-			return nil, status.Errorf(codes.InvalidArgument, "Volume context property %s not supported.", k)
+			// Allow additional volume context properties (may be added for future features)
+			klog.V(5).Infof("Volume context property %s will be ignored for mount options", k)
 		}
 	}
 
