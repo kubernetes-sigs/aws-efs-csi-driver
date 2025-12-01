@@ -1,28 +1,53 @@
 name: Release
 on:
-  push:
-    # Sequence of patterns matched against refs/tags
-    tags:
-      - "v*" # Push events to matching v*, i.e. v1.0, v20.15.10
+  pull_request:
+    types: [closed]
 
 permissions:
   contents: write # Create releases
 
 jobs:
-  build:
+  release:
+    # will only be triggered if PR title begins with [POST-RELEASE v*.*.*]
     name: Release
     runs-on: ubuntu-latest
+    if: |
+      github.event.pull_request.merged == true && 
+      startsWith(github.event.pull_request.title, '[POST-RELEASE')
     steps:
       - name: Checkout code
-        uses: actions/checkout@v1
+        uses: actions/checkout@v4
+        
+      - name: Extract version and create tag
+        id: tag-version
+        run: |
+          PR_TITLE="${{ github.event.pull_request.title }}"
+          VERSION=$(echo "$PR_TITLE" | grep -oE '^\[POST-RELEASE v[0-9]+\.[0-9]+\.[0-9]+\]' | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+')
+          
+          if [ -z "$VERSION" ]; then
+            echo "Error: PR title must start with [POST-RELEASE vx.x.x]"
+            exit 1
+          fi
+          
+          echo "Extracted VERSION: $VERSION"
+          
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          
+          git config user.name "$GITHUB_ACTOR"
+          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
+          git tag $VERSION
+          git push origin $VERSION
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          
       - name: Create Release
         id: create-release
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ github.ref }}
-          release_name: ${{ github.ref }}
+          tag_name: ${{ steps.tag-version.outputs.version }}
+          release_name: ${{ steps.tag-version.outputs.version }}
           body: |
             AWS EFS CSI Driver
 
