@@ -152,6 +152,50 @@ func (d *Driver) Run() error {
 	return d.srv.Serve(listener)
 }
 
+func splitToList(tagsStr string, splitter byte) []string {
+	defer func() {
+		if r := recover(); r != nil {
+			klog.Errorf("Failed to parse input string: %v", tagsStr)
+		}
+	}()
+
+	l := []string{}
+	if tagsStr == "" {
+		klog.Infof("Did not find any input tags.")
+		return l
+	}
+	var tagBuilder strings.Builder
+	var jumper int = 0
+	for index, runeValue := range tagsStr {
+		if jumper > index {
+			continue
+		}
+		jumper++
+		if byte(runeValue) == splitter {
+			l = append(l, tagBuilder.String())
+			tagBuilder.Reset()
+			continue
+		}
+
+		// Handle escape character
+		if runeValue == '\\' && tagsStr[index+1] == byte('\\') {
+			tagBuilder.WriteRune('\\')
+			jumper++
+			continue
+		}
+
+		if runeValue == '\\' && tagsStr[index+1] == splitter {
+			tagBuilder.WriteByte(splitter)
+			jumper++
+			continue
+		}
+
+		tagBuilder.WriteRune(runeValue)
+	}
+	l = append(l, tagBuilder.String())
+	return l
+}
+
 func parseTagsFromStr(tagStr string) map[string]string {
 	defer func() {
 		if r := recover(); r != nil {
@@ -159,37 +203,22 @@ func parseTagsFromStr(tagStr string) map[string]string {
 		}
 	}()
 
-	m := make(map[string]string)
+	m := map[string]string{}
 	if tagStr == "" {
 		klog.Infof("Did not find any input tags.")
 		return m
 	}
-	tagsSplit := strings.Split(tagStr, " ")
+	tagsSplit := splitToList(tagStr, byte(' '))
 	for _, currTag := range tagsSplit {
-		var nameBuilder strings.Builder
-		var valBuilder strings.Builder
-		var currBuilder *strings.Builder = &nameBuilder
-
-		for i := 0; i < len(currTag); i++ {
-			if currTag[i] == ':' {
-				if currBuilder == &valBuilder {
-					break
-				} else {
-					currBuilder = &valBuilder
-					continue
-				}
-			}
-
-			// Handle escape character
-			if currTag[i] == byte('\\') && currTag[i+1] == byte(':') {
-				currBuilder.WriteRune(':')
-				i++ // Skip an extra character
-				continue
-			}
-
-			currBuilder.WriteByte(currTag[i])
+		var tagList = splitToList(currTag, byte(':'))
+		switch len(tagList) {
+		case 1:
+			m[tagList[0]] = ""
+		case 2:
+			m[tagList[0]] = tagList[1]
+		default:
+			klog.Errorf("Failed to parse input tag: %v", tagList)
 		}
-		m[nameBuilder.String()] = valBuilder.String()
 	}
 	return m
 }
