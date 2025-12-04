@@ -70,8 +70,10 @@ spec:
       {{- end }}
       containers:
         - name: efs-plugin
+          {{- with .Values.node.containerSecurityContext }}
           securityContext:
-            privileged: true
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           image: {{ printf "%s:%s" .Values.image.repository (default (printf "v%s" .Chart.AppVersion) (toString .Values.image.tag)) }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           args:
