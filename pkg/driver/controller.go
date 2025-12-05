@@ -484,6 +484,7 @@ func (d *Driver) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeRequest)
 			}
 			if err == cloud.ErrNotFound {
 				klog.V(5).Infof("DeleteVolume: Access Point %v not found, returning success", accessPointId)
+				deleteCompleted = true
 				return &csi.DeleteVolumeResponse{}, nil
 			}
 			return nil, status.Errorf(codes.Internal, "Could not get describe Access Point: %v , error: %v", accessPointId, err)
@@ -521,14 +522,11 @@ func (d *Driver) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeRequest)
 			}
 		}
 
-		// Before removing, ensure the removal path exists and is a directory
-		apRootPath := fsRoot + accessPoint.AccessPointRootDir
-		if pathInfo, err := d.mounter.Stat(apRootPath); err == nil && !os.IsNotExist(err) && pathInfo.IsDir() {
-			err = os.RemoveAll(apRootPath)
-		}
+		deleteCompleted, err = d.removeAccessPointRootDir(fsRoot + accessPoint.AccessPointRootDir)
 		if err != nil {
-			return nil, status.Errorf(codes.Internal, "Could not delete access point root directory %q: %v", accessPoint.AccessPointRootDir, err)
+			return nil, err
 		}
+
 		err = d.mounter.Unmount(fsRoot)
 		if err != nil {
 			return nil, status.Errorf(codes.Internal, "Could not unmount %q: %v", fsRoot, err)
@@ -555,6 +553,34 @@ func (d *Driver) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeRequest)
 	}
 
 	return &csi.DeleteVolumeResponse{}, nil
+}
+
+func (d *Driver) removeAccessPointRootDir(path string) (bool, error) {
+	// Before removing, ensure the removal path exists and is a directory
+	pathInfo, err := d.mounter.Stat(path)
+	if pathInfo != nil {
+		// Only remove directory if stat call successful and path is indeed a directory
+		if pathInfo.IsDir() {
+			err = os.RemoveAll(path)
+			if err != nil {
+				return false, status.Errorf(codes.Internal, "Could not delete access point root directory %q: %v", path, err)
+			}
+			return true, nil
+		}
+
+		// Not a directory, ignore
+		return true, nil
+	}
+
+	if err != nil {
+		// Does not exist ignore
+		if os.IsNotExist(err) {
+			return true, nil
+		}
+	}
+
+	// Legitimate error
+	return false, status.Errorf(codes.Internal, "Cannot read access point root directory %q information: %v", path, err)
 }
 
 func (d *Driver) ControllerPublishVolume(ctx context.Context, req *csi.ControllerPublishVolumeRequest) (*csi.ControllerPublishVolumeResponse, error) {
