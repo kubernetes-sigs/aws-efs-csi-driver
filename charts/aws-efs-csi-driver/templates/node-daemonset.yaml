@@ -10,6 +10,9 @@ metadata:
     {{ toYaml . | nindent 4 }}
     {{- end }}
 spec:
+  {{- if or (kindIs "float64" .Values.node.revisionHistoryLimit) (kindIs "int64" .Values.node.revisionHistoryLimit) }}
+  revisionHistoryLimit: {{ .Values.node.revisionHistoryLimit }}
+  {{- end }}
   selector:
     matchLabels:
       app: efs-csi-node
