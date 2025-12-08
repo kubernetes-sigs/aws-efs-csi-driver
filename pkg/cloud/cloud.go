@@ -51,7 +51,8 @@ var (
 )
 
 type FileSystem struct {
-	FileSystemId string
+	FileSystemId         string
+	AvailabilityZoneName string
 }
 
 type AccessPoint struct {
@@ -370,8 +371,16 @@ func (c *cloud) DescribeFileSystem(ctx context.Context, fileSystemId string) (fs
 	if len(fileSystems) == 0 || len(fileSystems) > 1 {
 		return nil, fmt.Errorf("DescribeFileSystem failed. Expected exactly 1 file system in DescribeFileSystem result. However, recevied %d file systems", len(fileSystems))
 	}
+
+	// handle nil AvailabilityZoneName for regional efs fs
+	var availabilityZoneName string
+	if res.FileSystems[0].AvailabilityZoneName != nil {
+		availabilityZoneName = *res.FileSystems[0].AvailabilityZoneName
+	}
+
 	return &FileSystem{
-		FileSystemId: *res.FileSystems[0].FileSystemId,
+		FileSystemId:         *res.FileSystems[0].FileSystemId,
+		AvailabilityZoneName: availabilityZoneName,
 	}, nil
 }
 
