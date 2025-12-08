@@ -47,6 +47,7 @@ const (
 	DefaultTagValue       = "true"
 	DirectoryPerms        = "directoryPerms"
 	EnsureUniqueDirectory = "ensureUniqueDirectory"
+	ExternalId            = "externalId"
 	FsId                  = "fileSystemId"
 	FileSystemIdConfigRef = "fileSystemIdConfigRef"
 	FileSystemIdSecretRef = "fileSystemIdSecretRef"
@@ -643,6 +644,7 @@ func getCloud(secrets map[string]string, driver *Driver) (cloud.Cloud, string, b
 
 	var localCloud cloud.Cloud
 	var roleArn string
+	var externalId string
 	var crossAccountDNSEnabled bool
 	var err error
 
@@ -651,6 +653,10 @@ func getCloud(secrets map[string]string, driver *Driver) (cloud.Cloud, string, b
 	if value, ok := secrets[RoleArn]; ok {
 		roleArn = value
 	}
+	if value, ok := secrets[ExternalId]; ok {
+		externalId = value
+	}
+
 	if value, ok := secrets[CrossAccount]; ok {
 		crossAccountDNSEnabled, err = strconv.ParseBool(value)
 		if err != nil {
@@ -661,7 +667,7 @@ func getCloud(secrets map[string]string, driver *Driver) (cloud.Cloud, string, b
 	}
 
 	if roleArn != "" {
-		localCloud, err = cloud.NewCloudWithRole(roleArn, driver.adaptiveRetryMode)
+		localCloud, err = cloud.NewCloudWithRole(roleArn, externalId, driver.adaptiveRetryMode)
 		if err != nil {
 			return nil, "", false, status.Errorf(codes.Unauthenticated, "Unable to initialize aws cloud: %v. Please verify role has the correct AWS permissions for cross account mount", err)
 		}
