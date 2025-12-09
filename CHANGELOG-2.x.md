@@ -1,3 +1,11 @@
+# V2.2.0
+* Add revisionHistoryLimit support in charts ([#1760](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1760), [@DavidXU12345](https://github.com/DavidXU12345))
+* Upgrade sidecar to fix CVEs ([#1758](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1758), [@DavidXU12345](https://github.com/DavidXU12345))
+* Add force-unmount-after-timeout configuration to the helm chart ([#1751](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1751), [@brainfair](https://github.com/brainfair))
+* Add opt-in parameter to disable node mutation permissions ([#1739](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1739), [@dankova22](https://github.com/dankova22))
+* feat: Add ability to configure emptyDir params (sizeLimit, medium) ([#1727](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1727), [@mkilchhofer](https://github.com/mkilchhofer))
+* Support whitespace in tag keys and values ([#1716](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1716), [@slackfan](https://github.com/slackfan))
+* feat: added support for externalId in cross-account EFS configuration ([#1690](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1690), [@andylim0221](https://github.com/andylim0221))
 # V2.1.15
 * Golang upgrade ([#1738](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1738), [@DavidXU12345](https://github.com/DavidXU12345))
 * Update efs-utils conf for eu regions DNS ([#1737](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1737), [@dankova22](https://github.com/dankova22))
@@ -28,7 +36,7 @@
 * CVE-2025-22869: bump golang.org/x/crypto to v0.35.0 ([#1611](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1611)), [@kunalmemane](https://github.com/kunalmemane)
 # V2.1.8
 * Remove unused workflow that publishes images to dockerhub ([#1621](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1621), [@jrakas-dev](https://github.com/jrakas-dev))
-*  Return existing access point if one already exists during create workflow ([#1620](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1620), [@jrakas-dev](https://github.com/jrakas-dev))
+* Return existing access point if one already exists during create workflow ([#1620](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1620), [@jrakas-dev](https://github.com/jrakas-dev))
 * Clean install openssl and standardize eks distro ([#1619](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1619), [@dankova22](https://github.com/dankova22))
 * Fix centos image in pod config examples ([#1611](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1611), [@thakurmi](https://github.com/thakurmi))
 # V2.1.7
