@@ -36,6 +36,7 @@ jobs:
         uses: rickstaa/action-create-tag@v1
         with:
           tag: ${{ steps.extract-version.outputs.version }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
           
       - name: Create Release
         id: create-release
