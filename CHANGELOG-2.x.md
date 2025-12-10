@@ -1,4 +1,5 @@
 # V2.2.0
+* Upgrade golang to 1.25.5 to fix high CVE ([#1763](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1763), [@DavidXU12345](https://github.com/DavidXU12345)) 
 * Add revisionHistoryLimit support in charts ([#1760](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1760), [@DavidXU12345](https://github.com/DavidXU12345))
 * Upgrade sidecar to fix CVEs ([#1758](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1758), [@DavidXU12345](https://github.com/DavidXU12345))
 * Add force-unmount-after-timeout configuration to the helm chart ([#1751](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1751), [@brainfair](https://github.com/brainfair))
