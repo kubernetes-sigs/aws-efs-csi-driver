@@ -350,9 +350,15 @@ func (d *Driver) NodeGetInfo(ctx context.Context, req *csi.NodeGetInfoRequest) (
 	maxVolumesPerNode := d.volumeAttachLimit
 	klog.V(4).Infof("NodeGetInfo: maxVolumesPerNode=%d", maxVolumesPerNode)
 
+	availabilityZone := d.cloud.GetMetadata().GetAvailabilityZone()
+	klog.V(4).Infof("NodeGetInfo: availabilityZone=%s", availabilityZone)
+
+	topology := util.BuildTopology(availabilityZone)
+
 	return &csi.NodeGetInfoResponse{
-		NodeId:            d.nodeID,
-		MaxVolumesPerNode: maxVolumesPerNode,
+		NodeId:             d.nodeID,
+		MaxVolumesPerNode:  maxVolumesPerNode,
+		AccessibleTopology: topology,
 	}, nil
 }
 

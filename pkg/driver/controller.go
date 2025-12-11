@@ -67,6 +67,7 @@ const (
 	PvcNameKey            = "csi.storage.k8s.io/pvc/name"
 	CrossAccount          = "crossaccount"
 	ApLockWaitTimeSec     = 3
+	EnableZoneConstraints = "enableZoneConstraints"
 )
 
 var (
@@ -399,11 +400,34 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 		}
 	}
 
+	// Build topology constraints for One Zone EFS filesystems when enableZoneConstraints is set
+	var topology []*csi.Topology
+	var fsInfo *cloud.FileSystem
+
+	if enableZoneConstraints, ok := volumeParams[EnableZoneConstraints]; ok && enableZoneConstraints == "true" {
+		fsInfo, err = localCloud.DescribeFileSystem(ctx, accessPointsOptions.FileSystemId)
+		if err != nil {
+			klog.Errorf("Failed to describe file system %v: %v", accessPointsOptions.FileSystemId, err)
+			if err == cloud.ErrAccessDenied {
+				return nil, status.Errorf(codes.Unauthenticated, "Access Denied. Please ensure you have the right AWS permissions: %v", err)
+			}
+			if err == cloud.ErrNotFound {
+				return nil, status.Errorf(codes.InvalidArgument, "File System does not exist: %v", err)
+			}
+			return nil, status.Errorf(codes.Internal, "Failed to fetch Access Points or Describe File System: %v", err)
+		}
+		top := util.BuildTopology(fsInfo.AvailabilityZoneName)
+		if top != nil {
+			topology = []*csi.Topology{top}
+		}
+	}
+
 	return &csi.CreateVolumeResponse{
 		Volume: &csi.Volume{
-			CapacityBytes: volSize,
-			VolumeId:      accessPointsOptions.FileSystemId + "::" + accessPoint.AccessPointId,
-			VolumeContext: volContext,
+			CapacityBytes:      volSize,
+			VolumeId:           accessPointsOptions.FileSystemId + "::" + accessPoint.AccessPointId,
+			VolumeContext:      volContext,
+			AccessibleTopology: topology,
 		},
 	}, nil
 }
