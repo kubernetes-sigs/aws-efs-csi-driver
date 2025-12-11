@@ -33,7 +33,7 @@ For detailed parameter explanations, see the [parameters documentation](paramete
 ### ECR Image
 | Driver Version | [ECR](https://gallery.ecr.aws/efs-csi-driver/amazon/aws-efs-csi-driver) Image |
 |----------------|-------------------------------------------------------------------------------|
-| v2.1.15        | public.ecr.aws/efs-csi-driver/amazon/aws-efs-csi-driver:v2.1.15               |
+| v2.2.0         | public.ecr.aws/efs-csi-driver/amazon/aws-efs-csi-driver:v2.2.0                |
 
 **Note**  
 You can find previous efs-csi-driver versions' images from [here](https://gallery.ecr.aws/efs-csi-driver/amazon/aws-efs-csi-driver)
