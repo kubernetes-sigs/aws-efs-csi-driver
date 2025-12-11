@@ -1,7 +1,10 @@
 name: Release
 on:
-  pull_request:
-    types: [closed]
+  pull_request_target:
+    types: 
+      - closed
+    branches:
+      - release-*
 
 permissions:
   contents: write # Create releases
@@ -11,6 +14,7 @@ jobs:
     # will only be triggered if PR title begins with [POST-RELEASE v*.*.*]
     name: Release
     runs-on: ubuntu-latest
+    permissions: write-all
     if: |
       github.event.pull_request.merged == true && 
       startsWith(github.event.pull_request.title, '[POST-RELEASE')
@@ -18,8 +22,8 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         
-      - name: Extract version and create tag
-        id: tag-version
+      - name: Extract version
+        id: extract-version
         run: |
           PR_TITLE="${{ github.event.pull_request.title }}"
           VERSION=$(echo "$PR_TITLE" | grep -oE '^\[POST-RELEASE v[0-9]+\.[0-9]+\.[0-9]+\]' | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+')
@@ -30,28 +34,17 @@ jobs:
           fi
           
           echo "Extracted VERSION: $VERSION"
-          
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           
-          git config user.name "$GITHUB_ACTOR"
-          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
-          git tag $VERSION
-          git push origin $VERSION
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          
       - name: Create Release
-        id: create-release
-        uses: actions/create-release@v1
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ steps.tag-version.outputs.version }}
-          release_name: ${{ steps.tag-version.outputs.version }}
-          body: |
-            AWS EFS CSI Driver
-
-            ## CHANGELOG
-            See [CHANGELOG](https://github.com/kubernetes-sigs/aws-efs-csi-driver/blob/master/CHANGELOG-2.x.md) for full list of changes
-          draft: false
-          prerelease: false
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          tag="${{ steps.extract-version.outputs.version }}"
+          
+          gh release create "$tag" --title "$tag" --notes-file - <<EOF
+          AWS EFS CSI Driver
+          
+          ## CHANGELOG
+          See [CHANGELOG](https://github.com/kubernetes-sigs/aws-efs-csi-driver/blob/master/CHANGELOG-2.x.md) for full list of changes
+          EOF
