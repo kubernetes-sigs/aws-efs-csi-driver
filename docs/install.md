@@ -178,19 +178,25 @@ Starting with version 2.X.X, the EFS CSI driver incorporates efs-utils v2.X.X, w
 ### Upgrade to the latest version:
 If you want to update to latest released version:
 ```sh
-kubectl apply -k "github.com/kubernetes-sigs/aws-efs-csi-driver/deploy/kubernetes/overlays/stable/?ref=release-2.0"
+kubectl apply -k "github.com/kubernetes-sigs/aws-efs-csi-driver/deploy/kubernetes/overlays/stable/?ref=release-2.2"
 ```
 
 ### Upgrade to a specific version:
 If you want to update to a specific version, first customize the driver yaml file locally:
 ```sh
-kubectl kustomize "github.com/kubernetes-sigs/aws-efs-csi-driver/deploy/kubernetes/overlays/stable/?ref=release-2.0" > driver.yaml
+kubectl kustomize "github.com/kubernetes-sigs/aws-efs-csi-driver/deploy/kubernetes/overlays/stable/?ref=release-2.2" > driver.yaml
 ```
 
 Then, update all lines referencing `image: amazon/aws-efs-csi-driver` to the desired version (e.g., to `image: amazon/aws-efs-csi-driver:v2.2.0`) in the yaml file, and deploy driver yaml again:
 ```sh
 kubectl apply -f driver.yaml
 ```
+
+Or after `v2.2.0`, we support to deploy using specific version tag:
+```sh
+kubectl apply -k github.com/kubernetes-sigs/aws-efs-csi-driver/deploy/kubernetes/overlays/stable?ref=v2.2.0
+```
+
 -----
 # Uninstalling the Amazon EFS CSI Driver
 
