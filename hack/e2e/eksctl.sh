@@ -45,6 +45,8 @@ function eksctl_create_cluster() {
       eksctl_patch_cluster_file "$CLUSTER_FILE" "$EKSCTL_PATCH_FILE"
     fi
 
+    loudecho "Final cluster configuration:"
+    cat "$CLUSTER_FILE"
     loudecho "Creating cluster $CLUSTER_NAME with $CLUSTER_FILE"
     ${BIN} create cluster -f "${CLUSTER_FILE}" --kubeconfig "${KUBECONFIG}"
   fi
