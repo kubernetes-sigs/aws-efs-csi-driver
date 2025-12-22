@@ -1,0 +1,65 @@
+name: Slack Notifications
+
+on:
+  issues:
+    types: [opened, reopened, edited]
+  issue_comment:
+    types: [created, edited]
+  pull_request_target:
+    types: [opened, reopened, synchronize]
+
+permissions:
+  contents: read
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send issue notification to Slack
+        if: github.event_name == 'issues'
+        uses: slackapi/slack-github-action@v2.1.1
+        with:
+          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+          webhook-type: incoming-webhook
+          payload: |
+            {
+              "type": "issue_update",
+              "action": "${{ github.event.action }}",
+              "number": ${{ github.event.issue.number }},
+              "title": "${{ github.event.issue.title }}",
+              "url": "${{ github.event.issue.html_url }}",
+              "user": "${{ github.event.issue.user.login }}"
+            }
+
+      - name: Send pull request notification to Slack
+        if: github.event_name == 'pull_request_target'
+        uses: slackapi/slack-github-action@v2.1.1
+        with:
+          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+          webhook-type: incoming-webhook
+          payload: |
+            {
+              "type": "pr_update",
+              "action": "${{ github.event.action }}",
+              "number": ${{ github.event.pull_request.number }},
+              "title": "${{ github.event.pull_request.title }}",
+              "url": "${{ github.event.pull_request.html_url }}",
+              "user": "${{ github.event.pull_request.user.login }}"
+            }
+
+      - name: Send issue comments notification to Slack
+        if: github.event_name == 'issue_comment' && !github.event.issue.pull_request 
+        uses: slackapi/slack-github-action@v2.1.1
+        with:
+          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+          webhook-type: incoming-webhook
+          payload: |
+            {
+              "type": "issue_comment",
+              "action": "${{ github.event.action }}",
+              "number": ${{ github.event.issue.number }},
+              "title": "${{ github.event.issue.title }}",
+              "url": "${{ github.event.comment.html_url }}",
+              "body": "${{ github.event.comment.body }}",
+              "user": "${{ github.event.comment.user.login }}"
+            }
