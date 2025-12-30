@@ -97,7 +97,7 @@ spec:
             periodSeconds: 2
             failureThreshold: 5
         - name: csi-driver-registrar
-          image: public.ecr.aws/csi-components/csi-node-driver-registrar:v2.15.0-eksbuild.2
+          image: public.ecr.aws/csi-components/csi-node-driver-registrar:v2.15.0-eksbuild.3
           imagePullPolicy: IfNotPresent
           args:
             - --csi-address=$(ADDRESS)
@@ -121,7 +121,7 @@ spec:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
         - name: liveness-probe
-          image: public.ecr.aws/csi-components/livenessprobe:v2.17.0-eksbuild.2
+          image: public.ecr.aws/csi-components/livenessprobe:v2.17.0-eksbuild.3
           imagePullPolicy: IfNotPresent
           args:
             - --csi-address=/csi/csi.sock
