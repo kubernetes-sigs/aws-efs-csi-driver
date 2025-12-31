@@ -67,6 +67,7 @@ const (
 	PvcNameKey            = "csi.storage.k8s.io/pvc/name"
 	CrossAccount          = "crossaccount"
 	ApLockWaitTimeSec     = 3
+	EnforceZoneAffinity   = "enforceZoneAffinity"
 )
 
 var (
@@ -104,6 +105,15 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 			klog.V(5).Infof("Client token : %s", clientToken)
 		}
 	}
+
+	var enforceZoneAffinity bool
+	if enforceZoneAffinityStr, ok := volumeParams[EnforceZoneAffinity]; ok {
+		enforceZoneAffinity, err = strconv.ParseBool(enforceZoneAffinityStr)
+		if err != nil {
+			return nil, status.Error(codes.InvalidArgument, "Invalid value for enforceZoneAffinity parameter")
+		}
+	}
+
 	if volName == "" {
 		return nil, status.Error(codes.InvalidArgument, "Volume name not provided")
 	}
@@ -399,11 +409,34 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 		}
 	}
 
+	// Build topology constraints for One Zone EFS filesystems when enforceZoneAffinity is set
+	var topology []*csi.Topology
+	var fsInfo *cloud.FileSystem
+
+	if enforceZoneAffinity {
+		fsInfo, err = localCloud.DescribeFileSystem(ctx, accessPointsOptions.FileSystemId)
+		if err != nil {
+			klog.Errorf("Failed to describe file system %v: %v", accessPointsOptions.FileSystemId, err)
+			if err == cloud.ErrAccessDenied {
+				return nil, status.Errorf(codes.Unauthenticated, "Access Denied. Please ensure you have the right AWS permissions: %v", err)
+			}
+			if err == cloud.ErrNotFound {
+				return nil, status.Errorf(codes.InvalidArgument, "File System does not exist: %v", err)
+			}
+			return nil, status.Errorf(codes.Internal, "Failed to describe file system for one zone AZ discovery: %v", err)
+		}
+		top := util.BuildTopology(fsInfo.AvailabilityZoneName)
+		if top != nil {
+			topology = []*csi.Topology{top}
+		}
+	}
+
 	return &csi.CreateVolumeResponse{
 		Volume: &csi.Volume{
-			CapacityBytes: volSize,
-			VolumeId:      accessPointsOptions.FileSystemId + "::" + accessPoint.AccessPointId,
-			VolumeContext: volContext,
+			CapacityBytes:      volSize,
+			VolumeId:           accessPointsOptions.FileSystemId + "::" + accessPoint.AccessPointId,
+			VolumeContext:      volContext,
+			AccessibleTopology: topology,
 		},
 	}, nil
 }

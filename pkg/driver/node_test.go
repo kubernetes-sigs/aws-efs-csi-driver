@@ -910,15 +910,26 @@ func TestNodeGetVolumeStats(t *testing.T) {
 	os.RemoveAll(validPath)
 }
 
+type mockMetadata struct {
+	availabilityZone string
+}
+
+func (m *mockMetadata) GetInstanceID() string       { return "test-instance-id" }
+func (m *mockMetadata) GetRegion() string           { return "us-east-1" }
+func (m *mockMetadata) GetAvailabilityZone() string { return m.availabilityZone }
+
 func TestNodeGetInfo(t *testing.T) {
 	testCases := []struct {
 		name              string
 		volumeAttachLimit int64
+		availabilityZone  string
+		needsCloudMock    bool
 		expectedResponse  *csi.NodeGetInfoResponse
 	}{
 		{
 			name:              "returns nodeID and volumeAttachLimit",
 			volumeAttachLimit: 100,
+			availabilityZone:  "",
 			expectedResponse: &csi.NodeGetInfoResponse{
 				NodeId:            "test-node-id",
 				MaxVolumesPerNode: 100,
@@ -927,9 +938,38 @@ func TestNodeGetInfo(t *testing.T) {
 		{
 			name:              "zero volume attach limit",
 			volumeAttachLimit: 0,
+			availabilityZone:  "",
 			expectedResponse: &csi.NodeGetInfoResponse{
 				NodeId:            "test-node-id",
 				MaxVolumesPerNode: 0,
+			},
+		},
+		{
+			name:              "returns topology when availability zone present",
+			volumeAttachLimit: 100,
+			availabilityZone:  "us-east-1b",
+			expectedResponse: &csi.NodeGetInfoResponse{
+				NodeId:            "test-node-id",
+				MaxVolumesPerNode: 100,
+				AccessibleTopology: &csi.Topology{
+					Segments: map[string]string{
+						"topology.kubernetes.io/zone": "us-east-1b",
+					},
+				},
+			},
+		},
+		{
+			name:              "returns topology for different zone",
+			volumeAttachLimit: 50,
+			availabilityZone:  "us-west-2a",
+			expectedResponse: &csi.NodeGetInfoResponse{
+				NodeId:            "test-node-id",
+				MaxVolumesPerNode: 50,
+				AccessibleTopology: &csi.Topology{
+					Segments: map[string]string{
+						"topology.kubernetes.io/zone": "us-west-2a",
+					},
+				},
 			},
 		},
 	}
@@ -939,9 +979,13 @@ func TestNodeGetInfo(t *testing.T) {
 			mockCtrl := gomock.NewController(t)
 			defer mockCtrl.Finish()
 
+			mockCloud := mocks.NewMockCloud(mockCtrl)
+			mockCloud.EXPECT().GetMetadata().Return(&mockMetadata{availabilityZone: tc.availabilityZone}).AnyTimes()
+
 			driver := &Driver{
 				nodeID:            "test-node-id",
 				volumeAttachLimit: tc.volumeAttachLimit,
+				cloud:             mockCloud,
 			}
 
 			req := &csi.NodeGetInfoRequest{}

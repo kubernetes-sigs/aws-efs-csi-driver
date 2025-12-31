@@ -18,6 +18,7 @@ package util
 
 import (
 	"fmt"
+	"github.com/container-storage-interface/spec/lib/go/csi"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -84,4 +85,21 @@ func SanitizeRequest(req interface{}) interface{} {
 		v.Set(e)
 	}
 	return req
+}
+
+const (
+	TopologyZoneKey = "topology.kubernetes.io/zone"
+)
+
+// create CSI topology from an availability zone
+func BuildTopology(availabilityZone string) *csi.Topology {
+	if availabilityZone == "" {
+		return nil
+	}
+
+	return &csi.Topology{
+		Segments: map[string]string{
+			TopologyZoneKey: availabilityZone,
+		},
+	}
 }
