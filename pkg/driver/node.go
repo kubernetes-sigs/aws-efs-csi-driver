@@ -557,10 +557,19 @@ func removeNotReadyTaint(k8sClient cloud.KubernetesAPIClient) error {
 		return err
 	}
 
-	_, err = clientset.CoreV1().Nodes().Patch(context.Background(), nodeName, k8stypes.JSONPatchType, patch, metav1.PatchOptions{})
+	patchedNode, err := clientset.CoreV1().Nodes().Patch(context.Background(), nodeName, k8stypes.JSONPatchType, patch, metav1.PatchOptions{})
 	if err != nil {
 		return err
 	}
+
+	// Verify taint was actually removed from the patched node
+	for _, taint := range patchedNode.Spec.Taints {
+		if taint.Key == AgentNotReadyNodeTaintKey {
+			klog.V(4).InfoS("Taint still present on node, will retry", "key", taint.Key, "effect", taint.Effect)
+			return fmt.Errorf("taint %s still present after patch", AgentNotReadyNodeTaintKey)
+		}
+	}
+
 	klog.InfoS("Removed taint(s) from local node", "node", nodeName)
 	return nil
 }
