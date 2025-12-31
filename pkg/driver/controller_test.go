@@ -3590,6 +3590,241 @@ func TestCreateVolume(t *testing.T) {
 				mockCtl.Finish()
 			},
 		},
+		{
+			name: "Success: One Zone EFS with enforceZoneAffinity returns topology",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockCloud := mocks.NewMockCloud(mockCtl)
+				driver := &Driver{
+					endpoint:     endpoint,
+					cloud:        mockCloud,
+					gidAllocator: NewGidAllocator(),
+					lockManager:  NewLockManagerMap(),
+				}
+				req := &csi.CreateVolumeRequest{
+					Name: volumeName,
+					VolumeCapabilities: []*csi.VolumeCapability{
+						stdVolCap,
+					},
+					CapacityRange: &csi.CapacityRange{
+						RequiredBytes: capacityRange,
+					},
+					Parameters: map[string]string{
+						ProvisioningMode:    "efs-ap",
+						FsId:                fsId,
+						DirectoryPerms:      "700",
+						Uid:                 "1000",
+						Gid:                 "1000",
+						EnforceZoneAffinity: "true",
+					},
+				}
+				ctx := context.Background()
+				fileSystem := &cloud.FileSystem{
+					FileSystemId:         fsId,
+					AvailabilityZoneName: "us-east-1b",
+				}
+				accessPoint := &cloud.AccessPoint{
+					AccessPointId: apId,
+					FileSystemId:  fsId,
+				}
+				mockCloud.EXPECT().DescribeFileSystem(gomock.Eq(ctx), gomock.Eq(fsId)).Return(fileSystem, nil).Times(2)
+				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Eq(volumeName), gomock.Any()).Return(accessPoint, nil)
+				res, err := driver.CreateVolume(ctx, req)
+				if err != nil {
+					t.Fatalf("CreateVolume failed: %v", err)
+				}
+				if res.Volume == nil {
+					t.Fatal("Volume is nil")
+				}
+				if res.Volume.AccessibleTopology == nil || len(res.Volume.AccessibleTopology) == 0 {
+					t.Fatal("AccessibleTopology should be set for One Zone EFS with enforceZoneAffinity=true")
+				}
+				if len(res.Volume.AccessibleTopology) != 1 {
+					t.Fatalf("Expected 1 topology, got %d", len(res.Volume.AccessibleTopology))
+				}
+				zone := res.Volume.AccessibleTopology[0].Segments["topology.kubernetes.io/zone"]
+				if zone != "us-east-1b" {
+					t.Fatalf("Expected zone us-east-1b, got %s", zone)
+				}
+				mockCtl.Finish()
+			},
+		},
+		{
+			name: "Success: Regional EFS with enforceZoneAffinity returns no topology",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockCloud := mocks.NewMockCloud(mockCtl)
+				driver := &Driver{
+					endpoint:     endpoint,
+					cloud:        mockCloud,
+					gidAllocator: NewGidAllocator(),
+					lockManager:  NewLockManagerMap(),
+				}
+				req := &csi.CreateVolumeRequest{
+					Name: volumeName,
+					VolumeCapabilities: []*csi.VolumeCapability{
+						stdVolCap,
+					},
+					CapacityRange: &csi.CapacityRange{
+						RequiredBytes: capacityRange,
+					},
+					Parameters: map[string]string{
+						ProvisioningMode:    "efs-ap",
+						FsId:                fsId,
+						DirectoryPerms:      "700",
+						Uid:                 "1000",
+						Gid:                 "1000",
+						EnforceZoneAffinity: "true",
+					},
+				}
+				ctx := context.Background()
+				fileSystem := &cloud.FileSystem{
+					FileSystemId:         fsId,
+					AvailabilityZoneName: "",
+				}
+				accessPoint := &cloud.AccessPoint{
+					AccessPointId: apId,
+					FileSystemId:  fsId,
+				}
+				mockCloud.EXPECT().DescribeFileSystem(gomock.Eq(ctx), gomock.Eq(fsId)).Return(fileSystem, nil).Times(2)
+				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Eq(volumeName), gomock.Any()).Return(accessPoint, nil)
+				res, err := driver.CreateVolume(ctx, req)
+				if err != nil {
+					t.Fatalf("CreateVolume failed: %v", err)
+				}
+				if res.Volume == nil {
+					t.Fatal("Volume is nil")
+				}
+				if res.Volume.AccessibleTopology != nil && len(res.Volume.AccessibleTopology) > 0 {
+					t.Fatalf("AccessibleTopology should be nil/empty for Regional EFS, got %v", res.Volume.AccessibleTopology)
+				}
+				mockCtl.Finish()
+			},
+		},
+		{
+			name: "Success: enforceZoneAffinity not set returns no topology",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockCloud := mocks.NewMockCloud(mockCtl)
+				driver := &Driver{
+					endpoint:     endpoint,
+					cloud:        mockCloud,
+					gidAllocator: NewGidAllocator(),
+					lockManager:  NewLockManagerMap(),
+				}
+				req := &csi.CreateVolumeRequest{
+					Name: volumeName,
+					VolumeCapabilities: []*csi.VolumeCapability{
+						stdVolCap,
+					},
+					CapacityRange: &csi.CapacityRange{
+						RequiredBytes: capacityRange,
+					},
+					Parameters: map[string]string{
+						ProvisioningMode: "efs-ap",
+						FsId:             fsId,
+						DirectoryPerms:   "700",
+						Uid:              "1000",
+						Gid:              "1000",
+					},
+				}
+				ctx := context.Background()
+				fileSystem := &cloud.FileSystem{
+					FileSystemId: fsId,
+				}
+				accessPoint := &cloud.AccessPoint{
+					AccessPointId: apId,
+					FileSystemId:  fsId,
+				}
+				mockCloud.EXPECT().DescribeFileSystem(gomock.Eq(ctx), gomock.Any()).Return(fileSystem, nil)
+				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Eq(volumeName), gomock.Any()).Return(accessPoint, nil)
+				res, err := driver.CreateVolume(ctx, req)
+				if err != nil {
+					t.Fatalf("CreateVolume failed: %v", err)
+				}
+				if res.Volume == nil {
+					t.Fatal("Volume is nil")
+				}
+				if res.Volume.AccessibleTopology != nil && len(res.Volume.AccessibleTopology) > 0 {
+					t.Fatalf("AccessibleTopology should be nil/empty when enforceZoneAffinity not set, got %v", res.Volume.AccessibleTopology)
+				}
+				mockCtl.Finish()
+			},
+		},
+		{
+			name: "Success: enforceZoneAffinity accepts numeric 1",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockCloud := mocks.NewMockCloud(mockCtl)
+				driver := &Driver{
+					endpoint:     endpoint,
+					cloud:        mockCloud,
+					gidAllocator: NewGidAllocator(),
+					lockManager:  NewLockManagerMap(),
+				}
+				req := &csi.CreateVolumeRequest{
+					Name:               volumeName,
+					VolumeCapabilities: []*csi.VolumeCapability{stdVolCap},
+					CapacityRange:      &csi.CapacityRange{RequiredBytes: capacityRange},
+					Parameters: map[string]string{
+						ProvisioningMode:    "efs-ap",
+						FsId:                fsId,
+						DirectoryPerms:      "700",
+						Uid:                 "1000",
+						Gid:                 "1000",
+						EnforceZoneAffinity: "1",
+					},
+				}
+				ctx := context.Background()
+				fileSystem := &cloud.FileSystem{
+					FileSystemId:         fsId,
+					AvailabilityZoneName: "us-east-1a",
+				}
+				accessPoint := &cloud.AccessPoint{AccessPointId: apId, FileSystemId: fsId}
+				mockCloud.EXPECT().DescribeFileSystem(gomock.Eq(ctx), gomock.Eq(fsId)).Return(fileSystem, nil).Times(2)
+				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Eq(volumeName), gomock.Any()).Return(accessPoint, nil)
+				res, err := driver.CreateVolume(ctx, req)
+				if err != nil {
+					t.Fatalf("CreateVolume failed: %v", err)
+				}
+				if res.Volume.AccessibleTopology == nil || len(res.Volume.AccessibleTopology) == 0 {
+					t.Fatal("AccessibleTopology should be set for enforceZoneAffinity=1")
+				}
+				mockCtl.Finish()
+			},
+		},
+		{
+			name: "Fail: enforceZoneAffinity bad input",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockCloud := mocks.NewMockCloud(mockCtl)
+				driver := &Driver{
+					endpoint:     endpoint,
+					cloud:        mockCloud,
+					gidAllocator: NewGidAllocator(),
+					lockManager:  NewLockManagerMap(),
+				}
+				req := &csi.CreateVolumeRequest{
+					Name:               volumeName,
+					VolumeCapabilities: []*csi.VolumeCapability{stdVolCap},
+					CapacityRange:      &csi.CapacityRange{RequiredBytes: capacityRange},
+					Parameters: map[string]string{
+						ProvisioningMode:    "efs-ap",
+						FsId:                fsId,
+						DirectoryPerms:      "700",
+						Uid:                 "1000",
+						Gid:                 "1000",
+						EnforceZoneAffinity: "no",
+					},
+				}
+				ctx := context.Background()
+				_, err := driver.CreateVolume(ctx, req)
+				if err == nil {
+					t.Fatal("CreateVolume should have failed with invalid enforceZoneAffinity value")
+				}
+				mockCtl.Finish()
+			},
+		},
 	}
 
 	for _, tc := range testCases {
