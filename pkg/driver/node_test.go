@@ -1020,9 +1020,10 @@ func makeDir(path string) error {
 func TestRemoveNotReadyTaint(t *testing.T) {
 	nodeName := "test-node-123"
 	testCases := []struct {
-		name      string
-		setup     func(t *testing.T, mockCtl *gomock.Controller) func() (kubernetes.Interface, error)
-		expResult error
+		name       string
+		setup      func(t *testing.T, mockCtl *gomock.Controller) func() (kubernetes.Interface, error)
+		expResult  error
+		customTest func(t *testing.T, k8sClientGetter func() (kubernetes.Interface, error))
 	}{
 		{
 			name: "missing CSI_NODE_NAME",
@@ -1091,26 +1092,62 @@ func TestRemoveNotReadyTaint(t *testing.T) {
 			expResult: fmt.Errorf("Failed to patch node!"),
 		},
 		{
-			name: "success",
+			name: "successful taint removal",
 			setup: func(t *testing.T, mockCtl *gomock.Controller) func() (kubernetes.Interface, error) {
 				t.Setenv("CSI_NODE_NAME", nodeName)
-				getNodeMock, mockNode := getNodeMock(mockCtl, nodeName, &corev1.Node{
+
+				nodeWithTaint := &corev1.Node{
 					Spec: corev1.NodeSpec{
-						Taints: []corev1.Taint{
-							{
-								Key:    AgentNotReadyNodeTaintKey,
-								Effect: "NoSchedule",
-							},
-						},
+						Taints: []corev1.Taint{{Key: AgentNotReadyNodeTaintKey, Effect: "NoSchedule"}},
 					},
-				}, nil)
-				mockNode.EXPECT().Patch(gomock.Any(), gomock.Eq(nodeName), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil)
+				}
+				nodeWithoutTaint := &corev1.Node{
+					Spec: corev1.NodeSpec{Taints: []corev1.Taint{}},
+				}
+
+				mockClient := mocks.NewMockKubernetesClient(mockCtl)
+				mockCoreV1 := mocks.NewMockCoreV1Interface(mockCtl)
+				mockNode := mocks.NewMockNodeInterface(mockCtl)
+
+				mockClient.EXPECT().CoreV1().Return(mockCoreV1).MinTimes(1)
+				mockCoreV1.EXPECT().Nodes().Return(mockNode).MinTimes(1)
+
+				mockNode.EXPECT().Get(gomock.Any(), gomock.Eq(nodeName), gomock.Any()).Return(nodeWithTaint, nil)
+				mockNode.EXPECT().Patch(gomock.Any(), gomock.Eq(nodeName), gomock.Any(), gomock.Any(), gomock.Any()).Return(nodeWithoutTaint, nil)
 
 				return func() (kubernetes.Interface, error) {
-					return getNodeMock, nil
+					return mockClient, nil
 				}
 			},
 			expResult: nil,
+		},
+		{
+			name: "patch succeeds with no error but taint still present (verification fails)",
+			setup: func(t *testing.T, mockCtl *gomock.Controller) func() (kubernetes.Interface, error) {
+				t.Setenv("CSI_NODE_NAME", nodeName)
+
+				nodeWithTaint := &corev1.Node{
+					Spec: corev1.NodeSpec{
+						Taints: []corev1.Taint{{Key: AgentNotReadyNodeTaintKey, Effect: "NoSchedule"}},
+					},
+				}
+
+				mockClient := mocks.NewMockKubernetesClient(mockCtl)
+				mockCoreV1 := mocks.NewMockCoreV1Interface(mockCtl)
+				mockNode := mocks.NewMockNodeInterface(mockCtl)
+
+				mockClient.EXPECT().CoreV1().Return(mockCoreV1).MinTimes(1)
+				mockCoreV1.EXPECT().Nodes().Return(mockNode).MinTimes(1)
+
+				mockNode.EXPECT().Get(gomock.Any(), gomock.Eq(nodeName), gomock.Any()).Return(nodeWithTaint, nil)
+				mockNode.EXPECT().Patch(gomock.Any(), gomock.Eq(nodeName), gomock.Any(), gomock.Any(), gomock.Any()).Return(nodeWithTaint, nil)
+
+				return func() (kubernetes.Interface, error) {
+					return mockClient, nil
+				}
+			},
+			// expect verification to show failed startup taint removal
+			expResult: fmt.Errorf("taint %s still present after patch", AgentNotReadyNodeTaintKey),
 		},
 	}
 	for _, tc := range testCases {
@@ -1120,7 +1157,6 @@ func TestRemoveNotReadyTaint(t *testing.T) {
 
 			k8sClientGetter := tc.setup(t, mockCtl)
 			result := removeNotReadyTaint(k8sClientGetter)
-
 			if !reflect.DeepEqual(result, tc.expResult) {
 				t.Fatalf("Expected result `%v`, got result `%v`", tc.expResult, result)
 			}
