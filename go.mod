@@ -22,7 +22,7 @@ require (
 	k8s.io/apimachinery v0.33.2
 	k8s.io/client-go v0.33.2
 	k8s.io/klog/v2 v2.130.1
-	k8s.io/kubernetes v1.33.4
+	k8s.io/kubernetes v1.33.6
 	k8s.io/mount-utils v0.33.2
 	k8s.io/pod-security-admission v0.33.2
 )
