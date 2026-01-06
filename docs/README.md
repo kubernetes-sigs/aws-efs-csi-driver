@@ -30,6 +30,11 @@ Since Amazon EFS is an elastic file system, it doesn't really enforce any file s
 For detailed parameter explanations, see the [parameters documentation](parameters.md).
 
 ## Releases
+The EFS CSI Driver follows semantic versioning. The version `MAJOR.MINOR.PATCH` will be bumped following the rules below after `v2.2.0`:
+- Significant breaking changes will be released as a `MAJOR` update.
+- New features will be released as a `MINOR` update.
+- Bug or vulnerability fixes will be released as a `PATCH` update.
+
 ### ECR Image
 | Driver Version | [ECR](https://gallery.ecr.aws/efs-csi-driver/amazon/aws-efs-csi-driver) Image |
 |----------------|-------------------------------------------------------------------------------|
