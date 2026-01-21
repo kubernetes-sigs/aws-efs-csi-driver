@@ -4,7 +4,7 @@ bases:
   - ../../base
 images:
   - name: public.ecr.aws/efs-csi-driver/amazon/aws-efs-csi-driver
-    newTag: v2.2.0
+    newTag: v2.3.0
   - name: public.ecr.aws/csi-components/livenessprobe
     newTag: v2.17.0-eksbuild.3
   - name: public.ecr.aws/csi-components/csi-node-driver-registrar

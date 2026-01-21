@@ -1,3 +1,10 @@
+# V2.3.0
+* fix: Add CSI topology for One Zone EFS ([#1761](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1761), [@aliyajo](https://github.com/aliyajo))
+* Upgrade golang to 1.25.5 to fix high CVE ([#1763](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1763), [@DavidXU12345](https://github.com/DavidXU12345))
+* fix: verify startup taint removal after patch to prevent false positives ([#1774](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1774), [@aliyajo](https://github.com/aliyajo))
+* Fix OpenSSL CVE ([#1775](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1775), [@YangjinanHu](https://github.com/YangjinanHu))
+* Fix Sidecar CVEs ([#1779](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1779), [@YangjinanHu](https://github.com/YangjinanHu))
+* Upgrade k8s.io/kubernetes from v1.33.4 to v1.33.6 to fix CVE ([#1781](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1781), [@DavidXU12345](https://github.com/DavidXU12345))
 # V2.2.0
 * Add revisionHistoryLimit support in charts ([#1760](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1760), [@DavidXU12345](https://github.com/DavidXU12345))
 * Upgrade sidecar to fix CVEs ([#1758](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1758), [@DavidXU12345](https://github.com/DavidXU12345))
