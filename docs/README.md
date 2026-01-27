@@ -50,5 +50,6 @@ You can find previous efs-csi-driver versions' images from [here](https://galler
 - [Driver Upgrade](install.md#upgrading-the-amazon-efs-csi-driver)
 - [Driver Uninstallation](install.md#uninstalling-the-amazon-efs-csi-driver)
 - [Kubernetes Examples](../examples/kubernetes)
+- [Fips Support](fips.md)
 - [Frequently Asked Questions](faq.md)
 - [Development and Contributing](CONTRIBUTING.md)
