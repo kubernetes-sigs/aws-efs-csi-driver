@@ -15,7 +15,7 @@ For most highly concurrent workloads, we recommend increasing the default timeou
   Allow ```elasticfilesystem:DescribeMountTargets``` and ```ec2:DescribeAvailabilityZones``` actions in your policy attached to the Amazon EKS service account role, refer to example policy [here](https://github.com/kubernetes-sigs/aws-efs-csi-driver/blob/master/docs/iam-policy-example.json#L9-L10).
 
 
-## Invalid STS FIPS endpoint workaround for non-US and Canada regions
+## Invalid STS FIPS regional endpoint workaround for non-US and Canada regions
 FIPS endpoints are not supported for non-US and Canada regions since it is a US and Canadian government standard. If you have to use FIPS-enabled communication in regions without FIPS endpoints support, we provide a workaround at your own risk:
 
 ### Use non-FIPS endpoint in control plane but still enable FIPS in data plane in efs-utils
@@ -27,7 +27,7 @@ In `controller-deployment.yaml` and `node-daemonset.yaml`, remove the `AWS_USE_F
 #    value: "true"
 # Add:
 - name: FIPS_ENABLED
-    value: "true" 
+  value: "true" 
 ```
 
 This configuration uses standard (non-FIPS) endpoints for control plane API calls to EFS and STS (avoiding regional FIPS endpoint availability issues) while maintaining full FIPS compliance for data plane mount traffic in [efs-utils](https://github.com/aws/efs-utils?tab=readme-ov-file#enabling-fips-mode) through three layers:
