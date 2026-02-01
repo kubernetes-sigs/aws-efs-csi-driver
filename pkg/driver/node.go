@@ -23,6 +23,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -45,6 +46,7 @@ var (
 	}
 	volumeIdCounter  = make(map[string]int)
 	supportedFSTypes = []string{"efs", ""}
+	hexSuffixRegex   = regexp.MustCompile(`^[0-9a-f]{8,40}$`)
 )
 
 const (
@@ -442,20 +444,18 @@ func (d *Driver) validateFStype(volCaps []*csi.VolumeCapability) error {
 // - https://github.com/kubernetes-sigs/aws-efs-csi-driver/issues/100
 // - https://github.com/kubernetes-sigs/aws-efs-csi-driver/issues/167
 func parseVolumeId(volumeId string) (fsid, subpath, apid string, err error) {
-	// Might as well do this up front, since the FSID is required and first in the string
-	if !isValidFileSystemId(volumeId) {
-		err = status.Errorf(codes.InvalidArgument, "volume ID '%s' is invalid: Expected a file system ID of the form 'fs-...'", volumeId)
-		return
-	}
-
 	tokens := strings.Split(volumeId, ":")
 	if len(tokens) > 3 {
 		err = status.Errorf(codes.InvalidArgument, "volume ID '%s' is invalid: Expected at most three fields separated by ':'", volumeId)
 		return
 	}
 
-	// Okay, we know we have a FSID
+	// Validate the filesystem ID (first token)
 	fsid = tokens[0]
+	if !isValidFileSystemId(fsid) {
+		err = status.Errorf(codes.InvalidArgument, "volume ID '%s' is invalid: Expected a file system ID of the form 'fs-[0-9a-f]{8,40}'", volumeId)
+		return
+	}
 
 	// Do we have a subpath?
 	if len(tokens) >= 2 && tokens[1] != "" {
@@ -466,7 +466,7 @@ func parseVolumeId(volumeId string) (fsid, subpath, apid string, err error) {
 	if len(tokens) == 3 && tokens[2] != "" {
 		apid = tokens[2]
 		if !isValidAccessPointId(apid) {
-			err = status.Errorf(codes.InvalidArgument, "volume ID '%s' has an invalid access point ID '%s': Expected it to be of the form 'fsap-...'", volumeId, apid)
+			err = status.Errorf(codes.InvalidArgument, "volume ID '%s' has an invalid access point ID '%s': Expected it to be of the form 'fsap-[0-9a-f]{8,40}'", volumeId, apid)
 			return
 		}
 	}
@@ -485,11 +485,13 @@ func hasOption(options []string, opt string) bool {
 }
 
 func isValidFileSystemId(filesystemId string) bool {
-	return strings.HasPrefix(filesystemId, "fs-")
+	// fs-[0-9a-f]{8,40} https://docs.aws.amazon.com/efs/latest/ug/API_CreateAccessPoint.html#efs-CreateAccessPoint-request-FileSystemId
+	return strings.HasPrefix(filesystemId, "fs-") && hexSuffixRegex.MatchString(filesystemId[3:])
 }
 
 func isValidAccessPointId(accesspointId string) bool {
-	return strings.HasPrefix(accesspointId, "fsap-")
+	// fsap-[0-9a-f]{8,40} (https://docs.aws.amazon.com/efs/latest/ug/API_CreateAccessPoint.html#efs-CreateAccessPoint-response-AccessPointId)
+	return strings.HasPrefix(accesspointId, "fsap-") && hexSuffixRegex.MatchString(accesspointId[5:])
 }
 
 // Struct for JSON patch operations
