@@ -35,7 +35,7 @@ import (
 )
 
 const (
-	volumeId   = "fs-abc123"
+	volumeId   = "fs-abcd1234"
 	targetPath = "/target/path"
 )
 
@@ -418,7 +418,7 @@ func TestNodePublishVolume(t *testing.T) {
 			expectMakeDir: false,
 			expectError: errtyp{
 				code:    "InvalidArgument",
-				message: "volume ID 'fs-abc123:/a/b/::four!' is invalid: Expected at most three fields separated by ':'",
+				message: "volume ID 'fs-abcd1234:/a/b/::four!' is invalid: Expected at most three fields separated by ':'",
 			},
 			maxInflightMountCalls: UnsetMaxInflightMountCounts,
 		},
@@ -539,7 +539,7 @@ func TestNodePublishVolume(t *testing.T) {
 			mountSuccess:  false,
 			expectError: errtyp{
 				code:    "Internal",
-				message: `Could not mount "fs-abc123:/" at "/target/path": failed to Mount`,
+				message: `Could not mount "fs-abcd1234:/" at "/target/path": failed to Mount`,
 			},
 			maxInflightMountCalls: UnsetMaxInflightMountCounts,
 		},
@@ -568,7 +568,7 @@ func TestNodePublishVolume(t *testing.T) {
 			expectMakeDir: false,
 			expectError: errtyp{
 				code:    "InvalidArgument",
-				message: "volume ID 'invalid-id' is invalid: Expected a file system ID of the form 'fs-...'",
+				message: "volume ID 'invalid-id' is invalid: Expected a file system ID of the form 'fs-[0-9a-f]{8,40}'",
 			},
 			maxInflightMountCalls: UnsetMaxInflightMountCounts,
 		},
@@ -582,7 +582,7 @@ func TestNodePublishVolume(t *testing.T) {
 			expectMakeDir: false,
 			expectError: errtyp{
 				code:    "InvalidArgument",
-				message: "volume ID 'fs-abc123::invalid-id' has an invalid access point ID 'invalid-id': Expected it to be of the form 'fsap-...'",
+				message: "volume ID 'fs-abcd1234::invalid-id' has an invalid access point ID 'invalid-id': Expected it to be of the form 'fsap-[0-9a-f]{8,40}'",
 			},
 			maxInflightMountCalls: UnsetMaxInflightMountCounts,
 		},
@@ -1321,6 +1321,64 @@ func TestGetVolumeAttachLimit(t *testing.T) {
 				if result != tc.expected {
 					t.Errorf("Expected %d, got %d", tc.expected, result)
 				}
+			}
+		})
+	}
+}
+
+func TestIsValidAccessPointId(t *testing.T) {
+	testCases := []struct {
+		name     string
+		apid     string
+		expected bool
+	}{
+		{"valid: 8 chars", "fsap-12345678", true},
+		{"valid: 16 chars", "fsap-1234567890abcdef", true},
+		{"valid: 40 chars", "fsap-1234567890abcdef1234567890abcdef1234", true},
+		{"invalid: too short", "fsap-1234567", false},
+		{"invalid: too long", "fsap-1234567890abcdef1234567890abcdef1234567890", false},
+		{"invalid: no prefix", "1234567890abcdef", false},
+		{"invalid: uppercase hex", "fsap-1234567G", false},
+		{"invalid: non-hex chars", "fsap-123456zz", false},
+		{"invalid: empty", "", false},
+		{"invalid: prefix only", "fsap-", false},
+		{"invalid: attack with mount options", "fsap-attacktest,exec,suid,dev", false},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result := isValidAccessPointId(tc.apid)
+			if result != tc.expected {
+				t.Errorf("isValidAccessPointId(%q) = %v, expected %v", tc.apid, result, tc.expected)
+			}
+		})
+	}
+}
+
+func TestIsValidFileSystemId(t *testing.T) {
+	testCases := []struct {
+		name     string
+		fsid     string
+		expected bool
+	}{
+		{"valid: 8 chars", "fs-12345678", true},
+		{"valid: 16 chars", "fs-1234567890abcdef", true},
+		{"valid: 40 chars", "fs-1234567890abcdef1234567890abcdef1234", true},
+		{"invalid: too short", "fs-1234567", false},
+		{"invalid: too long", "fs-1234567890abcdef1234567890abcdef1234567890", false},
+		{"invalid: no prefix", "1234567890abcdef", false},
+		{"invalid: uppercase hex", "fs-1234567G", false},
+		{"invalid: non-hex chars", "fs-123456zz", false},
+		{"invalid: empty", "", false},
+		{"invalid: prefix only", "fs-", false},
+		{"invalid: attack with mount options", "fs-attacktest,exec,suid,dev", false},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result := isValidFileSystemId(tc.fsid)
+			if result != tc.expected {
+				t.Errorf("isValidFileSystemId(%q) = %v, expected %v", tc.fsid, result, tc.expected)
 			}
 		})
 	}

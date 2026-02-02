@@ -27,8 +27,8 @@ var (
 
 func TestCreateAccessPoint(t *testing.T) {
 	var (
-		arn                  = "arn:aws:elasticfilesystem:us-east-1:1234567890:access-point/fsap-abcd1234xyz987"
-		accessPointId        = "fsap-abcd1234xyz987"
+		arn                  = "arn:aws:elasticfilesystem:us-east-1:1234567890:access-point/fsap-abcd1234"
+		accessPointId        = "fsap-abcd1234"
 		fsId                 = "fs-abcd1234"
 		uid            int64 = 1001
 		gid            int64 = 1001
@@ -199,7 +199,7 @@ func TestCreateAccessPoint(t *testing.T) {
 
 func TestDeleteAccessPoint(t *testing.T) {
 	var (
-		accessPointId = "fsap-abcd1234xyz987"
+		accessPointId = "fsap-abcd1234"
 	)
 	testCases := []struct {
 		name     string
@@ -290,8 +290,8 @@ func TestDeleteAccessPoint(t *testing.T) {
 
 func TestDescribeAccessPoint(t *testing.T) {
 	var (
-		arn                  = "arn:aws:elasticfilesystem:us-east-1:1234567890:access-point/fsap-abcd1234xyz987"
-		accessPointId        = "fsap-abcd1234xyz987"
+		arn                  = "arn:aws:elasticfilesystem:us-east-1:1234567890:access-point/fsap-abcd1234"
+		accessPointId        = "fsap-abcd1234"
 		fsId                 = "fs-abcd1234"
 		uid            int64 = 1001
 		gid            int64 = 1001

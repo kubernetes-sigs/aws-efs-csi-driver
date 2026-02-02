@@ -31,8 +31,8 @@ func TestCreateVolume(t *testing.T) {
 		endpoint            = "endpoint"
 		volumeName          = "volumeName"
 		fsId                = "fs-abcd1234"
-		apId                = "fsap-abcd1234xyz987"
-		volumeId            = "fs-abcd1234::fsap-abcd1234xyz987"
+		apId                = "fsap-abcd1234"
+		volumeId            = "fs-abcd1234::fsap-abcd1234"
 		capacityRange int64 = 5368709120
 		stdVolCap           = &csi.VolumeCapability{
 			AccessType: &csi.VolumeCapability_Mount{
@@ -3834,12 +3834,12 @@ func TestCreateVolume(t *testing.T) {
 
 func TestDeleteVolume(t *testing.T) {
 	var (
-		apId      = "fsap-abcd1234xyz987"
-		apId2     = "fsap-abcd1234xyz988"
+		apId      = "fsap-abcd1234"
+		apId2     = "fsap-abcd1234abc"
 		fsId      = "fs-abcd1234"
 		endpoint  = "endpoint"
-		volumeId  = "fs-abcd1234::fsap-abcd1234xyz987"
-		volumeId2 = "fs-abcd1234::fsap-abcd1234xyz988"
+		volumeId  = "fs-abcd1234::fsap-abcd1234"
+		volumeId2 = "fs-abcd1234::fsap-abcd1234abc"
 	)
 
 	testCases := []struct {
@@ -4593,10 +4593,10 @@ func TestDeleteVolume(t *testing.T) {
 
 func TestCreateDeleteVolumeRace(t *testing.T) {
 	var (
-		apId                = "fsap-abcd1234xyz987"
+		apId                = "fsap-abcd1234"
 		fsId                = "fs-abcd1234"
 		endpoint            = "endpoint"
-		volumeId            = "fs-abcd1234::fsap-abcd1234xyz987"
+		volumeId            = "fs-abcd1234::fsap-abcd1234"
 		volumeName          = "volumeName"
 		capacityRange int64 = 5368709120
 		stdVolCap           = &csi.VolumeCapability{
@@ -4928,7 +4928,7 @@ func TestCreateDeleteVolumeRace(t *testing.T) {
 func TestValidateVolumeCapabilities(t *testing.T) {
 	var (
 		endpoint       = "endpoint"
-		volumeId       = "fs-abcd1234::fsap-abcd1234xyz987"
+		volumeId       = "fs-abcd1234::fsap-abcd1234"
 		stdVolCapValid = &csi.VolumeCapability{
 			AccessType: &csi.VolumeCapability_Mount{
 				Mount: &csi.VolumeCapability_MountVolume{},
