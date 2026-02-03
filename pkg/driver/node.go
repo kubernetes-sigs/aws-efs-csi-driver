@@ -590,11 +590,6 @@ func tryRemoveNotReadyTaintUntilSucceed(interval time.Duration, removeFn func() 
 }
 
 func getMaxInflightMountCalls(maxInflightMountCallsOptIn bool, maxInflightMountCalls int64) int64 {
-	if maxInflightMountCallsOptIn && maxInflightMountCalls <= 0 {
-		klog.Errorf("Fatal error: maxInflightMountCalls must be greater than 0 when maxInflightMountCallsOptIn is true!")
-		klog.FlushAndExit(klog.ExitFlushTimeout, 1)
-	}
-
 	if !maxInflightMountCallsOptIn {
 		klog.V(4).Infof("MaxInflightMountCallsOptIn is false, setting maxInflightMountCalls to %d and inflight check is disabled", UnsetMaxInflightMountCounts)
 		return UnsetMaxInflightMountCounts
@@ -605,11 +600,6 @@ func getMaxInflightMountCalls(maxInflightMountCallsOptIn bool, maxInflightMountC
 }
 
 func getVolumeAttachLimit(volumeAttachLimitOptIn bool, volumeAttachLimit int64) int64 {
-	if volumeAttachLimitOptIn && volumeAttachLimit <= 0 {
-		klog.Errorf("Fatal error: volumeAttachLimit must be greater than 0 when volumeAttachLimitOptIn is true!")
-		klog.FlushAndExit(klog.ExitFlushTimeout, 1)
-	}
-
 	if !volumeAttachLimitOptIn {
 		klog.V(4).Infof("VolumeAttachLimitOptIn is false, setting maxVolumesPerNode to zero so that container orchestrator will decide the value")
 		return 0

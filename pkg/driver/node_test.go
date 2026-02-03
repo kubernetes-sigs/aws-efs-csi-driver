@@ -1220,7 +1220,6 @@ func TestGetMaxInflightMountCalls(t *testing.T) {
 		maxInflightMountCallsOptIn bool
 		maxInflightMountCalls      int64
 		expected                   int64
-		expectFatal                bool
 	}{
 		{
 			name:                       "opt-in false returns unset",
@@ -1234,37 +1233,13 @@ func TestGetMaxInflightMountCalls(t *testing.T) {
 			maxInflightMountCalls:      5,
 			expected:                   5,
 		},
-		{
-			name:                       "opt-in true with zero value should fatal",
-			maxInflightMountCallsOptIn: true,
-			maxInflightMountCalls:      0,
-			expectFatal:                true,
-		},
-		{
-			name:                       "opt-in true with negative value should fatal",
-			maxInflightMountCallsOptIn: true,
-			maxInflightMountCalls:      UnsetMaxInflightMountCounts,
-			expectFatal:                true,
-		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			if tc.expectFatal {
-				if os.Getenv("FORK") == "1" {
-					// If it is in forked process, run the fatal code directly and let klog.Fatal exit
-					getMaxInflightMountCalls(tc.maxInflightMountCallsOptIn, tc.maxInflightMountCalls)
-					return
-				}
-				err := runForkFatalTest("TestGetMaxInflightMountCalls/" + tc.name)
-				if err == nil {
-					t.Fatal("expected process to exit with error")
-				}
-			} else {
-				result := getMaxInflightMountCalls(tc.maxInflightMountCallsOptIn, tc.maxInflightMountCalls)
-				if result != tc.expected {
-					t.Errorf("Expected %d, got %d", tc.expected, result)
-				}
+			result := getMaxInflightMountCalls(tc.maxInflightMountCallsOptIn, tc.maxInflightMountCalls)
+			if result != tc.expected {
+				t.Errorf("Expected %d, got %d", tc.expected, result)
 			}
 		})
 	}
@@ -1290,37 +1265,13 @@ func TestGetVolumeAttachLimit(t *testing.T) {
 			volumeAttachLimit:      50,
 			expected:               50,
 		},
-		{
-			name:                   "opt-in true with zero value should fatal",
-			volumeAttachLimitOptIn: true,
-			volumeAttachLimit:      0,
-			expectFatal:            true,
-		},
-		{
-			name:                   "opt-in true with negative value should fatal",
-			volumeAttachLimitOptIn: true,
-			volumeAttachLimit:      -1,
-			expectFatal:            true,
-		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			if tc.expectFatal {
-				// If it is in forked process, run the fatal code directly and let klog.Fatal exit
-				if os.Getenv("FORK") == "1" {
-					getVolumeAttachLimit(tc.volumeAttachLimitOptIn, tc.volumeAttachLimit)
-					return
-				}
-				err := runForkFatalTest("TestGetVolumeAttachLimit/" + tc.name)
-				if err == nil {
-					t.Fatal("expected process to exit with error")
-				}
-			} else {
-				result := getVolumeAttachLimit(tc.volumeAttachLimitOptIn, tc.volumeAttachLimit)
-				if result != tc.expected {
-					t.Errorf("Expected %d, got %d", tc.expected, result)
-				}
+			result := getVolumeAttachLimit(tc.volumeAttachLimitOptIn, tc.volumeAttachLimit)
+			if result != tc.expected {
+				t.Errorf("Expected %d, got %d", tc.expected, result)
 			}
 		})
 	}
