@@ -223,6 +223,9 @@ node:
     runAsUser: 0
     runAsGroup: 0
     fsGroup: 0
+  # securityContext on the node container
+  containerSecurityContext:
+    privileged: true
   env: []
   volumes: []
   volumeMounts: []
