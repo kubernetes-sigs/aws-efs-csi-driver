@@ -111,7 +111,7 @@ controller:
   regionalStsEndpoints: false
   # Pod Disruption Budget
   podDisruptionBudget: 
-    enabled: false
+    enabled: true
     # maxUnavailable: 1
     minAvailable: 1
     unhealthyPodEvictionPolicy: IfHealthyBudget
