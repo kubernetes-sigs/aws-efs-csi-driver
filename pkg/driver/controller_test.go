@@ -8,6 +8,7 @@ import (
 	"reflect"
 	"regexp"
 	"strconv"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -2925,6 +2926,54 @@ func TestCreateVolume(t *testing.T) {
 					t.Fatalf("CreateVolume did not fail")
 				}
 
+				mockCtl.Finish()
+			},
+		},
+		{
+			name: "Fail: crossaccount mount option passed in manually",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockCloud := mocks.NewMockCloud(mockCtl)
+
+				driver := &Driver{
+					endpoint:     endpoint,
+					cloud:        mockCloud,
+					gidAllocator: NewGidAllocator(),
+				}
+
+				req := &csi.CreateVolumeRequest{
+					Name: volumeName,
+					VolumeCapabilities: []*csi.VolumeCapability{
+						{
+							AccessType: &csi.VolumeCapability_Mount{
+								Mount: &csi.VolumeCapability_MountVolume{
+									MountFlags: []string{"crossaccount"},
+								},
+							},
+							AccessMode: &csi.VolumeCapability_AccessMode{
+								Mode: csi.VolumeCapability_AccessMode_MULTI_NODE_MULTI_WRITER,
+							},
+						},
+					},
+					CapacityRange: &csi.CapacityRange{
+						RequiredBytes: capacityRange,
+					},
+					Parameters: map[string]string{
+						ProvisioningMode: "efs-ap",
+						FsId:             fsId,
+						DirectoryPerms:   "777",
+					},
+				}
+
+				ctx := context.Background()
+				_, err := driver.CreateVolume(ctx, req)
+				if err == nil {
+					t.Fatal("CreateVolume did not fail")
+				}
+				expectedErrMsg := "Mount option 'crossaccount' cannot be set manually. The CSI driver automatically configures this based on Kubernetes secrets. See: https://github.com/kubernetes-sigs/aws-efs-csi-driver/tree/master/examples/kubernetes/cross_account_mount"
+				if !strings.Contains(err.Error(), expectedErrMsg) {
+					t.Fatalf("Actual error message '%v' doesn't contain '%v'", err.Error(), expectedErrMsg)
+				}
 				mockCtl.Finish()
 			},
 		},

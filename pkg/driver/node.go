@@ -373,6 +373,22 @@ func (d *Driver) isValidVolumeCapabilities(volCaps []*csi.VolumeCapability) erro
 		return err
 	}
 
+	if err := d.validateMountOptions(volCaps); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (d *Driver) validateMountOptions(volCaps []*csi.VolumeCapability) error {
+	for _, cap := range volCaps {
+		if mount := cap.GetMount(); mount != nil {
+			mountOptions := mount.GetMountFlags()
+			if hasOption(mountOptions, "crossaccount") {
+				return fmt.Errorf("Mount option 'crossaccount' cannot be set manually. The CSI driver automatically configures this based on Kubernetes secrets. See: https://github.com/kubernetes-sigs/aws-efs-csi-driver/tree/master/examples/kubernetes/cross_account_mount")
+			}
+		}
+	}
 	return nil
 }
 
@@ -477,7 +493,7 @@ func parseVolumeId(volumeId string) (fsid, subpath, apid string, err error) {
 // Check and avoid adding duplicate mount options
 func hasOption(options []string, opt string) bool {
 	for _, o := range options {
-		if o == opt {
+		if strings.EqualFold(o, opt) {
 			return true
 		}
 	}
