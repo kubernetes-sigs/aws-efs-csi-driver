@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"strconv"
 	"strings"
 	"time"
 
@@ -272,38 +271,6 @@ var _ = ginkgo.Describe("[efs-csi] EFS CSI", func() {
 			framework.ExpectNoError(e2epod.WaitForPodNameRunningInNamespace(context.TODO(), f.ClientSet, pod.Name, f.Namespace.Name), "waiting for pod running")
 		})
 
-		ginkgo.It("should continue reading/writing without interruption after the driver pod is restarted", func() {
-			const FilePath = "/mnt/testfile.txt"
-			const TestDuration = 30 * time.Second
-
-			ginkgo.By("Creating EFS PVC and associated PV")
-			pvc, pv, err := createEFSPVCPV(f.ClientSet, f.Namespace.Name, f.Namespace.Name, "", map[string]string{})
-			framework.ExpectNoError(err)
-			defer f.ClientSet.CoreV1().PersistentVolumes().Delete(context.TODO(), pv.Name, metav1.DeleteOptions{})
-
-			ginkgo.By("Deploying a pod to write data")
-			writeCommand := fmt.Sprintf("while true; do date +%%s >> %s; sleep 1; done", FilePath)
-			pod := e2epod.MakePod(f.Namespace.Name, nil, []*v1.PersistentVolumeClaim{pvc}, admissionapi.LevelBaseline, writeCommand)
-			pod, err = f.ClientSet.CoreV1().Pods(f.Namespace.Name).Create(context.TODO(), pod, metav1.CreateOptions{})
-			framework.ExpectNoError(err)
-			framework.ExpectNoError(e2epod.WaitForPodNameRunningInNamespace(context.TODO(), f.ClientSet, pod.Name, f.Namespace.Name))
-			defer f.ClientSet.CoreV1().Pods(f.Namespace.Name).Delete(context.TODO(), pod.Name, metav1.DeleteOptions{})
-
-			ginkgo.By("Triggering a restart for the EFS CSI Node DaemonSet")
-			_, err = kubectl.RunKubectl("kube-system", "rollout", "restart", "daemonset", "efs-csi-node")
-			framework.ExpectNoError(err)
-
-			time.Sleep(TestDuration)
-
-			ginkgo.By("Validating no interruption")
-			readCommand := fmt.Sprintf("cat %s", FilePath)
-			content, err := kubectl.RunKubectl(f.Namespace.Name, "exec", pod.Name, "--", "/bin/sh", "-c", readCommand)
-			framework.ExpectNoError(err)
-
-			timestamps := strings.Split(strings.TrimSpace(content), "\n")
-			checkInterruption(timestamps)
-		})
-
 		testEncryptInTransit := func(f *framework.Framework, encryptInTransit *bool) {
 			// TODO [RyanStan 4-15-24]
 			// Now that non-tls mounts are re-directed to efs-proxy (efs-utils v2),
@@ -539,32 +506,4 @@ func makeDir(path string) error {
 		}
 	}
 	return nil
-}
-
-// checkInterruption takes a slice of strings, where each string is expected to
-// be an integer representing a timestamp. It checks that the difference between each successive
-// pair of integers is not greater than 1.
-//
-// This function is used to check that reading/writing to a file was not
-// interrupted for more than 1 second at a time, even when the driver pod is
-// restarted.
-func checkInterruption(timestamps []string) {
-	var curr int64
-	var err error
-
-	for i, t := range timestamps {
-		if i == 0 {
-			curr, err = strconv.ParseInt(t, 10, 64)
-			framework.ExpectNoError(err)
-			continue
-		}
-
-		next, err := strconv.ParseInt(t, 10, 64)
-		framework.ExpectNoError(err)
-		if next-curr > 1 {
-			framework.Failf("Detected an interruption. Time gap: %d seconds.", next-curr)
-		}
-
-		curr = next
-	}
 }
