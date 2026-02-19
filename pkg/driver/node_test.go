@@ -23,6 +23,7 @@ import (
 	"os"
 	"os/exec"
 	"reflect"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -109,6 +110,7 @@ func TestNodePublishVolume(t *testing.T) {
 		volMetricsOptIn       bool
 		expectError           errtyp
 		maxInflightMountCalls int64
+		csiNodeMemoryLimit    string
 	}{
 		{
 			name: "success: normal",
@@ -184,35 +186,6 @@ func TestNodePublishVolume(t *testing.T) {
 			maxInflightMountCalls: UnsetMaxInflightMountCounts,
 		},
 		{
-			// TODO: Validate deprecation warning
-			name: "success: normal with path in volume context",
-			req: &csi.NodePublishVolumeRequest{
-				VolumeId:         volumeId,
-				VolumeCapability: stdVolCap,
-				TargetPath:       targetPath,
-				VolumeContext:    map[string]string{"path": "/a/b"},
-			},
-			expectMakeDir:         true,
-			mountArgs:             []interface{}{volumeId + ":/a/b", targetPath, "efs", []string{"tls"}},
-			mountSuccess:          true,
-			maxInflightMountCalls: UnsetMaxInflightMountCounts,
-		},
-		{
-			name: "fail: path in volume context must be absolute",
-			req: &csi.NodePublishVolumeRequest{
-				VolumeId:         volumeId,
-				VolumeCapability: stdVolCap,
-				TargetPath:       targetPath,
-				VolumeContext:    map[string]string{"path": "a/b"},
-			},
-			expectMakeDir: false,
-			expectError: errtyp{
-				code:    "InvalidArgument",
-				message: `Volume context property "path" must be an absolute path`,
-			},
-			maxInflightMountCalls: UnsetMaxInflightMountCounts,
-		},
-		{
 			name: "success: normal with path in volume handle",
 			req: &csi.NodePublishVolumeRequest{
 				// This also shows that the path gets cleaned
@@ -235,19 +208,6 @@ func TestNodePublishVolume(t *testing.T) {
 			},
 			expectMakeDir:         true,
 			mountArgs:             []interface{}{volumeId + ":a/b", targetPath, "efs", []string{"tls"}},
-			mountSuccess:          true,
-			maxInflightMountCalls: UnsetMaxInflightMountCounts,
-		},
-		{
-			name: "success: path in volume handle takes precedence",
-			req: &csi.NodePublishVolumeRequest{
-				VolumeId:         volumeId + ":/a/b/",
-				VolumeCapability: stdVolCap,
-				TargetPath:       targetPath,
-				VolumeContext:    map[string]string{"path": "/c/d"},
-			},
-			expectMakeDir:         true,
-			mountArgs:             []interface{}{volumeId + ":/a/b", targetPath, "efs", []string{"tls"}},
 			mountSuccess:          true,
 			maxInflightMountCalls: UnsetMaxInflightMountCounts,
 		},
@@ -559,6 +519,21 @@ func TestNodePublishVolume(t *testing.T) {
 			maxInflightMountCalls: UnsetMaxInflightMountCounts,
 		},
 		{
+			name: "fail: 'path' is a deprecated and unsupported volume context",
+			req: &csi.NodePublishVolumeRequest{
+				VolumeId:         volumeId,
+				VolumeCapability: stdVolCap,
+				TargetPath:       targetPath,
+				VolumeContext:    map[string]string{"path": "a/b"},
+			},
+			expectMakeDir: false,
+			expectError: errtyp{
+				code:    "InvalidArgument",
+				message: "Volume context property path not supported.",
+			},
+			maxInflightMountCalls: UnsetMaxInflightMountCounts,
+		},
+		{
 			name: "fail: invalid filesystem ID",
 			req: &csi.NodePublishVolumeRequest{
 				VolumeId:         "invalid-id",
@@ -624,10 +599,208 @@ func TestNodePublishVolume(t *testing.T) {
 				message: "Volume context property \"encryptInTransit\" must be a boolean value: strconv.ParseBool: parsing \"asdf\": invalid syntax",
 			},
 		},
+		{
+			name: "success: EFS with access point (new format)",
+			req: &csi.NodePublishVolumeRequest{
+				VolumeId:         "efs:fs-abcd1234::fsap-abcd1234",
+				VolumeCapability: stdVolCap,
+				TargetPath:       targetPath,
+			},
+			expectMakeDir: true,
+			mountArgs:     []interface{}{"fs-abcd1234:/", targetPath, "efs", []string{"accesspoint=fsap-abcd1234", "tls"}},
+			mountSuccess:  true,
+		},
+		{
+			name: "success: EFS without access point (new format)",
+			req: &csi.NodePublishVolumeRequest{
+				VolumeId:         "efs:fs-abcd1234",
+				VolumeCapability: stdVolCap,
+				TargetPath:       targetPath,
+			},
+			expectMakeDir: true,
+			mountArgs:     []interface{}{"fs-abcd1234:/", targetPath, "efs", []string{"tls"}},
+			mountSuccess:  true,
+		},
+		{
+			name: "success: EFS with path and access point (new format)",
+			req: &csi.NodePublishVolumeRequest{
+				VolumeId:         "efs:fs-abcd1234:/data/shared:fsap-abcd1234",
+				VolumeCapability: stdVolCap,
+				TargetPath:       targetPath,
+			},
+			expectMakeDir: true,
+			mountArgs:     []interface{}{"fs-abcd1234:/data/shared", targetPath, "efs", []string{"accesspoint=fsap-abcd1234", "tls"}},
+			mountSuccess:  true,
+		},
+		{
+			name: "fail: EFS with invalid filesystem ID (new format)",
+			req: &csi.NodePublishVolumeRequest{
+				VolumeId:         "efs:invalid-id",
+				VolumeCapability: stdVolCap,
+				TargetPath:       targetPath,
+			},
+			expectMakeDir: false,
+			expectError: errtyp{
+				code:    "InvalidArgument",
+				message: "volume ID 'efs:invalid-id' is invalid: Expected a file system ID of the form 'fs-[0-9a-f]{8,40}'",
+			},
+		},
+		{
+			name: "fail: EFS with invalid access point ID (new format)",
+			req: &csi.NodePublishVolumeRequest{
+				VolumeId:         "efs:fs-abcd1234::invalid-id",
+				VolumeCapability: stdVolCap,
+				TargetPath:       targetPath,
+			},
+			expectMakeDir: false,
+			expectError: errtyp{
+				code:    "InvalidArgument",
+				message: "volume ID 'efs:fs-abcd1234::invalid-id' has an invalid access point ID 'invalid-id': Expected it to be of the form 'fsap-[0-9a-f]{8,40}'",
+			},
+		},
+		{
+			name: "success: S3Files with access point",
+			req: &csi.NodePublishVolumeRequest{
+				VolumeId:         "s3files:fs-abcd1234::fsap-abcd1234",
+				VolumeCapability: stdVolCap,
+				TargetPath:       targetPath,
+			},
+			expectMakeDir: true,
+			mountArgs:     []interface{}{"fs-abcd1234:/", targetPath, "s3files", []string{"accesspoint=fsap-abcd1234", "tls"}},
+			mountSuccess:  true,
+		},
+		{
+			name: "success: S3Files without access point",
+			req: &csi.NodePublishVolumeRequest{
+				VolumeId:         "s3files:fs-abcd1234",
+				VolumeCapability: stdVolCap,
+				TargetPath:       targetPath,
+			},
+			expectMakeDir: true,
+			mountArgs:     []interface{}{"fs-abcd1234:/", targetPath, "s3files", []string{"tls"}},
+			mountSuccess:  true,
+		},
+		{
+			name: "success: S3Files with path and access point",
+			req: &csi.NodePublishVolumeRequest{
+				VolumeId:         "s3files:fs-abcd1234:/data/shared:fsap-abcd1234",
+				VolumeCapability: stdVolCap,
+				TargetPath:       targetPath,
+			},
+			expectMakeDir: true,
+			mountArgs:     []interface{}{"fs-abcd1234:/data/shared", targetPath, "s3files", []string{"accesspoint=fsap-abcd1234", "tls"}},
+			mountSuccess:  true,
+		},
+		{
+			name: "success: S3Files with nos3readcache when memory limit is low",
+			req: &csi.NodePublishVolumeRequest{
+				VolumeId:         "s3files:fs-abcd1234::fsap-abcd1234",
+				VolumeCapability: stdVolCap,
+				TargetPath:       targetPath,
+			},
+			csiNodeMemoryLimit: "1073741824",
+			expectMakeDir:      true,
+			mountArgs:          []interface{}{"fs-abcd1234:/", targetPath, "s3files", []string{"accesspoint=fsap-abcd1234", "tls", "nos3readcache"}},
+			mountSuccess:       true,
+		},
+		{
+			name: "fail: S3Files with invalid filesystem ID",
+			req: &csi.NodePublishVolumeRequest{
+				VolumeId:         "s3files:invalid-id",
+				VolumeCapability: stdVolCap,
+				TargetPath:       targetPath,
+			},
+			expectMakeDir: false,
+			expectError: errtyp{
+				code:    "InvalidArgument",
+				message: "volume ID 's3files:invalid-id' is invalid: Expected a file system ID of the form 'fs-[0-9a-f]{8,40}'",
+			},
+		},
+		{
+			name: "fail: S3Files with invalid access point ID",
+			req: &csi.NodePublishVolumeRequest{
+				VolumeId:         "s3files:fs-abcd1234::invalid-id",
+				VolumeCapability: stdVolCap,
+				TargetPath:       targetPath,
+			},
+			expectMakeDir: false,
+			expectError: errtyp{
+				code:    "InvalidArgument",
+				message: "volume ID 's3files:fs-abcd1234::invalid-id' has an invalid access point ID 'invalid-id': Expected it to be of the form 'fsap-[0-9a-f]{8,40}'",
+			},
+		},
+		{
+			name: "fail: with invalid fsType in volume id",
+			req: &csi.NodePublishVolumeRequest{
+				VolumeId:         "nfs:fs-abcd1234::fsap-abcd1234",
+				VolumeCapability: stdVolCap,
+				TargetPath:       targetPath,
+			},
+			expectMakeDir: false,
+			expectError: errtyp{
+				code:    "InvalidArgument",
+				message: "volume ID 'nfs:fs-abcd1234::fsap-abcd1234' is invalid: Expected at most three fields separated by ':'",
+			},
+		},
+		{
+			name: "fail: S3Files with encryptInTransit false",
+			req: &csi.NodePublishVolumeRequest{
+				VolumeId:         "s3files:fs-abcd1234",
+				VolumeCapability: stdVolCap,
+				TargetPath:       targetPath,
+				VolumeContext:    map[string]string{"encryptInTransit": "false"},
+			},
+			expectMakeDir: false,
+			expectError: errtyp{
+				code:    "InvalidArgument",
+				message: "Encryption in transit cannot be disabled for S3 Files file system. Remove 'encryptInTransit: false' from your volume configuration or omit the encryptInTransit parameter (encryption is enabled by default).",
+			},
+		},
+		{
+			name: "fail: S3Files with stunnel mount option",
+			req: &csi.NodePublishVolumeRequest{
+				VolumeId: "s3files:fs-abcd1234",
+				VolumeCapability: &csi.VolumeCapability{
+					AccessType: &csi.VolumeCapability_Mount{
+						Mount: &csi.VolumeCapability_MountVolume{
+							MountFlags: []string{"stunnel"},
+						},
+					},
+					AccessMode: &csi.VolumeCapability_AccessMode{
+						Mode: csi.VolumeCapability_AccessMode_MULTI_NODE_MULTI_WRITER,
+					},
+				},
+				TargetPath: targetPath,
+			},
+			expectMakeDir: false,
+			expectError: errtyp{
+				code:    "InvalidArgument",
+				message: "stunnel mount option is not supported by S3 Files file system.",
+			},
+		},
+		{
+			name: "fail: S3Files with crossaccount true volume context",
+			req: &csi.NodePublishVolumeRequest{
+				VolumeId:         "s3files:fs-abcd1234",
+				VolumeCapability: stdVolCap,
+				TargetPath:       targetPath,
+				VolumeContext:    map[string]string{"crossaccount": "true"},
+			},
+			expectMakeDir: false,
+			expectError: errtyp{
+				code:    "InvalidArgument",
+				message: "Cross-account mounting is not supported for S3 Files file system. Remove 'crossaccount: true' from your volume configuration.",
+			},
+		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			if tc.csiNodeMemoryLimit != "" {
+				t.Setenv("CSI_NODE_MEMORY_LIMIT", tc.csiNodeMemoryLimit)
+			} else {
+				t.Setenv("CSI_NODE_MEMORY_LIMIT", strconv.Itoa(minMemoryInBytesToEnableS3ReadCache*2))
+			}
 			mockCtrl := gomock.NewController(t)
 			defer mockCtrl.Finish()
 			mockMounter, driver, ctx := setup(mockCtrl, NewVolStatter(), tc.volMetricsOptIn, tc.maxInflightMountCalls)
@@ -1330,6 +1503,32 @@ func TestIsValidFileSystemId(t *testing.T) {
 			result := isValidFileSystemId(tc.fsid)
 			if result != tc.expected {
 				t.Errorf("isValidFileSystemId(%q) = %v, expected %v", tc.fsid, result, tc.expected)
+			}
+		})
+	}
+}
+
+func TestGetCsiNodeEfsPluginContainerMemoryLimitInBytes(t *testing.T) {
+	testCases := []struct {
+		name     string
+		envValue string
+		expected int64
+	}{
+		{"env not set", "", -1},
+		{"valid value", "1073741824", 1073741824},
+		{"invalid value", "notanumber", -1},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			if tc.envValue != "" {
+				t.Setenv("CSI_NODE_MEMORY_LIMIT", tc.envValue)
+			} else {
+				os.Unsetenv("CSI_NODE_MEMORY_LIMIT")
+			}
+			result := getCsiNodeEfsPluginContainerMemoryLimitInBytes()
+			if result != tc.expected {
+				t.Errorf("Expected %d, got %d", tc.expected, result)
 			}
 		})
 	}

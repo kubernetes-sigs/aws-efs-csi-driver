@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: s3files-claim
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: s3files-sc
+  resources:
+    requests:
+      storage: 5Gi

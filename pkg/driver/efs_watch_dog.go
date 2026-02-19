@@ -29,7 +29,10 @@ import (
 
 // https://github.com/aws/efs-utils/blob/v1.30.2/dist/efs-utils.conf
 const (
-	efsUtilsConfigTemplate = `
+	efsUtilsConfigFileName     = "efs-utils.conf"
+	s3filesUtilsConfigFileName = "s3files-utils.conf"
+	efsStateDir                = "/var/run/efs"
+	efsUtilsConfigTemplate     = `
 #
 # Copyright 2017-2018 Amazon.com, Inc. and its affiliates. All Rights Reserved.
 #
@@ -39,7 +42,7 @@ const (
 #
 
 [DEFAULT]
-logging_level = INFO
+logging_level = {{if .DebugLogs}}DEBUG{{else}}INFO{{end}}
 logging_max_bytes = 1048576
 logging_file_count = 10
 # mode for /var/run/efs and subdirectories in octal
@@ -54,7 +57,7 @@ region = {{.Region -}}
 {{else -}}
 #region = us-east-1
 {{- end}}
-stunnel_debug_enabled = false
+stunnel_debug_enabled = {{.DebugLogs}}
 #Uncomment the below option to save all stunnel logs for a file system to the same file
 #stunnel_logs_file = /var/log/amazon/efs/{fs_id}.stunnel.log
 stunnel_cafile = /etc/amazon/efs/efs-utils.crt
@@ -151,9 +154,151 @@ log_group_name = /aws/efs/utils
 # Comment this config to prevent log deletion
 retention_in_days = 14
 `
+	s3filesUtilsConfigTemplate = `
+#
+# Copyright 2017-2018 Amazon.com, Inc. and its affiliates. All Rights Reserved.
+#
+# Licensed under the MIT License. See the LICENSE accompanying this file
+# for the specific language governing permissions and limitations under
+# the License.
+#
 
-	efsUtilsConfigFileName = "efs-utils.conf"
-	efsStateDir            = "/var/run/efs"
+[DEFAULT]
+logging_level = {{if .DebugLogs}}DEBUG{{else}}INFO{{end}}
+logging_max_bytes = 1048576
+logging_file_count = 10
+# mode for /var/run/efs and subdirectories in octal
+state_file_dir_mode = 750
+
+[mount]
+dns_name_format = {az_id}.{fs_id}.s3files.{region}.{dns_name_suffix}
+dns_name_suffix = on.aws
+#The region of the file system when mounting from on-premises or cross region.
+{{if .Region -}}
+region = {{.Region -}}
+{{else -}}
+#region = us-east-1
+{{- end}}
+stunnel_debug_enabled = {{.DebugLogs}}
+#Uncomment the below option to save all stunnel logs for a file system to the same file
+#stunnel_logs_file = /var/log/amazon/efs/{fs_id}.stunnel.log
+stunnel_cafile = /etc/amazon/efs/efs-utils.crt
+
+# Validate the certificate hostname on mount. This option is not supported by certain stunnel versions.
+stunnel_check_cert_hostname = true
+
+# Use OCSP to check certificate validity. This option is not supported by certain stunnel versions.
+stunnel_check_cert_validity = false
+
+# Set to true to use FIPS-mode for stunnel. Enabling this will change the AWS SDK client to use FIPS as well.
+{{if .FipsEnabled -}}
+fips_mode_enabled = {{.FipsEnabled -}}
+{{else -}}
+fips_mode_enabled = false
+{{- end}}
+
+# Define the port range that the TLS tunnel will choose from
+port_range_lower_bound = 20049
+port_range_upper_bound = {{.PortRangeUpperBound}}
+
+# Optimize read_ahead_kb for Linux 5.4+
+optimize_readahead = true
+
+# By default, we enable the feature to fallback to mount with mount target ip address when dns name cannot be resolved
+fall_back_to_mount_target_ip_address_enabled = true
+
+# By default, we use IMDSv2 to get the instance metadata, set this to true if you want to disable IMDSv2 usage
+disable_fetch_ec2_metadata_token = false
+
+# By default, we enable efs-utils to retry failed mount.nfs command that due to (1) connection reset by peer (2) the
+# mount.nfs is not finished within 'retry_nfs_mount_command_timeout_sec'. If the retry count is set as N, initial N - 1
+# mount attempts will timeout if the command does not finish within 'retry_nfs_mount_command_timeout_sec' sec.
+# The last mount attempt will keep the existing behavior of mount.nfs.
+#
+retry_nfs_mount_command = true
+retry_nfs_mount_command_count = 3
+retry_nfs_mount_command_timeout_sec = 15
+
+
+[mount.ap-isog-east-1]
+dns_name_suffix = cloud.adc-g.au
+stunnel_cafile = /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
+
+[mount.cn-north-1]
+dns_name_suffix = amazonaws.com.cn
+
+
+[mount.cn-northwest-1]
+dns_name_suffix = amazonaws.com.cn
+
+
+[mount.eu-isoe-west-1]
+dns_name_suffix = cloud.adc-e.uk
+stunnel_cafile = /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
+
+[mount.eusc-de-east-1]
+dns_name_suffix = amazonaws.eu
+
+
+[mount.us-iso-east-1]
+dns_name_suffix = c2s.ic.gov
+stunnel_cafile = /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
+
+[mount.us-iso-west-1]
+dns_name_suffix = c2s.ic.gov
+stunnel_cafile = /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
+
+[mount.us-isob-east-1]
+dns_name_suffix = sc2s.sgov.gov
+stunnel_cafile = /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
+
+[mount.us-isob-west-1]
+dns_name_suffix = sc2s.sgov.gov
+stunnel_cafile = /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
+
+[mount.us-isof-east-1]
+dns_name_suffix = csp.hci.ic.gov
+stunnel_cafile = /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
+
+[mount.us-isof-south-1]
+dns_name_suffix = csp.hci.ic.gov
+stunnel_cafile = /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
+
+# Note: mount-watchdog settings are configured in /etc/amazon/efs/efs-utils.conf
+# The watchdog process monitors all mount types and reads its configuration from that file.
+
+[proxy]
+proxy_logging_level = {{if .DebugLogs}}DEBUG{{else}}INFO{{end}}
+proxy_logging_max_bytes = 1048576
+proxy_logging_file_count = 10
+
+# CloudWatch metric emission from proxy, set to false to disable / opt-out
+metrics_enabled = true
+
+# Readbypass parameters, Uncomment the below options if you want override default value
+# read_bypass_denylist_size = 10000
+# read_bypass_denylist_ttl_seconds = 300
+# readahead_cache_enabled = true
+# s3_read_chunk_size_bytes = 1048576
+# readahead_cache_init_memory_size_mb = 10
+# readahead_cache_max_memory_size_mb = 1024
+# readahead_init_window_size_bytes = 8388608
+# readahead_max_window_size_bytes = 8388608
+# readahead_cache_eviction_interval_ms = 500
+# readahead_cache_target_utilization_percent = 80
+# read_bypass_max_in_flight_s3_bytes = 268435456
+
+[client-info] 
+source={{.EfsClientSource}}
+
+[cloudwatch-log]
+enabled = true
+log_group_name = /aws/efs/utils
+
+# Possible values are : 1, 3, 5, 7, 14, 30, 60, 90, 120, 150, 180, 365, 400, 545, 731, 1827, and 3653
+# Comment this config to prevent log deletion
+retention_in_days = 14
+`
 )
 
 // Watchdog defines the interface for process monitoring and supervising
@@ -178,23 +323,27 @@ type execWatchdog struct {
 	efsUtilsCfgPath string
 	// efs-utils static files path
 	efsUtilsStaticFilesPath string
+	// enable debug logging in efs-utils.conf and s3files-utils.conf
+	debugLogs bool
 	// stopCh indicates if it should be stopped
 	stopCh chan struct{}
 
 	mu sync.Mutex
 }
 
-type efsUtilsConfig struct {
+type utilsConfig struct {
 	EfsClientSource     string
 	Region              string
 	FipsEnabled         string
 	PortRangeUpperBound string
+	DebugLogs           bool
 }
 
-func newExecWatchdog(efsUtilsCfgPath, efsUtilsStaticFilesPath, cmd string, arg ...string) Watchdog {
+func newExecWatchdog(efsUtilsCfgPath, efsUtilsStaticFilesPath string, debugLogs bool, cmd string, arg ...string) Watchdog {
 	return &execWatchdog{
 		efsUtilsCfgPath:         efsUtilsCfgPath,
 		efsUtilsStaticFilesPath: efsUtilsStaticFilesPath,
+		debugLogs:               debugLogs,
 		execCmd:                 cmd,
 		execArg:                 arg,
 		stopCh:                  make(chan struct{}),
@@ -255,7 +404,7 @@ func copyWithoutOverwriting(srcDir, dstDir string) error {
 			if err := copyFile(src, dst); err != nil {
 				return err
 			}
-		} else if filepath.Base(src) == "efs-utils.crt" {
+		} else if filepath.Base(src) == "efs-utils.crt" || filepath.Base(src) == efsUtilsConfigFileName || filepath.Base(src) == s3filesUtilsConfigFileName {
 			klog.Infof("Copying %s ", dst)
 			if err := copyFile(src, dst); err != nil {
 				return err
@@ -285,12 +434,6 @@ func copyFile(src, dst string) error {
 }
 
 func (w *execWatchdog) updateConfig(efsClientSource string) error {
-	efsCfgTemplate := template.Must(template.New("efs-utils-config").Parse(efsUtilsConfigTemplate))
-	f, err := os.Create(filepath.Join(w.efsUtilsCfgPath, efsUtilsConfigFileName))
-	if err != nil {
-		return fmt.Errorf("cannot create config file %s for efs-utils. Error: %v", w.efsUtilsCfgPath, err)
-	}
-	defer f.Close()
 	// used on Fargate, IMDS queries suffice otherwise
 	region := os.Getenv("AWS_DEFAULT_REGION")
 	fipsEnabled := os.Getenv("FIPS_ENABLED")
@@ -299,9 +442,26 @@ func (w *execWatchdog) updateConfig(efsClientSource string) error {
 	if err != nil || val < 21049 {
 		portRangeUpperBound = "21049"
 	}
-	efsCfg := efsUtilsConfig{EfsClientSource: efsClientSource, Region: region, FipsEnabled: fipsEnabled, PortRangeUpperBound: portRangeUpperBound}
-	if err = efsCfgTemplate.Execute(f, efsCfg); err != nil {
-		return fmt.Errorf("cannot update config %s for efs-utils. Error: %v", w.efsUtilsCfgPath, err)
+	cfg := utilsConfig{EfsClientSource: efsClientSource, Region: region, FipsEnabled: fipsEnabled, PortRangeUpperBound: portRangeUpperBound, DebugLogs: w.debugLogs}
+
+	if err := w.writeConfigFile(efsUtilsConfigFileName, efsUtilsConfigTemplate, cfg); err != nil {
+		return err
+	}
+	if err := w.writeConfigFile(s3filesUtilsConfigFileName, s3filesUtilsConfigTemplate, cfg); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (w *execWatchdog) writeConfigFile(fileName, templateContent string, cfg utilsConfig) error {
+	tmpl := template.Must(template.New(fileName).Parse(templateContent))
+	f, err := os.Create(filepath.Join(w.efsUtilsCfgPath, fileName))
+	if err != nil {
+		return fmt.Errorf("cannot create config file %s. Error: %v", fileName, err)
+	}
+	defer f.Close()
+	if err = tmpl.Execute(f, cfg); err != nil {
+		return fmt.Errorf("cannot update config %s. Error: %v", fileName, err)
 	}
 	return nil
 }

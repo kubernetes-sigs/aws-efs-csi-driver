@@ -46,6 +46,9 @@ func TestParseFlagsWithDefaultValue(t *testing.T) {
 	if *opts.DeleteAccessPointRootDir != false {
 		t.Errorf("Expected delete-access-point-root-dir false, got %v", *opts.DeleteAccessPointRootDir)
 	}
+	if *opts.DebugLogs != false {
+		t.Errorf("Expected debug-logs false, got %v", *opts.DebugLogs)
+	}
 	if *opts.AdaptiveRetryMode != true {
 		t.Errorf("Expected adaptive-retry-mode true, got %v", *opts.AdaptiveRetryMode)
 	}
@@ -90,6 +93,7 @@ func TestParseFlagsWithCustomValues(t *testing.T) {
 		"--vol-metrics-refresh-period=120",
 		"--vol-metrics-fs-rate-limit=10",
 		"--delete-access-point-root-dir=true",
+		"--debug-logs=true",
 		"--adaptive-retry-mode=false",
 		"--tags=env:test region:us-west-2",
 		"--max-inflight-mount-calls-opt-in=true",
@@ -129,6 +133,9 @@ func TestParseFlagsWithCustomValues(t *testing.T) {
 	}
 	if *opts.DeleteAccessPointRootDir != true {
 		t.Errorf("Expected delete-access-point-root-dir true, got %v", *opts.DeleteAccessPointRootDir)
+	}
+	if *opts.DebugLogs != true {
+		t.Errorf("Expected debug-logs true, got %v", *opts.DebugLogs)
 	}
 	if *opts.AdaptiveRetryMode != false {
 		t.Errorf("Expected adaptive-retry-mode false, got %v", *opts.AdaptiveRetryMode)

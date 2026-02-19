@@ -44,6 +44,7 @@ spec:
             - --logtostderr
             - --v=2
             - --delete-access-point-root-dir=false
+            - --debug-logs=false
           env:
             - name: CSI_ENDPOINT
               value: unix:///var/lib/csi/sockets/pluginproxy/csi.sock
