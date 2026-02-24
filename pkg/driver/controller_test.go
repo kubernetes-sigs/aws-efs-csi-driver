@@ -421,7 +421,7 @@ func TestCreateVolume(t *testing.T) {
 						DirectoryPerms:   "777",
 						BasePath:         "test",
 						GidMin:           "1000",
-						GidMax:           "2000",
+						GidMax:           "11000",
 					},
 				}
 
@@ -449,12 +449,12 @@ func TestCreateVolume(t *testing.T) {
 					AccessPointId: apId,
 					FileSystemId:  fsId,
 					PosixUser: &cloud.PosixUser{
-						Gid: 2000,
-						Uid: 2000,
+						Gid: 11000,
+						Uid: 11000,
 					},
 				}
 
-				expectedGid := 2000
+				expectedGid := 11000
 				mockCloud.EXPECT().ListAccessPoints(gomock.Eq(ctx), gomock.Any()).Return(accessPoints, nil)
 				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(lastAccessPoint, nil).
 					Do(func(ctx context.Context, clientToken string, accessPointOpts *cloud.AccessPointOptions) {
