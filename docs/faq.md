@@ -8,6 +8,9 @@ Alternatively, if you would prefer not to allocate these resources to your contr
 ## Timeouts
 For most highly concurrent workloads, we recommend increasing the default timeout argument set in the [external-provisioner](https://github.com/kubernetes-csi/external-provisioner) from 15 seconds to 60 seconds. This will avoid provisioning failures due to throttling and resource contention in the controller container. 
 
+## Update Strategy
+* Amazon EFS CSI driver allows you to configure your [update strategy](https://kubernetes.io/docs/tasks/manage-daemon/update-daemon-set/#daemonset-update-strategy)
+* When setting update strategy to be ```OnDelete```, you must manually delete the csi-node and csi-controller pods in order for them to be updated
 
 ## Using botocore to retrieve mount target ip address when dns name cannot be resolved
 * Amazon EFS CSI driver supports using botocore to retrieve mount target ip address when dns name cannot be resolved, e.g., when user is mounting a file system in another VPC, botocore comes preinstalled on efs-csi-driver which can solve this DNS issue.
