@@ -216,6 +216,7 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 		accessPointsOptions.Tags = tags
 
 		uid = -1
+		var uidSpecified = false
 		if value, ok := volumeParams[Uid]; ok {
 			uid, err = strconv.ParseInt(value, 10, 64)
 			if err != nil {
@@ -224,9 +225,11 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 			if uid < 0 {
 				return nil, status.Errorf(codes.InvalidArgument, "%v must be greater or equal than 0", Uid)
 			}
+			uidSpecified = true
 		}
 
 		gid = -1
+		var gidSpecified = false
 		if value, ok := volumeParams[Gid]; ok {
 			gid, err = strconv.ParseInt(value, 10, 64)
 			if err != nil {
@@ -235,6 +238,7 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 			if gid < 0 {
 				return nil, status.Errorf(codes.InvalidArgument, "%v must be greater or equal than 0", Gid)
 			}
+			gidSpecified = true
 		}
 
 		if value, ok := volumeParams[GidMin]; ok {
@@ -370,7 +374,7 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 				if existingAccessPoint == nil {
 					return nil, fmt.Errorf("No access point for client token %s was returned: %v", clientToken, err)
 				}
-				err = validateExistingAccessPoint(existingAccessPoint, basePath, gidMin, gidMax)
+				err = validateExistingAccessPoint(existingAccessPoint, basePath, gid, gidSpecified, uid, uidSpecified, gidMin, gidMax)
 				if err != nil {
 					return nil, status.Errorf(codes.AlreadyExists, "Invalid existing access point: %v", err)
 				}
@@ -765,8 +769,7 @@ func get64LenHash(text string) string {
 	return fmt.Sprintf("%x", h.Sum(nil))
 }
 
-func validateExistingAccessPoint(existingAccessPoint *cloud.AccessPoint, basePath string, gidMin int64, gidMax int64) error {
-
+func validateExistingAccessPoint(existingAccessPoint *cloud.AccessPoint, basePath string, gid int64, gidSpecified bool, uid int64, uidSpecified bool, gidMin int64, gidMax int64) error {
 	normalizedBasePath := strings.TrimPrefix(basePath, "/")
 	normalizedAccessPointPath := strings.TrimPrefix(existingAccessPoint.AccessPointRootDir, "/")
 	if !strings.HasPrefix(normalizedAccessPointPath, normalizedBasePath) {
@@ -777,12 +780,24 @@ func validateExistingAccessPoint(existingAccessPoint *cloud.AccessPoint, basePat
 		return fmt.Errorf("Access point found but PosixUser is nil")
 	}
 
-	if existingAccessPoint.PosixUser.Gid < gidMin || existingAccessPoint.PosixUser.Gid > gidMax {
-		return fmt.Errorf("Access point found but its GID is outside the specified range")
+	if gidSpecified {
+		if existingAccessPoint.PosixUser.Gid != gid {
+			return fmt.Errorf("Access point found but its GID is incorrect")
+		}
+	} else {
+		if existingAccessPoint.PosixUser.Gid < gidMin || existingAccessPoint.PosixUser.Gid > gidMax {
+			return fmt.Errorf("Access point found but its GID is outside the specified range")
+		}
 	}
 
-	if existingAccessPoint.PosixUser.Uid < gidMin || existingAccessPoint.PosixUser.Uid > gidMax {
-		return fmt.Errorf("Access point found but its UID is outside the specified range")
+	if uidSpecified {
+		if existingAccessPoint.PosixUser.Uid != uid {
+			return fmt.Errorf("Access point found but its UID is incorrect")
+		}
+	} else {
+		if existingAccessPoint.PosixUser.Uid < gidMin || existingAccessPoint.PosixUser.Uid > gidMax {
+			return fmt.Errorf("Access point found but its UID is outside the specified range")
+		}
 	}
 
 	return nil

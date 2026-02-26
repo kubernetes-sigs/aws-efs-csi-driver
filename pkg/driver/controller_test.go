@@ -3191,6 +3191,75 @@ func TestCreateVolume(t *testing.T) {
 			},
 		},
 		{
+			name: "Success: Reuse existing access point with UID and GID specified",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockCloud := mocks.NewMockCloud(mockCtl)
+
+				driver := &Driver{
+					endpoint:     endpoint,
+					cloud:        mockCloud,
+					gidAllocator: NewGidAllocator(),
+					lockManager:  NewLockManagerMap(),
+				}
+
+				req := &csi.CreateVolumeRequest{
+					Name: volumeName,
+					VolumeCapabilities: []*csi.VolumeCapability{
+						stdVolCap,
+					},
+					CapacityRange: &csi.CapacityRange{
+						RequiredBytes: capacityRange,
+					},
+					Parameters: map[string]string{
+						ProvisioningMode: "efs-ap",
+						FsId:             fsId,
+						Gid:              strconv.FormatInt(DefaultGidMin-1, 10),
+						Uid:              strconv.FormatInt(DefaultGidMin-1, 10),
+						BasePath:         "/test",
+						DirectoryPerms:   "777",
+						PvcNameKey:       "test-pvc",
+					},
+				}
+
+				existingAP := &cloud.AccessPoint{
+					AccessPointId:      apId,
+					FileSystemId:       fsId,
+					AccessPointRootDir: "/test/directory",
+					PosixUser: &cloud.PosixUser{
+						Uid: DefaultGidMin - 1,
+						Gid: DefaultGidMin - 1,
+					},
+				}
+
+				fileSystem := &cloud.FileSystem{
+					FileSystemId: fsId,
+				}
+
+				ctx := context.Background()
+				mockCloud.EXPECT().DescribeFileSystem(gomock.Eq(ctx), gomock.Any()).Return(fileSystem, nil)
+				mockCloud.EXPECT().CreateAccessPoint(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, cloud.ErrAlreadyExists)
+				mockCloud.EXPECT().FindAccessPointByClientToken(gomock.Any(), gomock.Any(), fsId).Return(existingAP, nil)
+
+				res, err := driver.CreateVolume(ctx, req)
+
+				if err != nil {
+					t.Fatalf("CreateVolume failed: %v", err)
+				}
+
+				if res.Volume == nil {
+					t.Fatal("Volume is nil")
+				}
+
+				expectedVolumeId := fsId + "::" + apId
+				if res.Volume.VolumeId != expectedVolumeId {
+					t.Fatalf("Volume Id mismatched. Expected: %v, Actual: %v", expectedVolumeId, res.Volume.VolumeId)
+				}
+
+				mockCtl.Finish()
+			},
+		},
+		{
 			name: "Fail: Reuse existing access point with GID outside specified range",
 			testFunc: func(t *testing.T) {
 				mockCtl := gomock.NewController(t)
@@ -3297,6 +3366,126 @@ func TestCreateVolume(t *testing.T) {
 
 				if err == nil {
 					t.Fatal("CreateVolume should have failed due to invalid UID")
+				}
+
+				mockCtl.Finish()
+			},
+		},
+		{
+			name: "Fail: Reuse existing access point with GID not matching specified value",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockCloud := mocks.NewMockCloud(mockCtl)
+
+				driver := &Driver{
+					endpoint:     endpoint,
+					cloud:        mockCloud,
+					gidAllocator: NewGidAllocator(),
+					lockManager:  NewLockManagerMap(),
+				}
+
+				req := &csi.CreateVolumeRequest{
+					Name: volumeName,
+					VolumeCapabilities: []*csi.VolumeCapability{
+						stdVolCap,
+					},
+					CapacityRange: &csi.CapacityRange{
+						RequiredBytes: capacityRange,
+					},
+					Parameters: map[string]string{
+						ProvisioningMode: "efs-ap",
+						FsId:             fsId,
+						Gid:              strconv.FormatInt(DefaultGidMin-1, 10),
+						Uid:              strconv.FormatInt(DefaultGidMin-1, 10),
+						BasePath:         "/test",
+						DirectoryPerms:   "777",
+						PvcNameKey:       "test-pvc",
+					},
+				}
+
+				existingAP := &cloud.AccessPoint{
+					AccessPointId:      apId,
+					FileSystemId:       fsId,
+					AccessPointRootDir: "/test/directory",
+					PosixUser: &cloud.PosixUser{
+						Uid: DefaultGidMin - 1,
+						Gid: DefaultGidMin, // Not matching
+					},
+				}
+
+				fileSystem := &cloud.FileSystem{
+					FileSystemId: fsId,
+				}
+
+				ctx := context.Background()
+				mockCloud.EXPECT().DescribeFileSystem(gomock.Eq(ctx), gomock.Any()).Return(fileSystem, nil)
+				mockCloud.EXPECT().CreateAccessPoint(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, cloud.ErrAlreadyExists)
+				mockCloud.EXPECT().FindAccessPointByClientToken(gomock.Any(), gomock.Any(), fsId).Return(existingAP, nil)
+
+				_, err := driver.CreateVolume(ctx, req)
+
+				if err == nil {
+					t.Fatal("CreateVolume should have failed due to invalid GID")
+				}
+
+				mockCtl.Finish()
+			},
+		},
+		{
+			name: "Fail: Reuse existing access point with UID not matching specified value",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockCloud := mocks.NewMockCloud(mockCtl)
+
+				driver := &Driver{
+					endpoint:     endpoint,
+					cloud:        mockCloud,
+					gidAllocator: NewGidAllocator(),
+					lockManager:  NewLockManagerMap(),
+				}
+
+				req := &csi.CreateVolumeRequest{
+					Name: volumeName,
+					VolumeCapabilities: []*csi.VolumeCapability{
+						stdVolCap,
+					},
+					CapacityRange: &csi.CapacityRange{
+						RequiredBytes: capacityRange,
+					},
+					Parameters: map[string]string{
+						ProvisioningMode: "efs-ap",
+						FsId:             fsId,
+						Gid:              strconv.FormatInt(DefaultGidMin-1, 10),
+						Uid:              strconv.FormatInt(DefaultGidMin-1, 10),
+						BasePath:         "/test",
+						DirectoryPerms:   "777",
+						PvcNameKey:       "test-pvc",
+					},
+				}
+
+				existingAP := &cloud.AccessPoint{
+					AccessPointId:      apId,
+					FileSystemId:       fsId,
+					AccessPointRootDir: "/test/directory",
+					PosixUser: &cloud.PosixUser{
+						Uid: DefaultGidMin, // Not matching
+						Gid: DefaultGidMin - 1,
+					},
+				}
+
+				fileSystem := &cloud.FileSystem{
+					FileSystemId: fsId,
+				}
+
+				ctx := context.Background()
+				mockCloud.EXPECT().DescribeFileSystem(gomock.Eq(ctx), gomock.Any()).Return(fileSystem, nil)
+				mockCloud.EXPECT().CreateAccessPoint(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, cloud.ErrAlreadyExists)
+				mockCloud.EXPECT().FindAccessPointByClientToken(gomock.Any(), gomock.Any(), fsId).Return(existingAP, nil)
+
+				_, err := driver.CreateVolume(ctx, req)
+
+				if err == nil {
+					t.Fatal("CreateVolume should have failed due to invalid GID")
 				}
 
 				mockCtl.Finish()
