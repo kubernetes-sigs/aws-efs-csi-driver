@@ -289,13 +289,10 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 			azName = value
 		}
 
-		// Check if file system exists. Describe FS or List APs handle appropriate error codes
 		// With dynamic uid/gid provisioning we can save a call to describe FS, as list APs fails if FS ID does not exist
 		var accessPoints []*cloud.AccessPoint
 		if uid == -1 || gid == -1 {
 			accessPoints, err = localCloud.ListAccessPoints(ctx, accessPointsOptions.FileSystemId)
-		} else {
-			_, err = localCloud.DescribeFileSystem(ctx, accessPointsOptions.FileSystemId)
 		}
 		if err != nil {
 			if err == cloud.ErrAccessDenied {
