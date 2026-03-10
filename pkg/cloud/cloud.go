@@ -21,10 +21,11 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/aws/smithy-go"
 	"math/rand"
 	"os"
 	"time"
+
+	"github.com/aws/smithy-go"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -41,7 +42,7 @@ const (
 	AccessDeniedException    = "AccessDeniedException"
 	AccessPointAlreadyExists = "AccessPointAlreadyExists"
 	PvcNameTagKey            = "pvcName"
-	AccessPointPerFsLimit    = 1000
+	AccessPointPerFsLimit    = 10000
 )
 
 var (

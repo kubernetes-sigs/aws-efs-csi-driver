@@ -8,14 +8,21 @@ The Amazon EFS CSI driver supports [Amazon EFS access points](https://docs.aws.a
 **Important**  
 You must complete the following steps in the same terminal because variables are set and used across the steps.
 
+Setup variables
+```
+REGION=  #e.g. us-east-1
+CLUSTER_NAME=
+```
+
 **To create an Amazon EFS file system for your Amazon EKS cluster**
 
 1. Retrieve the VPC ID that your cluster is in and store it in a variable for use in a later step. Replace `my-cluster` with your cluster name.
 
    ```
    vpc_id=$(aws eks describe-cluster \
-       --name my-cluster \
+       --name $CLUSTER_NAME \
        --query "cluster.resourcesVpcConfig.vpcId" \
+       --region $REGION \
        --output text)
    ```
 
@@ -26,7 +33,7 @@ You must complete the following steps in the same terminal because variables are
        --vpc-ids $vpc_id \
        --query "Vpcs[].CidrBlock" \
        --output text \
-       --region region-code)
+       --region $REGION)
    ```
 
 1. Create a security group with an inbound rule that allows inbound NFS traffic for your Amazon EFS mount points.
@@ -34,10 +41,14 @@ You must complete the following steps in the same terminal because variables are
    1. Create a security group. Replace the *`example values`* with your own.
 
       ```
+      SECURITY_GROUP_NAME=
+      SECURITY_GROUP_DESCRIPTION=
       security_group_id=$(aws ec2 create-security-group \
-          --group-name MyEfsSecurityGroup \
-          --description "My EFS security group" \
+          --group-name $SECURITY_GROUP_NAME \
+          --description $SECURITY_GROUP_DESCRIPTION \
           --vpc-id $vpc_id \
+          --region $REGION \
+          --query 'GroupId' \
           --output text)
       ```
 
@@ -48,6 +59,7 @@ You must complete the following steps in the same terminal because variables are
           --group-id $security_group_id \
           --protocol tcp \
           --port 2049 \
+          --region $REGION \
           --cidr $cidr_range
       ```
 **Important**  
@@ -59,7 +71,7 @@ To further restrict access to your file system, you can use the CIDR for your su
 
       ```
       file_system_id=$(aws efs create-file-system \
-          --region region-code \
+          --region $REGION \
           --performance-mode generalPurpose \
           --query 'FileSystemId' \
           --output text)
@@ -86,6 +98,7 @@ To further restrict access to your file system, you can use the CIDR for your su
          aws ec2 describe-subnets \
              --filters "Name=vpc-id,Values=$vpc_id" \
              --query 'Subnets[*].{SubnetId: SubnetId,AvailabilityZone: AvailabilityZone,CidrBlock: CidrBlock}' \
+             --region $REGION \
              --output table
          ```
 
@@ -107,8 +120,9 @@ To further restrict access to your file system, you can use the CIDR for your su
       1. Add mount targets for the subnets that your nodes are in. From the output in the previous two steps, the cluster has one node with an IP address of `192.168.56.0`. That IP address is within the `CidrBlock` of the subnet with the ID `subnet-EXAMPLEe2ba886490`. As a result, the following command creates a mount target for the subnet the node is in. If there were more nodes in the cluster, you'd run the command once for a subnet in each AZ that you had a node in, replacing `subnet-EXAMPLEe2ba886490` with the appropriate subnet ID.
 
          ```
+         SUBNET_ID=  #e.g. subnet-EXAMPLE6e421a0e97
          aws efs create-mount-target \
              --file-system-id $file_system_id \
-             --subnet-id subnet-EXAMPLEe2ba886490 \
+             --subnet-id $SUBNET_ID \
              --security-groups $security_group_id
          ```
