@@ -1,3 +1,7 @@
+# V2.3.1
+* Update AccessPointPerFsLimit to 10000 ([#1806](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1806), [@DavidXU12345](https://github.com/DavidXU12345))
+* Fix Validation for Hardcoded AccessPoint GID/UID ([#1809](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1809), [@samuhale](https://github.com/samuhale))
+* Remove Extraneous Describe Call from CreateVolume ([#1810](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1810), [@samuhale](https://github.com/samuhale))
 # V2.3.0
 * fix: Add CSI topology for One Zone EFS ([#1761](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1761), [@aliyajo](https://github.com/aliyajo))
 * Upgrade golang to 1.25.5 to fix high CVE ([#1763](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1763), [@DavidXU12345](https://github.com/DavidXU12345))
