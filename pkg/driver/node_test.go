@@ -184,35 +184,6 @@ func TestNodePublishVolume(t *testing.T) {
 			maxInflightMountCalls: UnsetMaxInflightMountCounts,
 		},
 		{
-			// TODO: Validate deprecation warning
-			name: "success: normal with path in volume context",
-			req: &csi.NodePublishVolumeRequest{
-				VolumeId:         volumeId,
-				VolumeCapability: stdVolCap,
-				TargetPath:       targetPath,
-				VolumeContext:    map[string]string{"path": "/a/b"},
-			},
-			expectMakeDir:         true,
-			mountArgs:             []interface{}{volumeId + ":/a/b", targetPath, "efs", []string{"tls"}},
-			mountSuccess:          true,
-			maxInflightMountCalls: UnsetMaxInflightMountCounts,
-		},
-		{
-			name: "fail: path in volume context must be absolute",
-			req: &csi.NodePublishVolumeRequest{
-				VolumeId:         volumeId,
-				VolumeCapability: stdVolCap,
-				TargetPath:       targetPath,
-				VolumeContext:    map[string]string{"path": "a/b"},
-			},
-			expectMakeDir: false,
-			expectError: errtyp{
-				code:    "InvalidArgument",
-				message: `Volume context property "path" must be an absolute path`,
-			},
-			maxInflightMountCalls: UnsetMaxInflightMountCounts,
-		},
-		{
 			name: "success: normal with path in volume handle",
 			req: &csi.NodePublishVolumeRequest{
 				// This also shows that the path gets cleaned
@@ -235,19 +206,6 @@ func TestNodePublishVolume(t *testing.T) {
 			},
 			expectMakeDir:         true,
 			mountArgs:             []interface{}{volumeId + ":a/b", targetPath, "efs", []string{"tls"}},
-			mountSuccess:          true,
-			maxInflightMountCalls: UnsetMaxInflightMountCounts,
-		},
-		{
-			name: "success: path in volume handle takes precedence",
-			req: &csi.NodePublishVolumeRequest{
-				VolumeId:         volumeId + ":/a/b/",
-				VolumeCapability: stdVolCap,
-				TargetPath:       targetPath,
-				VolumeContext:    map[string]string{"path": "/c/d"},
-			},
-			expectMakeDir:         true,
-			mountArgs:             []interface{}{volumeId + ":/a/b", targetPath, "efs", []string{"tls"}},
 			mountSuccess:          true,
 			maxInflightMountCalls: UnsetMaxInflightMountCounts,
 		},
@@ -555,6 +513,21 @@ func TestNodePublishVolume(t *testing.T) {
 			expectError: errtyp{
 				code:    "InvalidArgument",
 				message: "Volume context property asdf not supported.",
+			},
+			maxInflightMountCalls: UnsetMaxInflightMountCounts,
+		},
+		{
+			name: "fail: 'path' is a deprecated and unsupported volume context",
+			req: &csi.NodePublishVolumeRequest{
+				VolumeId:         volumeId,
+				VolumeCapability: stdVolCap,
+				TargetPath:       targetPath,
+				VolumeContext:    map[string]string{"path": "a/b"},
+			},
+			expectMakeDir: false,
+			expectError: errtyp{
+				code:    "InvalidArgument",
+				message: "Volume context property path not supported.",
 			},
 			maxInflightMountCalls: UnsetMaxInflightMountCounts,
 		},
