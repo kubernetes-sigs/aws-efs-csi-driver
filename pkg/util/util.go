@@ -103,3 +103,8 @@ func BuildTopology(availabilityZone string) *csi.Topology {
 		},
 	}
 }
+
+// IsHyperPodNode checks if the node is a SageMaker HyperPod node by its name prefix.
+func IsHyperPodNode(nodeID string) bool {
+	return strings.HasPrefix(nodeID, "hyperpod-")
+}
