@@ -100,6 +100,7 @@ func SetNodeCapOptInFeatures(volMetricsOptIn bool) []csi.NodeServiceCapability_R
 	if volMetricsOptIn {
 		klog.V(4).Infof("Enabling Node Service capability for Get Volume Stats")
 		nCaps = append(nCaps, csi.NodeServiceCapability_RPC_GET_VOLUME_STATS)
+		nCaps = append(nCaps, csi.NodeServiceCapability_RPC_VOLUME_CONDITION)
 	} else {
 		klog.V(4).Infof("Node Service capability for Get Volume Stats Not enabled")
 	}
