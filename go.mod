@@ -152,7 +152,15 @@ require (
 	sigs.k8s.io/yaml v1.4.0 // indirect
 )
 
-replace k8s.io/kube-scheduler => k8s.io/kube-scheduler v0.33.2
+replace (
+	k8s.io/cluster-bootstrap => k8s.io/cluster-bootstrap v0.33.2
+	k8s.io/endpointslice => k8s.io/endpointslice v0.33.2
+	k8s.io/externaljwt => k8s.io/externaljwt v0.33.2
+	k8s.io/kube-aggregator => k8s.io/kube-aggregator v0.33.2
+	k8s.io/kube-controller-manager => k8s.io/kube-controller-manager v0.33.2
+	k8s.io/kube-proxy => k8s.io/kube-proxy v0.33.2
+	k8s.io/sample-apiserver => k8s.io/sample-apiserver v0.33.2
+)
 
 go 1.25.0
 
