@@ -66,6 +66,10 @@ func NewVolStatter() VolStatter {
 
 func (v VolStatterImpl) computeVolumeMetrics(volId, volPath string, refreshRate float64, fsRateLimit int) (*volMetrics, error) {
 	if value, ok := v.retrieveFromCache(volId); ok {
+		if _, ok := volStatterJobTracker[volId]; ok {
+			klog.V(4).Infof("Volume metrics computation is underway for volume Id : %v. Returning cached metrics for now", volId)
+			return value, nil
+		}
 		if time.Since(value.timeStamp).Minutes() > refreshRate {
 			// Time to refresh volume stats
 			v.launchVolStatsRoutine(volId, volPath, fsRateLimit)
@@ -128,17 +132,29 @@ func (v VolStatterImpl) launchVolStatsRoutine(volId, volPath string, fsRateLimit
 }
 
 func (v VolStatterImpl) computeDiskUsage(fsId, volId, volPath string) {
-	waitTime := wait.Jitter(jitter, 2.0)
+	waitTime := wait.Jitter(jitter, 2.0) //reduce jitter with better thundering herd management
 	var used fs.UsageInfo
 	var err error
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
+	update_time := time.Now().UTC()
+	health := false
 	done := make(chan error, 1)
-	klog.V(5).Infof("Compute Volume Metrics invoked for Vol ID: %v, Sleeping for %v before execution", volId, waitTime)
+	klog.V(5).Infof("Compute volume metrics invoked for Vol ID: %v, Sleeping for %v before execution", volId, waitTime)
+
+	volMetrics := &volMetrics{
+		mountHealthy: health,
+		volPath:      volPath,
+		timeStamp:    update_time,
+		volUsage:     []*csi.VolumeUsage{{Unit: csi.VolumeUsage_UNKNOWN}},
+	}
+	if _, ok := v.retrieveFromCache(volId); !ok {
+		volUsageCache[volId] = volMetrics
+	}
 
 	// ensure fsRateLimiter cleanup for failing execution paths
+	// ToDo: fix kubelet thrundering herd with empty cahce response pending first await volStatter execution completion
 	defer func() {
 		mu.Lock()
+		volUsageCache[volId] = volMetrics
 		delete(volStatterJobTracker, volId)
 		if count, ok := fsRateLimiter[fsId]; ok && count > 0 {
 			fsRateLimiter[fsId] = count - 1
@@ -149,8 +165,11 @@ func (v VolStatterImpl) computeDiskUsage(fsId, volId, volPath string) {
 	//jittered execution
 	time.Sleep(waitTime)
 
-	health, err := checkMountHealth(ctx, volPath)
-	if err != nil {
+	ctx, cancel := context.WithTimeout(context.Background(), 6*time.Second)
+	defer cancel()
+
+	health, err = checkMountHealth(ctx, volPath)
+	if !health {
 		updateVolMetricsWithHealth(volId, health)
 		// attempt a single async recovery to update cached health status back to healthy
 		go v.healthWatchdog.AsyncMountHealthRecovery(volId, volPath)
@@ -196,16 +215,11 @@ func (v VolStatterImpl) computeDiskUsage(fsId, volId, volPath string) {
 		},
 	}
 
-	volMetrics := &volMetrics{
-		mountHealthy: health,
-		volPath:      volPath,
-		timeStamp:    time.Now(),
-		volUsage:     usage}
-
-	// ToDo: initiate an empt cache to stop kubelet thundering herd scenarios?
-	mu.Lock()
-	volUsageCache[volId] = volMetrics
-	mu.Unlock()
+	volMetrics.mountHealthy = health
+	volMetrics.volUsage = usage
+	update_time = time.Now().UTC()
+	volMetrics.timeStamp = update_time
+	klog.V(5).Infof("Compute volume metrics complete for Vol ID: %v, Vol Health: %v, Used: %v, Available: %v, Capacity: %v", volId, health, volUsed, available, capacity)
 	return
 }
 

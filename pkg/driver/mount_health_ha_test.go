@@ -1,6 +1,7 @@
 package driver
 
 import (
+	"context"
 	"fmt"
 	"testing"
 	"time"
@@ -143,6 +144,57 @@ func TestAsyncMountHealthRecoveryRaceDeletion(t *testing.T) {
 		t.Log("Successfully simulated deletion during recovery")
 	case <-time.After(5 * time.Second):
 		t.Error("Test timed out")
+	}
+}
+
+func TestCheckMountHealth_Table(t *testing.T) {
+	// 1. Define the "Table" of test cases
+	tests := []struct {
+		name       string
+		timeout    time.Duration
+		setupPath  func() string // Helper to create temp paths
+		wantHealth bool
+		wantErr    bool
+	}{
+		{
+			name:       "Success Path",
+			timeout:    2 * time.Second,
+			setupPath:  func() string { return t.TempDir() },
+			wantHealth: true,
+			wantErr:    false,
+		},
+		{
+			name:       "Timeout Path",
+			timeout:    1 * time.Millisecond, // Force immediate timeout
+			setupPath:  func() string { return t.TempDir() },
+			wantHealth: false,
+			wantErr:    true,
+		},
+		{
+			name:       "Invalid Path",
+			timeout:    2 * time.Second,
+			setupPath:  func() string { return "/non/existent/path" },
+			wantHealth: false,
+			wantErr:    false,
+		},
+	}
+
+	for _, tt := range tests {
+		// 2. Use t.Run for each row in the table
+		t.Run(tt.name, func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(context.Background(), tt.timeout)
+			defer cancel()
+
+			path := tt.setupPath()
+			health, err := checkMountHealth(ctx, path)
+
+			if health != tt.wantHealth {
+				t.Errorf("health = %v, want %v", health, tt.wantHealth)
+			}
+			if (err != nil) != tt.wantErr {
+				t.Errorf("error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
 	}
 }
 

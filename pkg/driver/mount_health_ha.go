@@ -17,7 +17,7 @@ type MountParams struct {
 }
 
 func checkMountHealth(ctx context.Context, target string) (bool, error) {
-	osCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	osCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 	done := make(chan error, 1)
 	mount_health := filepath.Join(target, ".efs_mount_health")
