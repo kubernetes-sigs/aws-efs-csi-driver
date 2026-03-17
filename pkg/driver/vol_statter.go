@@ -41,7 +41,7 @@ var (
 	volStatterJobTracker = make(map[string]bool)
 	fsRateLimiter        = make(map[string]int)
 	mu                   sync.RWMutex
-	jitter               = time.Duration(5 * time.Minute)
+	jitter               = time.Duration(2 * time.Minute)
 )
 
 type VolStatter interface {
@@ -123,6 +123,7 @@ func (v VolStatterImpl) launchVolStatsRoutine(volId, volPath string, fsRateLimit
 		klog.V(5).Infof("Volume stats computation job is underway for volume Id : %v. Awaiting results", volId)
 	} else {
 		if ok := canStatFS(fsId, fsRateLimit); ok {
+			volStatterJobTracker[volId] = true
 			go v.computeDiskUsage(fsId, volId, volPath)
 		} else {
 			klog.V(5).Infof("Too many stat routines are running against FS : %s. Retry stat for volume Id: %s later", fsId, volId)
@@ -135,7 +136,7 @@ func (v VolStatterImpl) computeDiskUsage(fsId, volId, volPath string) {
 	waitTime := wait.Jitter(jitter, 2.0) //reduce jitter with better thundering herd management
 	var used fs.UsageInfo
 	var err error
-	update_time := time.Now().UTC()
+	update_time := time.Now()
 	health := false
 	done := make(chan error, 1)
 	klog.V(5).Infof("Compute volume metrics invoked for Vol ID: %v, Sleeping for %v before execution", volId, waitTime)
@@ -170,7 +171,6 @@ func (v VolStatterImpl) computeDiskUsage(fsId, volId, volPath string) {
 
 	health, err = checkMountHealth(ctx, volPath)
 	if !health {
-		updateVolMetricsWithHealth(volId, health)
 		// attempt a single async recovery to update cached health status back to healthy
 		go v.healthWatchdog.AsyncMountHealthRecovery(volId, volPath)
 		klog.Errorf("Failed mount health check for volume path %s: %v", volPath, err)
@@ -185,13 +185,11 @@ func (v VolStatterImpl) computeDiskUsage(fsId, volId, volPath string) {
 	case err := <-done:
 		if err != nil {
 			health = false
-			updateVolMetricsWithHealth(volId, health)
 			klog.Errorf("Failed to compute volume usage on path %s: %v", volPath, err)
 			return
 		}
 	case <-ctx.Done():
 		health = false
-		updateVolMetricsWithHealth(volId, health)
 		klog.Errorf("Volume usage computation timed out for path %s", volPath)
 		return
 	}
@@ -217,9 +215,9 @@ func (v VolStatterImpl) computeDiskUsage(fsId, volId, volPath string) {
 
 	volMetrics.mountHealthy = health
 	volMetrics.volUsage = usage
-	update_time = time.Now().UTC()
+	update_time = time.Now()
 	volMetrics.timeStamp = update_time
-	klog.V(5).Infof("Compute volume metrics complete for Vol ID: %v, Vol Health: %v, Used: %v, Available: %v, Capacity: %v", volId, health, volUsed, available, capacity)
+	klog.V(5).Infof("Compute volume metrics complete for Vol ID: %v, Vol Healthy: %v, Used: %v, Available: %v, Capacity: %v", volId, health, volUsed, available, capacity)
 	return
 }
 
