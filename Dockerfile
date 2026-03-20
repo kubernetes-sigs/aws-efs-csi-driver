@@ -90,6 +90,9 @@ RUN clean_install amazon-efs-utils true && \
 # Those static files need to be copied back to the config directory when the driver starts up.
 RUN mv /newroot/etc/amazon/efs /newroot/etc/amazon/efs-static-files
 
+# Workaround to ensure IPv4/IPv6 dual stack net with IPv4 only Private link endpoint prioritizes IPv4 over IPv6, which is a common setup for Private link endpoint. This is required for stunnel to work properly in that setup. More details can be found in
+RUN echo "precedence ::ffff:0:0/96  100" >> /newroot/etc/gai.conf
+
 FROM public.ecr.aws/eks-distro-build-tooling/eks-distro-minimal-base-python:3.11-al23 AS linux-amazon
 
 COPY --from=rpm-installer /newroot /
