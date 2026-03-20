@@ -19,7 +19,10 @@ package cloud
 import (
 	"context"
 	"fmt"
+	"os"
+
 	"github.com/aws/aws-sdk-go-v2/feature/ec2/imds"
+	"github.com/kubernetes-sigs/aws-efs-csi-driver/pkg/util"
 
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog/v2"
@@ -68,10 +71,13 @@ func GetNewMetadataProvider(svc EC2Metadata, clientset kubernetes.Interface) (Me
 	if isDriverBootedInECS() {
 		klog.Info("detected driver is running in ECS, returning task metadata...")
 		return taskMetadataProvider{taskMetadataService: &taskMetadata{}}, nil
-	} else if isIMDSAvailable(svc) {
+	} else if isIMDSAvailable(svc) && !util.IsHyperPodNode(os.Getenv("CSI_NODE_NAME")) {
 		klog.Info("retrieving metadata from EC2 metadata service")
 		return ec2MetadataProvider{ec2MetadataService: svc}, nil
 	} else if clientset != nil {
+		if util.IsHyperPodNode(os.Getenv("CSI_NODE_NAME")) {
+			klog.Info("HyperPod node detected, skipping IMDS metadata to avoid topology zone collision")
+		}
 		klog.Info("retrieving metadata from Kubernetes API")
 		return kubernetesApiMetadataProvider{api: clientset}, nil
 	} else {
