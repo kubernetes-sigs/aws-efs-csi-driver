@@ -22,7 +22,6 @@ import (
 	"fmt"
 	"os"
 	"path"
-	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -101,13 +100,6 @@ func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 	volContext := req.GetVolumeContext()
 	for k, v := range volContext {
 		switch strings.ToLower(k) {
-		//Deprecated
-		case "path":
-			klog.Warning("Use of path under volumeAttributes is deprecated. This field will be removed in future release")
-			if !filepath.IsAbs(v) {
-				return nil, status.Errorf(codes.InvalidArgument, "Volume context property %q must be an absolute path", k)
-			}
-			subpath = filepath.Join(subpath, v)
 		case "storage.kubernetes.io/csiprovisioneridentity":
 			continue
 		case "encryptintransit":
