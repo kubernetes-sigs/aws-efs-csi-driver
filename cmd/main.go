@@ -32,6 +32,12 @@ const etcAmazonEfs = "/etc/amazon/efs"
 func main() {
 	klog.InitFlags(nil)
 
+	// Opt into the new klog behavior (klog v2.140.0+) so that -stderrthreshold
+	// is honored even when -logtostderr=true, which is the default.
+	// See: https://github.com/kubernetes/klog/issues/212
+	flag.Set("legacy_stderr_threshold_behavior", "false")
+	flag.Set("stderrthreshold", "INFO")
+
 	options := driver.NewOptions()
 	flag.Parse()
 
