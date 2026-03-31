@@ -44,9 +44,10 @@ var (
 		csi.VolumeCapability_AccessMode_SINGLE_NODE_WRITER,
 		csi.VolumeCapability_AccessMode_MULTI_NODE_MULTI_WRITER,
 	}
-	volumeIdCounter  = make(map[string]int)
-	supportedFSTypes = []string{"efs", ""}
-	hexSuffixRegex   = regexp.MustCompile(`^[0-9a-f]{8,40}$`)
+	volumeIdCounter    = make(map[string]int)
+	volumeMountOptions = make(map[string]MountParams)
+	supportedFSTypes   = []string{"efs", ""}
+	hexSuffixRegex     = regexp.MustCompile(`^[0-9a-f]{8,40}$`)
 )
 
 const (
@@ -229,6 +230,11 @@ func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 		} else {
 			volumeIdCounter[req.GetVolumeId()] = 1
 		}
+		volumeMountOptions[req.GetVolumeId()] = MountParams{
+			source:       source,
+			target:       target,
+			mountOptions: mountOptions,
+		}
 	}
 
 	return &csi.NodePublishVolumeResponse{}, nil
@@ -288,6 +294,7 @@ func (d *Driver) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpublish
 				volumeIdCounter[req.GetVolumeId()] = value
 			}
 		}
+		delete(volumeMountOptions, req.GetVolumeId())
 	}
 
 	return &csi.NodeUnpublishVolumeResponse{}, nil
@@ -321,8 +328,23 @@ func (d *Driver) NodeGetVolumeStats(ctx context.Context, req *csi.NodeGetVolumeS
 		return nil, status.Errorf(codes.Internal, "Could not get metrics: %v ", err)
 	}
 
+	if !volMetrics.mountHealthy {
+		return &csi.NodeGetVolumeStatsResponse{
+			Usage: volMetrics.volUsage,
+			VolumeCondition: &csi.VolumeCondition{
+				Abnormal: true,
+				Message:  "volume mount is unhealthy",
+			},
+		}, nil
+	}
+
+	klog.V(5).Infof("Compute volume metrics complete for Vol ID: %v, Vol Health: %v", volId, volMetrics.mountHealthy)
 	return &csi.NodeGetVolumeStatsResponse{
 		Usage: volMetrics.volUsage,
+		VolumeCondition: &csi.VolumeCondition{
+			Abnormal: false,
+			Message:  "volume mount is healthy",
+		},
 	}, nil
 }
 
