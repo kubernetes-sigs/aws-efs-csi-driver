@@ -593,11 +593,74 @@ func (d *Driver) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeRequest)
 }
 
 func (d *Driver) ControllerPublishVolume(ctx context.Context, req *csi.ControllerPublishVolumeRequest) (*csi.ControllerPublishVolumeResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "")
+	klog.V(4).Infof("ControllerPublishVolume: called with args %+v", util.SanitizeRequest(*req))
+
+	volumeId := req.GetVolumeId()
+	if volumeId == "" {
+		return nil, status.Error(codes.InvalidArgument, "Volume ID not provided")
+	}
+
+	nodeId := req.GetNodeId()
+	if nodeId == "" {
+		return nil, status.Error(codes.InvalidArgument, "Node ID not provided")
+	}
+
+	volCap := req.GetVolumeCapability()
+	if volCap == nil {
+		return nil, status.Error(codes.InvalidArgument, "Volume capability not provided")
+	}
+
+	// Validate volume ID format
+	fsId, _, apId, err := parseVolumeId(volumeId)
+	if err != nil {
+		return nil, status.Errorf(codes.NotFound, "Volume not found: %v", err)
+	}
+
+	// Verify the access point exists if one was specified
+	if apId != "" {
+		_, err := d.cloud.DescribeAccessPoint(ctx, apId)
+		if err != nil {
+			if err == cloud.ErrNotFound {
+				return nil, status.Errorf(codes.NotFound, "Volume not found: access point %s does not exist", apId)
+			}
+			if err == cloud.ErrAccessDenied {
+				return nil, status.Errorf(codes.PermissionDenied, "Access denied describing access point %s", apId)
+			}
+			return nil, status.Errorf(codes.Internal, "Failed to verify volume existence: %v", err)
+		}
+	} else {
+		// Verify the file system exists
+		_, err := d.cloud.DescribeFileSystem(ctx, fsId)
+		if err != nil {
+			if err == cloud.ErrNotFound {
+				return nil, status.Errorf(codes.NotFound, "Volume not found: file system %s does not exist", fsId)
+			}
+			if err == cloud.ErrAccessDenied {
+				return nil, status.Errorf(codes.PermissionDenied, "Access denied describing file system %s", fsId)
+			}
+			return nil, status.Errorf(codes.Internal, "Failed to verify volume existence: %v", err)
+		}
+	}
+
+	// EFS is a network filesystem and does not require a physical attach operation.
+	// This no-op implementation exists to support attachRequired: true on the CSIDriver
+	// object, which ensures the Kubernetes attach/detach controller waits for the
+	// VolumeAttachment to be marked as attached before proceeding to NodePublishVolume.
+	// This guarantees the CSI node driver daemonset pod is registered and ready before
+	// any workload pod attempts to mount an EFS volume.
+	return &csi.ControllerPublishVolumeResponse{}, nil
 }
 
 func (d *Driver) ControllerUnpublishVolume(ctx context.Context, req *csi.ControllerUnpublishVolumeRequest) (*csi.ControllerUnpublishVolumeResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "")
+	klog.V(4).Infof("ControllerUnpublishVolume: called with args %+v", util.SanitizeRequest(*req))
+
+	volumeId := req.GetVolumeId()
+	if volumeId == "" {
+		return nil, status.Error(codes.InvalidArgument, "Volume ID not provided")
+	}
+
+	// No-op: EFS does not require a detach operation.
+	return &csi.ControllerUnpublishVolumeResponse{}, nil
 }
 
 func (d *Driver) ValidateVolumeCapabilities(ctx context.Context, req *csi.ValidateVolumeCapabilitiesRequest) (*csi.ValidateVolumeCapabilitiesResponse, error) {

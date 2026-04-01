@@ -3868,6 +3868,341 @@ func TestCreateVolume(t *testing.T) {
 	}
 }
 
+func TestControllerPublishVolume(t *testing.T) {
+	var (
+		endpoint = "endpoint"
+		fsId     = "fs-abcd1234"
+		apId     = "fsap-abcd1234"
+		volumeId = "fs-abcd1234::fsap-abcd1234"
+		nodeId   = "i-1234567890abcdef0"
+		stdVolCap = &csi.VolumeCapability{
+			AccessType: &csi.VolumeCapability_Mount{
+				Mount: &csi.VolumeCapability_MountVolume{},
+			},
+			AccessMode: &csi.VolumeCapability_AccessMode{
+				Mode: csi.VolumeCapability_AccessMode_MULTI_NODE_MULTI_WRITER,
+			},
+		}
+	)
+
+	testCases := []struct {
+		name     string
+		testFunc func(t *testing.T)
+	}{
+		{
+			name: "Success: valid volume and node",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockCloud := mocks.NewMockCloud(mockCtl)
+
+				driver := &Driver{
+					endpoint: endpoint,
+					cloud:    mockCloud,
+				}
+
+				ctx := context.Background()
+				accessPoint := &cloud.AccessPoint{
+					AccessPointId: apId,
+					FileSystemId:  fsId,
+				}
+				mockCloud.EXPECT().DescribeAccessPoint(gomock.Eq(ctx), gomock.Eq(apId)).Return(accessPoint, nil)
+
+				req := &csi.ControllerPublishVolumeRequest{
+					VolumeId:         volumeId,
+					NodeId:           nodeId,
+					VolumeCapability: stdVolCap,
+				}
+
+				res, err := driver.ControllerPublishVolume(ctx, req)
+				if err != nil {
+					t.Fatalf("ControllerPublishVolume failed: %v", err)
+				}
+				if res == nil {
+					t.Fatal("Response is nil")
+				}
+				mockCtl.Finish()
+			},
+		},
+		{
+			name: "Success: volume with filesystem ID only (no access point)",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockCloud := mocks.NewMockCloud(mockCtl)
+
+				driver := &Driver{
+					endpoint: endpoint,
+					cloud:    mockCloud,
+				}
+
+				ctx := context.Background()
+				fs := &cloud.FileSystem{
+					FileSystemId: fsId,
+				}
+				mockCloud.EXPECT().DescribeFileSystem(gomock.Eq(ctx), gomock.Eq(fsId)).Return(fs, nil)
+
+				req := &csi.ControllerPublishVolumeRequest{
+					VolumeId:         fsId,
+					NodeId:           nodeId,
+					VolumeCapability: stdVolCap,
+				}
+
+				res, err := driver.ControllerPublishVolume(ctx, req)
+				if err != nil {
+					t.Fatalf("ControllerPublishVolume failed: %v", err)
+				}
+				if res == nil {
+					t.Fatal("Response is nil")
+				}
+				mockCtl.Finish()
+			},
+		},
+		{
+			name: "Fail: empty volume ID",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockCloud := mocks.NewMockCloud(mockCtl)
+
+				driver := &Driver{
+					endpoint: endpoint,
+					cloud:    mockCloud,
+				}
+
+				req := &csi.ControllerPublishVolumeRequest{
+					VolumeId:         "",
+					NodeId:           nodeId,
+					VolumeCapability: stdVolCap,
+				}
+
+				ctx := context.Background()
+				_, err := driver.ControllerPublishVolume(ctx, req)
+				if err == nil {
+					t.Fatal("Expected error, got nil")
+				}
+				if status.Code(err) != codes.InvalidArgument {
+					t.Fatalf("Expected InvalidArgument, got %v", status.Code(err))
+				}
+				mockCtl.Finish()
+			},
+		},
+		{
+			name: "Fail: empty node ID",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockCloud := mocks.NewMockCloud(mockCtl)
+
+				driver := &Driver{
+					endpoint: endpoint,
+					cloud:    mockCloud,
+				}
+
+				req := &csi.ControllerPublishVolumeRequest{
+					VolumeId:         volumeId,
+					NodeId:           "",
+					VolumeCapability: stdVolCap,
+				}
+
+				ctx := context.Background()
+				_, err := driver.ControllerPublishVolume(ctx, req)
+				if err == nil {
+					t.Fatal("Expected error, got nil")
+				}
+				if status.Code(err) != codes.InvalidArgument {
+					t.Fatalf("Expected InvalidArgument, got %v", status.Code(err))
+				}
+				mockCtl.Finish()
+			},
+		},
+		{
+			name: "Fail: nil volume capability",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockCloud := mocks.NewMockCloud(mockCtl)
+
+				driver := &Driver{
+					endpoint: endpoint,
+					cloud:    mockCloud,
+				}
+
+				req := &csi.ControllerPublishVolumeRequest{
+					VolumeId: volumeId,
+					NodeId:   nodeId,
+				}
+
+				ctx := context.Background()
+				_, err := driver.ControllerPublishVolume(ctx, req)
+				if err == nil {
+					t.Fatal("Expected error, got nil")
+				}
+				if status.Code(err) != codes.InvalidArgument {
+					t.Fatalf("Expected InvalidArgument, got %v", status.Code(err))
+				}
+				mockCtl.Finish()
+			},
+		},
+		{
+			name: "Fail: invalid volume ID format",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockCloud := mocks.NewMockCloud(mockCtl)
+
+				driver := &Driver{
+					endpoint: endpoint,
+					cloud:    mockCloud,
+				}
+
+				req := &csi.ControllerPublishVolumeRequest{
+					VolumeId:         "invalid-volume-id",
+					NodeId:           nodeId,
+					VolumeCapability: stdVolCap,
+				}
+
+				ctx := context.Background()
+				_, err := driver.ControllerPublishVolume(ctx, req)
+				if err == nil {
+					t.Fatal("Expected error, got nil")
+				}
+				if status.Code(err) != codes.NotFound {
+					t.Fatalf("Expected NotFound, got %v", status.Code(err))
+				}
+				mockCtl.Finish()
+			},
+		},
+		{
+			name: "Fail: access point not found",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockCloud := mocks.NewMockCloud(mockCtl)
+
+				driver := &Driver{
+					endpoint: endpoint,
+					cloud:    mockCloud,
+				}
+
+				ctx := context.Background()
+				mockCloud.EXPECT().DescribeAccessPoint(gomock.Eq(ctx), gomock.Eq(apId)).Return(nil, cloud.ErrNotFound)
+
+				req := &csi.ControllerPublishVolumeRequest{
+					VolumeId:         volumeId,
+					NodeId:           nodeId,
+					VolumeCapability: stdVolCap,
+				}
+
+				_, err := driver.ControllerPublishVolume(ctx, req)
+				if err == nil {
+					t.Fatal("Expected error, got nil")
+				}
+				if status.Code(err) != codes.NotFound {
+					t.Fatalf("Expected NotFound, got %v", status.Code(err))
+				}
+				mockCtl.Finish()
+			},
+		},
+		{
+			name: "Fail: access denied on describe access point",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockCloud := mocks.NewMockCloud(mockCtl)
+
+				driver := &Driver{
+					endpoint: endpoint,
+					cloud:    mockCloud,
+				}
+
+				ctx := context.Background()
+				mockCloud.EXPECT().DescribeAccessPoint(gomock.Eq(ctx), gomock.Eq(apId)).Return(nil, cloud.ErrAccessDenied)
+
+				req := &csi.ControllerPublishVolumeRequest{
+					VolumeId:         volumeId,
+					NodeId:           nodeId,
+					VolumeCapability: stdVolCap,
+				}
+
+				_, err := driver.ControllerPublishVolume(ctx, req)
+				if err == nil {
+					t.Fatal("Expected error, got nil")
+				}
+				if status.Code(err) != codes.PermissionDenied {
+					t.Fatalf("Expected PermissionDenied, got %v", status.Code(err))
+				}
+				mockCtl.Finish()
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, tc.testFunc)
+	}
+}
+
+func TestControllerUnpublishVolume(t *testing.T) {
+	var (
+		endpoint = "endpoint"
+		volumeId = "fs-abcd1234::fsap-abcd1234"
+	)
+
+	testCases := []struct {
+		name     string
+		testFunc func(t *testing.T)
+	}{
+		{
+			name: "Success: valid volume ID",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockCloud := mocks.NewMockCloud(mockCtl)
+
+				driver := &Driver{
+					endpoint: endpoint,
+					cloud:    mockCloud,
+				}
+
+				req := &csi.ControllerUnpublishVolumeRequest{
+					VolumeId: volumeId,
+				}
+
+				ctx := context.Background()
+				res, err := driver.ControllerUnpublishVolume(ctx, req)
+				if err != nil {
+					t.Fatalf("ControllerUnpublishVolume failed: %v", err)
+				}
+				if res == nil {
+					t.Fatal("Response is nil")
+				}
+				mockCtl.Finish()
+			},
+		},
+		{
+			name: "Fail: empty volume ID",
+			testFunc: func(t *testing.T) {
+				mockCtl := gomock.NewController(t)
+				mockCloud := mocks.NewMockCloud(mockCtl)
+
+				driver := &Driver{
+					endpoint: endpoint,
+					cloud:    mockCloud,
+				}
+
+				req := &csi.ControllerUnpublishVolumeRequest{
+					VolumeId: "",
+				}
+
+				ctx := context.Background()
+				_, err := driver.ControllerUnpublishVolume(ctx, req)
+				if err == nil {
+					t.Fatal("Expected error, got nil")
+				}
+				if status.Code(err) != codes.InvalidArgument {
+					t.Fatalf("Expected InvalidArgument, got %v", status.Code(err))
+				}
+				mockCtl.Finish()
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, tc.testFunc)
+	}
+}
+
 func TestDeleteVolume(t *testing.T) {
 	var (
 		apId      = "fsap-abcd1234"
