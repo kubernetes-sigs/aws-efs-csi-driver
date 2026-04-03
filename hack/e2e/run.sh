@@ -74,6 +74,8 @@ TEST_EXTRA_FLAGS=${TEST_EXTRA_FLAGS:-}
 
 CLEAN=${CLEAN:-"true"}
 
+SKIP_IMAGE_BUILD=${SKIP_IMAGE_BUILD:-}
+
 loudecho "Testing in region ${REGION} and zones ${ZONES}"
 mkdir -p "${BIN_DIR}"
 export PATH=${PATH}:${BIN_DIR}
@@ -103,10 +105,15 @@ if [[ ! -e ${GINKGO_BIN} ]]; then
   popd
 fi
 
-ecr_build_and_push "${REGION}" \
-  "${AWS_ACCOUNT_ID}" \
-  "${IMAGE_NAME}" \
-  "${IMAGE_TAG}"
+if [[ "${SKIP_IMAGE_BUILD}" == "true" ]]; then
+  loudecho "Skipping image build and push (SKIP_IMAGE_BUILD=true)"
+  loudecho "Using image ${IMAGE_NAME}:${IMAGE_TAG}"
+else
+  ecr_build_and_push "${REGION}" \
+    "${AWS_ACCOUNT_ID}" \
+    "${IMAGE_NAME}" \
+    "${IMAGE_TAG}"
+fi
 
 if [[ "${CLUSTER_TYPE}" == "kops" ]]; then
   kops_create_cluster \
