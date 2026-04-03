@@ -75,6 +75,10 @@ TEST_EXTRA_FLAGS=${TEST_EXTRA_FLAGS:-}
 CLEAN=${CLEAN:-"true"}
 
 SKIP_IMAGE_BUILD=${SKIP_IMAGE_BUILD:-}
+REGISTRY_SERVER=${REGISTRY_SERVER:-}
+REGISTRY_USERNAME=${REGISTRY_USERNAME:-}
+REGISTRY_PASSWORD=${REGISTRY_PASSWORD:-}
+IMAGE_PULL_SECRET_NAME=${IMAGE_PULL_SECRET_NAME:-"registry-pull-secret"}
 
 loudecho "Testing in region ${REGION} and zones ${ZONES}"
 mkdir -p "${BIN_DIR}"
@@ -145,6 +149,22 @@ elif [[ "${CLUSTER_TYPE}" == "eksctl" ]]; then
   if [[ $? -ne 0 ]]; then
     exit 1
   fi
+fi
+
+# Registry credential setup for third-party chart/image testing
+if [ -n "${REGISTRY_SERVER:-}" ] && [ -n "${REGISTRY_USERNAME:-}" ] && [ -n "${REGISTRY_PASSWORD:-}" ]; then
+  loudecho "Logging into OCI registry ${REGISTRY_SERVER}"
+  echo "${REGISTRY_PASSWORD}" | ${HELM_BIN} registry login "${REGISTRY_SERVER}" \
+    --username "${REGISTRY_USERNAME}" --password-stdin
+
+  loudecho "Creating imagePullSecret ${IMAGE_PULL_SECRET_NAME} in kube-system"
+  kubectl create secret docker-registry "${IMAGE_PULL_SECRET_NAME}" \
+    --namespace kube-system \
+    --docker-server="${REGISTRY_SERVER}" \
+    --docker-username="${REGISTRY_USERNAME}" \
+    --docker-password="${REGISTRY_PASSWORD}" \
+    --kubeconfig "${KUBECONFIG}" \
+    --dry-run=client -o yaml | kubectl apply -f - --kubeconfig "${KUBECONFIG}"
 fi
 
 if [[ "${CLUSTER_TYPE}" == "kops" ]]; then
@@ -236,6 +256,14 @@ if [[ "${CLEAN}" == true ]]; then
   ${HELM_BIN} del "${DRIVER_NAME}" \
     --namespace kube-system \
     --kubeconfig "${KUBECONFIG}"
+
+  if [ -n "${REGISTRY_SERVER:-}" ]; then
+    loudecho "Removing imagePullSecret ${IMAGE_PULL_SECRET_NAME}"
+    kubectl delete secret "${IMAGE_PULL_SECRET_NAME}" \
+      --namespace kube-system \
+      --kubeconfig "${KUBECONFIG}" \
+      --ignore-not-found
+  fi
 
   if [[ "${CLUSTER_TYPE}" == "kops" ]]; then
     kops_delete_cluster \
