@@ -75,6 +75,8 @@ TEST_EXTRA_FLAGS=${TEST_EXTRA_FLAGS:-}
 CLEAN=${CLEAN:-"true"}
 
 SKIP_IMAGE_BUILD=${SKIP_IMAGE_BUILD:-}
+HELM_CHART_REPOSITORY=${HELM_CHART_REPOSITORY:-}
+HELM_CHART_TAG=${HELM_CHART_TAG:-}
 REGISTRY_SERVER=${REGISTRY_SERVER:-}
 REGISTRY_USERNAME=${REGISTRY_USERNAME:-}
 REGISTRY_PASSWORD=${REGISTRY_PASSWORD:-}
@@ -167,9 +169,18 @@ if [ -n "${REGISTRY_SERVER:-}" ] && [ -n "${REGISTRY_USERNAME:-}" ] && [ -n "${R
     --dry-run=client -o yaml | kubectl apply -f - --kubeconfig "${KUBECONFIG}"
 fi
 
+# Resolve chart reference: use HELM_CHART_REPOSITORY if set, otherwise local chart directory
+HELM_CHART_REPOSITORY=${HELM_CHART_REPOSITORY:-./charts/"${DRIVER_NAME}"}
+
+# When registry credentials are provided, configure the image pull secret for Helm
+if [ -n "${REGISTRY_SERVER:-}" ] && [ -n "${REGISTRY_USERNAME:-}" ] && [ -n "${REGISTRY_PASSWORD:-}" ]; then
+  HELM_EXTRA_FLAGS="${HELM_EXTRA_FLAGS:+${HELM_EXTRA_FLAGS} }--set=imagePullSecrets[0]=${IMAGE_PULL_SECRET_NAME}"
+fi
+
 if [[ "${CLUSTER_TYPE}" == "kops" ]]; then
 loudecho "Deploying driver from private ecr"
 HELM_ARGS=(upgrade --install "${DRIVER_NAME}"
+  "${HELM_CHART_REPOSITORY}"
   --namespace kube-system
   --set image.repository="${IMAGE_NAME}"
   --set image.tag="${IMAGE_TAG}"
@@ -177,14 +188,16 @@ HELM_ARGS=(upgrade --install "${DRIVER_NAME}"
   --set sidecars.node-driver-registrar.image.repository=602401143452.dkr.ecr.us-west-2.amazonaws.com/eks/csi-node-driver-registrar
   --set sidecars.csiProvisioner.image.repository=602401143452.dkr.ecr.us-west-2.amazonaws.com/eks/csi-provisioner
   --wait
-  --kubeconfig "${KUBECONFIG}"
-  ./charts/"${DRIVER_NAME}")
-if [[ -f "$HELM_VALUES_FILE" ]]; then
+  --kubeconfig "${KUBECONFIG}")
+if [ -n "${HELM_CHART_TAG:-}" ]; then
+  HELM_ARGS+=(--version "${HELM_CHART_TAG}")
+fi
+if [ -n "${HELM_VALUES_FILE:-}" ]; then
   HELM_ARGS+=(-f "${HELM_VALUES_FILE}")
 fi
-eval "EXPANDED_HELM_EXTRA_FLAGS=$HELM_EXTRA_FLAGS"
-if [[ -n "$EXPANDED_HELM_EXTRA_FLAGS" ]]; then
-  HELM_ARGS+=("${EXPANDED_HELM_EXTRA_FLAGS}")
+eval "EXPANDED_HELM_EXTRA_FLAGS=(${HELM_EXTRA_FLAGS})"
+if [[ -n "${EXPANDED_HELM_EXTRA_FLAGS[*]}" ]]; then
+  HELM_ARGS+=("${EXPANDED_HELM_EXTRA_FLAGS[@]}")
 fi
 set -x
 "${HELM_BIN}" "${HELM_ARGS[@]}"
@@ -201,18 +214,21 @@ loudecho "Deploying driver"
 startSec=$(date +'%s')
 
 HELM_ARGS=(upgrade --install "${DRIVER_NAME}"
+  "${HELM_CHART_REPOSITORY}"
   --namespace kube-system
   --set image.repository="${IMAGE_NAME}"
   --set image.tag="${IMAGE_TAG}"
   --wait
-  --kubeconfig "${KUBECONFIG}"
-  ./charts/"${DRIVER_NAME}")
-if [[ -f "$HELM_VALUES_FILE" ]]; then
+  --kubeconfig "${KUBECONFIG}")
+if [ -n "${HELM_CHART_TAG:-}" ]; then
+  HELM_ARGS+=(--version "${HELM_CHART_TAG}")
+fi
+if [ -n "${HELM_VALUES_FILE:-}" ]; then
   HELM_ARGS+=(-f "${HELM_VALUES_FILE}")
 fi
-eval "EXPANDED_HELM_EXTRA_FLAGS=$HELM_EXTRA_FLAGS"
-if [[ -n "$EXPANDED_HELM_EXTRA_FLAGS" ]]; then
-  HELM_ARGS+=("${EXPANDED_HELM_EXTRA_FLAGS}")
+eval "EXPANDED_HELM_EXTRA_FLAGS=(${HELM_EXTRA_FLAGS})"
+if [[ -n "${EXPANDED_HELM_EXTRA_FLAGS[*]}" ]]; then
+  HELM_ARGS+=("${EXPANDED_HELM_EXTRA_FLAGS[@]}")
 fi
 set -x
 "${HELM_BIN}" "${HELM_ARGS[@]}"
