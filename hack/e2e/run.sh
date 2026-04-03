@@ -113,7 +113,9 @@ fi
 
 if [[ "${SKIP_IMAGE_BUILD}" == "true" ]]; then
   loudecho "Skipping image build and push (SKIP_IMAGE_BUILD=true)"
-  loudecho "Using image ${IMAGE_NAME}:${IMAGE_TAG}"
+  if [ -z "${HELM_CHART_REPOSITORY:-}" ]; then
+    loudecho "Using image ${IMAGE_NAME}:${IMAGE_TAG}"
+  fi
 else
   ecr_build_and_push "${REGION}" \
     "${AWS_ACCOUNT_ID}" \
