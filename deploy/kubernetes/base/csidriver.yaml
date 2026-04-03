@@ -9,4 +9,4 @@ metadata:
     "helm.sh/hook-delete-policy": before-hook-creation
     "helm.sh/resource-policy": keep
 spec:
-  attachRequired: true
+  attachRequired: false

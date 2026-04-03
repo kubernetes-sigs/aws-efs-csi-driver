@@ -82,7 +82,7 @@ controller:
   # attempt to mount EFS volumes. Requires the csi-attacher sidecar.
   # NOTE: The CSIDriver attachRequired field is immutable. Changing this value on an
   # existing installation requires deleting and recreating the CSIDriver object.
-  attachRequired: true
+  attachRequired: false
   podAnnotations: {}
   podLabels: {}
   hostNetwork: false
