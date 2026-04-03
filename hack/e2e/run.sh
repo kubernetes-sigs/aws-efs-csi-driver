@@ -170,6 +170,10 @@ if [ -n "${REGISTRY_SERVER:-}" ] && [ -n "${REGISTRY_USERNAME:-}" ] && [ -n "${R
 fi
 
 # Resolve chart reference: use HELM_CHART_REPOSITORY if set, otherwise local chart directory
+USING_CUSTOM_CHART="false"
+if [ -n "${HELM_CHART_REPOSITORY:-}" ]; then
+  USING_CUSTOM_CHART="true"
+fi
 HELM_CHART_REPOSITORY=${HELM_CHART_REPOSITORY:-./charts/"${DRIVER_NAME}"}
 
 # When registry credentials are provided, configure the image pull secret for Helm
@@ -177,20 +181,18 @@ if [ -n "${REGISTRY_SERVER:-}" ] && [ -n "${REGISTRY_USERNAME:-}" ] && [ -n "${R
   HELM_EXTRA_FLAGS="${HELM_EXTRA_FLAGS:+${HELM_EXTRA_FLAGS} }--set=imagePullSecrets[0]=${IMAGE_PULL_SECRET_NAME}"
 fi
 
-if [[ "${CLUSTER_TYPE}" == "kops" ]]; then
+if [[ "${CLUSTER_TYPE}" == "kops" ]] && [[ "${USING_CUSTOM_CHART}" == "false" ]]; then
 loudecho "Deploying driver from private ecr"
 HELM_ARGS=(upgrade --install "${DRIVER_NAME}"
   "${HELM_CHART_REPOSITORY}"
   --namespace kube-system
   --wait
   --kubeconfig "${KUBECONFIG}")
-if [ -z "${HELM_USE_DEFAULT_IMAGE+x}" ]; then
-  HELM_ARGS+=(--set image.repository="${IMAGE_NAME}")
-  HELM_ARGS+=(--set image.tag="${IMAGE_TAG}")
-  HELM_ARGS+=(--set sidecars.livenessProbe.image.repository=602401143452.dkr.ecr.us-west-2.amazonaws.com/eks/livenessprobe)
-  HELM_ARGS+=(--set sidecars.node-driver-registrar.image.repository=602401143452.dkr.ecr.us-west-2.amazonaws.com/eks/csi-node-driver-registrar)
-  HELM_ARGS+=(--set sidecars.csiProvisioner.image.repository=602401143452.dkr.ecr.us-west-2.amazonaws.com/eks/csi-provisioner)
-fi
+HELM_ARGS+=(--set image.repository="${IMAGE_NAME}")
+HELM_ARGS+=(--set image.tag="${IMAGE_TAG}")
+HELM_ARGS+=(--set sidecars.livenessProbe.image.repository=602401143452.dkr.ecr.us-west-2.amazonaws.com/eks/livenessprobe)
+HELM_ARGS+=(--set sidecars.node-driver-registrar.image.repository=602401143452.dkr.ecr.us-west-2.amazonaws.com/eks/csi-node-driver-registrar)
+HELM_ARGS+=(--set sidecars.csiProvisioner.image.repository=602401143452.dkr.ecr.us-west-2.amazonaws.com/eks/csi-provisioner)
 if [ -n "${HELM_CHART_TAG:-}" ]; then
   HELM_ARGS+=(--version "${HELM_CHART_TAG}")
 fi
@@ -206,13 +208,13 @@ set -x
 set +x
 loudecho "Deploying driver from private ecr is completed"
 
-loudecho "Removing driver installed from privat ecr"
+loudecho "Removing driver installed from private ecr"
   ${HELM_BIN} del "${DRIVER_NAME}" \
     --namespace kube-system \
     --kubeconfig "${KUBECONFIG}"
 fi
 
-loudecho "Deploying driver"
+loudecho "Deploying driver from ${HELM_CHART_REPOSITORY}"
 startSec=$(date +'%s')
 
 HELM_ARGS=(upgrade --install "${DRIVER_NAME}"
