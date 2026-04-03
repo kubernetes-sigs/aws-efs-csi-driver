@@ -182,13 +182,15 @@ loudecho "Deploying driver from private ecr"
 HELM_ARGS=(upgrade --install "${DRIVER_NAME}"
   "${HELM_CHART_REPOSITORY}"
   --namespace kube-system
-  --set image.repository="${IMAGE_NAME}"
-  --set image.tag="${IMAGE_TAG}"
-  --set sidecars.livenessProbe.image.repository=602401143452.dkr.ecr.us-west-2.amazonaws.com/eks/livenessprobe
-  --set sidecars.node-driver-registrar.image.repository=602401143452.dkr.ecr.us-west-2.amazonaws.com/eks/csi-node-driver-registrar
-  --set sidecars.csiProvisioner.image.repository=602401143452.dkr.ecr.us-west-2.amazonaws.com/eks/csi-provisioner
   --wait
   --kubeconfig "${KUBECONFIG}")
+if [ -z "${HELM_USE_DEFAULT_IMAGE+x}" ]; then
+  HELM_ARGS+=(--set image.repository="${IMAGE_NAME}")
+  HELM_ARGS+=(--set image.tag="${IMAGE_TAG}")
+  HELM_ARGS+=(--set sidecars.livenessProbe.image.repository=602401143452.dkr.ecr.us-west-2.amazonaws.com/eks/livenessprobe)
+  HELM_ARGS+=(--set sidecars.node-driver-registrar.image.repository=602401143452.dkr.ecr.us-west-2.amazonaws.com/eks/csi-node-driver-registrar)
+  HELM_ARGS+=(--set sidecars.csiProvisioner.image.repository=602401143452.dkr.ecr.us-west-2.amazonaws.com/eks/csi-provisioner)
+fi
 if [ -n "${HELM_CHART_TAG:-}" ]; then
   HELM_ARGS+=(--version "${HELM_CHART_TAG}")
 fi
@@ -216,10 +218,12 @@ startSec=$(date +'%s')
 HELM_ARGS=(upgrade --install "${DRIVER_NAME}"
   "${HELM_CHART_REPOSITORY}"
   --namespace kube-system
-  --set image.repository="${IMAGE_NAME}"
-  --set image.tag="${IMAGE_TAG}"
   --wait
   --kubeconfig "${KUBECONFIG}")
+if [ -z "${HELM_USE_DEFAULT_IMAGE+x}" ]; then
+  HELM_ARGS+=(--set image.repository="${IMAGE_NAME}")
+  HELM_ARGS+=(--set image.tag="${IMAGE_TAG}")
+fi
 if [ -n "${HELM_CHART_TAG:-}" ]; then
   HELM_ARGS+=(--version "${HELM_CHART_TAG}")
 fi
