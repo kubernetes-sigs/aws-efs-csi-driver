@@ -52,7 +52,8 @@ K8S_VERSION_KOPS=${K8S_VERSION_KOPS:-${K8S_VERSION:-1.33.0}}
 K8S_VERSION_EKSCTL=${K8S_VERSION_EKSCTL:-${K8S_VERSION:-1.33}}
 
 KOPS_VERSION=${KOPS_VERSION:-1.33.0}
-KOPS_STATE_FILE=${KOPS_STATE_FILE:-s3://k8s-kops-csi-shared-e2e}
+KOPS_BUCKET=${KOPS_BUCKET:-k8s-kops-csi-shared-e2e}
+KOPS_STATE_FILE=${KOPS_STATE_FILE:-s3://${KOPS_BUCKET}}
 KOPS_PATCH_FILE=${KOPS_PATCH_FILE:-./hack/kops-patch.yaml}
 KOPS_PATCH_NODE_FILE=${KOPS_PATCH_NODE_FILE:-./hack/kops-patch-node.yaml}
 
@@ -124,6 +125,17 @@ else
 fi
 
 if [[ "${CLUSTER_TYPE}" == "kops" ]]; then
+  BUCKET_CHECK=$(aws s3api head-bucket --region us-east-1 --bucket "${KOPS_BUCKET}" 2>&1 || true)
+  if grep -q "Forbidden" <<<"${BUCKET_CHECK}"; then
+    loudecho "Kops state bucket ${KOPS_BUCKET} exists but access is denied"
+    loudecho "Set \$KOPS_BUCKET to use a different bucket"
+    exit 1
+  fi
+  if grep -q "Not Found" <<<"${BUCKET_CHECK}"; then
+    loudecho "Creating kops state bucket ${KOPS_BUCKET}"
+    aws s3api create-bucket --region us-east-1 --bucket "${KOPS_BUCKET}" --acl private >/dev/null
+  fi
+
   kops_create_cluster \
     "$CLUSTER_NAME" \
     "$KOPS_BIN" \
