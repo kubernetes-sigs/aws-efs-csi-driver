@@ -1,0 +1,23 @@
+name: Unit tests
+
+on:
+  push:
+    branches: [ "private-feature/*" ]
+  pull_request:
+    branches: [ "private-feature/*"  ]
+  merge_group:
+    types: [ "checks_requested" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version-file: 'go.mod'
+
+    - name: Test
+      run: make test

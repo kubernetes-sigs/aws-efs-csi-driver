@@ -66,7 +66,7 @@ func NewDriver(options *Options, efsUtilsCfgPath string) *Driver {
 	}
 
 	nodeCaps := SetNodeCapOptInFeatures(*options.VolMetricsOptIn)
-	watchdog := newExecWatchdog(efsUtilsCfgPath, *options.EfsUtilsStaticFilesPath, "amazon-efs-mount-watchdog")
+	watchdog := newExecWatchdog(efsUtilsCfgPath, *options.EfsUtilsStaticFilesPath, *options.DebugLogs, "amazon-efs-mount-watchdog")
 	return &Driver{
 		endpoint:                 *options.Endpoint,
 		nodeID:                   cloud.GetMetadata().GetInstanceID(),

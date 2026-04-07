@@ -7,6 +7,7 @@
 + Version `1.3.2` or later of this driver supports the Arm64 architecture, including Amazon EC2 Graviton\-based instances.
 + Version `1.4.2` or later of this driver supports using FIPS for mounting file systems. For more information on how to enable FIPS, see [Helm](#helm).
 + Take note of the resource quotas for Amazon EFS. For example, there's a quota of 10000 access points that can be created for each Amazon EFS file system. For more information, see [https://docs.aws.amazon.com/efs/latest/ug/limits.html#limits-efs-resources-per-account-per-region](https://docs.aws.amazon.com/efs/latest/ug/limits.html#limits-efs-resources-per-account-per-region).
++ Amazon S3 Files is supported from version `3.0.0` or later of this driver.
 
 ## Configure node startup taint
 There are potential race conditions on node startup (especially when a node is first joining the cluster) where pods/processes that rely on the EFS CSI Driver can act on a node before the EFS CSI Driver is able to startup up and become fully ready. To combat this, the EFS CSI Driver contains a feature to automatically remove a taint from the node on startup. This feature was introduced from version v1.7.2 of the EFS CSI Driver and version v2.5.2 of its Helm chart. Users can taint their nodes when they join the cluster and/or on startup, to prevent other pods from running and/or being scheduled on the node prior to the EFS CSI Driver becoming ready.
@@ -19,11 +20,11 @@ This feature is activated by default, and cluster administrators should use the 
 + The `kubectl` command line tool is installed on your device or AWS CloudShell. The version can be the same as or up to one minor version earlier or later than the Kubernetes version of your cluster. To install or upgrade `kubectl`, see [Installing or updating `kubectl`](https://kubernetes.io/docs/tasks/tools/#kubectl).
 
 **Note**  
-A Pod running on AWS Fargate automatically mounts an Amazon EFS file system, without needing the manual driver installation steps described on this page.
+A Pod running on AWS Fargate automatically mounts an Amazon EFS file system or Amazon S3 file system, without needing the manual driver installation steps described on this page.
 
 ## Set up driver permission
-The driver requires IAM permission to talk to Amazon EFS to manage the volume on user's behalf. There are several methods to grant driver IAM permission:
-* Using the EKS Pod Identity Add-on - [Install the EKS Pod Identity add-on to your EKS cluster](https://docs.aws.amazon.com/eks/latest/userguide/pod-id-agent-setup.html). This doesn't need the efs-csi-driver to be installed through EKS add-on, it can be used no matter the method of installation of the efs-csi-driver. If this installation method is used, the ```AmazonEFSCSIDriverPolicy``` policy has to be added to the cluster's node group's IAM role. 
+The driver requires IAM permission to talk to Amazon EFS or Amazon S3 Files to manage the volume on user's behalf. There are several methods to grant driver IAM permission:
+* Using the EKS Pod Identity Add-on - [Install the EKS Pod Identity add-on to your EKS cluster](https://docs.aws.amazon.com/eks/latest/userguide/pod-id-agent-setup.html). This doesn't need the efs-csi-driver to be installed through EKS add-on, it can be used no matter the method of installation of the efs-csi-driver. If this installation method is used, the ```AmazonEFSCSIDriverPolicy``` or ```AmazonS3FilesCSIDriverPolicy``` policy has to be added the cluster's node group's IAM role.
 * Using IAM role for service account – Create an [IAM Role for service accounts](https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts.html) with the required permissions in [iam-policy-example.json](./iam-policy-example.json). Uncomment annotations and put the IAM role ARN in the [service-account manifest](../deploy/kubernetes/base/controller-serviceaccount.yaml). For example steps, see [Create an IAM policy and role for Amazon EKS](./iam-policy-create.md).
 * Using IAM [instance profile](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_use_switch-role-ec2_instance-profiles.html) – Grant all the worker nodes with [required permissions](./iam-policy-example.json) by attaching the policy to the instance profile of the worker.
 
@@ -92,7 +93,7 @@ If you want to download the image with a manifest, we recommend first trying the
 
    ```sh
    kubectl kustomize \
-       "github.com/kubernetes-sigs/aws-efs-csi-driver/deploy/kubernetes/overlays/stable/ecr/?ref=release-2.X" > private-ecr-driver.yaml
+       "github.com/kubernetes-sigs/aws-efs-csi-driver/deploy/kubernetes/overlays/stable/ecr/?ref=release-3.X" > private-ecr-driver.yaml
    ```
    **Note**  
    If you encounter an issue that you aren't able to resolve by adding IAM permissions, try the [Manifest \(public registry\)](#-manifest-public-registry-) steps instead.
@@ -139,7 +140,7 @@ For some situations, you may not be able to add the necessary IAM permissions to
 
    ```sh
    kubectl kustomize \
-       "github.com/kubernetes-sigs/aws-efs-csi-driver/deploy/kubernetes/overlays/stable/?ref=release-2.X" > public-ecr-driver.yaml
+       "github.com/kubernetes-sigs/aws-efs-csi-driver/deploy/kubernetes/overlays/stable/?ref=release-3.X" > public-ecr-driver.yaml
    ```
 
 2. If you already created a service account by following [Create an IAM policy and role](./iam-policy-create.md), then edit the `public-ecr-driver.yaml` file. Remove the following lines that create a Kubernetes service account.
@@ -164,11 +165,15 @@ For some situations, you may not be able to add the necessary IAM permissions to
 
 After deploying the driver, you can continue to these sections:
 * [Create an Amazon EFS file system for Amazon EKS](./efs-create-filesystem.md)
+* [Create an Amazon S3 file system for Amazon EKS](./s3files-create-filesystem.md)
 * [Examples](#examples)
 
 -----
 # Upgrading the Amazon EFS CSI Driver
 
+## Important Notes on EFS CSI Driver v3 Upgrade
+
+Starting with version 3.X.X, the EFS CSI driver adds support for Amazon S3 file systems. There are no breaking changes if you are upgrading from latest v2.X.X version.
 
 ## Important Notes on EFS CSI Driver v2 Upgrade
 
@@ -200,7 +205,7 @@ kubectl apply -k github.com/kubernetes-sigs/aws-efs-csi-driver/deploy/kubernetes
 -----
 # Uninstalling the Amazon EFS CSI Driver
 
-Note: While the aws-efs-csi-driver daemonsets and controller are deleted from the cluster no new EFS PVCs will be able to be created, new pods that are created which use an EFS PV volume will not function (because the PV will not mount), and any existing pods with mounted PVs will not be able to access EFS until the driver is successfully re-installed (either manually, or through the [EKS add-on system](https://docs.aws.amazon.com/eks/latest/userguide/efs-csi.html#efs-install-driver)).
+Note: While the aws-efs-csi-driver daemonsets and controller are deleted from the cluster no new EFS PVCs will be able to be created, new pods that are created which use an EFS or S3 Files PV volume will not function (because the PV will not mount), and any existing pods with mounted PVs will not be able to access EFS or S3 Files until the driver is successfully re-installed (either manually, or through the [EKS add-on system](https://docs.aws.amazon.com/eks/latest/userguide/efs-csi.html#efs-install-driver)).
 
 Uninstall the self-managed EFS CSI Driver with either Helm or Kustomize, depending on your installation method. If you are using the driver as a managed EKS add-on, see the [EKS Documentation](https://docs.aws.amazon.com/eks/latest/userguide/efs-csi.html#efs-install-driver).
 

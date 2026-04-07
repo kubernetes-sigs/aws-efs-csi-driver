@@ -8,6 +8,7 @@ fullnameOverride: ""
 useFIPS: false
 
 portRangeUpperBound: "21049"
+debugLogs: false
 
 image:
   repository: public.ecr.aws/efs-csi-driver/amazon/aws-efs-csi-driver
@@ -88,7 +89,6 @@ controller:
     #   memory: 128Mi
   revisionHistoryLimit: 10
   nodeSelector: {}
-  updateStrategy: {}
   tolerations:
     - key: CriticalAddonsOnly
       operator: Exists
@@ -187,11 +187,6 @@ node:
     #   memory: 128Mi
   revisionHistoryLimit: 10
   nodeSelector: {}
-  updateStrategy:
-    {}
-    # Override default strategy (RollingUpdate) to speed up deployment.
-    # This can be useful if helm timeouts are observed.
-    # type: OnDelete
   tolerations:
     - operator: Exists
   affinity:

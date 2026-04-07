@@ -24,6 +24,10 @@ spec:
         }
       ]
 
+  externalPolicies:
+    node:
+      - arn:aws:iam::aws:policy/service-role/AmazonS3FilesCSIDriverPolicy
+
   cloudConfig:
     awsEBSCSIDriver:
       managed: true
