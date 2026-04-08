@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -24,6 +25,8 @@ import (
 	"k8s.io/kubernetes/test/e2e/storage/testsuites"
 	"k8s.io/kubernetes/test/e2e/storage/utils"
 	admissionapi "k8s.io/pod-security-admission/api"
+
+	"github.com/kubernetes-sigs/aws-efs-csi-driver/pkg/util"
 )
 
 var (
@@ -37,12 +40,22 @@ var (
 	EfsDriverNamespace          string
 	EfsDriverLabelSelectors     map[string]string
 
+	// S3Files parameters
+	S3FilesFileSystemId   string
+	S3FilesFileSystemName string
+	s3FilesResources      *S3FilesResources // Store complete S3Files resources for cleanup
+
 	// CreateFileSystem if set true will create a file system before tests.
 	// Alternatively, provide an existing file system via FileSystemId. If this
 	// is true, ClusterName and Region must be set. For CI it should be true
 	// because there is no existing long-lived file system in the CI environment.
 	CreateFileSystem bool
 	deleteFileSystem bool
+
+	// CreateS3FilesFileSystem if set true will create an S3Files file system before tests.
+	// Alternatively, provide an existing S3Files file system via S3FilesFileSystemId.
+	CreateS3FilesFileSystem bool
+	deleteS3FilesFileSystem bool
 
 	// DeployDriver if set true will deploy a stable version of the driver before
 	// tests. For CI it should be false because something else ought to deploy an
@@ -51,8 +64,38 @@ var (
 	destroyDriver bool
 )
 
+// FileSystemTestConfig holds test configuration for a specific filesystem type
+type FileSystemTestConfig struct {
+	FSType           util.FileSystemType
+	ProvisioningMode string
+}
+
+// Parameterized test configurations
+var fileSystemTestConfigs = []FileSystemTestConfig{
+	{
+		FSType:           util.FileSystemTypeEFS,
+		ProvisioningMode: "efs-ap",
+	},
+	{
+		FSType:           util.FileSystemTypeS3Files,
+		ProvisioningMode: "s3files-ap",
+	},
+}
+
+func (c *FileSystemTestConfig) GetFSID() string {
+	switch c.FSType {
+	case util.FileSystemTypeEFS:
+		return FileSystemId
+	case util.FileSystemTypeS3Files:
+		return S3FilesFileSystemId
+	default:
+		panic(fmt.Sprintf("Unknown filesystem type: %s", c.FSType))
+	}
+}
+
 type efsDriver struct {
 	driverInfo storageframework.DriverInfo
+	config     FileSystemTestConfig
 }
 
 var _ storageframework.TestDriver = &efsDriver{}
@@ -62,7 +105,7 @@ var _ storageframework.TestDriver = &efsDriver{}
 var _ storageframework.PreprovisionedPVTestDriver = &efsDriver{}
 var _ storageframework.DynamicPVTestDriver = &efsDriver{}
 
-func InitEFSCSIDriver() storageframework.TestDriver {
+func initCSIDriver(config FileSystemTestConfig) storageframework.TestDriver {
 	return &efsDriver{
 		driverInfo: storageframework.DriverInfo{
 			Name:            "efs.csi.aws.com",
@@ -74,6 +117,7 @@ func InitEFSCSIDriver() storageframework.TestDriver {
 				storageframework.CapRWX:         true,
 			},
 		},
+		config: config,
 	}
 }
 
@@ -88,7 +132,7 @@ func (e *efsDriver) PrepareTest(ctx context.Context, f *framework.Framework) *st
 	ginkgo.DeferCleanup(cancelPodLogs)
 	return &storageframework.PerTestConfig{
 		Driver:    e,
-		Prefix:    "efs",
+		Prefix:    e.config.FSType.String(),
 		Framework: f,
 	}
 }
@@ -101,7 +145,7 @@ func (e *efsDriver) GetPersistentVolumeSource(readOnly bool, fsType string, volu
 	pvSource := v1.PersistentVolumeSource{
 		CSI: &v1.CSIPersistentVolumeSource{
 			Driver:       e.driverInfo.Name,
-			VolumeHandle: FileSystemId,
+			VolumeHandle: e.config.FSType.String() + ":" + e.config.GetFSID(),
 		},
 	}
 	return &pvSource, nil
@@ -109,8 +153,8 @@ func (e *efsDriver) GetPersistentVolumeSource(readOnly bool, fsType string, volu
 
 func (e *efsDriver) GetDynamicProvisionStorageClass(ctx context.Context, config *storageframework.PerTestConfig, fsType string) *storagev1.StorageClass {
 	parameters := map[string]string{
-		"provisioningMode": "efs-ap",
-		"fileSystemId":     FileSystemId,
+		"provisioningMode": e.config.ProvisioningMode,
+		"fileSystemId":     e.config.GetFSID(),
 		"directoryPerms":   "777",
 	}
 
@@ -119,7 +163,6 @@ func (e *efsDriver) GetDynamicProvisionStorageClass(ctx context.Context, config 
 	defaultBindingMode := storagev1.VolumeBindingImmediate
 	return &storagev1.StorageClass{
 		ObjectMeta: metav1.ObjectMeta{
-			//GenerateName: generateName,
 			Name: generateName + generateRandomString(4),
 		},
 		Provisioner:       "efs.csi.aws.com",
@@ -175,6 +218,36 @@ var _ = ginkgo.SynchronizedBeforeSuite(func() []byte {
 		}
 	}
 
+	if CreateS3FilesFileSystem {
+		// Validate parameters
+		if Region == "" || ClusterName == "" {
+			ginkgo.By("CreateS3FilesFileSystem is true. Set both Region and ClusterName so that the test can create a new S3Files file system. Or set CreateS3FilesFileSystem false and set S3FilesFileSystemId to an existing S3Files file system.")
+			return []byte{}
+		}
+
+		if S3FilesFileSystemId == "" {
+			ginkgo.By(fmt.Sprintf("Creating S3Files filesystem in region %q for cluster %q", Region, ClusterName))
+
+			c := NewCloud(Region)
+
+			opts := CreateOptions{
+				Name:        S3FilesFileSystemName,
+				ClusterName: ClusterName,
+			}
+			resources, err := c.CreateS3FilesFileSystem(opts)
+			if err != nil {
+				framework.ExpectNoError(err, "creating S3Files file system")
+			}
+
+			s3FilesResources = resources
+			S3FilesFileSystemId = resources.FileSystemId
+			ginkgo.By(fmt.Sprintf("Created S3Files filesystem %q in region %q for cluster %q", S3FilesFileSystemId, Region, ClusterName))
+			deleteS3FilesFileSystem = true
+		} else {
+			ginkgo.By(fmt.Sprintf("Using already-created S3Files file system %q", S3FilesFileSystemId))
+		}
+	}
+
 	if DeployDriver {
 		cs, err := framework.LoadClientset()
 		framework.ExpectNoError(err, "loading kubernetes clientset")
@@ -193,14 +266,16 @@ var _ = ginkgo.SynchronizedBeforeSuite(func() []byte {
 			destroyDriver = true
 		}
 	}
-	return []byte(FileSystemId)
+	return []byte(FileSystemId + "|" + S3FilesFileSystemId)
 }, func(data []byte) {
-	// allNodesBody: each node needs to set its FileSystemId as returned by node 1
-	FileSystemId = string(data)
+	// allNodesBody: each node needs to set its FileSystemId and S3FilesFileSystemId as returned by node 1
+	parts := strings.Split(string(data), "|")
+	FileSystemId = parts[0]
+	S3FilesFileSystemId = parts[1]
 })
 
 var _ = ginkgo.SynchronizedAfterSuite(func() {
-	// allNodesBody: do nothing because only node 1 needs to delete EFS
+	// allNodesBody: do nothing because only node 1 needs to delete EFS and S3Files
 }, func() {
 	if deleteFileSystem {
 		ginkgo.By(fmt.Sprintf("Deleting EFS filesystem %q", FileSystemId))
@@ -214,176 +289,249 @@ var _ = ginkgo.SynchronizedAfterSuite(func() {
 		ginkgo.By(fmt.Sprintf("Deleted EFS filesystem %q", FileSystemId))
 	}
 
+	if deleteS3FilesFileSystem && s3FilesResources != nil {
+		ginkgo.By(fmt.Sprintf("Deleting S3Files filesystem %q", S3FilesFileSystemId))
+
+		c := NewCloud(Region)
+		err := c.DeleteS3FilesFileSystem(s3FilesResources)
+		if err != nil {
+			framework.ExpectNoError(err, "deleting S3Files file system")
+		}
+	}
+
 	if destroyDriver {
 		ginkgo.By("Cleaning up EFS CSI driver")
 		kubectl.RunKubectlOrDie("delete", "-k", "github.com/kubernetes-sigs/aws-efs-csi-driver/deploy/kubernetes/overlays/stable/?ref=master")
 	}
 })
 
-var _ = ginkgo.Describe("[efs-csi] EFS CSI", func() {
-	ginkgo.BeforeEach(func() {
-		if FileSystemId == "" {
-			ginkgo.Fail("FileSystemId is empty. Set it to an existing file system. Or set CreateFileSystem, Region and ClusterName so that the test can create a new file system.")
-		}
-	})
-
-	driver := InitEFSCSIDriver()
-	ginkgo.Context(storageframework.GetDriverNameWithFeatureTags(driver)[0].(string), func() {
-		storageframework.DefineTestSuites(driver, csiTestSuites)
-	})
-
+var _ = ginkgo.Describe("[efs-csi]", func() {
 	f := framework.NewDefaultFramework("efs")
 	f.NamespacePodSecurityEnforceLevel = admissionapi.LevelPrivileged
-
-	ginkgo.Context(storageframework.GetDriverNameWithFeatureTags(driver)[0].(string), func() {
-		ginkgo.It("should mount different paths on same volume on same node", func() {
-			ginkgo.By(fmt.Sprintf("Creating efs pvc & pv with no subpath"))
-			pvcRoot, pvRoot, err := createEFSPVCPV(f.ClientSet, f.Namespace.Name, f.Namespace.Name+"-root", "/", map[string]string{})
-			framework.ExpectNoError(err, "creating efs pvc & pv with no subpath")
-			defer func() {
-				_ = f.ClientSet.CoreV1().PersistentVolumes().Delete(context.TODO(), pvRoot.Name, metav1.DeleteOptions{})
-			}()
-
-			ginkgo.By(fmt.Sprintf("Creating pod to make subpaths /a and /b"))
-			pod := e2epod.MakePod(f.Namespace.Name, nil, []*v1.PersistentVolumeClaim{pvcRoot}, admissionapi.LevelBaseline, "mkdir -p /mnt/volume1/a && mkdir -p /mnt/volume1/b")
-			pod, err = f.ClientSet.CoreV1().Pods(f.Namespace.Name).Create(context.TODO(), pod, metav1.CreateOptions{})
-			framework.ExpectNoError(err, "creating pod")
-			framework.ExpectNoError(e2epod.WaitForPodSuccessInNamespace(context.TODO(), f.ClientSet, pod.Name, f.Namespace.Name), "waiting for pod success")
-
-			ginkgo.By(fmt.Sprintf("Creating efs pvc & pv with subpath /a"))
-			pvcA, pvA, err := createEFSPVCPV(f.ClientSet, f.Namespace.Name, f.Namespace.Name+"-a", "/a", map[string]string{})
-			framework.ExpectNoError(err, "creating efs pvc & pv with subpath /a")
-			defer func() {
-				_ = f.ClientSet.CoreV1().PersistentVolumes().Delete(context.TODO(), pvA.Name, metav1.DeleteOptions{})
-			}()
-
-			ginkgo.By(fmt.Sprintf("Creating efs pvc & pv with subpath /b"))
-			pvcB, pvB, err := createEFSPVCPV(f.ClientSet, f.Namespace.Name, f.Namespace.Name+"-b", "/b", map[string]string{})
-			framework.ExpectNoError(err, "creating efs pvc & pv with subpath /b")
-			defer func() {
-				_ = f.ClientSet.CoreV1().PersistentVolumes().Delete(context.TODO(), pvB.Name, metav1.DeleteOptions{})
-			}()
-
-			ginkgo.By("Creating pod to mount subpaths /a and /b")
-			pod = e2epod.MakePod(f.Namespace.Name, nil, []*v1.PersistentVolumeClaim{pvcA, pvcB}, admissionapi.LevelBaseline, "")
-			pod, err = f.ClientSet.CoreV1().Pods(f.Namespace.Name).Create(context.TODO(), pod, metav1.CreateOptions{})
-			framework.ExpectNoError(err, "creating pod")
-			framework.ExpectNoError(e2epod.WaitForPodNameRunningInNamespace(context.TODO(), f.ClientSet, pod.Name, f.Namespace.Name), "waiting for pod running")
-		})
-
-		testEncryptInTransit := func(f *framework.Framework, encryptInTransit *bool) {
-			// TODO [RyanStan 4-15-24]
-			// Now that non-tls mounts are re-directed to efs-proxy (efs-utils v2),
-			// we need a new method of determining whether encrypt in transit is correctly working.
-			// One way to do this could be to parse the arguments passed to efs-proxy and look for the '--tls' flag.
-
-			ginkgo.By("Creating efs pvc & pv")
-			volumeAttributes := map[string]string{}
-			if encryptInTransit != nil {
-				if *encryptInTransit {
-					volumeAttributes["encryptInTransit"] = "true"
-				} else {
-					volumeAttributes["encryptInTransit"] = "false"
+	for _, config := range fileSystemTestConfigs {
+		config := config // Local copy
+		ginkgo.Context(fmt.Sprintf("[%s]", config.FSType), func() {
+			ginkgo.BeforeEach(func() {
+				fsId := config.GetFSID()
+				if fsId == "" {
+					ginkgo.Fail(fmt.Sprintf("%s FileSystemId is empty. Set it to an existing file system.", config.FSType))
 				}
-			}
-			pvc, pv, err := createEFSPVCPV(f.ClientSet, f.Namespace.Name, f.Namespace.Name, "/", volumeAttributes)
-			framework.ExpectNoError(err, "creating efs pvc & pv with no subpath")
-			defer func() {
-				_ = f.ClientSet.CoreV1().PersistentVolumes().Delete(context.TODO(), pv.Name, metav1.DeleteOptions{})
-			}()
+			})
 
-			// mount.efs connects the local NFS client to efs-proxy which listens on localhost and forwards NFS operations to EFS.
-			// This occurs for both non-tls and tls mounts.
-			// Therefore, the mount table entry should be
-			// 127.0.0.1:/ on /mnt/volume1 type nfs4 (rw,relatime,vers=4.1,rsize=1048576,wsize=1048576,namlen=255,hard,noresvport,proto=tcp,port=20052,timeo=600,retrans=2,sec=sys,clientaddr=127.0.0.1,local_lock=none,addr=127.0.0.1)
-			// (stunnel proxy running on localhost)
-			// instead of the EFS DNS name
-			// (file-system-id.efs.aws-region.amazonaws.com).
-			// Call `mount` alone first to print it for debugging.
+			driver := initCSIDriver(config)
+			ginkgo.Context(storageframework.GetDriverNameWithFeatureTags(driver)[0].(string), func() {
+				storageframework.DefineTestSuites(driver, csiTestSuites)
+			})
 
-			command := "mount && mount | grep /mnt/volume1 | grep 127.0.0.1"
-			ginkgo.By(fmt.Sprintf("Creating pod to mount pvc %q and run %q", pvc.Name, command))
-			pod := e2epod.MakePod(f.Namespace.Name, nil, []*v1.PersistentVolumeClaim{pvc}, admissionapi.LevelBaseline, command)
-			pod.Spec.RestartPolicy = v1.RestartPolicyNever
-			pod, err = f.ClientSet.CoreV1().Pods(f.Namespace.Name).Create(context.TODO(), pod, metav1.CreateOptions{})
-			framework.ExpectNoError(err, "creating pod")
+			ginkgo.Context(storageframework.GetDriverNameWithFeatureTags(driver)[0].(string), func() {
+				ginkgo.It("should mount different paths on same volume on same node", func() {
+					ginkgo.By(fmt.Sprintf("Creating efs pvc & pv with no subpath"))
+					pvcRoot, pvRoot, err := createEFSPVCPV(f.ClientSet, f.Namespace.Name, f.Namespace.Name+"-root", "/", map[string]string{}, config)
+					framework.ExpectNoError(err, "creating efs pvc & pv with no subpath")
+					defer func() {
+						_ = f.ClientSet.CoreV1().PersistentVolumes().Delete(context.TODO(), pvRoot.Name, metav1.DeleteOptions{})
+					}()
 
-			err = e2epod.WaitForPodSuccessInNamespace(context.TODO(), f.ClientSet, pod.Name, f.Namespace.Name)
-			logs, _ := e2epod.GetPodLogs(context.TODO(), f.ClientSet, f.Namespace.Name, pod.Name, "write-pod")
-			framework.Logf("pod %q logs:\n %v", pod.Name, logs)
-			framework.ExpectNoError(err, "waiting for pod success")
-		}
+					ginkgo.By(fmt.Sprintf("Creating pod to make subpaths /a and /b"))
+					pod := e2epod.MakePod(f.Namespace.Name, nil, []*v1.PersistentVolumeClaim{pvcRoot}, admissionapi.LevelBaseline, "mkdir -p /mnt/volume1/a && mkdir -p /mnt/volume1/b")
+					pod, err = f.ClientSet.CoreV1().Pods(f.Namespace.Name).Create(context.TODO(), pod, metav1.CreateOptions{})
+					framework.ExpectNoError(err, "creating pod")
+					framework.ExpectNoError(e2epod.WaitForPodSuccessInNamespace(context.TODO(), f.ClientSet, pod.Name, f.Namespace.Name), "waiting for pod success")
 
-		ginkgo.It("should mount with option tls when encryptInTransit unset", func() {
-			testEncryptInTransit(f, nil)
+					ginkgo.By(fmt.Sprintf("Creating efs pvc & pv with subpath /a"))
+					pvcA, pvA, err := createEFSPVCPV(f.ClientSet, f.Namespace.Name, f.Namespace.Name+"-a", "/a", map[string]string{}, config)
+					framework.ExpectNoError(err, "creating efs pvc & pv with subpath /a")
+					defer func() {
+						_ = f.ClientSet.CoreV1().PersistentVolumes().Delete(context.TODO(), pvA.Name, metav1.DeleteOptions{})
+					}()
+
+					ginkgo.By(fmt.Sprintf("Creating efs pvc & pv with subpath /b"))
+					pvcB, pvB, err := createEFSPVCPV(f.ClientSet, f.Namespace.Name, f.Namespace.Name+"-b", "/b", map[string]string{}, config)
+					framework.ExpectNoError(err, "creating efs pvc & pv with subpath /b")
+					defer func() {
+						_ = f.ClientSet.CoreV1().PersistentVolumes().Delete(context.TODO(), pvB.Name, metav1.DeleteOptions{})
+					}()
+
+					ginkgo.By("Creating pod to mount subpaths /a and /b")
+					pod = e2epod.MakePod(f.Namespace.Name, nil, []*v1.PersistentVolumeClaim{pvcA, pvcB}, admissionapi.LevelBaseline, "")
+					pod, err = f.ClientSet.CoreV1().Pods(f.Namespace.Name).Create(context.TODO(), pod, metav1.CreateOptions{})
+					framework.ExpectNoError(err, "creating pod")
+					framework.ExpectNoError(e2epod.WaitForPodNameRunningInNamespace(context.TODO(), f.ClientSet, pod.Name, f.Namespace.Name), "waiting for pod running")
+				})
+
+				testEncryptInTransit := func(f *framework.Framework, encryptInTransit *bool) {
+					// TODO [RyanStan 4-15-24]
+					// Now that non-tls mounts are re-directed to efs-proxy (efs-utils v2),
+					// we need a new method of determining whether encrypt in transit is correctly working.
+					// One way to do this could be to parse the arguments passed to efs-proxy and look for the '--tls' flag.
+
+					ginkgo.By("Creating efs pvc & pv")
+					volumeAttributes := map[string]string{}
+					if encryptInTransit != nil {
+						if *encryptInTransit {
+							volumeAttributes["encryptInTransit"] = "true"
+						} else {
+							volumeAttributes["encryptInTransit"] = "false"
+						}
+					}
+					pvc, pv, err := createEFSPVCPV(f.ClientSet, f.Namespace.Name, f.Namespace.Name, "/", volumeAttributes, config)
+					framework.ExpectNoError(err, "creating efs pvc & pv with no subpath")
+					defer func() {
+						_ = f.ClientSet.CoreV1().PersistentVolumes().Delete(context.TODO(), pv.Name, metav1.DeleteOptions{})
+					}()
+
+					// mount.efs connects the local NFS client to efs-proxy which listens on localhost and forwards NFS operations to EFS.
+					// This occurs for both non-tls and tls mounts.
+					// Therefore, the mount table entry should be
+					// 127.0.0.1:/ on /mnt/volume1 type nfs4 (rw,relatime,vers=4.1,rsize=1048576,wsize=1048576,namlen=255,hard,noresvport,proto=tcp,port=20052,timeo=600,retrans=2,sec=sys,clientaddr=127.0.0.1,local_lock=none,addr=127.0.0.1)
+					// (stunnel proxy running on localhost)
+					// instead of the EFS DNS name
+					// (file-system-id.efs.aws-region.amazonaws.com).
+					// Call `mount` alone first to print it for debugging.
+
+					command := "mount && mount | grep /mnt/volume1 | grep 127.0.0.1"
+					ginkgo.By(fmt.Sprintf("Creating pod to mount pvc %q and run %q", pvc.Name, command))
+					pod := e2epod.MakePod(f.Namespace.Name, nil, []*v1.PersistentVolumeClaim{pvc}, admissionapi.LevelBaseline, command)
+					pod.Spec.RestartPolicy = v1.RestartPolicyNever
+					pod, err = f.ClientSet.CoreV1().Pods(f.Namespace.Name).Create(context.TODO(), pod, metav1.CreateOptions{})
+					framework.ExpectNoError(err, "creating pod")
+
+					err = e2epod.WaitForPodSuccessInNamespace(context.TODO(), f.ClientSet, pod.Name, f.Namespace.Name)
+					logs, _ := e2epod.GetPodLogs(context.TODO(), f.ClientSet, f.Namespace.Name, pod.Name, "write-pod")
+					framework.Logf("pod %q logs:\n %v", pod.Name, logs)
+					framework.ExpectNoError(err, "waiting for pod success")
+				}
+
+				ginkgo.It("should mount with option tls when encryptInTransit unset", func() {
+					testEncryptInTransit(f, nil)
+				})
+
+				ginkgo.It("should mount with option tls when encryptInTransit set true", func() {
+					encryptInTransit := true
+					testEncryptInTransit(f, &encryptInTransit)
+				})
+
+				ginkgo.It("should mount without option tls when encryptInTransit set false", func() {
+					if config.FSType == util.FileSystemTypeS3Files {
+						ginkgo.Skip(fmt.Sprintf("encryptInTransit is not supported for %s", config.FSType))
+					}
+					encryptInTransit := false
+					testEncryptInTransit(f, &encryptInTransit)
+				})
+
+				ginkgo.It("should successfully perform dynamic provisioning", func() {
+
+					ginkgo.By("Creating EFS Storage Class, PVC and associated PV")
+					params := map[string]string{
+						"provisioningMode":      config.ProvisioningMode,
+						"fileSystemId":          config.GetFSID(),
+						"subPathPattern":        "${.PVC.name}",
+						"directoryPerms":        "700",
+						"gidRangeStart":         "1000",
+						"gidRangeEnd":           "2000",
+						"basePath":              "/dynamic_provisioning",
+						"ensureUniqueDirectory": "true",
+					}
+
+					sc := GetStorageClass(params)
+					sc, err := f.ClientSet.StorageV1().StorageClasses().Create(context.TODO(), sc, metav1.CreateOptions{})
+					framework.ExpectNoError(err, "creating storage class")
+					pvc, err := createEFSPVCPVDynamicProvisioning(f.ClientSet, f.Namespace.Name, f.Namespace.Name, sc.Name)
+					framework.ExpectNoError(err, "creating pvc")
+
+					ginkgo.By("Deploying a pod that applies the PVC and writes data")
+					testData := "DP TEST"
+					writePath := "/mnt/volume1/out"
+					writeCommand := fmt.Sprintf("echo \"%s\" >> %s", testData, writePath)
+					pod := e2epod.MakePod(f.Namespace.Name, nil, []*v1.PersistentVolumeClaim{pvc}, admissionapi.LevelBaseline, writeCommand)
+					pod, err = f.ClientSet.CoreV1().Pods(f.Namespace.Name).Create(context.TODO(), pod, metav1.CreateOptions{})
+					framework.ExpectNoError(err, "creating pod")
+					framework.ExpectNoError(e2epod.WaitForPodSuccessInNamespace(context.TODO(), f.ClientSet, pod.Name, f.Namespace.Name), "waiting for pod success")
+					_ = f.ClientSet.CoreV1().Pods(f.Namespace.Name).Delete(context.TODO(), pod.Name, metav1.DeleteOptions{})
+
+					ginkgo.By("Deploying a second pod that reads the data")
+					pod = e2epod.MakePod(f.Namespace.Name, nil, []*v1.PersistentVolumeClaim{pvc}, admissionapi.LevelBaseline, "while true; do echo $(date -u); sleep 5; done")
+					pod, err = f.ClientSet.CoreV1().Pods(f.Namespace.Name).Create(context.TODO(), pod, metav1.CreateOptions{})
+					framework.ExpectNoError(err, "creating pod")
+					framework.ExpectNoError(e2epod.WaitForPodNameRunningInNamespace(context.TODO(), f.ClientSet, pod.Name, f.Namespace.Name), "waiting for pod running")
+
+					readCommand := fmt.Sprintf("cat %s", writePath)
+					output := kubectl.RunKubectlOrDie(f.Namespace.Name, "exec", pod.Name, "--", "/bin/sh", "-c", readCommand)
+					output = strings.TrimSuffix(output, "\n")
+					framework.Logf("The output is: %s", output)
+
+					defer func() {
+						_ = f.ClientSet.CoreV1().Pods(f.Namespace.Name).Delete(context.TODO(), pod.Name, metav1.DeleteOptions{})
+						_ = f.ClientSet.CoreV1().PersistentVolumeClaims(f.Namespace.Name).Delete(context.TODO(), pvc.Name, metav1.DeleteOptions{})
+						_ = f.ClientSet.StorageV1().StorageClasses().Delete(context.TODO(), sc.Name, metav1.DeleteOptions{})
+					}()
+
+					if output == "" {
+						ginkgo.Fail("Read data is empty.")
+					}
+					if output != testData {
+						ginkgo.Fail("Read data does not match write data.")
+					}
+				})
+
+				ginkgo.It("should continue reading/writing after the driver pod is restarted", func() {
+					const FilePath = "/mnt/testfile.txt"
+					const TestDuration = 30 * time.Second
+
+					ginkgo.By("Creating EFS PVC and associated PV")
+					pvc, pv, err := createEFSPVCPV(f.ClientSet, f.Namespace.Name, f.Namespace.Name, "", map[string]string{}, config)
+					framework.ExpectNoError(err)
+					defer f.ClientSet.CoreV1().PersistentVolumes().Delete(context.TODO(), pv.Name, metav1.DeleteOptions{})
+
+					ginkgo.By("Deploying a pod to write data")
+					writeCommand := fmt.Sprintf("while true; do date +%%s >> %s; sleep 1; done", FilePath)
+					pod := e2epod.MakePod(f.Namespace.Name, nil, []*v1.PersistentVolumeClaim{pvc}, admissionapi.LevelBaseline, writeCommand)
+					pod, err = f.ClientSet.CoreV1().Pods(f.Namespace.Name).Create(context.TODO(), pod, metav1.CreateOptions{})
+					framework.ExpectNoError(err)
+					framework.ExpectNoError(e2epod.WaitForPodNameRunningInNamespace(context.TODO(), f.ClientSet, pod.Name, f.Namespace.Name))
+					defer f.ClientSet.CoreV1().Pods(f.Namespace.Name).Delete(context.TODO(), pod.Name, metav1.DeleteOptions{})
+
+					ginkgo.By("Recording timestamp before restart")
+					readCommand := fmt.Sprintf("cat %s", FilePath)
+					content, err := kubectl.RunKubectl(f.Namespace.Name, "exec", pod.Name, "--", "/bin/sh", "-c", readCommand)
+					framework.ExpectNoError(err)
+					lines := strings.Split(strings.TrimSpace(content), "\n")
+					beforeVal, err := strconv.ParseInt(lines[len(lines)-1], 10, 64)
+					framework.ExpectNoError(err)
+
+					ginkgo.By("Triggering a restart for the EFS CSI Node DaemonSet")
+					for retries := 0; retries < 3; retries++ {
+						_, err = kubectl.RunKubectl("kube-system", "rollout", "restart", "daemonset", "efs-csi-node")
+						if err == nil {
+							break
+						}
+						if strings.Contains(err.Error(), "restart has already been triggered") {
+							framework.Logf("Rollout restart conflict, retrying in 2s (attempt %d/3)", retries+1)
+							time.Sleep(2 * time.Second)
+							continue
+						}
+						break
+					}
+					framework.ExpectNoError(err)
+
+					time.Sleep(TestDuration)
+
+					ginkgo.By("Validating writes resumed after restart")
+					content, err = kubectl.RunKubectl(f.Namespace.Name, "exec", pod.Name, "--", "/bin/sh", "-c", readCommand)
+					framework.ExpectNoError(err)
+					lines = strings.Split(strings.TrimSpace(content), "\n")
+					lastTimestamp, err := strconv.ParseInt(lines[len(lines)-1], 10, 64)
+					framework.ExpectNoError(err)
+
+					expectedMin := beforeVal + int64(TestDuration.Seconds())
+					framework.Logf("beforeVal=%d, lastTimestamp=%d, expectedMin=%d, TestDuration=%v", beforeVal, lastTimestamp, expectedMin, TestDuration)
+					if lastTimestamp < expectedMin {
+						ginkgo.Fail(fmt.Sprintf("Writes did not resume after CSI driver restart. Last write was at %d, but expected a write after %d.", lastTimestamp, expectedMin))
+					}
+				})
+			})
 		})
-
-		ginkgo.It("should mount with option tls when encryptInTransit set true", func() {
-			encryptInTransit := true
-			testEncryptInTransit(f, &encryptInTransit)
-		})
-
-		ginkgo.It("should mount without option tls when encryptInTransit set false", func() {
-			encryptInTransit := false
-			testEncryptInTransit(f, &encryptInTransit)
-		})
-
-		ginkgo.It("should successfully perform dynamic provisioning", func() {
-
-			ginkgo.By("Creating EFS Storage Class, PVC and associated PV")
-			params := map[string]string{
-				"provisioningMode":      "efs-ap",
-				"fileSystemId":          FileSystemId,
-				"subPathPattern":        "${.PVC.name}",
-				"directoryPerms":        "700",
-				"gidRangeStart":         "1000",
-				"gidRangeEnd":           "2000",
-				"basePath":              "/dynamic_provisioning",
-				"ensureUniqueDirectory": "true",
-			}
-
-			sc := GetStorageClass(params)
-			sc, err := f.ClientSet.StorageV1().StorageClasses().Create(context.TODO(), sc, metav1.CreateOptions{})
-			framework.ExpectNoError(err, "creating storage class")
-			pvc, err := createEFSPVCPVDynamicProvisioning(f.ClientSet, f.Namespace.Name, f.Namespace.Name, sc.Name)
-			framework.ExpectNoError(err, "creating pvc")
-
-			ginkgo.By("Deploying a pod that applies the PVC and writes data")
-			testData := "DP TEST"
-			writePath := "/mnt/volume1/out"
-			writeCommand := fmt.Sprintf("echo \"%s\" >> %s", testData, writePath)
-			pod := e2epod.MakePod(f.Namespace.Name, nil, []*v1.PersistentVolumeClaim{pvc}, admissionapi.LevelBaseline, writeCommand)
-			pod, err = f.ClientSet.CoreV1().Pods(f.Namespace.Name).Create(context.TODO(), pod, metav1.CreateOptions{})
-			framework.ExpectNoError(err, "creating pod")
-			framework.ExpectNoError(e2epod.WaitForPodSuccessInNamespace(context.TODO(), f.ClientSet, pod.Name, f.Namespace.Name), "waiting for pod success")
-			_ = f.ClientSet.CoreV1().Pods(f.Namespace.Name).Delete(context.TODO(), pod.Name, metav1.DeleteOptions{})
-
-			ginkgo.By("Deploying a second pod that reads the data")
-			pod = e2epod.MakePod(f.Namespace.Name, nil, []*v1.PersistentVolumeClaim{pvc}, admissionapi.LevelBaseline, "while true; do echo $(date -u); sleep 5; done")
-			pod, err = f.ClientSet.CoreV1().Pods(f.Namespace.Name).Create(context.TODO(), pod, metav1.CreateOptions{})
-			framework.ExpectNoError(err, "creating pod")
-			framework.ExpectNoError(e2epod.WaitForPodNameRunningInNamespace(context.TODO(), f.ClientSet, pod.Name, f.Namespace.Name), "waiting for pod running")
-
-			readCommand := fmt.Sprintf("cat %s", writePath)
-			output := kubectl.RunKubectlOrDie(f.Namespace.Name, "exec", pod.Name, "--", "/bin/sh", "-c", readCommand)
-			output = strings.TrimSuffix(output, "\n")
-			framework.Logf("The output is: %s", output)
-
-			defer func() {
-				_ = f.ClientSet.CoreV1().Pods(f.Namespace.Name).Delete(context.TODO(), pod.Name, metav1.DeleteOptions{})
-				_ = f.ClientSet.CoreV1().PersistentVolumeClaims(f.Namespace.Name).Delete(context.TODO(), pvc.Name, metav1.DeleteOptions{})
-				_ = f.ClientSet.StorageV1().StorageClasses().Delete(context.TODO(), sc.Name, metav1.DeleteOptions{})
-			}()
-
-			if output == "" {
-				ginkgo.Fail("Read data is empty.")
-			}
-			if output != testData {
-				ginkgo.Fail("Read data does not match write data.")
-			}
-		})
-
-	})
+	}
 })
 
 func createEFSPVCPVDynamicProvisioning(c clientset.Interface, namespace, name, storageClassName string) (*v1.PersistentVolumeClaim, error) {
@@ -429,8 +577,8 @@ func GetStorageClass(params map[string]string) *storagev1.StorageClass {
 	}
 }
 
-func createEFSPVCPV(c clientset.Interface, namespace, name, path string, volumeAttributes map[string]string) (*v1.PersistentVolumeClaim, *v1.PersistentVolume, error) {
-	pvc, pv := makeEFSPVCPV(namespace, name, path, volumeAttributes)
+func createEFSPVCPV(c clientset.Interface, namespace, name, path string, volumeAttributes map[string]string, config FileSystemTestConfig) (*v1.PersistentVolumeClaim, *v1.PersistentVolume, error) {
+	pvc, pv := makeEFSPVCPV(namespace, name, path, volumeAttributes, config)
 	pvc, err := c.CoreV1().PersistentVolumeClaims(namespace).Create(context.TODO(), pvc, metav1.CreateOptions{})
 	if err != nil {
 		return nil, nil, err
@@ -442,9 +590,9 @@ func createEFSPVCPV(c clientset.Interface, namespace, name, path string, volumeA
 	return pvc, pv, nil
 }
 
-func makeEFSPVCPV(namespace, name, path string, volumeAttributes map[string]string) (*v1.PersistentVolumeClaim, *v1.PersistentVolume) {
+func makeEFSPVCPV(namespace, name, path string, volumeAttributes map[string]string, config FileSystemTestConfig) (*v1.PersistentVolumeClaim, *v1.PersistentVolume) {
 	pvc := makeEFSPVC(namespace, name)
-	pv := makeEFSPV(name, path, volumeAttributes)
+	pv := makeEFSPV(name, path, volumeAttributes, config)
 	pvc.Spec.VolumeName = pv.Name
 	pv.Spec.ClaimRef = &v1.ObjectReference{
 		Namespace: pvc.Namespace,
@@ -472,8 +620,8 @@ func makeEFSPVC(namespace, name string) *v1.PersistentVolumeClaim {
 	}
 }
 
-func makeEFSPV(name, path string, volumeAttributes map[string]string) *v1.PersistentVolume {
-	volumeHandle := FileSystemId
+func makeEFSPV(name, path string, volumeAttributes map[string]string, config FileSystemTestConfig) *v1.PersistentVolume {
+	volumeHandle := config.FSType.String() + ":" + config.GetFSID()
 	if path != "" {
 		volumeHandle += ":" + path
 	}

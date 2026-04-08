@@ -19,8 +19,10 @@ type retryManager struct {
 	createAccessPointRetryer    aws.Retryer
 	deleteAccessPointRetryer    aws.Retryer
 	describeAccessPointsRetryer aws.Retryer
+	listAccessPointsRetryer     aws.Retryer
 	describeMountTargetsRetryer aws.Retryer
 	describeFileSystemsRetryer  aws.Retryer
+	listFileSystemsRetryer      aws.Retryer
 }
 
 func newRetryManager(adaptiveRetryMode bool) *retryManager {
@@ -30,16 +32,20 @@ func newRetryManager(adaptiveRetryMode bool) *retryManager {
 			createAccessPointRetryer:    newAdaptiveRetryer(),
 			deleteAccessPointRetryer:    newAdaptiveRetryer(),
 			describeAccessPointsRetryer: newAdaptiveRetryer(),
+			listAccessPointsRetryer:     newAdaptiveRetryer(),
 			describeMountTargetsRetryer: newAdaptiveRetryer(),
 			describeFileSystemsRetryer:  newAdaptiveRetryer(),
+			listFileSystemsRetryer:      newAdaptiveRetryer(),
 		}
 	} else {
 		rm = &retryManager{
 			createAccessPointRetryer:    retry.NewStandard(),
 			deleteAccessPointRetryer:    retry.NewStandard(),
 			describeAccessPointsRetryer: retry.NewStandard(),
+			listAccessPointsRetryer:     retry.NewStandard(),
 			describeMountTargetsRetryer: retry.NewStandard(),
 			describeFileSystemsRetryer:  retry.NewStandard(),
+			listFileSystemsRetryer:      retry.NewStandard(),
 		}
 	}
 	return rm

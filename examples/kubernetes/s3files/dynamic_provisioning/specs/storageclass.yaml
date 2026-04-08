@@ -1,0 +1,14 @@
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: s3files-sc
+provisioner: efs.csi.aws.com
+parameters:
+  provisioningMode: s3files-ap
+  fileSystemId: fs-92107410
+  directoryPerms: "700"
+  gidRangeStart: "1000" # optional
+  gidRangeEnd: "2000" # optional
+  basePath: "/dynamic_provisioning" # optional
+  subPathPattern: "${.PVC.namespace}/${.PVC.name}" # optional
+  ensureUniqueDirectory: "true" # optional

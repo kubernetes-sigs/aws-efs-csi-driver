@@ -63,7 +63,11 @@ COPY --from=rpm-provider /tmp/rpms/* /tmp/download/
 # cd, ls, cat, vim, tcpdump, are for debugging
 RUN clean_install amazon-efs-utils true && \
     clean_install crypto-policies true && \
-    clean_install "openssl openssl-libs openssl-fips-provider-latest" true && \
+    # Upgrade openssl libs to the latest version to resolve the libcrypto.so and libssl.so
+    # version mismatch between the versions in base image and those required by the
+    # latest openssl from clean_install. Unlike the packages above, we do not skip dependency installation
+    # (no "true" flag) so that all openssl-related dependencies are fully resolved and consistent.
+    clean_install "openssl openssl-libs openssl-fips-provider-latest" && \
     install_binary \
         /usr/bin/cat \
         /usr/bin/cd \

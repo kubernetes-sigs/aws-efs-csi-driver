@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"math/rand"
 	"time"
+
+	"github.com/kubernetes-sigs/aws-efs-csi-driver/pkg/util"
 )
 
 type FakeCloudProvider struct {
@@ -27,7 +29,7 @@ func (c *FakeCloudProvider) GetMetadata() MetadataService {
 	return c.m
 }
 
-func (c *FakeCloudProvider) CreateAccessPoint(ctx context.Context, clientToken string, accessPointOpts *AccessPointOptions) (accessPoint *AccessPoint, err error) {
+func (c *FakeCloudProvider) CreateAccessPoint(ctx context.Context, clientToken string, accessPointOpts *AccessPointOptions, fsType util.FileSystemType) (accessPoint *AccessPoint, err error) {
 	ap, exists := c.accessPoints[clientToken]
 	if exists {
 		if accessPointOpts.CapacityGiB == ap.CapacityGiB {
@@ -49,7 +51,7 @@ func (c *FakeCloudProvider) CreateAccessPoint(ctx context.Context, clientToken s
 	return ap, nil
 }
 
-func (c *FakeCloudProvider) DeleteAccessPoint(ctx context.Context, accessPointId string) (err error) {
+func (c *FakeCloudProvider) DeleteAccessPoint(ctx context.Context, accessPointId string, fsType util.FileSystemType) (err error) {
 	for name, ap := range c.accessPoints {
 		if ap.AccessPointId == accessPointId {
 			delete(c.accessPoints, name)
@@ -58,7 +60,7 @@ func (c *FakeCloudProvider) DeleteAccessPoint(ctx context.Context, accessPointId
 	return nil
 }
 
-func (c *FakeCloudProvider) DescribeAccessPoint(ctx context.Context, accessPointId string) (accessPoint *AccessPoint, err error) {
+func (c *FakeCloudProvider) DescribeAccessPoint(ctx context.Context, accessPointId string, fileSystemId string, fsType util.FileSystemType) (accessPoint *AccessPoint, err error) {
 	for _, ap := range c.accessPoints {
 		if ap.AccessPointId == accessPointId {
 			return ap, nil
@@ -69,7 +71,7 @@ func (c *FakeCloudProvider) DescribeAccessPoint(ctx context.Context, accessPoint
 
 // CreateVolume calls DescribeFileSystem and then CreateAccessPoint.
 // Add file system into the map here to allow CreateVolume sanity tests to succeed.
-func (c *FakeCloudProvider) DescribeFileSystem(ctx context.Context, fileSystemId string) (fileSystem *FileSystem, err error) {
+func (c *FakeCloudProvider) DescribeFileSystem(ctx context.Context, fileSystemId string, fsType util.FileSystemType) (fileSystem *FileSystem, err error) {
 	if fs, ok := c.fileSystems[fileSystemId]; ok {
 		return fs, nil
 	}
@@ -90,7 +92,7 @@ func (c *FakeCloudProvider) DescribeFileSystem(ctx context.Context, fileSystemId
 	return fs, nil
 }
 
-func (c *FakeCloudProvider) DescribeMountTargets(ctx context.Context, fileSystemId, az string) (mountTarget *MountTarget, err error) {
+func (c *FakeCloudProvider) DescribeMountTargets(ctx context.Context, fileSystemId, az string, fsType util.FileSystemType) (mountTarget *MountTarget, err error) {
 	if mt, ok := c.mountTargets[fileSystemId]; ok {
 		return mt, nil
 	}
@@ -98,7 +100,7 @@ func (c *FakeCloudProvider) DescribeMountTargets(ctx context.Context, fileSystem
 	return nil, ErrNotFound
 }
 
-func (c *FakeCloudProvider) FindAccessPointByClientToken(ctx context.Context, clientToken, fileSystemId string) (accessPoint *AccessPoint, err error) {
+func (c *FakeCloudProvider) FindAccessPointByClientToken(ctx context.Context, clientToken, fileSystemId string, fsType util.FileSystemType) (accessPoint *AccessPoint, err error) {
 	if ap, exists := c.accessPoints[clientToken]; exists {
 		return ap, nil
 	} else {
@@ -106,7 +108,7 @@ func (c *FakeCloudProvider) FindAccessPointByClientToken(ctx context.Context, cl
 	}
 }
 
-func (c *FakeCloudProvider) ListAccessPoints(ctx context.Context, fileSystemId string) ([]*AccessPoint, error) {
+func (c *FakeCloudProvider) ListAccessPoints(ctx context.Context, fileSystemId string, fsType util.FileSystemType) ([]*AccessPoint, error) {
 	accessPoints := []*AccessPoint{
 		c.accessPoints[fileSystemId],
 	}

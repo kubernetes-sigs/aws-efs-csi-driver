@@ -7,28 +7,12 @@ iam:
         namespace: kube-system
       wellKnownPolicies:
         efsCSIController: true
-      attachPolicy:
-        Version: "2012-10-17"
-        Statement:
-          - Effect: Allow
-            Action:
-              - "elasticfilesystem:DescribeMountTargets"
-              - "elasticfilesystem:ClientMount"
-              - "elasticfilesystem:ClientWrite"
-              - "ec2:DescribeAvailabilityZones"
-            Resource: "*"
+      attachPolicyARNs:
+      - "arn:aws:iam::aws:policy/service-role/AmazonS3FilesCSIDriverPolicy"
     - metadata:
         name: efs-csi-controller-sa
         namespace: kube-system
       wellKnownPolicies:
         efsCSIController: true
-      attachPolicy:
-        Version: "2012-10-17"
-        Statement:
-          - Effect: Allow
-            Action:
-              - "elasticfilesystem:DescribeMountTargets"
-              - "elasticfilesystem:ClientMount"
-              - "elasticfilesystem:ClientWrite"
-              - "ec2:DescribeAvailabilityZones"
-            Resource: "*"
+      attachPolicyARNs:
+      - "arn:aws:iam::aws:policy/service-role/AmazonS3FilesCSIDriverPolicy"

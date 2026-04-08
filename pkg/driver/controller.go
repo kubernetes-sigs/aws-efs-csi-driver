@@ -38,36 +38,37 @@ import (
 )
 
 const (
-	AccessPointMode       = "efs-ap"
-	AzName                = "az"
-	BasePath              = "basePath"
-	DefaultGidMin         = int64(50000)
-	DefaultGidMax         = DefaultGidMin + cloud.AccessPointPerFsLimit
-	DefaultTagKey         = "efs.csi.aws.com/cluster"
-	DefaultTagValue       = "true"
-	DirectoryPerms        = "directoryPerms"
-	EnsureUniqueDirectory = "ensureUniqueDirectory"
-	ExternalId            = "externalId"
-	FsId                  = "fileSystemId"
-	FileSystemIdConfigRef = "fileSystemIdConfigRef"
-	FileSystemIdSecretRef = "fileSystemIdSecretRef"
-	Gid                   = "gid"
-	GidMin                = "gidRangeStart"
-	GidMax                = "gidRangeEnd"
-	MountTargetIp         = "mounttargetip"
-	ProvisioningMode      = "provisioningMode"
-	PvName                = "csi.storage.k8s.io/pv/name"
-	PvcName               = "csi.storage.k8s.io/pvc/name"
-	PvcNamespace          = "csi.storage.k8s.io/pvc/namespace"
-	RoleArn               = "awsRoleArn"
-	SubPathPattern        = "subPathPattern"
-	TempMountPathPrefix   = "/var/lib/csi/pv"
-	Uid                   = "uid"
-	ReuseAccessPointKey   = "reuseAccessPoint"
-	PvcNameKey            = "csi.storage.k8s.io/pvc/name"
-	CrossAccount          = "crossaccount"
-	ApLockWaitTimeSec     = 3
-	EnforceZoneAffinity   = "enforceZoneAffinity"
+	EFSAccessPointMode     = "efs-ap"
+	S3FilesAccessPointMode = "s3files-ap"
+	AzName                 = "az"
+	BasePath               = "basePath"
+	DefaultGidMin          = int64(50000)
+	DefaultGidMax          = DefaultGidMin + cloud.AccessPointPerFsLimit
+	DefaultTagKey          = "efs.csi.aws.com/cluster"
+	DefaultTagValue        = "true"
+	DirectoryPerms         = "directoryPerms"
+	EnsureUniqueDirectory  = "ensureUniqueDirectory"
+	ExternalId             = "externalId"
+	FsId                   = "fileSystemId"
+	FileSystemIdConfigRef  = "fileSystemIdConfigRef"
+	FileSystemIdSecretRef  = "fileSystemIdSecretRef"
+	Gid                    = "gid"
+	GidMin                 = "gidRangeStart"
+	GidMax                 = "gidRangeEnd"
+	MountTargetIp          = "mounttargetip"
+	ProvisioningMode       = "provisioningMode"
+	PvName                 = "csi.storage.k8s.io/pv/name"
+	PvcName                = "csi.storage.k8s.io/pvc/name"
+	PvcNamespace           = "csi.storage.k8s.io/pvc/namespace"
+	RoleArn                = "awsRoleArn"
+	SubPathPattern         = "subPathPattern"
+	TempMountPathPrefix    = "/var/lib/csi/pv"
+	Uid                    = "uid"
+	ReuseAccessPointKey    = "reuseAccessPoint"
+	PvcNameKey             = "csi.storage.k8s.io/pvc/name"
+	CrossAccount           = "crossaccount"
+	ApLockWaitTimeSec      = 3
+	EnforceZoneAffinity    = "enforceZoneAffinity"
 )
 
 var (
@@ -144,20 +145,10 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 		roleArn                string
 		uid                    int64
 		crossAccountDNSEnabled bool
+		fsType                 util.FileSystemType
 	)
 
 	//Parse parameters
-	if value, ok := volumeParams[ProvisioningMode]; ok {
-		provisioningMode = value
-		//TODO: Add FS provisioning mode check when implemented
-		if provisioningMode != AccessPointMode {
-			errStr := "Provisioning mode " + provisioningMode + " is not supported. Only Access point provisioning: 'efs-ap' is supported"
-			return nil, status.Error(codes.InvalidArgument, errStr)
-		}
-	} else {
-		return nil, status.Errorf(codes.InvalidArgument, "Missing %v parameter", ProvisioningMode)
-	}
-
 	accessPointsOptions := &cloud.AccessPointOptions{
 		CapacityGiB: volSize,
 	}
@@ -166,7 +157,41 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 	if err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "Failed to resolve filesystem Id %v", err)
 	}
+
 	accessPointsOptions.FileSystemId = value
+
+	if value, ok := volumeParams[ProvisioningMode]; ok {
+		provisioningMode = value
+		//TODO: Add FS provisioning mode check when implemented
+		switch provisioningMode {
+		case EFSAccessPointMode:
+			fsType = util.FileSystemTypeEFS
+		case S3FilesAccessPointMode:
+			fsType = util.FileSystemTypeS3Files
+		default:
+			errStr := "Provisioning mode " + provisioningMode + " is not supported. Only Access point provisioning 'efs-ap' or 's3files-ap' are supported"
+			return nil, status.Error(codes.InvalidArgument, errStr)
+		}
+	} else {
+		return nil, status.Errorf(codes.InvalidArgument, "Missing %v parameter", ProvisioningMode)
+	}
+
+	// if true, then use sha256 hash of pvcName as clientToken instead of PVC Id
+	// This allows users to reconnect to the same AP from different k8s cluster
+	if reuseAccessPointStr, ok := volumeParams[ReuseAccessPointKey]; ok {
+		if fsType == util.FileSystemTypeS3Files {
+			return nil, status.Errorf(codes.InvalidArgument, "Parameter %v is only supported for EFS file systems, not supported for %v file systems", ReuseAccessPointKey, fsType)
+		}
+
+		reuseAccessPoint, err = strconv.ParseBool(reuseAccessPointStr)
+		if err != nil {
+			return nil, status.Error(codes.InvalidArgument, "Invalid value for reuseAccessPoint parameter")
+		}
+		if reuseAccessPoint {
+			clientToken = get64LenHash(volumeParams[PvcNameKey])
+			klog.V(5).Infof("Client token : %s", clientToken)
+		}
+	}
 
 	localCloud, roleArn, crossAccountDNSEnabled, err = getCloud(req.GetSecrets(), d)
 	if err != nil {
@@ -177,7 +202,7 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 	//if reuseAccessPoint is true, check for AP with same Root Directory exists in efs
 	// if found reuse that AP
 	if reuseAccessPoint {
-		existingAP, err := localCloud.FindAccessPointByClientToken(ctx, clientToken, accessPointsOptions.FileSystemId)
+		existingAP, err := localCloud.FindAccessPointByClientToken(ctx, clientToken, accessPointsOptions.FileSystemId, fsType)
 		if err != nil {
 			return nil, fmt.Errorf("failed to find access point: %v", err)
 		}
@@ -287,7 +312,7 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 		// With dynamic uid/gid provisioning we can save a call to describe FS, as list APs fails if FS ID does not exist
 		var accessPoints []*cloud.AccessPoint
 		if uid == -1 || gid == -1 {
-			accessPoints, err = localCloud.ListAccessPoints(ctx, accessPointsOptions.FileSystemId)
+			accessPoints, err = localCloud.ListAccessPoints(ctx, accessPointsOptions.FileSystemId, fsType)
 		}
 		if err != nil {
 			if err == cloud.ErrAccessDenied {
@@ -344,22 +369,23 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 		}
 
 		rootDir := path.Join("/", basePath, rootDirName)
-		if ok, err := validateEfsPathRequirements(rootDir); !ok {
+		if ok, err := validatePathRequirements(rootDir); !ok {
 			return nil, err
 		}
+
 		klog.Infof("Using %v as the access point directory.", rootDir)
 
 		accessPointsOptions.Uid = uid
 		accessPointsOptions.Gid = gid
 		accessPointsOptions.DirectoryPath = rootDir
 
-		accessPoint, err = localCloud.CreateAccessPoint(ctx, clientToken, accessPointsOptions)
+		accessPoint, err = localCloud.CreateAccessPoint(ctx, clientToken, accessPointsOptions, fsType)
 		if err != nil {
 			if err == cloud.ErrAccessDenied {
 				return nil, status.Errorf(codes.Unauthenticated, "Access Denied. Please ensure you have the right AWS permissions: %v", err)
 			} else if err == cloud.ErrAlreadyExists {
 				klog.V(4).Infof("Access point already exists for client token %s. Retrieving existing access point details.", clientToken)
-				existingAccessPoint, err := localCloud.FindAccessPointByClientToken(ctx, clientToken, accessPointsOptions.FileSystemId)
+				existingAccessPoint, err := localCloud.FindAccessPointByClientToken(ctx, clientToken, accessPointsOptions.FileSystemId, fsType)
 				if err != nil {
 					return nil, fmt.Errorf("Error attempting to retrieve existing access point for client token %s: %v", clientToken, err)
 				}
@@ -406,7 +432,7 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 	var fsInfo *cloud.FileSystem
 
 	if enforceZoneAffinity {
-		fsInfo, err = localCloud.DescribeFileSystem(ctx, accessPointsOptions.FileSystemId)
+		fsInfo, err = localCloud.DescribeFileSystem(ctx, accessPointsOptions.FileSystemId, fsType)
 		if err != nil {
 			klog.Errorf("Failed to describe file system %v: %v", accessPointsOptions.FileSystemId, err)
 			if err == cloud.ErrAccessDenied {
@@ -426,7 +452,7 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 	return &csi.CreateVolumeResponse{
 		Volume: &csi.Volume{
 			CapacityBytes:      volSize,
-			VolumeId:           accessPointsOptions.FileSystemId + "::" + accessPoint.AccessPointId,
+			VolumeId:           fsType.String() + ":" + accessPointsOptions.FileSystemId + "::" + accessPoint.AccessPointId,
 			VolumeContext:      volContext,
 			AccessibleTopology: topology,
 		},
@@ -452,7 +478,7 @@ func (d *Driver) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeRequest)
 		return nil, status.Error(codes.InvalidArgument, "Volume ID not provided")
 	}
 
-	fileSystemId, _, accessPointId, err := parseVolumeId(volId)
+	fileSystemId, _, accessPointId, fsType, err := parseVolumeId(volId)
 	if err != nil {
 		//Returning success for an invalid volume ID. See here - https://github.com/kubernetes-csi/csi-test/blame/5deb83d58fea909b2895731d43e32400380aae3c/pkg/sanity/controller.go#L733
 		klog.V(5).Infof("DeleteVolume: Failed to parse volumeID: %v, err: %v, returning success", volId, err)
@@ -503,7 +529,7 @@ func (d *Driver) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeRequest)
 
 		// Check if Access point exists.
 		// If access point exists, retrieve its root directory and delete it/
-		accessPoint, err := localCloud.DescribeAccessPoint(ctx, accessPointId)
+		accessPoint, err := localCloud.DescribeAccessPoint(ctx, accessPointId, fileSystemId, fsType)
 		if err != nil {
 			if err == cloud.ErrAccessDenied {
 				return nil, status.Errorf(codes.Unauthenticated, "Access Denied. Please ensure you have the right AWS permissions: %v", err)
@@ -539,7 +565,7 @@ func (d *Driver) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeRequest)
 			return nil, status.Errorf(codes.Internal, "Could not check if %q is mounted: %v", fsRoot, err)
 		}
 		if isNotMounted {
-			if err := d.mounter.Mount(fileSystemId, fsRoot, "efs", mountOptions); err != nil {
+			if err := d.mounter.Mount(fileSystemId, fsRoot, fsType.String(), mountOptions); err != nil {
 				return nil, status.Errorf(codes.Internal, "Could not mount %q at %q: %v", fileSystemId, fsRoot, err)
 			}
 		}
@@ -566,7 +592,7 @@ func (d *Driver) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeRequest)
 	}
 
 	// Delete access point
-	if err = localCloud.DeleteAccessPoint(ctx, accessPointId); err != nil {
+	if err = localCloud.DeleteAccessPoint(ctx, accessPointId, fsType); err != nil {
 		if err == cloud.ErrAccessDenied {
 			return nil, status.Errorf(codes.Unauthenticated, "Access Denied. Please ensure you have the right AWS permissions: %v", err)
 		}
@@ -600,7 +626,7 @@ func (d *Driver) ValidateVolumeCapabilities(ctx context.Context, req *csi.Valida
 		return nil, status.Error(codes.InvalidArgument, "Volume capabilities not provided")
 	}
 
-	_, _, _, err := parseVolumeId(volId)
+	_, _, _, _, err := parseVolumeId(volId)
 	if err != nil {
 		return nil, status.Errorf(codes.NotFound, "Volume not found, err: %v", err)
 	}
@@ -737,13 +763,13 @@ func getSupportedComponentNames() []string {
 	return keys
 }
 
-func validateEfsPathRequirements(proposedPath string) (bool, error) {
+func validatePathRequirements(proposedPath string) (bool, error) {
 	if len(proposedPath) > 100 {
 		// Check the proposed path is 100 characters or fewer
-		return false, status.Errorf(codes.InvalidArgument, "Proposed path '%s' exceeds EFS limit of 100 characters", proposedPath)
+		return false, status.Errorf(codes.InvalidArgument, "Proposed path '%s' exceeds file system limit of 100 characters", proposedPath)
 	} else if strings.Count(proposedPath, "/") > 5 {
 		// Check the proposed path contains at most 4 subdirectories
-		return false, status.Errorf(codes.InvalidArgument, "Proposed path '%s' EFS limit of 4 subdirectories", proposedPath)
+		return false, status.Errorf(codes.InvalidArgument, "Proposed path '%s' file system limit of 4 subdirectories", proposedPath)
 	} else {
 		return true, nil
 	}
