@@ -48,7 +48,7 @@ spec:
         - name: efs-plugin
           securityContext:
             privileged: true
-          image: public.ecr.aws/efs-csi-driver/amazon/aws-efs-csi-driver:v2.3.1
+          image: public.ecr.aws/efs-csi-driver/amazon/aws-efs-csi-driver:v3.0.0
           imagePullPolicy: IfNotPresent
           args:
             - --endpoint=$(CSI_ENDPOINT)
@@ -63,6 +63,7 @@ spec:
             - --volume-attach-limit=20
             - --force-unmount-after-timeout=false
             - --unmount-timeout=30s
+            - --debug-logs=false
           env:
             - name: CSI_ENDPOINT
               value: unix:/csi/csi.sock
@@ -70,6 +71,11 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
+            - name: CSI_NODE_MEMORY_LIMIT
+              valueFrom:
+                resourceFieldRef:
+                  containerName: efs-plugin
+                  resource: limits.memory
             - name: PORT_RANGE_UPPER_BOUND
               value: "21049"
           volumeMounts:

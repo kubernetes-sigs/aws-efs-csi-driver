@@ -46,6 +46,11 @@ func main() {
 		klog.FlushAndExit(klog.ExitFlushTimeout, 1)
 	}
 
+	if *options.DebugLogs {
+		_ = flag.Set("v", "5")
+		klog.V(5).Info("Set klog verbosity level to 5 since DebugLogs is true.")
+	}
+
 	if *options.Version {
 		info, err := driver.GetVersionJSON()
 		if err != nil {

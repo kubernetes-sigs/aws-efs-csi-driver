@@ -9,8 +9,10 @@ import (
 	reflect "reflect"
 
 	efs "github.com/aws/aws-sdk-go-v2/service/efs"
+	"github.com/aws/aws-sdk-go-v2/service/s3files"
 	gomock "github.com/golang/mock/gomock"
 	cloud "github.com/kubernetes-sigs/aws-efs-csi-driver/pkg/cloud"
+	util "github.com/kubernetes-sigs/aws-efs-csi-driver/pkg/util"
 )
 
 // MockEfs is a mock of Efs interface.
@@ -19,9 +21,20 @@ type MockEfs struct {
 	recorder *MockEfsMockRecorder
 }
 
+// MockS3Files is a mock of S3Files interface.
+type MockS3Files struct {
+	ctrl     *gomock.Controller
+	recorder *MockS3FilesMockRecorder
+}
+
 // MockEfsMockRecorder is the mock recorder for MockEfs.
 type MockEfsMockRecorder struct {
 	mock *MockEfs
+}
+
+// MockS3FilesMockRecorder is the mock recorder for MockS3Files.
+type MockS3FilesMockRecorder struct {
+	mock *MockS3Files
 }
 
 // NewMockEfs creates a new mock instance.
@@ -31,8 +44,20 @@ func NewMockEfs(ctrl *gomock.Controller) *MockEfs {
 	return mock
 }
 
+// NewMock3FileSystems creates a new mock instance.
+func NewMock3FileSystems(ctrl *gomock.Controller) *MockS3Files {
+	mock := &MockS3Files{ctrl: ctrl}
+	mock.recorder = &MockS3FilesMockRecorder{mock}
+	return mock
+}
+
 // EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockEfs) EXPECT() *MockEfsMockRecorder {
+	return m.recorder
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockS3Files) EXPECT() *MockS3FilesMockRecorder {
 	return m.recorder
 }
 
@@ -136,6 +161,86 @@ func (mr *MockEfsMockRecorder) DescribeMountTargets(arg0, arg1 interface{}, arg2
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeMountTargets", reflect.TypeOf((*MockEfs)(nil).DescribeMountTargets), varargs...)
 }
 
+// CreateAccessPoint mocks base method.
+func (m *MockS3Files) CreateAccessPoint(arg0 context.Context, arg1 *s3files.CreateAccessPointInput, arg2 ...func(*s3files.Options)) (*s3files.CreateAccessPointOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "CreateAccessPoint", varargs...)
+	ret0, _ := ret[0].(*s3files.CreateAccessPointOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateAccessPoint indicates an expected call of CreateAccessPoint.
+func (mr *MockS3FilesMockRecorder) CreateAccessPoint(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateAccessPoint", reflect.TypeOf((*MockS3Files)(nil).CreateAccessPoint), varargs...)
+}
+
+// DeleteAccessPoint mocks base method.
+func (m *MockS3Files) DeleteAccessPoint(arg0 context.Context, arg1 *s3files.DeleteAccessPointInput, arg2 ...func(*s3files.Options)) (*s3files.DeleteAccessPointOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DeleteAccessPoint", varargs...)
+	ret0, _ := ret[0].(*s3files.DeleteAccessPointOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DeleteAccessPoint indicates an expected call of DeleteAccessPoint.
+func (mr *MockS3FilesMockRecorder) DeleteAccessPoint(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteAccessPoint", reflect.TypeOf((*MockS3Files)(nil).DeleteAccessPoint), varargs...)
+}
+
+// ListAccessPoints mocks base method.
+func (m *MockS3Files) ListAccessPoints(arg0 context.Context, arg1 *s3files.ListAccessPointsInput, arg2 ...func(*s3files.Options)) (*s3files.ListAccessPointsOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "ListAccessPoints", varargs...)
+	ret0, _ := ret[0].(*s3files.ListAccessPointsOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListAccessPoints indicates an expected call of ListAccessPoints.
+func (mr *MockS3FilesMockRecorder) ListAccessPoints(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListAccessPoints", reflect.TypeOf((*MockS3Files)(nil).ListAccessPoints), varargs...)
+}
+
+// ListFileSystems mocks base method.
+func (m *MockS3Files) ListFileSystems(arg0 context.Context, arg1 *s3files.ListFileSystemsInput, arg2 ...func(*s3files.Options)) (*s3files.ListFileSystemsOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "ListFileSystems", varargs...)
+	ret0, _ := ret[0].(*s3files.ListFileSystemsOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListFileSystems indicates an expected call of ListFileSystems.
+func (mr *MockS3FilesMockRecorder) ListFileSystems(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListFileSystems", reflect.TypeOf((*MockS3Files)(nil).ListFileSystems), varargs...)
+}
+
 // MockCloud is a mock of Cloud interface.
 type MockCloud struct {
 	ctrl     *gomock.Controller
@@ -160,92 +265,92 @@ func (m *MockCloud) EXPECT() *MockCloudMockRecorder {
 }
 
 // CreateAccessPoint mocks base method.
-func (m *MockCloud) CreateAccessPoint(ctx context.Context, clientToken string, accessPointOpts *cloud.AccessPointOptions) (*cloud.AccessPoint, error) {
+func (m *MockCloud) CreateAccessPoint(ctx context.Context, clientToken string, accessPointOpts *cloud.AccessPointOptions, fsType util.FileSystemType) (*cloud.AccessPoint, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateAccessPoint", ctx, clientToken, accessPointOpts)
+	ret := m.ctrl.Call(m, "CreateAccessPoint", ctx, clientToken, accessPointOpts, fsType)
 	ret0, _ := ret[0].(*cloud.AccessPoint)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // CreateAccessPoint indicates an expected call of CreateAccessPoint.
-func (mr *MockCloudMockRecorder) CreateAccessPoint(ctx, clientToken, accessPointOpts interface{}) *gomock.Call {
+func (mr *MockCloudMockRecorder) CreateAccessPoint(ctx, clientToken, accessPointOpts, fsType interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateAccessPoint", reflect.TypeOf((*MockCloud)(nil).CreateAccessPoint), ctx, clientToken, accessPointOpts)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateAccessPoint", reflect.TypeOf((*MockCloud)(nil).CreateAccessPoint), ctx, clientToken, accessPointOpts, fsType)
 }
 
 // DeleteAccessPoint mocks base method.
-func (m *MockCloud) DeleteAccessPoint(ctx context.Context, accessPointId string) error {
+func (m *MockCloud) DeleteAccessPoint(ctx context.Context, accessPointId string, fsType util.FileSystemType) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteAccessPoint", ctx, accessPointId)
+	ret := m.ctrl.Call(m, "DeleteAccessPoint", ctx, accessPointId, fsType)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // DeleteAccessPoint indicates an expected call of DeleteAccessPoint.
-func (mr *MockCloudMockRecorder) DeleteAccessPoint(ctx, accessPointId interface{}) *gomock.Call {
+func (mr *MockCloudMockRecorder) DeleteAccessPoint(ctx, accessPointId, fsType interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteAccessPoint", reflect.TypeOf((*MockCloud)(nil).DeleteAccessPoint), ctx, accessPointId)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteAccessPoint", reflect.TypeOf((*MockCloud)(nil).DeleteAccessPoint), ctx, accessPointId, fsType)
 }
 
 // DescribeAccessPoint mocks base method.
-func (m *MockCloud) DescribeAccessPoint(ctx context.Context, accessPointId string) (*cloud.AccessPoint, error) {
+func (m *MockCloud) DescribeAccessPoint(ctx context.Context, accessPointId string, fileSystemId string, fsType util.FileSystemType) (*cloud.AccessPoint, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DescribeAccessPoint", ctx, accessPointId)
+	ret := m.ctrl.Call(m, "DescribeAccessPoint", ctx, accessPointId, fileSystemId, fsType)
 	ret0, _ := ret[0].(*cloud.AccessPoint)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // DescribeAccessPoint indicates an expected call of DescribeAccessPoint.
-func (mr *MockCloudMockRecorder) DescribeAccessPoint(ctx, accessPointId interface{}) *gomock.Call {
+func (mr *MockCloudMockRecorder) DescribeAccessPoint(ctx, accessPointId, fileSystemId, fsType interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeAccessPoint", reflect.TypeOf((*MockCloud)(nil).DescribeAccessPoint), ctx, accessPointId)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeAccessPoint", reflect.TypeOf((*MockCloud)(nil).DescribeAccessPoint), ctx, accessPointId, fileSystemId, fsType)
 }
 
 // DescribeFileSystem mocks base method.
-func (m *MockCloud) DescribeFileSystem(ctx context.Context, fileSystemId string) (*cloud.FileSystem, error) {
+func (m *MockCloud) DescribeFileSystem(ctx context.Context, fileSystemId string, fsType util.FileSystemType) (*cloud.FileSystem, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DescribeFileSystem", ctx, fileSystemId)
+	ret := m.ctrl.Call(m, "DescribeFileSystem", ctx, fileSystemId, fsType)
 	ret0, _ := ret[0].(*cloud.FileSystem)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // DescribeFileSystem indicates an expected call of DescribeFileSystem.
-func (mr *MockCloudMockRecorder) DescribeFileSystem(ctx, fileSystemId interface{}) *gomock.Call {
+func (mr *MockCloudMockRecorder) DescribeFileSystem(ctx, fileSystemId, fsType interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeFileSystem", reflect.TypeOf((*MockCloud)(nil).DescribeFileSystem), ctx, fileSystemId)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeFileSystem", reflect.TypeOf((*MockCloud)(nil).DescribeFileSystem), ctx, fileSystemId, fsType)
 }
 
 // DescribeMountTargets mocks base method.
-func (m *MockCloud) DescribeMountTargets(ctx context.Context, fileSystemId, az string) (*cloud.MountTarget, error) {
+func (m *MockCloud) DescribeMountTargets(ctx context.Context, fileSystemId, az string, fsType util.FileSystemType) (*cloud.MountTarget, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DescribeMountTargets", ctx, fileSystemId, az)
+	ret := m.ctrl.Call(m, "DescribeMountTargets", ctx, fileSystemId, az, fsType)
 	ret0, _ := ret[0].(*cloud.MountTarget)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // DescribeMountTargets indicates an expected call of DescribeMountTargets.
-func (mr *MockCloudMockRecorder) DescribeMountTargets(ctx, fileSystemId, az interface{}) *gomock.Call {
+func (mr *MockCloudMockRecorder) DescribeMountTargets(ctx, fileSystemId, az, fsType interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeMountTargets", reflect.TypeOf((*MockCloud)(nil).DescribeMountTargets), ctx, fileSystemId, az)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeMountTargets", reflect.TypeOf((*MockCloud)(nil).DescribeMountTargets), ctx, fileSystemId, az, fsType)
 }
 
 // FindAccessPointByClientToken mocks base method.
-func (m *MockCloud) FindAccessPointByClientToken(ctx context.Context, clientToken, fileSystemId string) (*cloud.AccessPoint, error) {
+func (m *MockCloud) FindAccessPointByClientToken(ctx context.Context, clientToken, fileSystemId string, fsType util.FileSystemType) (*cloud.AccessPoint, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "FindAccessPointByClientToken", ctx, clientToken, fileSystemId)
+	ret := m.ctrl.Call(m, "FindAccessPointByClientToken", ctx, clientToken, fileSystemId, fsType)
 	ret0, _ := ret[0].(*cloud.AccessPoint)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // FindAccessPointByClientToken indicates an expected call of FindAccessPointByClientToken.
-func (mr *MockCloudMockRecorder) FindAccessPointByClientToken(ctx, clientToken, fileSystemId interface{}) *gomock.Call {
+func (mr *MockCloudMockRecorder) FindAccessPointByClientToken(ctx, clientToken, fileSystemId, fsType interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindAccessPointByClientToken", reflect.TypeOf((*MockCloud)(nil).FindAccessPointByClientToken), ctx, clientToken, fileSystemId)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindAccessPointByClientToken", reflect.TypeOf((*MockCloud)(nil).FindAccessPointByClientToken), ctx, clientToken, fileSystemId, fsType)
 }
 
 // GetMetadata mocks base method.
@@ -263,16 +368,16 @@ func (mr *MockCloudMockRecorder) GetMetadata() *gomock.Call {
 }
 
 // ListAccessPoints mocks base method.
-func (m *MockCloud) ListAccessPoints(ctx context.Context, fileSystemId string) ([]*cloud.AccessPoint, error) {
+func (m *MockCloud) ListAccessPoints(ctx context.Context, fileSystemId string, fsType util.FileSystemType) ([]*cloud.AccessPoint, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListAccessPoints", ctx, fileSystemId)
+	ret := m.ctrl.Call(m, "ListAccessPoints", ctx, fileSystemId, fsType)
 	ret0, _ := ret[0].([]*cloud.AccessPoint)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ListAccessPoints indicates an expected call of ListAccessPoints.
-func (mr *MockCloudMockRecorder) ListAccessPoints(ctx, fileSystemId interface{}) *gomock.Call {
+func (mr *MockCloudMockRecorder) ListAccessPoints(ctx, fileSystemId, fsType interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListAccessPoints", reflect.TypeOf((*MockCloud)(nil).ListAccessPoints), ctx, fileSystemId)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListAccessPoints", reflect.TypeOf((*MockCloud)(nil).ListAccessPoints), ctx, fileSystemId, fsType)
 }

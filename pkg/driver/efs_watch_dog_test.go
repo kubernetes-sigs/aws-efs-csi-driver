@@ -145,7 +145,7 @@ func TestExecWatchdog(t *testing.T) {
 	defer os.RemoveAll(configDirName)
 	defer os.RemoveAll(staticFileDirName)
 
-	w := newExecWatchdog(configDirName, staticFileDirName, "sleep", "300")
+	w := newExecWatchdog(configDirName, staticFileDirName, false, "sleep", "300")
 	if err := w.start(); err != nil {
 		t.Fatalf("Failed to start %v", err)
 	}
@@ -186,7 +186,7 @@ func TestSetupWithEmptyConfigDirectory(t *testing.T) {
 	fileBContent := "dummyB"
 	createFile(t, staticFileDirName, fileBName, fileBContent)
 
-	w := newExecWatchdog(configDirName, staticFileDirName, "sleep", "300").(*execWatchdog)
+	w := newExecWatchdog(configDirName, staticFileDirName, false, "sleep", "300").(*execWatchdog)
 	efsClient := "k8s"
 	configFilePath := filepath.Join(configDirName, configFileName)
 	if err := w.setup(efsClient); err != nil {
@@ -219,7 +219,7 @@ func TestSetupWithNonEmptyConfigDirectory(t *testing.T) {
 	differentContent := "differentDummy"
 	createFile(t, configDirName, fileBName, differentContent)
 
-	w := newExecWatchdog(configDirName, staticFileDirName, "sleep", "300").(*execWatchdog)
+	w := newExecWatchdog(configDirName, staticFileDirName, false, "sleep", "300").(*execWatchdog)
 	efsClient := "k8s"
 	configFilePath := filepath.Join(configDirName, configFileName)
 	if err := w.setup(efsClient); err != nil {
@@ -237,7 +237,7 @@ func TestSetupWithNonexistentConfigDirectory(t *testing.T) {
 	configDirName := ""
 	staticFileDirName := createTempDir(t)
 	defer os.RemoveAll(staticFileDirName)
-	w := newExecWatchdog(configDirName, staticFileDirName, "sleep", "300").(*execWatchdog)
+	w := newExecWatchdog(configDirName, staticFileDirName, false, "sleep", "300").(*execWatchdog)
 	efsClient := "k8s"
 	if err := w.setup(efsClient); err == nil {
 		t.Fatalf("Expected failure since static files directory doesn't exist.")
@@ -248,7 +248,7 @@ func TestSetupWithNonexistentStaticFilesDirectory(t *testing.T) {
 	configDirName := createTempDir(t)
 	defer os.RemoveAll(configDirName)
 	staticFileDirName := ""
-	w := newExecWatchdog(configDirName, staticFileDirName, "sleep", "300").(*execWatchdog)
+	w := newExecWatchdog(configDirName, staticFileDirName, false, "sleep", "300").(*execWatchdog)
 	efsClient := "k8s"
 	if err := w.setup(efsClient); err == nil {
 		t.Fatalf("Expected failure since config directory doesn't exist.")
@@ -265,7 +265,7 @@ func TestSetupWithAdditionalDirectoryInStaticFilesDirectory(t *testing.T) {
 	_, err := os.MkdirTemp(staticFileDirName, "")
 	checkError(t, err)
 
-	w := newExecWatchdog(configDirName, staticFileDirName, "sleep", "300").(*execWatchdog)
+	w := newExecWatchdog(configDirName, staticFileDirName, false, "sleep", "300").(*execWatchdog)
 	efsClient := "k8s"
 	if err := w.setup(efsClient); err == nil {
 		t.Fatalf("Expected failure since config directory contains another directory.")

@@ -12,7 +12,7 @@ For most highly concurrent workloads, we recommend increasing the default timeou
 * Amazon EFS CSI driver allows you to configure your [update strategy](https://kubernetes.io/docs/tasks/manage-daemon/update-daemon-set/#daemonset-update-strategy)
 * When setting update strategy to be ```OnDelete```, you must manually delete the csi-node and csi-controller pods in order for them to be updated
 
-## Using botocore to retrieve mount target ip address when dns name cannot be resolved
+## Using botocore to retrieve mount target ip address when dns name cannot be resolved (Amazon EFS only)
 * Amazon EFS CSI driver supports using botocore to retrieve mount target ip address when dns name cannot be resolved, e.g., when user is mounting a file system in another VPC, botocore comes preinstalled on efs-csi-driver which can solve this DNS issue.
 * IAM policy prerequisites to use this feature :  
   Allow ```elasticfilesystem:DescribeMountTargets``` and ```ec2:DescribeAvailabilityZones``` actions in your policy attached to the Amazon EKS service account role, refer to example policy [here](https://github.com/kubernetes-sigs/aws-efs-csi-driver/blob/master/docs/iam-policy-example.json#L9-L10).

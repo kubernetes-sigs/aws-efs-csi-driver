@@ -26,17 +26,20 @@ which is the mounting utility used by the driver.
 After enabling debug logging using the following sections and before collecting logs,
 make sure to attempt the mount again, so that new failure logs are acquired.
 
-### Enable debug logging for efs csi driver
-Modify the deployment manifests to use the new logging level with the following command from 
-deploy/kubernetes or charts directory (depending on your installation method):  
-`find . -type f | xargs sed -i '/v=2/s//v=5/g'`  
+### Enable debug logs option (Increase verbosity level of CSI driver to the highest level and enable debug in efs-utils)
+Modify the deployment manifests to enable debug logs using one of the following methods
+depending on your installation method:
 
+**Kustomize/kubectl installation Example:**  
+```sh
+sed -i 's/debug-logs=false/debug-logs=true/g' deploy/kubernetes/base/node-daemonset.yaml deploy/kubernetes/base/controller-deployment.yaml
+```
 You will need to redeploy the driver after running this command.
 
-### Enable debug logging for efs-utils
-- `kubectl exec <driver_pod_name> -n kube-system -it /bin/bash`
-- From inside the pod, `sed -i '/stunnel_debug_enabled = false/s//stunnel_debug_enabled = true/g' /etc/amazon/efs/efs-utils.conf`
-- From inside the pod, `sed -i '/logging_level = INFO/s//logging_level = DEBUG/g' /etc/amazon/efs/efs-utils.conf`
+**Helm installation Example:**
+```sh
+helm upgrade --install aws-efs-csi-driver --namespace kube-system --set debugLogs=true
+```
 
 ### Advanced debugging (optional)
 Capture traffic from the pod where failure is occurring:  
