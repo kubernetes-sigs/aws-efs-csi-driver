@@ -41,7 +41,7 @@ The EFS CSI Driver follows semantic versioning. The version `MAJOR.MINOR.PATCH` 
 ### ECR Image
 | Driver Version | [ECR](https://gallery.ecr.aws/efs-csi-driver/amazon/aws-efs-csi-driver) Image |
 |----------------|-------------------------------------------------------------------------------|
-| v2.3.1         | public.ecr.aws/efs-csi-driver/amazon/aws-efs-csi-driver:v2.3.1                |
+| v3.0.0         | public.ecr.aws/efs-csi-driver/amazon/aws-efs-csi-driver:v3.0.0                |
 
 **Note**  
 You can find previous efs-csi-driver versions' images from [here](https://gallery.ecr.aws/efs-csi-driver/amazon/aws-efs-csi-driver)
