@@ -21,6 +21,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.merge_commit_sha }}
         
       - name: Extract version
         id: extract-version
@@ -41,10 +43,13 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           tag="${{ steps.extract-version.outputs.version }}"
+          major="${tag#v}"
+          major="${major%%.*}"
+          changelog="CHANGELOG-${major}.x.md"
           
           gh release create "$tag" --title "$tag" --notes-file - <<EOF
           AWS EFS CSI Driver
           
           ## CHANGELOG
-          See [CHANGELOG](https://github.com/kubernetes-sigs/aws-efs-csi-driver/blob/master/CHANGELOG-2.x.md) for full list of changes
+          See [CHANGELOG](https://github.com/kubernetes-sigs/aws-efs-csi-driver/blob/master/${changelog}) for full list of changes
           EOF
