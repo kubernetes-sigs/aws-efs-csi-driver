@@ -14,7 +14,8 @@ jobs:
     # will only be triggered if PR title begins with [POST-RELEASE v*.*.*]
     name: Release
     runs-on: ubuntu-latest
-    permissions: write-all
+    permissions:
+      contents: write
     if: |
       github.event.pull_request.merged == true && 
       startsWith(github.event.pull_request.title, '[POST-RELEASE')
@@ -26,8 +27,9 @@ jobs:
         
       - name: Extract version
         id: extract-version
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
         run: |
-          PR_TITLE="${{ github.event.pull_request.title }}"
           VERSION=$(echo "$PR_TITLE" | grep -oE '^\[POST-RELEASE v[0-9]+\.[0-9]+\.[0-9]+\]' | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+')
           
           if [ -z "$VERSION" ]; then
