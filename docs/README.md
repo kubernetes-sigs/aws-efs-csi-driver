@@ -27,8 +27,9 @@ The following CSI interfaces are implemented:
 * Node Service: NodePublishVolume, NodeUnpublishVolume, NodeGetCapabilities, NodeGetInfo, NodeGetId, NodeGetVolumeStats
 * Identity Service: GetPluginInfo, GetPluginCapabilities, Probe
 
-**Note**  
-Since Amazon EFS and Amazon S3 file systems can scale elastically, it doesn't really enforce any file system capacity. The actual storage capacity value in persistent volume and persistent volume claim is not used when creating the file system. However, since the storage capacity is a required field by Kubernetes, you must specify the value and you can use any valid value for the capacity.
+> **Note** When using static provisioning with an Amazon S3 file system, the `volumeHandle` in your PersistentVolume must include the `s3files:` prefix (e.g., `s3files:fs-01234567890abcdef0`). Without this prefix, the driver will treat the file system as Amazon EFS, and the mount will fail. For dynamic provisioning, this is not required as the driver determines the file system type from the `provisioningMode` parameter in the StorageClass.
+
+> **Note** Since Amazon EFS and Amazon S3 file systems can scale elastically, it doesn't really enforce any file system capacity. The actual storage capacity value in persistent volume and persistent volume claim is not used when creating the file system. However, since the storage capacity is a required field by Kubernetes, you must specify the value and you can use any valid value for the capacity.
 
 For detailed parameter explanations, see the [parameters documentation](parameters.md).
 
