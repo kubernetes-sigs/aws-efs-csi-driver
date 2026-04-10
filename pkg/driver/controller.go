@@ -136,7 +136,6 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 	}
 
 	var (
-		azName                 string
 		basePath               string
 		gid                    int64
 		gidMin                 int64
@@ -305,17 +304,10 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 			accessPointsOptions.DirectoryPerms = value
 		}
 
-		// Storage class parameter `az` will be used to fetch preferred mount target for cross account mount.
-		// If the `az` storage class parameter is not provided, a random mount target will be picked for mounting.
-		// This storage class parameter different from `az` mount option provided by efs-utils https://github.com/aws/efs-utils/blob/v1.31.1/src/mount_efs/__init__.py#L195
+		// Storage class parameter `az` was previously used to fetch preferred mount target for cross account mount.
+		// This is no longer used as cross-account mounts now default to DNS-based resolution.
 		// The `az` mount option provided by efs-utils is used for cross az mount or to provide az of efs one zone file system mount within the same aws-account.
 		// To make use of the `az` mount option, add it under storage class's `mountOptions` section. https://kubernetes.io/docs/concepts/storage/storage-classes/#mount-options
-		if value, ok := volumeParams[AzName]; ok {
-			if fsType != util.FileSystemTypeEFS {
-				return nil, status.Errorf(codes.InvalidArgument, "Parameter %v is only supported for EFS file systems, not supported for %v file systems", AzName, fsType)
-			}
-			azName = value
-		}
 
 		// With dynamic uid/gid provisioning we can save a call to describe FS, as list APs fails if FS ID does not exist
 		var accessPoints []*cloud.AccessPoint
@@ -420,23 +412,18 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 
 	volContext := map[string]string{}
 
-	if fsType == util.FileSystemTypeEFS {
-		// Enable cross-account dns resolution or fetch mount target Ip for cross-account mount
-		if roleArn != "" {
-			if crossAccountDNSEnabled {
-				// This option indicates the customer would like to use DNS to resolve
-				// the cross-account mount target ip address (in order to mount to
-				// the same AZ-ID as the client instance); mounttargetip should
-				// not be used as a mount option in this case.
-				volContext[CrossAccount] = strconv.FormatBool(true)
-			} else {
-				mountTarget, err := localCloud.DescribeMountTargets(ctx, accessPointsOptions.FileSystemId, azName, fsType)
-				if err != nil {
-					klog.Warningf("Failed to describe mount targets for file system %v. Skip using `mounttargetip` mount option: %v", accessPointsOptions.FileSystemId, err)
-				} else {
-					volContext[MountTargetIp] = mountTarget.IPAddress
-				}
-			}
+	// Enable cross-account dns resolution or fetch mount target Ip for cross-account mount
+	if roleArn != "" {
+		if crossAccountDNSEnabled {
+			// This option indicates the customer would like to use DNS to resolve
+			// the cross-account mount target ip address (in order to mount to
+			// the same AZ-ID as the client instance); mounttargetip should
+			// not be used as a mount option in this case.
+			volContext[CrossAccount] = strconv.FormatBool(true)
+		} else {
+			klog.Warningf("Cross-account mount without crossaccount=true: no mounttargetip will be set. "+
+				"Consider setting crossaccount=true in the provisioner secret for AZ-aware DNS resolution, "+
+				"or provide mounttargetip via StorageClass mountOptions.")
 		}
 	}
 
@@ -556,19 +543,14 @@ func (d *Driver) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeRequest)
 
 		//Mount File System at it root and delete access point root directory
 		mountOptions := []string{"tls", "iam"}
-		if fsType == util.FileSystemTypeEFS {
-			if roleArn != "" {
-				if crossAccountDNSEnabled {
-					// Connect via dns rather than mounttargetip
-					mountOptions = append(mountOptions, CrossAccount)
-				} else {
-					mountTarget, err := localCloud.DescribeMountTargets(ctx, fileSystemId, "", fsType)
-					if err == nil {
-						mountOptions = append(mountOptions, MountTargetIp+"="+mountTarget.IPAddress)
-					} else {
-						klog.Warningf("Failed to describe mount targets for file system %v. Skip using `mounttargetip` mount option: %v", fileSystemId, err)
-					}
-				}
+		if roleArn != "" {
+			if crossAccountDNSEnabled {
+				// Connect via dns rather than mounttargetip
+				mountOptions = append(mountOptions, CrossAccount)
+			} else {
+				klog.Warningf("Cross-account mount without crossaccount=true: no mounttargetip will be set. "+
+					"Consider setting crossaccount=true in the provisioner secret for AZ-aware DNS resolution, "+
+					"or provide mounttargetip via StorageClass mountOptions.")
 			}
 		}
 
@@ -729,7 +711,8 @@ func getCloud(secrets map[string]string, driver *Driver) (cloud.Cloud, string, b
 			return nil, "", false, status.Error(codes.InvalidArgument, "crossaccount parameter must have boolean value.")
 		}
 	} else {
-		crossAccountDNSEnabled = false
+		// Default to DNS-based resolution when cross-account role is present
+		crossAccountDNSEnabled = (roleArn != "")
 	}
 
 	if roleArn != "" {
