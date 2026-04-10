@@ -9,4 +9,4 @@ metadata:
     {{- end }}
     "helm.sh/resource-policy": keep
 spec:
-  attachRequired: false
+  attachRequired: {{ .Values.controller.attachRequired }}

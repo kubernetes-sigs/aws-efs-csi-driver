@@ -44,6 +44,15 @@ sidecars:
       readOnlyRootFilesystem: true
       allowPrivilegeEscalation: false
     additionalArgs: []
+  csiAttacher:
+    image:
+      repository: registry.k8s.io/sig-storage/csi-attacher
+      tag: v4.8.0
+      pullPolicy: IfNotPresent
+    resources: {}
+    securityContext:
+      readOnlyRootFilesystem: true
+      allowPrivilegeEscalation: false
 
 imagePullSecrets: []
 
@@ -68,6 +77,13 @@ controller:
   # Enable if you want the controller to also delete the
   # path on efs when deleteing an access point
   deleteAccessPointRootDir: false
+  # Set to true to enable attachRequired on the CSIDriver object.
+  # When true, Kubernetes will wait for the VolumeAttachment to be marked as attached
+  # before proceeding to mount. This ensures the CSI node driver is ready before pods
+  # attempt to mount EFS volumes. Requires the csi-attacher sidecar.
+  # NOTE: The CSIDriver attachRequired field is immutable. Changing this value on an
+  # existing installation requires deleting and recreating the CSIDriver object.
+  attachRequired: false
   podAnnotations: {}
   podLabels: {}
   hostNetwork: false

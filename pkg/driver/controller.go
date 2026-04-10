@@ -625,11 +625,37 @@ func (d *Driver) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeRequest)
 }
 
 func (d *Driver) ControllerPublishVolume(ctx context.Context, req *csi.ControllerPublishVolumeRequest) (*csi.ControllerPublishVolumeResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "")
+	klog.V(4).Infof("ControllerPublishVolume: called with args %+v", util.SanitizeRequest(*req))
+
+	if req.GetVolumeId() == "" {
+		return nil, status.Error(codes.InvalidArgument, "Volume ID not provided")
+	}
+
+	if req.GetNodeId() == "" {
+		return nil, status.Error(codes.InvalidArgument, "Node ID not provided")
+	}
+
+	if req.GetVolumeCapability() == nil {
+		return nil, status.Error(codes.InvalidArgument, "Volume capability not provided")
+	}
+
+	if _, _, _, err := parseVolumeId(req.GetVolumeId()); err != nil {
+		return nil, status.Errorf(codes.NotFound, "Volume not found: %v", err)
+	}
+
+	return &csi.ControllerPublishVolumeResponse{}, nil
 }
 
 func (d *Driver) ControllerUnpublishVolume(ctx context.Context, req *csi.ControllerUnpublishVolumeRequest) (*csi.ControllerUnpublishVolumeResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "")
+	klog.V(4).Infof("ControllerUnpublishVolume: called with args %+v", util.SanitizeRequest(*req))
+
+	volumeId := req.GetVolumeId()
+	if volumeId == "" {
+		return nil, status.Error(codes.InvalidArgument, "Volume ID not provided")
+	}
+
+	// No-op: EFS does not require a detach operation.
+	return &csi.ControllerUnpublishVolumeResponse{}, nil
 }
 
 func (d *Driver) ValidateVolumeCapabilities(ctx context.Context, req *csi.ValidateVolumeCapabilitiesRequest) (*csi.ValidateVolumeCapabilitiesResponse, error) {
