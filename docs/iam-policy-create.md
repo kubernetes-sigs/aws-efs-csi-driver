@@ -321,10 +321,7 @@ You can create the roles using `eksctl` or the AWS CLI.
 >         },
 >         {
 >             "Effect": "Allow",
->             "Action": [
->                 "s3:ListBucket",
->                 "s3:GetBucketLocation"
->             ],
+>             "Action": "s3:ListBucket",
 >             "Resource": "arn:aws:s3:::*",
 >             "Condition": {
 >                 "StringEquals": {
