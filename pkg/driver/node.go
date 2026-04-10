@@ -20,6 +20,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net"
 	"os"
 	"path"
 	"regexp"
@@ -112,8 +113,10 @@ func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 				return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("Volume context property %q must be a boolean value: %v", k, err))
 			}
 		case MountTargetIp:
-			ipAddr := volContext[MountTargetIp]
-			mountOptions = append(mountOptions, MountTargetIp+"="+ipAddr)
+			if net.ParseIP(v) == nil {
+				return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("Volume context property %q=%q is not a valid IP address", k, v))
+			}
+			mountOptions = append(mountOptions, MountTargetIp+"="+v)
 		case CrossAccount:
 			var err error
 			crossAccountDNSEnabled, err = strconv.ParseBool(v)
