@@ -52,7 +52,8 @@ K8S_VERSION_KOPS=${K8S_VERSION_KOPS:-${K8S_VERSION:-1.33.0}}
 K8S_VERSION_EKSCTL=${K8S_VERSION_EKSCTL:-${K8S_VERSION:-1.33}}
 
 KOPS_VERSION=${KOPS_VERSION:-1.33.0}
-KOPS_STATE_FILE=${KOPS_STATE_FILE:-s3://k8s-kops-csi-shared-e2e}
+KOPS_BUCKET=${KOPS_BUCKET:-k8s-kops-csi-shared-e2e}
+KOPS_STATE_FILE=${KOPS_STATE_FILE:-s3://${KOPS_BUCKET}}
 KOPS_PATCH_FILE=${KOPS_PATCH_FILE:-./hack/kops-patch.yaml}
 KOPS_PATCH_NODE_FILE=${KOPS_PATCH_NODE_FILE:-./hack/kops-patch-node.yaml}
 
@@ -73,6 +74,14 @@ GINKGO_NODES=${GINKGO_NODES:-4}
 TEST_EXTRA_FLAGS=${TEST_EXTRA_FLAGS:-}
 
 CLEAN=${CLEAN:-"true"}
+
+SKIP_IMAGE_BUILD=${SKIP_IMAGE_BUILD:-}
+HELM_CHART_REPOSITORY=${HELM_CHART_REPOSITORY:-}
+HELM_CHART_TAG=${HELM_CHART_TAG:-}
+REGISTRY_SERVER=${REGISTRY_SERVER:-}
+REGISTRY_USERNAME=${REGISTRY_USERNAME:-}
+REGISTRY_PASSWORD=${REGISTRY_PASSWORD:-}
+IMAGE_PULL_SECRET_NAME=${IMAGE_PULL_SECRET_NAME:-"registry-pull-secret"}
 
 loudecho "Testing in region ${REGION} and zones ${ZONES}"
 mkdir -p "${BIN_DIR}"
@@ -103,12 +112,30 @@ if [[ ! -e ${GINKGO_BIN} ]]; then
   popd
 fi
 
-ecr_build_and_push "${REGION}" \
-  "${AWS_ACCOUNT_ID}" \
-  "${IMAGE_NAME}" \
-  "${IMAGE_TAG}"
+if [[ "${SKIP_IMAGE_BUILD}" == "true" ]]; then
+  loudecho "Skipping image build and push (SKIP_IMAGE_BUILD=true)"
+  if [ -z "${HELM_CHART_REPOSITORY:-}" ]; then
+    loudecho "Using image ${IMAGE_NAME}:${IMAGE_TAG}"
+  fi
+else
+  ecr_build_and_push "${REGION}" \
+    "${AWS_ACCOUNT_ID}" \
+    "${IMAGE_NAME}" \
+    "${IMAGE_TAG}"
+fi
 
 if [[ "${CLUSTER_TYPE}" == "kops" ]]; then
+  BUCKET_CHECK=$(aws s3api head-bucket --region us-east-1 --bucket "${KOPS_BUCKET}" 2>&1 || true)
+  if grep -q "Forbidden" <<<"${BUCKET_CHECK}"; then
+    loudecho "Kops state bucket ${KOPS_BUCKET} exists but access is denied"
+    loudecho "Set \$KOPS_BUCKET to use a different bucket"
+    exit 1
+  fi
+  if grep -q "Not Found" <<<"${BUCKET_CHECK}"; then
+    loudecho "Creating kops state bucket ${KOPS_BUCKET}"
+    aws s3api create-bucket --region us-east-1 --bucket "${KOPS_BUCKET}" --acl private >/dev/null
+  fi
+
   kops_create_cluster \
     "$CLUSTER_NAME" \
     "$KOPS_BIN" \
@@ -140,52 +167,88 @@ elif [[ "${CLUSTER_TYPE}" == "eksctl" ]]; then
   fi
 fi
 
-if [[ "${CLUSTER_TYPE}" == "kops" ]]; then
+# Registry credential setup for third-party chart/image testing
+if [ -n "${REGISTRY_SERVER:-}" ] && [ -n "${REGISTRY_USERNAME:-}" ] && [ -n "${REGISTRY_PASSWORD:-}" ]; then
+  loudecho "Logging into OCI registry ${REGISTRY_SERVER}"
+  echo "${REGISTRY_PASSWORD}" | ${HELM_BIN} registry login "${REGISTRY_SERVER}" \
+    --username "${REGISTRY_USERNAME}" --password-stdin
+
+  loudecho "Creating imagePullSecret ${IMAGE_PULL_SECRET_NAME} in kube-system"
+  kubectl create secret docker-registry "${IMAGE_PULL_SECRET_NAME}" \
+    --namespace kube-system \
+    --docker-server="${REGISTRY_SERVER}" \
+    --docker-username="${REGISTRY_USERNAME}" \
+    --docker-password="${REGISTRY_PASSWORD}" \
+    --kubeconfig "${KUBECONFIG}" \
+    --dry-run=client -o yaml | kubectl apply -f - --kubeconfig "${KUBECONFIG}"
+fi
+
+# Resolve chart reference: use HELM_CHART_REPOSITORY if set, otherwise local chart directory
+USING_CUSTOM_CHART="false"
+if [ -n "${HELM_CHART_REPOSITORY:-}" ]; then
+  USING_CUSTOM_CHART="true"
+fi
+HELM_CHART_REPOSITORY=${HELM_CHART_REPOSITORY:-./charts/"${DRIVER_NAME}"}
+
+# When registry credentials are provided, configure the image pull secret for Helm
+if [ -n "${REGISTRY_SERVER:-}" ] && [ -n "${REGISTRY_USERNAME:-}" ] && [ -n "${REGISTRY_PASSWORD:-}" ]; then
+  HELM_EXTRA_FLAGS="${HELM_EXTRA_FLAGS:+${HELM_EXTRA_FLAGS} }--set=imagePullSecrets[0]=${IMAGE_PULL_SECRET_NAME}"
+fi
+
+if [[ "${CLUSTER_TYPE}" == "kops" ]] && [[ "${USING_CUSTOM_CHART}" == "false" ]]; then
 loudecho "Deploying driver from private ecr"
 HELM_ARGS=(upgrade --install "${DRIVER_NAME}"
+  "${HELM_CHART_REPOSITORY}"
   --namespace kube-system
-  --set image.repository="${IMAGE_NAME}"
-  --set image.tag="${IMAGE_TAG}"
-  --set sidecars.livenessProbe.image.repository=602401143452.dkr.ecr.us-west-2.amazonaws.com/eks/livenessprobe
-  --set sidecars.node-driver-registrar.image.repository=602401143452.dkr.ecr.us-west-2.amazonaws.com/eks/csi-node-driver-registrar
-  --set sidecars.csiProvisioner.image.repository=602401143452.dkr.ecr.us-west-2.amazonaws.com/eks/csi-provisioner
   --wait
-  --kubeconfig "${KUBECONFIG}"
-  ./charts/"${DRIVER_NAME}")
-if [[ -f "$HELM_VALUES_FILE" ]]; then
+  --kubeconfig "${KUBECONFIG}")
+HELM_ARGS+=(--set image.repository="${IMAGE_NAME}")
+HELM_ARGS+=(--set image.tag="${IMAGE_TAG}")
+HELM_ARGS+=(--set sidecars.livenessProbe.image.repository=602401143452.dkr.ecr.us-west-2.amazonaws.com/eks/livenessprobe)
+HELM_ARGS+=(--set sidecars.node-driver-registrar.image.repository=602401143452.dkr.ecr.us-west-2.amazonaws.com/eks/csi-node-driver-registrar)
+HELM_ARGS+=(--set sidecars.csiProvisioner.image.repository=602401143452.dkr.ecr.us-west-2.amazonaws.com/eks/csi-provisioner)
+if [ -n "${HELM_CHART_TAG:-}" ]; then
+  HELM_ARGS+=(--version "${HELM_CHART_TAG}")
+fi
+if [ -n "${HELM_VALUES_FILE:-}" ]; then
   HELM_ARGS+=(-f "${HELM_VALUES_FILE}")
 fi
-eval "EXPANDED_HELM_EXTRA_FLAGS=$HELM_EXTRA_FLAGS"
-if [[ -n "$EXPANDED_HELM_EXTRA_FLAGS" ]]; then
-  HELM_ARGS+=("${EXPANDED_HELM_EXTRA_FLAGS}")
+eval "EXPANDED_HELM_EXTRA_FLAGS=(${HELM_EXTRA_FLAGS})"
+if [[ -n "${EXPANDED_HELM_EXTRA_FLAGS[*]}" ]]; then
+  HELM_ARGS+=("${EXPANDED_HELM_EXTRA_FLAGS[@]}")
 fi
 set -x
 "${HELM_BIN}" "${HELM_ARGS[@]}"
 set +x
 loudecho "Deploying driver from private ecr is completed"
 
-loudecho "Removing driver installed from privat ecr"
+loudecho "Removing driver installed from private ecr"
   ${HELM_BIN} del "${DRIVER_NAME}" \
     --namespace kube-system \
     --kubeconfig "${KUBECONFIG}"
 fi
 
-loudecho "Deploying driver"
+loudecho "Deploying driver from ${HELM_CHART_REPOSITORY}"
 startSec=$(date +'%s')
 
 HELM_ARGS=(upgrade --install "${DRIVER_NAME}"
+  "${HELM_CHART_REPOSITORY}"
   --namespace kube-system
-  --set image.repository="${IMAGE_NAME}"
-  --set image.tag="${IMAGE_TAG}"
   --wait
-  --kubeconfig "${KUBECONFIG}"
-  ./charts/"${DRIVER_NAME}")
-if [[ -f "$HELM_VALUES_FILE" ]]; then
+  --kubeconfig "${KUBECONFIG}")
+if [ -z "${HELM_USE_DEFAULT_IMAGE+x}" ]; then
+  HELM_ARGS+=(--set image.repository="${IMAGE_NAME}")
+  HELM_ARGS+=(--set image.tag="${IMAGE_TAG}")
+fi
+if [ -n "${HELM_CHART_TAG:-}" ]; then
+  HELM_ARGS+=(--version "${HELM_CHART_TAG}")
+fi
+if [ -n "${HELM_VALUES_FILE:-}" ]; then
   HELM_ARGS+=(-f "${HELM_VALUES_FILE}")
 fi
-eval "EXPANDED_HELM_EXTRA_FLAGS=$HELM_EXTRA_FLAGS"
-if [[ -n "$EXPANDED_HELM_EXTRA_FLAGS" ]]; then
-  HELM_ARGS+=("${EXPANDED_HELM_EXTRA_FLAGS}")
+eval "EXPANDED_HELM_EXTRA_FLAGS=(${HELM_EXTRA_FLAGS})"
+if [[ -n "${EXPANDED_HELM_EXTRA_FLAGS[*]}" ]]; then
+  HELM_ARGS+=("${EXPANDED_HELM_EXTRA_FLAGS[@]}")
 fi
 set -x
 "${HELM_BIN}" "${HELM_ARGS[@]}"
@@ -229,6 +292,14 @@ if [[ "${CLEAN}" == true ]]; then
   ${HELM_BIN} del "${DRIVER_NAME}" \
     --namespace kube-system \
     --kubeconfig "${KUBECONFIG}"
+
+  if [ -n "${REGISTRY_SERVER:-}" ]; then
+    loudecho "Removing imagePullSecret ${IMAGE_PULL_SECRET_NAME}"
+    kubectl delete secret "${IMAGE_PULL_SECRET_NAME}" \
+      --namespace kube-system \
+      --kubeconfig "${KUBECONFIG}" \
+      --ignore-not-found
+  fi
 
   if [[ "${CLUSTER_TYPE}" == "kops" ]]; then
     kops_delete_cluster \
