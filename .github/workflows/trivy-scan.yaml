@@ -1,0 +1,143 @@
+# Copyright 2024 The Kubernetes Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the 'License');
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an 'AS IS' BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+name: Trivy Scanner - Container Images
+
+on:
+  schedule:
+    - cron: '0 14 * * 1'  # Every Monday at 10:00 AM EDT
+  workflow_dispatch: # Allow manual trigger for testing
+
+permissions:
+  contents: read
+  security-events: write # Update findings in security tab
+
+jobs:
+  trivy-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Extract images from kustomization
+        id: images
+        run: |
+          readarray -t imgs < <(yq '.images[] | .name + ":" + .newTag' deploy/kubernetes/overlays/stable/kustomization.yaml)
+          echo "efs-csi-driver=${imgs[0]}" >> "$GITHUB_OUTPUT"
+          echo "livenessprobe=${imgs[1]}" >> "$GITHUB_OUTPUT"
+          echo "node-driver-registrar=${imgs[2]}" >> "$GITHUB_OUTPUT"
+          echo "csi-provisioner=${imgs[3]}" >> "$GITHUB_OUTPUT"
+
+      - name: Scan aws-efs-csi-driver
+        uses: aquasecurity/trivy-action@v0.35.0
+        env:
+          TRIVY_DB_REPOSITORY: ghcr.io/aquasecurity/trivy-db,public.ecr.aws/aquasecurity/trivy-db
+        with:
+          image-ref: '${{ steps.images.outputs.efs-csi-driver }}'
+          output: 'results-efs-csi-driver.sarif'
+          format: 'sarif'
+          ignore-unfixed: true
+
+      - name: Wait to avoid ECR rate limit
+        run: sleep 60
+
+      - name: Scan livenessprobe
+        uses: aquasecurity/trivy-action@v0.35.0
+        env:
+          TRIVY_DB_REPOSITORY: ghcr.io/aquasecurity/trivy-db,public.ecr.aws/aquasecurity/trivy-db
+        with:
+          image-ref: '${{ steps.images.outputs.livenessprobe }}'
+          output: 'results-livenessprobe.sarif'
+          format: 'sarif'
+          ignore-unfixed: true
+
+      - name: Wait to avoid ECR rate limit
+        run: sleep 60
+
+      - name: Scan csi-node-driver-registrar
+        uses: aquasecurity/trivy-action@v0.35.0
+        env:
+          TRIVY_DB_REPOSITORY: ghcr.io/aquasecurity/trivy-db,public.ecr.aws/aquasecurity/trivy-db
+        with:
+          image-ref: '${{ steps.images.outputs.node-driver-registrar }}'
+          output: 'results-node-driver-registrar.sarif'
+          format: 'sarif'
+          ignore-unfixed: true
+
+      - name: Wait to avoid ECR rate limit
+        run: sleep 60
+
+      - name: Scan csi-provisioner
+        uses: aquasecurity/trivy-action@v0.35.0
+        env:
+          TRIVY_DB_REPOSITORY: ghcr.io/aquasecurity/trivy-db,public.ecr.aws/aquasecurity/trivy-db
+        with:
+          image-ref: '${{ steps.images.outputs.csi-provisioner }}'
+          output: 'results-csi-provisioner.sarif'
+          format: 'sarif'
+          ignore-unfixed: true
+
+      - name: Upload results - aws-efs-csi-driver
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: 'results-efs-csi-driver.sarif'
+          category: aws-efs-csi-driver
+
+      - name: Upload results - livenessprobe
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: 'results-livenessprobe.sarif'
+          category: livenessprobe
+
+      - name: Upload results - csi-node-driver-registrar
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: 'results-node-driver-registrar.sarif'
+          category: csi-node-driver-registrar
+
+      - name: Upload results - csi-provisioner
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: 'results-csi-provisioner.sarif'
+          category: csi-provisioner
+
+      - name: Check for CVEs and build Slack message
+        id: slack-message
+        run: |
+          affected=""
+          declare -A file_to_image
+          file_to_image[results-efs-csi-driver.sarif]="${{ steps.images.outputs.efs-csi-driver }}"
+          file_to_image[results-livenessprobe.sarif]="${{ steps.images.outputs.livenessprobe }}"
+          file_to_image[results-node-driver-registrar.sarif]="${{ steps.images.outputs.node-driver-registrar }}"
+          file_to_image[results-csi-provisioner.sarif]="${{ steps.images.outputs.csi-provisioner }}"
+          for file in results-efs-csi-driver.sarif results-livenessprobe.sarif results-node-driver-registrar.sarif results-csi-provisioner.sarif; do
+            count=$(jq '[.runs[].results[]] | length' "$file")
+            if [ "$count" -gt 0 ]; then
+              image="${file_to_image[$file]}"
+              affected="$affected- $image ($count findings)\n"
+            fi
+          done
+          echo "has_cves=$( [ -n "$affected" ] && echo true || echo false )" >> "$GITHUB_OUTPUT"
+          echo "affected=$affected" >> "$GITHUB_OUTPUT"
+
+      - name: Notify Slack
+        uses: slackapi/slack-github-action@v2
+        with:
+          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+          webhook-type: incoming-webhook
+          payload: |
+            {
+              "type": "CVE scanning results",
+              "body": "${{ steps.slack-message.outputs.has_cves == 'true' && format('🔴 Trivy CVE scan found vulnerabilities in:\n{0}\nCheck: {1}/{2}/security/code-scanning', steps.slack-message.outputs.affected, github.server_url, github.repository) || '✅ Trivy CVE scan completed. No vulnerabilities found in EFS CSI Driver images.' }}"
+            }
