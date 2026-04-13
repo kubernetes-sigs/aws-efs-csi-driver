@@ -70,7 +70,7 @@ spec:
             periodSeconds: 10
             failureThreshold: 5
         - name: csi-provisioner
-          image: public.ecr.aws/csi-components/csi-provisioner:v6.1.0-eksbuild.2
+          image: public.ecr.aws/csi-components/csi-provisioner:v6.2.0-eksbuild.3
           imagePullPolicy: IfNotPresent
           args:
             - --csi-address=$(ADDRESS)
@@ -90,7 +90,7 @@ spec:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
         - name: liveness-probe
-          image: public.ecr.aws/csi-components/livenessprobe:v2.17.0-eksbuild.3
+          image: public.ecr.aws/csi-components/livenessprobe:v2.18.0-eksbuild.4
           imagePullPolicy: IfNotPresent
           args:
             - --csi-address=/csi/csi.sock

@@ -163,4 +163,4 @@ replace k8s.io/kube-scheduler => k8s.io/kube-scheduler v0.33.2
 
 go 1.25.0
 
-toolchain go1.25.8
+toolchain go1.25.9
