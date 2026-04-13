@@ -13,6 +13,12 @@ spec:
   {{- if or (kindIs "float64" .Values.node.revisionHistoryLimit) (kindIs "int64" .Values.node.revisionHistoryLimit) }}
   revisionHistoryLimit: {{ .Values.node.revisionHistoryLimit }}
   {{- end }}
+  {{- if .Values.node.rollingUpdate }}
+  updateStrategy: 
+    type: RollingUpdate
+    rollingUpdate:
+      {{- toYaml .Values.node.rollingUpdate | nindent 6 }}
+  {{- end }}
   selector:
     matchLabels:
       app: efs-csi-node

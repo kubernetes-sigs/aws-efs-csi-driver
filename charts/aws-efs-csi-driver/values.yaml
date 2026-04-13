@@ -146,6 +146,10 @@ controller:
   # Enable reading filesystem IDs from configmap/secret
   fileSystemIdRefs:
     enabled: false
+  # rollingUpdate for controller deployment strategy
+  rollingUpdate: {}
+    #  maxUnavailable: 1
+    #  maxSurge: 1
 
 ## Node daemonset variables
 
@@ -222,6 +226,11 @@ node:
   volumes: []
   volumeMounts: []
   kubeletPath: /var/lib/kubelet
+
+  # rollingUpdate for node deamonset updateStrategy.
+  rollingUpdate: {}
+  #  maxSurge: 0
+  #  maxUnavailable: 20%
 
 storageClasses: []
 # Add StorageClass resources like:
