@@ -6,3 +6,8 @@
 * Deprecate path as volume attribute
 * Honor stderrthreshold when logtostderr is enabled ([#1822](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1822), [@pierluigilenoci](https://github.com/pierluigilenoci))
 * Add stricter filtering for filesystem accesspoint([#1796](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1796), [@DavidXU12345](https://github.com/DavidXU12345))
+
+# V3.0.1
+* Upgrade sidecar and go dependencies to fix critical CVEs ([@DavidXU12345](https://github.com/DavidXU12345))
+* Add helm updateStrategy to DaemonSet and strategy to Deployment ([@camaeel](https://github.com/camaeel))
+* Validate mountTargetIp as a valid IP address in NodePublishVolume ([@DavidXU12345](https://github.com/DavidXU12345))

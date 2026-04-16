@@ -13,7 +13,7 @@
 # limitations under the License.
 #
 
-VERSION=v3.0.0
+VERSION=v3.0.1
 
 PKG=github.com/kubernetes-sigs/aws-efs-csi-driver
 GIT_COMMIT?=$(shell git rev-parse HEAD)
