@@ -14,18 +14,22 @@ jobs:
     # will only be triggered if PR title begins with [POST-RELEASE v*.*.*]
     name: Release
     runs-on: ubuntu-latest
-    permissions: write-all
+    permissions:
+      contents: write
     if: |
       github.event.pull_request.merged == true && 
       startsWith(github.event.pull_request.title, '[POST-RELEASE')
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ github.event.pull_request.merge_commit_sha }}
         
       - name: Extract version
         id: extract-version
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
         run: |
-          PR_TITLE="${{ github.event.pull_request.title }}"
           VERSION=$(echo "$PR_TITLE" | grep -oE '^\[POST-RELEASE v[0-9]+\.[0-9]+\.[0-9]+\]' | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+')
           
           if [ -z "$VERSION" ]; then
@@ -41,10 +45,13 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           tag="${{ steps.extract-version.outputs.version }}"
+          major="${tag#v}"
+          major="${major%%.*}"
+          changelog="CHANGELOG-${major}.x.md"
           
           gh release create "$tag" --title "$tag" --notes-file - <<EOF
           AWS EFS CSI Driver
           
           ## CHANGELOG
-          See [CHANGELOG](https://github.com/kubernetes-sigs/aws-efs-csi-driver/blob/master/CHANGELOG-2.x.md) for full list of changes
+          See [CHANGELOG](https://github.com/kubernetes-sigs/aws-efs-csi-driver/blob/master/${changelog}) for full list of changes
           EOF

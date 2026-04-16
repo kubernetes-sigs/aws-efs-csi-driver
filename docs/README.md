@@ -27,8 +27,9 @@ The following CSI interfaces are implemented:
 * Node Service: NodePublishVolume, NodeUnpublishVolume, NodeGetCapabilities, NodeGetInfo, NodeGetId, NodeGetVolumeStats
 * Identity Service: GetPluginInfo, GetPluginCapabilities, Probe
 
-**Note**  
-Since Amazon EFS and Amazon S3 file systems can scale elastically, it doesn't really enforce any file system capacity. The actual storage capacity value in persistent volume and persistent volume claim is not used when creating the file system. However, since the storage capacity is a required field by Kubernetes, you must specify the value and you can use any valid value for the capacity.
+> **Note** When using static provisioning with an Amazon S3 file system, the `volumeHandle` in your PersistentVolume must include the `s3files:` prefix (e.g., `s3files:fs-01234567890abcdef0`).
+
+> **Note** Amazon EFS and S3 Files are fully elastic and scalable file systems which automatically scale up or down based on usage, so there is no need to manage capacity. The actual storage capacity value in persistent volume and persistent volume claim is a placeholder value that must be specified (required by Kubernetes) but is not actually used. You can specify any valid value for the capacity.
 
 For detailed parameter explanations, see the [parameters documentation](parameters.md).
 
@@ -38,10 +39,11 @@ The EFS CSI Driver follows semantic versioning. The version `MAJOR.MINOR.PATCH` 
 - New features will be released as a `MINOR` update.
 - Bug or vulnerability fixes will be released as a `PATCH` update.
 
-### ECR Image
-| Driver Version | [ECR](https://gallery.ecr.aws/efs-csi-driver/amazon/aws-efs-csi-driver) Image |
-|----------------|-------------------------------------------------------------------------------|
-| v3.0.0         | public.ecr.aws/efs-csi-driver/amazon/aws-efs-csi-driver:v3.0.0                |
+### Latest ECR Image
+| Tag | Registry | Image |
+|----------------|----------|-------|
+| v3.0.0         | [Public ECR](https://gallery.ecr.aws/efs-csi-driver/amazon/aws-efs-csi-driver) | public.ecr.aws/efs-csi-driver/amazon/aws-efs-csi-driver:v3.0.0 |
+| v3.0.0-2       | [EKS Private ECR](https://docs.aws.amazon.com/eks/latest/userguide/add-ons-images.html) | {account-id}.dkr.ecr.{region}.amazonaws.com/eks/aws-efs-csi-driver:v3.0.0-2 |
 
 **Note**  
 You can find previous efs-csi-driver versions' images from [here](https://gallery.ecr.aws/efs-csi-driver/amazon/aws-efs-csi-driver)

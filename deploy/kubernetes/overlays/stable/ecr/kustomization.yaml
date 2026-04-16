@@ -8,10 +8,10 @@ images:
     newTag: v3.0.0-2
   - name: public.ecr.aws/csi-components/livenessprobe
     newName: 602401143452.dkr.ecr.us-west-2.amazonaws.com/eks/livenessprobe
-    newTag: v2.17.0-eksbuild.3
+    newTag: v2.18.0-eksbuild.4
   - name: public.ecr.aws/csi-components/csi-node-driver-registrar
     newName: 602401143452.dkr.ecr.us-west-2.amazonaws.com/eks/csi-node-driver-registrar
-    newTag: v2.15.0-eksbuild.3
+    newTag: v2.16.0-eksbuild.4
   - name: public.ecr.aws/csi-components/csi-provisioner
     newName: 602401143452.dkr.ecr.us-west-2.amazonaws.com/eks/csi-provisioner
-    newTag: v6.1.0-eksbuild.2
+    newTag: v6.2.0-eksbuild.3

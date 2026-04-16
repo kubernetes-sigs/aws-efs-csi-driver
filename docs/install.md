@@ -104,7 +104,7 @@ If you want to download the image with a manifest, we recommend first trying the
    sed -i.bak -e 's|us-west-2|region-code|' private-ecr-driver.yaml
    ```
 
-3. Replace `account` in the following command with the account from [Amazon container image registries](add-ons-images.md) for the AWS Region that your cluster is in and then run the modified command to replace `602401143452` in the file.
+3. Replace `account` in the following command with the account from [Amazon container image registries](https://docs.aws.amazon.com/eks/latest/userguide/add-ons-images.html) for the AWS Region that your cluster is in and then run the modified command to replace `602401143452` in the file.
 
    ```sh
    sed -i.bak -e 's|602401143452|account|' private-ecr-driver.yaml
