@@ -323,27 +323,16 @@ func (d *Driver) NodeGetVolumeStats(ctx context.Context, req *csi.NodeGetVolumeS
 	}
 
 	volMetrics, err := d.volStatter.computeVolumeMetrics(volId, target, d.volMetricsRefreshPeriod, d.volMetricsFsRateLimit)
-
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "Could not get metrics: %v ", err)
-	}
-
-	if !volMetrics.mountHealthy {
-		return &csi.NodeGetVolumeStatsResponse{
-			Usage: volMetrics.volUsage,
-			VolumeCondition: &csi.VolumeCondition{
-				Abnormal: true,
-				Message:  "volume mount is unhealthy",
-			},
-		}, nil
 	}
 
 	klog.V(5).Infof("Compute volume metrics complete for Vol ID: %v, Vol Health: %v", volId, volMetrics.mountHealthy)
 	return &csi.NodeGetVolumeStatsResponse{
 		Usage: volMetrics.volUsage,
 		VolumeCondition: &csi.VolumeCondition{
-			Abnormal: false,
-			Message:  "volume mount is healthy",
+			Abnormal: !volMetrics.mountHealthy,
+			Message:  fmt.Sprintf("volume %v mount is healthy: %v", volId, !volMetrics.mountHealthy),
 		},
 	}, nil
 }
