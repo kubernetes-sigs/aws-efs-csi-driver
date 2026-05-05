@@ -40,6 +40,13 @@ var (
 	combinedMountTargetSubnetIds string
 	// Combined label selectors in the form of key1=value1,key2=value2.
 	combinedEfsDriverLabelSelectors string
+
+	// Upgrade test flags
+	upgradeOldImageTag  string
+	upgradeOldImageRepo string
+	upgradeNewImageTag  string
+	upgradeNewImageRepo string
+	upgradeHelmChartDir string
 )
 
 func init() {
@@ -76,6 +83,11 @@ func init() {
 	flag.StringVar(&CrossAccountAZ, "cross-account-az", "", "availability zone for cross-account mount target selection")
 	flag.StringVar(&CrossAccountMountTargetIP, "cross-account-mount-target-ip", "", "mount target IP for static PV tests; used when testing cross-account static provisioning without crossaccount=true")
 	flag.StringVar(&CrossAccountSecretCrossaccountMode, "cross-account-secret-crossaccount-mode", "", "value of the crossaccount field in the pre-configured cross-account secret ('true' or unset). When 'true', static PV tests use crossaccount=true (requires Route 53 AZ-specific zones); otherwise, tests use mounttargetip")
+	flag.StringVar(&upgradeOldImageTag, "upgrade-old-image-tag", "", "image tag of the old driver version for upgrade tests (e.g. v2.1.0)")
+	flag.StringVar(&upgradeOldImageRepo, "upgrade-old-image-repo", "public.ecr.aws/efs-csi-driver/amazon/aws-efs-csi-driver", "image repository of the old driver version for upgrade tests")
+	flag.StringVar(&upgradeNewImageTag, "upgrade-new-image-tag", "", "image tag of the new driver version for upgrade tests (defaults to current deployed version)")
+	flag.StringVar(&upgradeNewImageRepo, "upgrade-new-image-repo", "", "image repository of the new driver version for upgrade tests (defaults to upgrade-old-image-repo)")
+	flag.StringVar(&upgradeHelmChartDir, "upgrade-helm-chart-dir", "../../charts/aws-efs-csi-driver", "path to the Helm chart directory for upgrade tests")
 	flag.Parse()
 
 	var err error
