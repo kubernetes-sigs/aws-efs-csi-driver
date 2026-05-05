@@ -64,9 +64,9 @@ var _ = ginkgo.Describe("[efs-csi] Driver Upgrade", ginkgo.Ordered, ginkgo.Label
 		testData := "upgrade-test-data-" + generateRandomString(8)
 		writePath := "/mnt/volume1/upgrade-test.txt"
 
-		// Step 1: Deploy old version of the driver
-		ginkgo.By(fmt.Sprintf("Installing old driver version %s/%s via Helm", upgradeOldImageRepo, upgradeOldImageTag))
-		helmDeploy(upgradeOldImageRepo, upgradeOldImageTag)
+		// Step 1: Deploy old version of the driver using the public Helm chart repo
+		ginkgo.By(fmt.Sprintf("Installing old driver version %s/%s via Helm (public chart)", upgradeOldImageRepo, upgradeOldImageTag))
+		helmDeployFromRepo(upgradeOldImageRepo, upgradeOldImageTag)
 		waitForDriverReady(f)
 
 		// Step 2: Create a pod with an EFS volume and write test data
@@ -106,8 +106,8 @@ var _ = ginkgo.Describe("[efs-csi] Driver Upgrade", ginkgo.Ordered, ginkgo.Label
 		if newRepo == "" {
 			newRepo = upgradeOldImageRepo
 		}
-		ginkgo.By(fmt.Sprintf("Upgrading driver to %s/%s via Helm", newRepo, upgradeNewImageTag))
-		helmDeploy(newRepo, upgradeNewImageTag)
+		ginkgo.By(fmt.Sprintf("Upgrading driver to %s/%s via Helm (local chart)", newRepo, upgradeNewImageTag))
+		helmDeployFromLocal(newRepo, upgradeNewImageTag)
 		waitForDriverReady(f)
 
 		// Step 4: Verify existing mount still works
@@ -167,8 +167,24 @@ var _ = ginkgo.Describe("[efs-csi] Driver Upgrade", ginkgo.Ordered, ginkgo.Label
 	})
 })
 
-// helmDeploy installs or upgrades the EFS CSI driver via Helm with the specified image.
-func helmDeploy(imageRepo, imageTag string) {
+// helmDeployFromRepo installs the EFS CSI driver from the public Helm chart repository.
+func helmDeployFromRepo(imageRepo, imageTag string) {
+	runHelm("repo", "add", "aws-efs-csi-driver", "https://kubernetes-sigs.github.io/aws-efs-csi-driver/")
+	runHelm("repo", "update")
+	args := []string{
+		"upgrade", "--install", helmReleaseName,
+		"--namespace", helmNamespace,
+		"--set", fmt.Sprintf("image.repository=%s", imageRepo),
+		"--set", fmt.Sprintf("image.tag=%s", imageTag),
+		"--wait",
+		"--timeout", "5m",
+		"aws-efs-csi-driver/aws-efs-csi-driver",
+	}
+	runHelm(args...)
+}
+
+// helmDeployFromLocal upgrades the EFS CSI driver using the local Helm chart.
+func helmDeployFromLocal(imageRepo, imageTag string) {
 	args := []string{
 		"upgrade", "--install", helmReleaseName,
 		"--namespace", helmNamespace,
