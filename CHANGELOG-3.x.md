@@ -17,3 +17,9 @@
 * fix: Avoid random mounttargetip for cross-account EFS mounts ([#1861](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1861), [@vmishra22](https://github.com/vmishra22))
 * Add FIPS validation: disallow users to set useFIPS when they are in non-US/CA regions ([#1862](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1862), [@DavidXU12345](https://github.com/DavidXU12345))
 * Expose S3Files and EFS CloudWatch logs enabled config in CSI driver ([#1866](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1866), [@DavidXU12345](https://github.com/DavidXU12345))
+
+# V3.2.0
+* Expose s3filesCloudWatchMetricsEnabled parameter ([#1873](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1873), [@DavidXU12345](https://github.com/DavidXU12345))
+* Use pagination for EFS DescribeAccessPoints ([#1876](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1876), [@DavidXU12345](https://github.com/DavidXU12345))
+* Add --efs-utils-conf-overrides and --s3files-utils-conf-overrides CLI flags ([#1880](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1880), [@DavidXU12345](https://github.com/DavidXU12345))
+* Upgrade go version to fix CVE ([#1885](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1885), [@DavidXU12345](https://github.com/DavidXU12345))
