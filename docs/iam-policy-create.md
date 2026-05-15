@@ -2,8 +2,9 @@
 
 The following example details how to use IAM roles for service accounts to talk to Amazon EFS and Amazon S3 Files. The EFS CSI driver uses two service accounts with separate IAM roles:
 
-- `efs-csi-controller-sa` — used by the controller, requires `AmazonEFSCSIDriverPolicy` and `AmazonS3FilesCSIDriverPolicy`.
+- `efs-csi-controller-sa` — used by the controller, requires `AmazonEFSCSIDriverPolicy`, `AmazonS3FilesCSIDriverPolicy`, and `AmazonS3FilesClientFullAccess`.
 - `efs-csi-node-sa` — used by the node daemonset, requires:
+  - `AmazonS3FilesClientFullAccess` — grants permissions to mount and write to S3 file systems (`s3files:ClientMount`, `s3files:ClientWrite`, `s3files:ClientRootAccess`).
   - `AmazonS3ReadOnlyAccess` — enables direct S3 read access so the driver can stream objects directly from S3 buckets for higher throughput.
   - `AmazonElasticFileSystemsUtils` — enables publishing efs-utils logs to Amazon CloudWatch for visibility into mount operations and easier troubleshooting.
 
@@ -55,6 +56,10 @@ EKS Pod Identity is the recommended way to grant IAM permissions to pods on Amaz
    aws iam attach-role-policy \
      --role-name EKS_EFS_CSI_ControllerRole \
      --policy-arn arn:aws:iam::aws:policy/service-role/AmazonS3FilesCSIDriverPolicy
+
+   aws iam attach-role-policy \
+     --role-name EKS_EFS_CSI_ControllerRole \
+     --policy-arn arn:aws:iam::aws:policy/AmazonS3FilesClientFullAccess
    ```
 
 1. Create the pod identity association.
@@ -95,6 +100,10 @@ EKS Pod Identity is the recommended way to grant IAM permissions to pods on Amaz
    aws iam create-role \
      --role-name EKS_EFS_CSI_NodeRole \
      --assume-role-policy-document file://"node-trust-policy.json"
+
+   aws iam attach-role-policy \
+     --role-name EKS_EFS_CSI_NodeRole \
+     --policy-arn arn:aws:iam::aws:policy/AmazonS3FilesClientFullAccess
 
    aws iam attach-role-policy \
      --role-name EKS_EFS_CSI_NodeRole \
@@ -139,16 +148,18 @@ You can create the roles using `eksctl` or the AWS CLI.
        --role-name $CONTROLLER_ROLE_NAME \
        --attach-policy-arn arn:aws:iam::aws:policy/service-role/AmazonEFSCSIDriverPolicy \
        --attach-policy-arn arn:aws:iam::aws:policy/service-role/AmazonS3FilesCSIDriverPolicy \
+       --attach-policy-arn arn:aws:iam::aws:policy/AmazonS3FilesClientFullAccess \
        --approve \
        --region $REGION_CODE
 
-    # Create the node role with AmazonS3ReadOnlyAccess and AmazonElasticFileSystemsUtils
+    # Create the node role with AmazonS3FilesClientFullAccess, AmazonS3ReadOnlyAccess and AmazonElasticFileSystemsUtils
     NODE_ROLE_NAME={YOUR_NODE_IAM_ROLE_NAME}
     eksctl create iamserviceaccount \
       --name efs-csi-node-sa \
       --namespace kube-system \
       --cluster $CLUSTER_NAME \
       --role-name $NODE_ROLE_NAME \
+      --attach-policy-arn arn:aws:iam::aws:policy/AmazonS3FilesClientFullAccess \
       --attach-policy-arn arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess \
       --attach-policy-arn arn:aws:iam::aws:policy/AmazonElasticFileSystemsUtils \
       --approve \
@@ -212,6 +223,10 @@ You can create the roles using `eksctl` or the AWS CLI.
          aws iam attach-role-policy \
            --role-name EKS_EFS_CSI_ControllerRole \
            --policy-arn arn:aws:iam::aws:policy/service-role/AmazonS3FilesCSIDriverPolicy
+
+         aws iam attach-role-policy \
+           --role-name EKS_EFS_CSI_ControllerRole \
+           --policy-arn arn:aws:iam::aws:policy/AmazonS3FilesClientFullAccess
          ```
 
    1. Create the IAM role for the node service account.
@@ -249,6 +264,10 @@ You can create the roles using `eksctl` or the AWS CLI.
       1. Attach the AWS managed policies to the node role.
 
          ```sh
+         aws iam attach-role-policy \
+           --role-name EKS_EFS_CSI_NodeRole \
+           --policy-arn arn:aws:iam::aws:policy/AmazonS3FilesClientFullAccess
+
          aws iam attach-role-policy \
            --role-name EKS_EFS_CSI_NodeRole \
            --policy-arn arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess
