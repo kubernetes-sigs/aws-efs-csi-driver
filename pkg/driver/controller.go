@@ -88,11 +88,12 @@ var (
 	}
 )
 
-func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest) (*csi.CreateVolumeResponse, error) {
+func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest) (resp *csi.CreateVolumeResponse, err error) {
+	start := time.Now()
+	defer func() { recordOperationMetrics("CreateVolume", start, err) }()
 	klog.V(4).Infof("CreateVolume: called with args %+v", util.SanitizeRequest(*req))
 
 	var reuseAccessPoint bool
-	var err error
 	volumeParams := req.GetParameters()
 	volName := req.GetName()
 	clientToken := volName
@@ -480,12 +481,13 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 	}, nil
 }
 
-func (d *Driver) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeRequest) (*csi.DeleteVolumeResponse, error) {
+func (d *Driver) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeRequest) (_ *csi.DeleteVolumeResponse, err error) {
+	start := time.Now()
+	defer func() { recordOperationMetrics("DeleteVolume", start, err) }()
 	var (
 		localCloud             cloud.Cloud
 		roleArn                string
 		crossAccountDNSEnabled bool
-		err                    error
 	)
 
 	localCloud, roleArn, crossAccountDNSEnabled, err = getCloud(req.GetSecrets(), d)

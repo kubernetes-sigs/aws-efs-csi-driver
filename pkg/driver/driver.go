@@ -57,6 +57,7 @@ type Driver struct {
 	volumeAttachLimit        int64
 	forceUnmountAfterTimeout bool
 	unmountTimeout           time.Duration
+	metricsAddr              string
 }
 
 func NewDriver(options *Options, efsUtilsCfgPath string) *Driver {
@@ -87,6 +88,7 @@ func NewDriver(options *Options, efsUtilsCfgPath string) *Driver {
 		volumeAttachLimit:        getVolumeAttachLimit(*options.VolumeAttachLimitOptIn, *options.VolumeAttachLimit),
 		forceUnmountAfterTimeout: *options.ForceUnmountAfterTimeout,
 		unmountTimeout:           *options.UnmountTimeout,
+		metricsAddr:              *options.MetricsAddr,
 	}
 }
 
@@ -138,6 +140,10 @@ func (d *Driver) Run() error {
 	reaper := newReaper()
 	klog.Info("Starting reaper")
 	reaper.start()
+
+	if d.metricsAddr != "" {
+		StartMetricsServer(d.metricsAddr)
+	}
 
 	// Remove taint from node to indicate driver startup success
 	// This is done at the last possible moment to prevent race conditions or false positive removals
