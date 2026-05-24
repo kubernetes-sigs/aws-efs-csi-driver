@@ -146,10 +146,12 @@ controller:
   # Enable reading filesystem IDs from configmap/secret
   fileSystemIdRefs:
     enabled: false
-  # rollingUpdate for controller deployment strategy
-  rollingUpdate: {}
-    #  maxUnavailable: 1
-    #  maxSurge: 1
+  # strategy for controller deployment.
+  strategy:
+    type: RollingUpdate
+  #  rollingUpdate:
+  #    maxUnavailable: 1
+  #    maxSurge: 1
 
 ## Node daemonset variables
 
@@ -227,10 +229,13 @@ node:
   volumeMounts: []
   kubeletPath: /var/lib/kubelet
 
-  # rollingUpdate for node deamonset updateStrategy.
-  rollingUpdate: {}
-  #  maxSurge: 0
-  #  maxUnavailable: 20%
+  # updateStrategy for node daemonset.
+  # Set type to "OnDelete" to control when node pods restart during upgrades.
+  updateStrategy:
+    type: RollingUpdate
+  #  rollingUpdate:
+  #    maxSurge: 0
+  #    maxUnavailable: 20%
 
   # Comma-separated section:key=value overrides for efs-utils.conf.
   # Example: "mount-watchdog:stunnel_health_check_interval_min=1,mount-watchdog:tls_cert_renewal_interval_min=30"

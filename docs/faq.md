@@ -9,8 +9,34 @@ Alternatively, if you would prefer not to allocate these resources to your contr
 For most highly concurrent workloads, we recommend increasing the default timeout argument set in the [external-provisioner](https://github.com/kubernetes-csi/external-provisioner) from 15 seconds to 60 seconds. This will avoid provisioning failures due to throttling and resource contention in the controller container. 
 
 ## Update Strategy
-* Amazon EFS CSI driver uses the `RollingUpdate` strategy and only allows you to configure parameters under [rolling update](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#rolling-update-deployment), such as `maxUnavailable` and `maxSurge`.
-* Changing the update strategy (e.g. to `OnDelete`) is not supported.
+The DaemonSet `updateStrategy` and Deployment `strategy` are fully configurable via Helm values. The default strategy is `RollingUpdate`.
+
+To use `OnDelete` strategy for the node DaemonSet:
+```yaml
+node:
+  updateStrategy:
+    type: OnDelete
+```
+
+To use `RollingUpdate` with custom parameters:
+```yaml
+node:
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 20%
+```
+For more details on DaemonSet update strategies, see the [Kubernetes documentation](https://kubernetes.io/docs/tasks/manage-daemon/update-daemon-set/).
+
+### EFS CSI driver stuck in UPDATING after an update?
+
+If your EFS CSI driver is stuck in `UPDATING` status with an `InsufficientNumberOfReplicas` error after an update, check whether you have `OnDelete` update strategy configured.
+
+With `OnDelete`, pods are only replaced when manually deleted or when nodes are recycled. Any system that waits for all DaemonSet pods to run the updated version will not see the update complete until all old pods are replaced.
+
+**Resolution:**
+* Manually delete the outdated pods to trigger recreation: `kubectl delete pods -n kube-system -l app=efs-csi-node`
+* Or remove the `OnDelete` configuration so future updates roll out automatically
 
 ## Efs-proxy OOMKilled under heavy NFS write workloads
 

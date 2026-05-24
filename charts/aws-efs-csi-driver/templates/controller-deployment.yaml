@@ -15,11 +15,9 @@ spec:
   {{- if or (kindIs "float64" .Values.controller.revisionHistoryLimit) (kindIs "int64" .Values.controller.revisionHistoryLimit) }}
   revisionHistoryLimit: {{ .Values.controller.revisionHistoryLimit }}
   {{- end }}
-  {{- if .Values.controller.rollingUpdate }}
+  {{- with .Values.controller.strategy }}
   strategy:
-    type: RollingUpdate
-    rollingUpdate:
-      {{- toYaml .Values.controller.rollingUpdate | nindent 6 }}
+    {{- toYaml . | nindent 4 }}
   {{- end }}
   selector:
     matchLabels:
