@@ -113,6 +113,7 @@ spec:
               valueFrom:
                 resourceFieldRef:
                   containerName: efs-plugin
+                  divisor: "0"
                   resource: limits.memory
             {{- if .Values.useFIPS }}
             - name: AWS_USE_FIPS_ENDPOINT
