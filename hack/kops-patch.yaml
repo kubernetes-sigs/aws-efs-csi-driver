@@ -5,6 +5,7 @@ spec:
       - arn:aws:iam::aws:policy/service-role/AmazonEFSCSIDriverPolicy
       - arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess
       - arn:aws:iam::aws:policy/AmazonElasticFileSystemsUtils
+      - arn:aws:iam::aws:policy/AmazonS3FilesClientFullAccess
   cloudConfig:
     awsEBSCSIDriver:
       managed: true
