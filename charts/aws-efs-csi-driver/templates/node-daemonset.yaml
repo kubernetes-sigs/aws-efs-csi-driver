@@ -151,17 +151,13 @@ spec:
           livenessProbe:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-          {{- if .Values.node.readinessProbe }}
-          {{- if not (empty .Values.node.readinessProbe) }}
+          {{- with .Values.node.readinessProbe }}
           readinessProbe:
-            {{- toYaml .Values.node.readinessProbe | nindent 12 }}
+            {{- toYaml . | nindent 12 }}
           {{- end }}
-          {{- end }}
-          {{- if .Values.node.startupProbe }}
-          {{- if not (empty .Values.node.startupProbe) }}
+          {{- with .Values.node.startupProbe }}
           startupProbe:
-            {{- toYaml .Values.node.startupProbe | nindent 12 }}
-          {{- end }}
+            {{- toYaml . | nindent 12 }}
           {{- end }}
           {{- with .Values.node.resources }}
           resources: {{ toYaml . | nindent 12 }}
