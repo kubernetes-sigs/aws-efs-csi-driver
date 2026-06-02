@@ -67,9 +67,9 @@ func (g *GidAllocator) getUsedGids(fsId string, accessPoints []*cloud.AccessPoin
 func getNextUnusedGid(usedGids []int64, gidMin, gidMax int64) (nextGid int64, err error) {
 	requestedRange := gidMax - gidMin
 
-	if requestedRange > cloud.AccessPointPerFsLimit {
-		overrideGidMax := gidMin + cloud.AccessPointPerFsLimit
-		klog.Warningf("Requested GID range (%v:%v) exceeds EFS Access Point limit (%v) per Filesystem. Driver will use limited GID range (%v:%v)", gidMin, gidMax, cloud.AccessPointPerFsLimit, gidMin, overrideGidMax)
+	if requestedRange > AccessPointPerFsLimit {
+		overrideGidMax := gidMin + AccessPointPerFsLimit
+		klog.Warningf("Requested GID range (%v:%v) exceeds EFS Access Point limit (%v) per Filesystem. Driver will use limited GID range (%v:%v)", gidMin, gidMax, AccessPointPerFsLimit, gidMin, overrideGidMax)
 		gidMax = overrideGidMax
 	}
 

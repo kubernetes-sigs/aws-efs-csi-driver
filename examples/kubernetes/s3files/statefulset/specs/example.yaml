@@ -1,0 +1,62 @@
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: s3files-sc
+provisioner: efs.csi.aws.com
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: s3files-pv
+spec:
+  capacity:
+    storage: 5Gi
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: s3files-sc
+  csi:
+    driver: efs.csi.aws.com
+    volumeHandle: s3files:fs-4af69aab
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: s3files-claim
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: s3files-sc
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: s3files-app-sts
+spec:
+  selector:
+    matchLabels:
+      app: test-s3files
+  serviceName: s3files-app
+  replicas: 3
+  template:
+    metadata:
+      labels:
+        app: test-s3files
+    spec:
+      terminationGracePeriodSeconds: 10
+      containers:
+      - name: linux
+        image: amazonlinux:2 
+        command: ["/bin/sh"]
+        args: ["-c", "while true; do echo $(date -u) >> /s3files-data/out.txt; sleep 5; done"]
+        volumeMounts:
+        - name: s3files-storage
+          mountPath: /s3files-data
+      volumes:
+      - name: s3files-storage
+        persistentVolumeClaim:
+          claimName: s3files-claim

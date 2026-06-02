@@ -36,6 +36,7 @@ func TestGetMetadataProvider(t *testing.T) {
 		expectedType                  string
 		isRunningInECS                bool
 		isEC2MetadataServiceAvailable bool
+		csiNodeName                   string
 	}{
 		{
 			name:           "success: should use ECS first if booted in ECS",
@@ -60,12 +61,23 @@ func TestGetMetadataProvider(t *testing.T) {
 			isRunningInECS:                false,
 			isEC2MetadataServiceAvailable: false,
 		},
+		{
+			name:                          "success: should use Kubernetes on HyperPod node even if EC2 is available",
+			expectedType:                  "kubernetesApiMetadataProvider",
+			isRunningInECS:                false,
+			isEC2MetadataServiceAvailable: true,
+			csiNodeName:                   "hyperpod-abc123",
+		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			mockCtrl := gomock.NewController(t)
 			mockEC2Metadata := mocks.NewMockEC2Metadata(mockCtrl)
+
+			if tc.csiNodeName != "" {
+				t.Setenv("CSI_NODE_NAME", tc.csiNodeName)
+			}
 
 			if tc.isRunningInECS {
 				envVars := map[string]string{taskMetadataV4EnvName: "foobar"}

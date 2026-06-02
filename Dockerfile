@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM public.ecr.aws/eks-distro-build-tooling/golang:1.25.0 as go-builder
+FROM public.ecr.aws/eks-distro-build-tooling/golang:1.25.5 as go-builder
 WORKDIR /go/src/github.com/kubernetes-sigs/aws-efs-csi-driver
 
 ARG TARGETOS
@@ -33,12 +33,29 @@ FROM public.ecr.aws/eks-distro-build-tooling/python:3.11-gcc-al23 as rpm-provide
 # Install efs-utils from github by default. It can be overriden to `yum` with --build-arg when building the Docker image.
 # If value of `EFSUTILSSOURCE` build arg is overriden with `yum`, docker will install efs-utils from Amazon Linux 2's yum repo.
 ARG EFSUTILSSOURCE=github
+# When EFSUTILSSOURCE=local, copy efs-utils.tar.gz to the repo root before building:
+#   cp /path/to/efs-utils.tar.gz ./efs-utils.tar.gz
+#   docker build --build-arg EFSUTILSSOURCE=local .
+COPY efs-utils.tar.gz* /tmp/efs-utils-local/
 RUN mkdir -p /tmp/rpms && \
     if [ "$EFSUTILSSOURCE" = "yum" ]; \
     then echo "Installing efs-utils from Amazon Linux 2 yum repo" && \
          yum -y install --downloadonly --downloaddir=/tmp/rpms amazon-efs-utils-1.35.0-1.amzn2.noarch; \
+    elif [ "$EFSUTILSSOURCE" = "local" ]; \
+    then echo "Installing efs-utils from local tarball" && \
+         yum -y install systemd rpm-build make openssl-devel golang cmake && \
+         curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y && \
+         source $HOME/.cargo/env && \
+         rustup update && \
+         rustup default stable && \
+         mkdir -p /tmp/efs-utils-src && \
+         tar -xzf /tmp/efs-utils-local/efs-utils.tar.gz -C /tmp/efs-utils-src --strip-components=1 && \
+         cd /tmp/efs-utils-src && \
+         make rpm-without-system-rust && mv build/amazon-efs-utils*rpm /tmp/rpms && \
+         cd / && rm -rf /tmp/efs-utils-src /tmp/efs-utils-local && \
+         yum clean all; \
     else echo "Installing efs-utils from github using the latest git tag" && \
-         yum -y install systemd git rpm-build make openssl-devel curl && \
+         yum -y install systemd git rpm-build make openssl-devel curl golang cmake && \
          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y && \
          source $HOME/.cargo/env && \
          rustup update && \
@@ -63,10 +80,11 @@ COPY --from=rpm-provider /tmp/rpms/* /tmp/download/
 # cd, ls, cat, vim, tcpdump, are for debugging
 RUN clean_install amazon-efs-utils true && \
     clean_install crypto-policies true && \
-    # Remove existing OpenSSL packages and install version 3.0.8 packages. Newer OpenSSL version
-    # have an updated method of enabling fips, which we do not support yet.
-    remove_package "openssl openssl-libs openssl-fips-provider-latest" && \
-    clean_install "openssl-3.0.8 openssl-libs-3.0.8 openssl-fips-provider-certified-3.0.8" true && \
+    # Upgrade openssl libs to the latest version to resolve the libcrypto.so and libssl.so
+    # version mismatch between the versions in base image and those required by the
+    # latest openssl from clean_install. Unlike the packages above, we do not skip dependency installation
+    # (no "true" flag) so that all openssl-related dependencies are fully resolved and consistent.
+    clean_install "openssl openssl-libs openssl-fips-provider-latest" && \
     install_binary \
         /usr/bin/cat \
         /usr/bin/cd \

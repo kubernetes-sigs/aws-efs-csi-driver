@@ -18,6 +18,7 @@ package util
 
 import (
 	"fmt"
+	"github.com/container-storage-interface/spec/lib/go/csi"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -84,4 +85,26 @@ func SanitizeRequest(req interface{}) interface{} {
 		v.Set(e)
 	}
 	return req
+}
+
+const (
+	TopologyZoneKey = "topology.kubernetes.io/zone"
+)
+
+// create CSI topology from an availability zone
+func BuildTopology(availabilityZone string) *csi.Topology {
+	if availabilityZone == "" {
+		return nil
+	}
+
+	return &csi.Topology{
+		Segments: map[string]string{
+			TopologyZoneKey: availabilityZone,
+		},
+	}
+}
+
+// IsHyperPodNode checks if the node is a SageMaker HyperPod node by its name prefix.
+func IsHyperPodNode(nodeID string) bool {
+	return strings.HasPrefix(nodeID, "hyperpod-")
 }

@@ -5,7 +5,7 @@ metadata:
   name: {{ .name }}
   {{- with .annotations }}
   annotations:
-  {{ toYaml . | indent 4 }}
+  {{- toYaml . | nindent 4 }}
   {{- end }}
 provisioner: efs.csi.aws.com
 {{- with .mountOptions }}

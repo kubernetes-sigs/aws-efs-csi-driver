@@ -22,6 +22,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"k8s.io/mount-utils"
 
@@ -100,10 +101,20 @@ func TestSanityEFSCSI(t *testing.T) {
 	mockCtrl.Finish()
 }
 
+type FakeMounterForceUnmounter struct {
+	*mount.FakeMounter
+}
+
+func (f *FakeMounterForceUnmounter) UnmountWithForce(target string, umountTimeout time.Duration) error {
+	return f.Unmount(target)
+}
+
 func NewFakeMounter() Mounter {
 	return &NodeMounter{
-		Interface: &mount.FakeMounter{
-			MountPoints: []mount.MountPoint{},
+		MounterForceUnmounter: &FakeMounterForceUnmounter{
+			FakeMounter: &mount.FakeMounter{
+				MountPoints: []mount.MountPoint{},
+			},
 		},
 	}
 }

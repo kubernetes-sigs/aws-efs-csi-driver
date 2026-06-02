@@ -57,8 +57,6 @@ import (
 // If you are describing a long list of snapshots, we recommend that you paginate
 // the output to make the list more manageable. For more information, see [Pagination].
 //
-// To get the state of fast snapshot restores for a snapshot, use DescribeFastSnapshotRestores.
-//
 // For more information about EBS snapshots, see [Amazon EBS snapshots] in the Amazon EBS User Guide.
 //
 // We strongly recommend using only paginated requests. Unpaginated requests are
@@ -112,6 +110,9 @@ type DescribeSnapshotsInput struct {
 	//   - status - The status of the snapshot ( pending | completed | error ).
 	//
 	//   - storage-tier - The storage tier of the snapshot ( archive | standard ).
+	//
+	//   - transfer-type - The type of operation used to create the snapshot (
+	//   time-based | standard ).
 	//
 	//   - tag : - The key/value combination of a tag assigned to the resource. Use the
 	//   tag key in the filter name and the tag value as the filter value. For example,
@@ -232,6 +233,9 @@ func (c *Client) addOperationDescribeSnapshotsMiddlewares(stack *middleware.Stac
 	if err = addUserAgentRetryMode(stack, options); err != nil {
 		return err
 	}
+	if err = addCredentialSource(stack, options); err != nil {
+		return err
+	}
 	if err = stack.Initialize.Add(newServiceMetadataMiddleware_opDescribeSnapshots(options.Region), middleware.Before); err != nil {
 		return err
 	}
@@ -248,6 +252,36 @@ func (c *Client) addOperationDescribeSnapshotsMiddlewares(stack *middleware.Stac
 		return err
 	}
 	if err = addDisableHTTPSMiddleware(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptBeforeRetryLoop(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptAttempt(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptExecution(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptBeforeSerialization(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptAfterSerialization(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptBeforeSigning(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptAfterSigning(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptTransmit(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptBeforeDeserialization(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptAfterDeserialization(stack, options); err != nil {
 		return err
 	}
 	if err = addSpanInitializeStart(stack); err != nil {
@@ -466,6 +500,9 @@ func snapshotCompletedStateRetryable(ctx context.Context, input *DescribeSnapsho
 		}
 	}
 
+	if err != nil {
+		return false, err
+	}
 	return true, nil
 }
 

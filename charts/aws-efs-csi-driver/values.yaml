@@ -8,17 +8,18 @@ fullnameOverride: ""
 useFIPS: false
 
 portRangeUpperBound: "21049"
+debugLogs: false
 
 image:
   repository: public.ecr.aws/efs-csi-driver/amazon/aws-efs-csi-driver
-  tag: "v2.1.13"
+  tag: "v3.2.0"
   pullPolicy: IfNotPresent
 
 sidecars:
   livenessProbe:
     image:
       repository: public.ecr.aws/csi-components/livenessprobe
-      tag: v2.16.0-eksbuild.5
+      tag: v2.18.0-eksbuild.5
       pullPolicy: IfNotPresent
     resources: {}
     securityContext:
@@ -27,7 +28,7 @@ sidecars:
   nodeDriverRegistrar:
     image:
       repository: public.ecr.aws/csi-components/csi-node-driver-registrar
-      tag: v2.14.0-eksbuild.5
+      tag: v2.16.0-eksbuild.5
       pullPolicy: IfNotPresent
     resources: {}
     securityContext:
@@ -36,7 +37,7 @@ sidecars:
   csiProvisioner:
     image:
       repository: public.ecr.aws/csi-components/csi-provisioner
-      tag: v5.3.0-eksbuild.4
+      tag: v6.2.0-eksbuild.4
       pullPolicy: IfNotPresent
     resources: {}
     securityContext:
@@ -86,8 +87,8 @@ controller:
     # requests:
     #   cpu: 100m
     #   memory: 128Mi
+  revisionHistoryLimit: 10
   nodeSelector: {}
-  updateStrategy: {}
   tolerations:
     - key: CriticalAddonsOnly
       operator: Exists
@@ -97,6 +98,8 @@ controller:
   env: []
   volumes: []
   volumeMounts: []
+  socketDirVolume:
+    emptyDir: {}
   # Specifies whether a service account should be created
   serviceAccount:
     create: true
@@ -167,6 +170,13 @@ controller:
   #    topologyKey: kubernetes.io/hostname
   #    whenUnsatisfiable: ScheduleAnyway
   topologySpreadConstraints: []
+  # Enable reading filesystem IDs from configmap/secret
+  fileSystemIdRefs:
+    enabled: false
+  # rollingUpdate for controller deployment strategy
+  rollingUpdate: {}
+    #  maxUnavailable: 1
+    #  maxSurge: 1
 
 ## Node daemonset variables
 
@@ -206,12 +216,8 @@ node:
     # requests:
     #   cpu: 100m
     #   memory: 128Mi
+  revisionHistoryLimit: 10
   nodeSelector: {}
-  updateStrategy:
-    {}
-    # Override default strategy (RollingUpdate) to speed up deployment.
-    # This can be useful if helm timeouts are observed.
-    # type: OnDelete
   tolerations:
     - operator: Exists
   affinity:
@@ -231,6 +237,10 @@ node:
     annotations: {}
     ## Enable if EKS IAM for SA is used
     #  eks.amazonaws.com/role-arn: arn:aws:iam::111122223333:role/efs-csi-role
+    # Disable mutating permissions for the node service account.
+    # When disableMutation is true, some features of the EFS CSI Driver node pods will not function, such as taint removal.
+    # Primarily useful in particularly security-sensitive environments, or on multi-tenant clusters that isolate tenants by node.
+    disableMutation: false
   healthPort: 9809
   # Liveness probe configuration for the node
   livenessProbe:
@@ -271,14 +281,24 @@ node:
   volumeMounts: []
   kubeletPath: /var/lib/kubelet
 
+  # rollingUpdate for node deamonset updateStrategy.
+  rollingUpdate: {}
+  #  maxSurge: 0
+  #  maxUnavailable: 20%
+
+  # Comma-separated section:key=value overrides for efs-utils.conf.
+  # Example: "mount-watchdog:stunnel_health_check_interval_min=1,mount-watchdog:tls_cert_renewal_interval_min=30"
+  efsUtilsConfOverrides: ""
+  # Comma-separated section:key=value overrides for s3files-utils.conf.
+  # Example: "proxy:read_bypass_denylist_size=20000"
+  s3filesUtilsConfOverrides: ""
+
 storageClasses: []
 # Add StorageClass resources like:
 # - name: efs-sc
 #   annotations:
 #     # Use that annotation if you want this to your default storageclass
 #     storageclass.kubernetes.io/is-default-class: "true"
-#   mountOptions:
-#   - tls
 #   parameters:
 #     provisioningMode: efs-ap
 #     fileSystemId: fs-1122aabb
@@ -291,5 +311,5 @@ storageClasses: []
 #   reclaimPolicy: Delete
 #   volumeBindingMode: Immediate
 
-# Specifies wether to use helm hooks to apply the CSI driver
+# Specifies whether to use helm hooks to apply the CSI driver
 useHelmHooksForCSIDriver: true

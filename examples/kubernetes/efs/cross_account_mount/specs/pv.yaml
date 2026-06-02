@@ -1,0 +1,22 @@
+# Cross-account static provisioning — DNS mode.
+# The node uses efs-utils DNS resolution to find a mount target in its own AZ
+# at mount time. Requires the efs-utils crossaccount prerequisites on every
+# node: https://github.com/aws/efs-utils?tab=readme-ov-file#crossaccount-option-prerequisites
+# See pv-mounttargetip.yaml for the explicit-IP variant.
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: efs-pv
+spec:
+  capacity:
+    storage: 5Gi
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: efs-sc
+  persistentVolumeReclaimPolicy: Retain
+  csi:
+    driver: efs.csi.aws.com
+    volumeHandle: efs:[Filesystem ID]
+    volumeAttributes:
+      crossaccount: "true"

@@ -13,7 +13,7 @@
 # limitations under the License.
 #
 
-VERSION=v2.1.13
+VERSION=v3.2.0
 
 PKG=github.com/kubernetes-sigs/aws-efs-csi-driver
 GIT_COMMIT?=$(shell git rev-parse HEAD)
@@ -118,7 +118,7 @@ test:
 test-e2e:
 	DRIVER_NAME=aws-efs-csi-driver \
 	CONTAINER_NAME=efs-plugin \
-	TEST_EXTRA_FLAGS='--cluster-name=$$CLUSTER_NAME' \
+	TEST_EXTRA_FLAGS='--cluster-name=$$CLUSTER_NAME --upgrade-new-image-tag=$$IMAGE_TAG --upgrade-new-image-repo=$$IMAGE_NAME' \
 	AWS_REGION=us-west-2 \
 	AWS_AVAILABILITY_ZONES=us-west-2a,us-west-2b,us-west-2c \
 	TEST_PATH=./test/e2e/... \
@@ -133,7 +133,7 @@ test-e2e-external-eks:
 	DRIVER_NAME=aws-efs-csi-driver \
 	HELM_VALUES_FILE="./hack/values_eksctl.yaml" \
 	CONTAINER_NAME=efs-plugin \
-	TEST_EXTRA_FLAGS='--cluster-name=$$CLUSTER_NAME' \
+	TEST_EXTRA_FLAGS='--cluster-name=$$CLUSTER_NAME --upgrade-new-image-tag=$$IMAGE_TAG --upgrade-new-image-repo=$$IMAGE_NAME' \
 	AWS_REGION=us-west-2 \
 	AWS_AVAILABILITY_ZONES=us-west-2a,us-west-2b,us-west-2c \
 	TEST_PATH=./test/e2e/... \

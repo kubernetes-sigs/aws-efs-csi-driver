@@ -23,6 +23,7 @@ import (
 	"os"
 	"os/exec"
 	"reflect"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -35,7 +36,7 @@ import (
 )
 
 const (
-	volumeId   = "fs-abc123"
+	volumeId   = "fs-abcd1234"
 	targetPath = "/target/path"
 )
 
@@ -109,6 +110,7 @@ func TestNodePublishVolume(t *testing.T) {
 		volMetricsOptIn       bool
 		expectError           errtyp
 		maxInflightMountCalls int64
+		csiNodeMemoryLimit    string
 	}{
 		{
 			name: "success: normal",
@@ -184,35 +186,6 @@ func TestNodePublishVolume(t *testing.T) {
 			maxInflightMountCalls: UnsetMaxInflightMountCounts,
 		},
 		{
-			// TODO: Validate deprecation warning
-			name: "success: normal with path in volume context",
-			req: &csi.NodePublishVolumeRequest{
-				VolumeId:         volumeId,
-				VolumeCapability: stdVolCap,
-				TargetPath:       targetPath,
-				VolumeContext:    map[string]string{"path": "/a/b"},
-			},
-			expectMakeDir:         true,
-			mountArgs:             []interface{}{volumeId + ":/a/b", targetPath, "efs", []string{"tls"}},
-			mountSuccess:          true,
-			maxInflightMountCalls: UnsetMaxInflightMountCounts,
-		},
-		{
-			name: "fail: path in volume context must be absolute",
-			req: &csi.NodePublishVolumeRequest{
-				VolumeId:         volumeId,
-				VolumeCapability: stdVolCap,
-				TargetPath:       targetPath,
-				VolumeContext:    map[string]string{"path": "a/b"},
-			},
-			expectMakeDir: false,
-			expectError: errtyp{
-				code:    "InvalidArgument",
-				message: `Volume context property "path" must be an absolute path`,
-			},
-			maxInflightMountCalls: UnsetMaxInflightMountCounts,
-		},
-		{
 			name: "success: normal with path in volume handle",
 			req: &csi.NodePublishVolumeRequest{
 				// This also shows that the path gets cleaned
@@ -235,19 +208,6 @@ func TestNodePublishVolume(t *testing.T) {
 			},
 			expectMakeDir:         true,
 			mountArgs:             []interface{}{volumeId + ":a/b", targetPath, "efs", []string{"tls"}},
-			mountSuccess:          true,
-			maxInflightMountCalls: UnsetMaxInflightMountCounts,
-		},
-		{
-			name: "success: path in volume handle takes precedence",
-			req: &csi.NodePublishVolumeRequest{
-				VolumeId:         volumeId + ":/a/b/",
-				VolumeCapability: stdVolCap,
-				TargetPath:       targetPath,
-				VolumeContext:    map[string]string{"path": "/c/d"},
-			},
-			expectMakeDir:         true,
-			mountArgs:             []interface{}{volumeId + ":/a/b", targetPath, "efs", []string{"tls"}},
 			mountSuccess:          true,
 			maxInflightMountCalls: UnsetMaxInflightMountCounts,
 		},
@@ -418,7 +378,7 @@ func TestNodePublishVolume(t *testing.T) {
 			expectMakeDir: false,
 			expectError: errtyp{
 				code:    "InvalidArgument",
-				message: "volume ID 'fs-abc123:/a/b/::four!' is invalid: Expected at most three fields separated by ':'",
+				message: "volume ID 'fs-abcd1234:/a/b/::four!' is invalid: Expected at most three fields separated by ':'",
 			},
 			maxInflightMountCalls: UnsetMaxInflightMountCounts,
 		},
@@ -539,7 +499,7 @@ func TestNodePublishVolume(t *testing.T) {
 			mountSuccess:  false,
 			expectError: errtyp{
 				code:    "Internal",
-				message: `Could not mount "fs-abc123:/" at "/target/path": failed to Mount`,
+				message: `Could not mount "fs-abcd1234:/" at "/target/path": failed to Mount`,
 			},
 			maxInflightMountCalls: UnsetMaxInflightMountCounts,
 		},
@@ -559,6 +519,21 @@ func TestNodePublishVolume(t *testing.T) {
 			maxInflightMountCalls: UnsetMaxInflightMountCounts,
 		},
 		{
+			name: "fail: 'path' is a deprecated and unsupported volume context",
+			req: &csi.NodePublishVolumeRequest{
+				VolumeId:         volumeId,
+				VolumeCapability: stdVolCap,
+				TargetPath:       targetPath,
+				VolumeContext:    map[string]string{"path": "a/b"},
+			},
+			expectMakeDir: false,
+			expectError: errtyp{
+				code:    "InvalidArgument",
+				message: "Volume context property path not supported.",
+			},
+			maxInflightMountCalls: UnsetMaxInflightMountCounts,
+		},
+		{
 			name: "fail: invalid filesystem ID",
 			req: &csi.NodePublishVolumeRequest{
 				VolumeId:         "invalid-id",
@@ -568,7 +543,7 @@ func TestNodePublishVolume(t *testing.T) {
 			expectMakeDir: false,
 			expectError: errtyp{
 				code:    "InvalidArgument",
-				message: "volume ID 'invalid-id' is invalid: Expected a file system ID of the form 'fs-...'",
+				message: "volume ID 'invalid-id' is invalid: Expected a file system ID of the form 'fs-[0-9a-f]{8,40}'",
 			},
 			maxInflightMountCalls: UnsetMaxInflightMountCounts,
 		},
@@ -582,7 +557,7 @@ func TestNodePublishVolume(t *testing.T) {
 			expectMakeDir: false,
 			expectError: errtyp{
 				code:    "InvalidArgument",
-				message: "volume ID 'fs-abc123::invalid-id' has an invalid access point ID 'invalid-id': Expected it to be of the form 'fsap-...'",
+				message: "volume ID 'fs-abcd1234::invalid-id' has an invalid access point ID 'invalid-id': Expected it to be of the form 'fsap-[0-9a-f]{8,40}'",
 			},
 			maxInflightMountCalls: UnsetMaxInflightMountCounts,
 		},
@@ -624,10 +599,208 @@ func TestNodePublishVolume(t *testing.T) {
 				message: "Volume context property \"encryptInTransit\" must be a boolean value: strconv.ParseBool: parsing \"asdf\": invalid syntax",
 			},
 		},
+		{
+			name: "success: EFS with access point (new format)",
+			req: &csi.NodePublishVolumeRequest{
+				VolumeId:         "efs:fs-abcd1234::fsap-abcd1234",
+				VolumeCapability: stdVolCap,
+				TargetPath:       targetPath,
+			},
+			expectMakeDir: true,
+			mountArgs:     []interface{}{"fs-abcd1234:/", targetPath, "efs", []string{"accesspoint=fsap-abcd1234", "tls"}},
+			mountSuccess:  true,
+		},
+		{
+			name: "success: EFS without access point (new format)",
+			req: &csi.NodePublishVolumeRequest{
+				VolumeId:         "efs:fs-abcd1234",
+				VolumeCapability: stdVolCap,
+				TargetPath:       targetPath,
+			},
+			expectMakeDir: true,
+			mountArgs:     []interface{}{"fs-abcd1234:/", targetPath, "efs", []string{"tls"}},
+			mountSuccess:  true,
+		},
+		{
+			name: "success: EFS with path and access point (new format)",
+			req: &csi.NodePublishVolumeRequest{
+				VolumeId:         "efs:fs-abcd1234:/data/shared:fsap-abcd1234",
+				VolumeCapability: stdVolCap,
+				TargetPath:       targetPath,
+			},
+			expectMakeDir: true,
+			mountArgs:     []interface{}{"fs-abcd1234:/data/shared", targetPath, "efs", []string{"accesspoint=fsap-abcd1234", "tls"}},
+			mountSuccess:  true,
+		},
+		{
+			name: "fail: EFS with invalid filesystem ID (new format)",
+			req: &csi.NodePublishVolumeRequest{
+				VolumeId:         "efs:invalid-id",
+				VolumeCapability: stdVolCap,
+				TargetPath:       targetPath,
+			},
+			expectMakeDir: false,
+			expectError: errtyp{
+				code:    "InvalidArgument",
+				message: "volume ID 'efs:invalid-id' is invalid: Expected a file system ID of the form 'fs-[0-9a-f]{8,40}'",
+			},
+		},
+		{
+			name: "fail: EFS with invalid access point ID (new format)",
+			req: &csi.NodePublishVolumeRequest{
+				VolumeId:         "efs:fs-abcd1234::invalid-id",
+				VolumeCapability: stdVolCap,
+				TargetPath:       targetPath,
+			},
+			expectMakeDir: false,
+			expectError: errtyp{
+				code:    "InvalidArgument",
+				message: "volume ID 'efs:fs-abcd1234::invalid-id' has an invalid access point ID 'invalid-id': Expected it to be of the form 'fsap-[0-9a-f]{8,40}'",
+			},
+		},
+		{
+			name: "success: S3Files with access point",
+			req: &csi.NodePublishVolumeRequest{
+				VolumeId:         "s3files:fs-abcd1234::fsap-abcd1234",
+				VolumeCapability: stdVolCap,
+				TargetPath:       targetPath,
+			},
+			expectMakeDir: true,
+			mountArgs:     []interface{}{"fs-abcd1234:/", targetPath, "s3files", []string{"accesspoint=fsap-abcd1234", "tls"}},
+			mountSuccess:  true,
+		},
+		{
+			name: "success: S3Files without access point",
+			req: &csi.NodePublishVolumeRequest{
+				VolumeId:         "s3files:fs-abcd1234",
+				VolumeCapability: stdVolCap,
+				TargetPath:       targetPath,
+			},
+			expectMakeDir: true,
+			mountArgs:     []interface{}{"fs-abcd1234:/", targetPath, "s3files", []string{"tls"}},
+			mountSuccess:  true,
+		},
+		{
+			name: "success: S3Files with path and access point",
+			req: &csi.NodePublishVolumeRequest{
+				VolumeId:         "s3files:fs-abcd1234:/data/shared:fsap-abcd1234",
+				VolumeCapability: stdVolCap,
+				TargetPath:       targetPath,
+			},
+			expectMakeDir: true,
+			mountArgs:     []interface{}{"fs-abcd1234:/data/shared", targetPath, "s3files", []string{"accesspoint=fsap-abcd1234", "tls"}},
+			mountSuccess:  true,
+		},
+		{
+			name: "success: S3Files with nos3readcache when memory limit is low",
+			req: &csi.NodePublishVolumeRequest{
+				VolumeId:         "s3files:fs-abcd1234::fsap-abcd1234",
+				VolumeCapability: stdVolCap,
+				TargetPath:       targetPath,
+			},
+			csiNodeMemoryLimit: "1073741824",
+			expectMakeDir:      true,
+			mountArgs:          []interface{}{"fs-abcd1234:/", targetPath, "s3files", []string{"accesspoint=fsap-abcd1234", "tls", "nos3readcache"}},
+			mountSuccess:       true,
+		},
+		{
+			name: "fail: S3Files with invalid filesystem ID",
+			req: &csi.NodePublishVolumeRequest{
+				VolumeId:         "s3files:invalid-id",
+				VolumeCapability: stdVolCap,
+				TargetPath:       targetPath,
+			},
+			expectMakeDir: false,
+			expectError: errtyp{
+				code:    "InvalidArgument",
+				message: "volume ID 's3files:invalid-id' is invalid: Expected a file system ID of the form 'fs-[0-9a-f]{8,40}'",
+			},
+		},
+		{
+			name: "fail: S3Files with invalid access point ID",
+			req: &csi.NodePublishVolumeRequest{
+				VolumeId:         "s3files:fs-abcd1234::invalid-id",
+				VolumeCapability: stdVolCap,
+				TargetPath:       targetPath,
+			},
+			expectMakeDir: false,
+			expectError: errtyp{
+				code:    "InvalidArgument",
+				message: "volume ID 's3files:fs-abcd1234::invalid-id' has an invalid access point ID 'invalid-id': Expected it to be of the form 'fsap-[0-9a-f]{8,40}'",
+			},
+		},
+		{
+			name: "fail: with invalid fsType in volume id",
+			req: &csi.NodePublishVolumeRequest{
+				VolumeId:         "nfs:fs-abcd1234::fsap-abcd1234",
+				VolumeCapability: stdVolCap,
+				TargetPath:       targetPath,
+			},
+			expectMakeDir: false,
+			expectError: errtyp{
+				code:    "InvalidArgument",
+				message: "volume ID 'nfs:fs-abcd1234::fsap-abcd1234' is invalid: Expected at most three fields separated by ':'",
+			},
+		},
+		{
+			name: "fail: S3Files with encryptInTransit false",
+			req: &csi.NodePublishVolumeRequest{
+				VolumeId:         "s3files:fs-abcd1234",
+				VolumeCapability: stdVolCap,
+				TargetPath:       targetPath,
+				VolumeContext:    map[string]string{"encryptInTransit": "false"},
+			},
+			expectMakeDir: false,
+			expectError: errtyp{
+				code:    "InvalidArgument",
+				message: "Encryption in transit cannot be disabled for S3 Files file system. Remove 'encryptInTransit: false' from your volume configuration or omit the encryptInTransit parameter (encryption is enabled by default).",
+			},
+		},
+		{
+			name: "fail: S3Files with stunnel mount option",
+			req: &csi.NodePublishVolumeRequest{
+				VolumeId: "s3files:fs-abcd1234",
+				VolumeCapability: &csi.VolumeCapability{
+					AccessType: &csi.VolumeCapability_Mount{
+						Mount: &csi.VolumeCapability_MountVolume{
+							MountFlags: []string{"stunnel"},
+						},
+					},
+					AccessMode: &csi.VolumeCapability_AccessMode{
+						Mode: csi.VolumeCapability_AccessMode_MULTI_NODE_MULTI_WRITER,
+					},
+				},
+				TargetPath: targetPath,
+			},
+			expectMakeDir: false,
+			expectError: errtyp{
+				code:    "InvalidArgument",
+				message: "stunnel mount option is not supported by S3 Files file system.",
+			},
+		},
+		{
+			name: "fail: S3Files with crossaccount true volume context",
+			req: &csi.NodePublishVolumeRequest{
+				VolumeId:         "s3files:fs-abcd1234",
+				VolumeCapability: stdVolCap,
+				TargetPath:       targetPath,
+				VolumeContext:    map[string]string{"crossaccount": "true"},
+			},
+			expectMakeDir: false,
+			expectError: errtyp{
+				code:    "InvalidArgument",
+				message: "Cross-account mounting is not supported for S3 Files file system. Remove 'crossaccount: true' from your volume configuration.",
+			},
+		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			if tc.csiNodeMemoryLimit != "" {
+				t.Setenv("CSI_NODE_MEMORY_LIMIT", tc.csiNodeMemoryLimit)
+			} else {
+				t.Setenv("CSI_NODE_MEMORY_LIMIT", strconv.Itoa(minMemoryInBytesToEnableS3ReadCache*2))
+			}
 			mockCtrl := gomock.NewController(t)
 			defer mockCtrl.Finish()
 			mockMounter, driver, ctx := setup(mockCtrl, NewVolStatter(), tc.volMetricsOptIn, tc.maxInflightMountCalls)
@@ -910,15 +1083,26 @@ func TestNodeGetVolumeStats(t *testing.T) {
 	os.RemoveAll(validPath)
 }
 
+type mockMetadata struct {
+	availabilityZone string
+}
+
+func (m *mockMetadata) GetInstanceID() string       { return "test-instance-id" }
+func (m *mockMetadata) GetRegion() string           { return "us-east-1" }
+func (m *mockMetadata) GetAvailabilityZone() string { return m.availabilityZone }
+
 func TestNodeGetInfo(t *testing.T) {
 	testCases := []struct {
 		name              string
 		volumeAttachLimit int64
+		availabilityZone  string
+		needsCloudMock    bool
 		expectedResponse  *csi.NodeGetInfoResponse
 	}{
 		{
 			name:              "returns nodeID and volumeAttachLimit",
 			volumeAttachLimit: 100,
+			availabilityZone:  "",
 			expectedResponse: &csi.NodeGetInfoResponse{
 				NodeId:            "test-node-id",
 				MaxVolumesPerNode: 100,
@@ -927,9 +1111,38 @@ func TestNodeGetInfo(t *testing.T) {
 		{
 			name:              "zero volume attach limit",
 			volumeAttachLimit: 0,
+			availabilityZone:  "",
 			expectedResponse: &csi.NodeGetInfoResponse{
 				NodeId:            "test-node-id",
 				MaxVolumesPerNode: 0,
+			},
+		},
+		{
+			name:              "returns topology when availability zone present",
+			volumeAttachLimit: 100,
+			availabilityZone:  "us-east-1b",
+			expectedResponse: &csi.NodeGetInfoResponse{
+				NodeId:            "test-node-id",
+				MaxVolumesPerNode: 100,
+				AccessibleTopology: &csi.Topology{
+					Segments: map[string]string{
+						"topology.kubernetes.io/zone": "us-east-1b",
+					},
+				},
+			},
+		},
+		{
+			name:              "returns topology for different zone",
+			volumeAttachLimit: 50,
+			availabilityZone:  "us-west-2a",
+			expectedResponse: &csi.NodeGetInfoResponse{
+				NodeId:            "test-node-id",
+				MaxVolumesPerNode: 50,
+				AccessibleTopology: &csi.Topology{
+					Segments: map[string]string{
+						"topology.kubernetes.io/zone": "us-west-2a",
+					},
+				},
 			},
 		},
 	}
@@ -939,9 +1152,13 @@ func TestNodeGetInfo(t *testing.T) {
 			mockCtrl := gomock.NewController(t)
 			defer mockCtrl.Finish()
 
+			mockCloud := mocks.NewMockCloud(mockCtrl)
+			mockCloud.EXPECT().GetMetadata().Return(&mockMetadata{availabilityZone: tc.availabilityZone}).AnyTimes()
+
 			driver := &Driver{
 				nodeID:            "test-node-id",
 				volumeAttachLimit: tc.volumeAttachLimit,
+				cloud:             mockCloud,
 			}
 
 			req := &csi.NodeGetInfoRequest{}
@@ -976,9 +1193,10 @@ func makeDir(path string) error {
 func TestRemoveNotReadyTaint(t *testing.T) {
 	nodeName := "test-node-123"
 	testCases := []struct {
-		name      string
-		setup     func(t *testing.T, mockCtl *gomock.Controller) func() (kubernetes.Interface, error)
-		expResult error
+		name       string
+		setup      func(t *testing.T, mockCtl *gomock.Controller) func() (kubernetes.Interface, error)
+		expResult  error
+		customTest func(t *testing.T, k8sClientGetter func() (kubernetes.Interface, error))
 	}{
 		{
 			name: "missing CSI_NODE_NAME",
@@ -1047,26 +1265,62 @@ func TestRemoveNotReadyTaint(t *testing.T) {
 			expResult: fmt.Errorf("Failed to patch node!"),
 		},
 		{
-			name: "success",
+			name: "successful taint removal",
 			setup: func(t *testing.T, mockCtl *gomock.Controller) func() (kubernetes.Interface, error) {
 				t.Setenv("CSI_NODE_NAME", nodeName)
-				getNodeMock, mockNode := getNodeMock(mockCtl, nodeName, &corev1.Node{
+
+				nodeWithTaint := &corev1.Node{
 					Spec: corev1.NodeSpec{
-						Taints: []corev1.Taint{
-							{
-								Key:    AgentNotReadyNodeTaintKey,
-								Effect: "NoSchedule",
-							},
-						},
+						Taints: []corev1.Taint{{Key: AgentNotReadyNodeTaintKey, Effect: "NoSchedule"}},
 					},
-				}, nil)
-				mockNode.EXPECT().Patch(gomock.Any(), gomock.Eq(nodeName), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil)
+				}
+				nodeWithoutTaint := &corev1.Node{
+					Spec: corev1.NodeSpec{Taints: []corev1.Taint{}},
+				}
+
+				mockClient := mocks.NewMockKubernetesClient(mockCtl)
+				mockCoreV1 := mocks.NewMockCoreV1Interface(mockCtl)
+				mockNode := mocks.NewMockNodeInterface(mockCtl)
+
+				mockClient.EXPECT().CoreV1().Return(mockCoreV1).MinTimes(1)
+				mockCoreV1.EXPECT().Nodes().Return(mockNode).MinTimes(1)
+
+				mockNode.EXPECT().Get(gomock.Any(), gomock.Eq(nodeName), gomock.Any()).Return(nodeWithTaint, nil)
+				mockNode.EXPECT().Patch(gomock.Any(), gomock.Eq(nodeName), gomock.Any(), gomock.Any(), gomock.Any()).Return(nodeWithoutTaint, nil)
 
 				return func() (kubernetes.Interface, error) {
-					return getNodeMock, nil
+					return mockClient, nil
 				}
 			},
 			expResult: nil,
+		},
+		{
+			name: "patch succeeds with no error but taint still present (verification fails)",
+			setup: func(t *testing.T, mockCtl *gomock.Controller) func() (kubernetes.Interface, error) {
+				t.Setenv("CSI_NODE_NAME", nodeName)
+
+				nodeWithTaint := &corev1.Node{
+					Spec: corev1.NodeSpec{
+						Taints: []corev1.Taint{{Key: AgentNotReadyNodeTaintKey, Effect: "NoSchedule"}},
+					},
+				}
+
+				mockClient := mocks.NewMockKubernetesClient(mockCtl)
+				mockCoreV1 := mocks.NewMockCoreV1Interface(mockCtl)
+				mockNode := mocks.NewMockNodeInterface(mockCtl)
+
+				mockClient.EXPECT().CoreV1().Return(mockCoreV1).MinTimes(1)
+				mockCoreV1.EXPECT().Nodes().Return(mockNode).MinTimes(1)
+
+				mockNode.EXPECT().Get(gomock.Any(), gomock.Eq(nodeName), gomock.Any()).Return(nodeWithTaint, nil)
+				mockNode.EXPECT().Patch(gomock.Any(), gomock.Eq(nodeName), gomock.Any(), gomock.Any(), gomock.Any()).Return(nodeWithTaint, nil)
+
+				return func() (kubernetes.Interface, error) {
+					return mockClient, nil
+				}
+			},
+			// expect verification to show failed startup taint removal
+			expResult: fmt.Errorf("taint %s still present after patch", AgentNotReadyNodeTaintKey),
 		},
 	}
 	for _, tc := range testCases {
@@ -1076,7 +1330,6 @@ func TestRemoveNotReadyTaint(t *testing.T) {
 
 			k8sClientGetter := tc.setup(t, mockCtl)
 			result := removeNotReadyTaint(k8sClientGetter)
-
 			if !reflect.DeepEqual(result, tc.expResult) {
 				t.Fatalf("Expected result `%v`, got result `%v`", tc.expResult, result)
 			}
@@ -1140,7 +1393,6 @@ func TestGetMaxInflightMountCalls(t *testing.T) {
 		maxInflightMountCallsOptIn bool
 		maxInflightMountCalls      int64
 		expected                   int64
-		expectFatal                bool
 	}{
 		{
 			name:                       "opt-in false returns unset",
@@ -1154,37 +1406,13 @@ func TestGetMaxInflightMountCalls(t *testing.T) {
 			maxInflightMountCalls:      5,
 			expected:                   5,
 		},
-		{
-			name:                       "opt-in true with zero value should fatal",
-			maxInflightMountCallsOptIn: true,
-			maxInflightMountCalls:      0,
-			expectFatal:                true,
-		},
-		{
-			name:                       "opt-in true with negative value should fatal",
-			maxInflightMountCallsOptIn: true,
-			maxInflightMountCalls:      UnsetMaxInflightMountCounts,
-			expectFatal:                true,
-		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			if tc.expectFatal {
-				if os.Getenv("FORK") == "1" {
-					// If it is in forked process, run the fatal code directly and let klog.Fatal exit
-					getMaxInflightMountCalls(tc.maxInflightMountCallsOptIn, tc.maxInflightMountCalls)
-					return
-				}
-				err := runForkFatalTest("TestGetMaxInflightMountCalls/" + tc.name)
-				if err == nil {
-					t.Fatal("expected process to exit with error")
-				}
-			} else {
-				result := getMaxInflightMountCalls(tc.maxInflightMountCallsOptIn, tc.maxInflightMountCalls)
-				if result != tc.expected {
-					t.Errorf("Expected %d, got %d", tc.expected, result)
-				}
+			result := getMaxInflightMountCalls(tc.maxInflightMountCallsOptIn, tc.maxInflightMountCalls)
+			if result != tc.expected {
+				t.Errorf("Expected %d, got %d", tc.expected, result)
 			}
 		})
 	}
@@ -1210,36 +1438,188 @@ func TestGetVolumeAttachLimit(t *testing.T) {
 			volumeAttachLimit:      50,
 			expected:               50,
 		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result := getVolumeAttachLimit(tc.volumeAttachLimitOptIn, tc.volumeAttachLimit)
+			if result != tc.expected {
+				t.Errorf("Expected %d, got %d", tc.expected, result)
+			}
+		})
+	}
+}
+
+func TestIsValidAccessPointId(t *testing.T) {
+	testCases := []struct {
+		name     string
+		apid     string
+		expected bool
+	}{
+		{"valid: 8 chars", "fsap-12345678", true},
+		{"valid: 16 chars", "fsap-1234567890abcdef", true},
+		{"valid: 40 chars", "fsap-1234567890abcdef1234567890abcdef1234", true},
+		{"invalid: too short", "fsap-1234567", false},
+		{"invalid: too long", "fsap-1234567890abcdef1234567890abcdef1234567890", false},
+		{"invalid: no prefix", "1234567890abcdef", false},
+		{"invalid: uppercase hex", "fsap-1234567G", false},
+		{"invalid: non-hex chars", "fsap-123456zz", false},
+		{"invalid: empty", "", false},
+		{"invalid: prefix only", "fsap-", false},
+		{"invalid: attack with mount options", "fsap-attacktest,exec,suid,dev", false},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result := isValidAccessPointId(tc.apid)
+			if result != tc.expected {
+				t.Errorf("isValidAccessPointId(%q) = %v, expected %v", tc.apid, result, tc.expected)
+			}
+		})
+	}
+}
+
+func TestIsValidFileSystemId(t *testing.T) {
+	testCases := []struct {
+		name     string
+		fsid     string
+		expected bool
+	}{
+		{"valid: 8 chars", "fs-12345678", true},
+		{"valid: 16 chars", "fs-1234567890abcdef", true},
+		{"valid: 40 chars", "fs-1234567890abcdef1234567890abcdef1234", true},
+		{"invalid: too short", "fs-1234567", false},
+		{"invalid: too long", "fs-1234567890abcdef1234567890abcdef1234567890", false},
+		{"invalid: no prefix", "1234567890abcdef", false},
+		{"invalid: uppercase hex", "fs-1234567G", false},
+		{"invalid: non-hex chars", "fs-123456zz", false},
+		{"invalid: empty", "", false},
+		{"invalid: prefix only", "fs-", false},
+		{"invalid: attack with mount options", "fs-attacktest,exec,suid,dev", false},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result := isValidFileSystemId(tc.fsid)
+			if result != tc.expected {
+				t.Errorf("isValidFileSystemId(%q) = %v, expected %v", tc.fsid, result, tc.expected)
+			}
+		})
+	}
+}
+
+func TestGetCsiNodeEfsPluginContainerMemoryLimitInBytes(t *testing.T) {
+	testCases := []struct {
+		name     string
+		envValue string
+		expected int64
+	}{
+		{"env not set", "", -1},
+		{"valid value", "1073741824", 1073741824},
+		{"invalid value", "notanumber", -1},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			if tc.envValue != "" {
+				t.Setenv("CSI_NODE_MEMORY_LIMIT", tc.envValue)
+			} else {
+				os.Unsetenv("CSI_NODE_MEMORY_LIMIT")
+			}
+			result := getCsiNodeEfsPluginContainerMemoryLimitInBytes()
+			if result != tc.expected {
+				t.Errorf("Expected %d, got %d", tc.expected, result)
+			}
+		})
+	}
+}
+
+func TestNodePublishVolumeMountTargetIpMap(t *testing.T) {
+	stdVolCap := &csi.VolumeCapability{
+		AccessType: &csi.VolumeCapability_Mount{
+			Mount: &csi.VolumeCapability_MountVolume{},
+		},
+		AccessMode: &csi.VolumeCapability_AccessMode{
+			Mode: csi.VolumeCapability_AccessMode_MULTI_NODE_MULTI_WRITER,
+		},
+	}
+
+	testCases := []struct {
+		name      string
+		nodeAZ    string
+		ipMapJSON string
+		// expected mounttargetip value in mount options, empty if none expected
+		expectedIP  string
+		expectError bool
+	}{
 		{
-			name:                   "opt-in true with zero value should fatal",
-			volumeAttachLimitOptIn: true,
-			volumeAttachLimit:      0,
-			expectFatal:            true,
+			name:       "node AZ found in map",
+			nodeAZ:     "us-west-2b",
+			ipMapJSON:  `{"us-west-2a":"10.0.1.1","us-west-2b":"10.0.2.1","us-west-2c":"10.0.3.1"}`,
+			expectedIP: "10.0.2.1",
 		},
 		{
-			name:                   "opt-in true with negative value should fatal",
-			volumeAttachLimitOptIn: true,
-			volumeAttachLimit:      -1,
-			expectFatal:            true,
+			name:       "node AZ not in map falls back to a random available AZ",
+			nodeAZ:     "us-west-2d",
+			ipMapJSON:  `{"us-west-2a":"10.0.1.1"}`,
+			expectedIP: "10.0.1.1",
+		},
+		{
+			name:        "invalid JSON returns error",
+			nodeAZ:      "us-west-2a",
+			ipMapJSON:   `{invalid`,
+			expectError: true,
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			if tc.expectFatal {
-				// If it is in forked process, run the fatal code directly and let klog.Fatal exit
-				if os.Getenv("FORK") == "1" {
-					getVolumeAttachLimit(tc.volumeAttachLimitOptIn, tc.volumeAttachLimit)
-					return
-				}
-				err := runForkFatalTest("TestGetVolumeAttachLimit/" + tc.name)
+			mockCtrl := gomock.NewController(t)
+			defer mockCtrl.Finish()
+
+			t.Setenv("CSI_NODE_MEMORY_LIMIT", strconv.Itoa(minMemoryInBytesToEnableS3ReadCache*2))
+
+			mockMounter := mocks.NewMockMounter(mockCtrl)
+			mockCloud := mocks.NewMockCloud(mockCtrl)
+			mockCloud.EXPECT().GetMetadata().Return(&mockMetadata{availabilityZone: tc.nodeAZ}).AnyTimes()
+
+			driver := &Driver{
+				endpoint:             "endpoint",
+				nodeID:               "nodeID",
+				mounter:              mockMounter,
+				cloud:                mockCloud,
+				volMetricsOptIn:      true,
+				nodeCaps:             SetNodeCapOptInFeatures(true),
+				inFlightMountTracker: NewInFlightMountTracker(UnsetMaxInflightMountCounts),
+			}
+			ctx := context.Background()
+
+			req := &csi.NodePublishVolumeRequest{
+				VolumeId:         volumeId,
+				VolumeCapability: stdVolCap,
+				TargetPath:       targetPath,
+				VolumeContext: map[string]string{
+					"mounttargetipmap": tc.ipMapJSON,
+				},
+			}
+
+			if !tc.expectError {
+				expectedMountOpts := []string{"mounttargetip=" + tc.expectedIP, "tls"}
+				mockMounter.EXPECT().MakeDir(gomock.Eq(targetPath)).Return(nil)
+				mockMounter.EXPECT().Mount(volumeId+":/", targetPath, "efs", expectedMountOpts).Return(nil)
+			}
+
+			ret, err := driver.NodePublishVolume(ctx, req)
+			if tc.expectError {
 				if err == nil {
-					t.Fatal("expected process to exit with error")
+					t.Fatal("Expected error but got nil")
 				}
 			} else {
-				result := getVolumeAttachLimit(tc.volumeAttachLimitOptIn, tc.volumeAttachLimit)
-				if result != tc.expected {
-					t.Errorf("Expected %d, got %d", tc.expected, result)
+				if err != nil {
+					t.Fatalf("Unexpected error: %v", err)
+				}
+				if ret == nil {
+					t.Fatal("Expected non-nil return value")
 				}
 			}
 		})

@@ -1,0 +1,21 @@
+# Cross-account dynamic provisioning — Mode B (pinned AZ).
+# The controller resolves the mount target in the AZ given by `az` and writes
+# `mounttargetip` into the PV's volumeAttributes. Every node mounts the same
+# target. Provisioner secret should contain only `awsRoleArn` (do NOT set
+# `crossaccount=true` for this mode). See storageclass-dns.yaml and
+# storageclass-default.yaml for the other two modes.
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: efs-sc
+provisioner: efs.csi.aws.com
+parameters:
+  provisioningMode: efs-ap
+  fileSystemId: fs-1234abcd
+  directoryPerms: "700"
+  gidRangeStart: "1000" # optional
+  gidRangeEnd: "2000" # optional
+  basePath: "/dynamic_provisioning" # optional
+  az: us-east-1a # replace with your target AZ
+  csi.storage.k8s.io/provisioner-secret-name: x-account
+  csi.storage.k8s.io/provisioner-secret-namespace: kube-system

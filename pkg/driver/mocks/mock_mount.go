@@ -253,3 +253,17 @@ func (mr *MockMounterMockRecorder) Unmount(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Unmount", reflect.TypeOf((*MockMounter)(nil).Unmount), arg0)
 }
+
+// UnmountWithForce mocks base method.
+func (m *MockMounter) UnmountWithForce(arg0 string, arg1 time.Duration) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UnmountWithForce", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UnmountWithForce indicates an expected call of UnmountWithForce.
+func (mr *MockMounterMockRecorder) UnmountWithForce(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UnmountWithForce", reflect.TypeOf((*MockMounter)(nil).UnmountWithForce), arg0, arg1)
+}

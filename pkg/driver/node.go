@@ -20,9 +20,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net"
 	"os"
 	"path"
-	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -44,11 +45,14 @@ var (
 		csi.VolumeCapability_AccessMode_MULTI_NODE_MULTI_WRITER,
 	}
 	volumeIdCounter  = make(map[string]int)
-	supportedFSTypes = []string{"efs", ""}
+	supportedFSTypes = []string{util.FileSystemTypeEFS.String(), util.FileSystemTypeS3Files.String(), ""}
+	hexSuffixRegex   = regexp.MustCompile(`^[0-9a-f]{8,40}$`)
 )
 
 const (
-	maxInflightMountCallsReached = "The number of concurrent mount calls is %v, which has reached the limit"
+	maxInflightMountCallsReached        = "The number of concurrent mount calls is %v, which has reached the limit"
+	GiB                                 = 1024 * 1024 * 1024
+	minMemoryInBytesToEnableS3ReadCache = 30 * GiB
 )
 
 func (d *Driver) NodeStageVolume(ctx context.Context, req *csi.NodeStageVolumeRequest) (*csi.NodeStageVolumeResponse, error) {
@@ -77,7 +81,8 @@ func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 		return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("Volume capability not supported: %s", err))
 	}
 
-	if volCap.GetMount() == nil {
+	mountVolume := volCap.GetMount()
+	if mountVolume == nil {
 		return nil, status.Error(codes.InvalidArgument, "Volume capability access type must be mount")
 	}
 
@@ -99,13 +104,6 @@ func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 	volContext := req.GetVolumeContext()
 	for k, v := range volContext {
 		switch strings.ToLower(k) {
-		//Deprecated
-		case "path":
-			klog.Warning("Use of path under volumeAttributes is deprecated. This field will be removed in future release")
-			if !filepath.IsAbs(v) {
-				return nil, status.Errorf(codes.InvalidArgument, "Volume context property %q must be an absolute path", k)
-			}
-			subpath = filepath.Join(subpath, v)
 		case "storage.kubernetes.io/csiprovisioneridentity":
 			continue
 		case "encryptintransit":
@@ -115,8 +113,29 @@ func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 				return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("Volume context property %q must be a boolean value: %v", k, err))
 			}
 		case MountTargetIp:
-			ipAddr := volContext[MountTargetIp]
-			mountOptions = append(mountOptions, MountTargetIp+"="+ipAddr)
+			if net.ParseIP(v) == nil {
+				return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("Volume context property %q=%q is not a valid IP address", k, v))
+			}
+			mountOptions = append(mountOptions, MountTargetIp+"="+v)
+		case MountTargetIpMap:
+			// Parse the AZ→IP map passed from the controller and select the mount target
+			// IP for this node's AZ. If no mount target exists in this AZ, fall back to
+			// any available mount target.
+			var ipMap map[string]string
+			if err := json.Unmarshal([]byte(v), &ipMap); err != nil {
+				return nil, status.Errorf(codes.InvalidArgument, "Failed to parse %s: %v", MountTargetIpMap, err)
+			}
+			nodeAZ := d.cloud.GetMetadata().GetAvailabilityZone()
+			if ip, ok := ipMap[nodeAZ]; ok {
+				mountOptions = append(mountOptions, MountTargetIp+"="+ip)
+			} else {
+				// No mount target in this node's AZ; pick any available one as fallback.
+				for az, ip := range ipMap {
+					klog.Warningf("No mount target IP for node AZ %s, falling back to AZ %s (IP %s)", nodeAZ, az, ip)
+					mountOptions = append(mountOptions, MountTargetIp+"="+ip)
+					break
+				}
+			}
 		case CrossAccount:
 			var err error
 			crossAccountDNSEnabled, err = strconv.ParseBool(v)
@@ -128,7 +147,7 @@ func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 		}
 	}
 
-	fsid, vpath, apid, err := parseVolumeId(req.GetVolumeId())
+	fsid, vpath, apid, fsType, err := parseVolumeId(req.GetVolumeId())
 	if err != nil {
 		// parseVolumeId returns the appropriate error
 		return nil, err
@@ -155,10 +174,23 @@ func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 		if !hasOption(mountOptions, "tls") {
 			mountOptions = append(mountOptions, "tls")
 		}
+	} else {
+		if fsType == util.FileSystemTypeS3Files {
+			return nil, status.Errorf(codes.InvalidArgument,
+				"Encryption in transit cannot be disabled for S3 Files file system. "+
+					"Remove 'encryptInTransit: false' from your volume configuration or omit "+
+					"the encryptInTransit parameter (encryption is enabled by default).")
+		}
 	}
 
 	if crossAccountDNSEnabled {
-		mountOptions = append(mountOptions, CrossAccount)
+		if fsType == util.FileSystemTypeS3Files {
+			return nil, status.Errorf(codes.InvalidArgument,
+				"Cross-account mounting is not supported for S3 Files file system. "+
+					"Remove 'crossaccount: true' from your volume configuration.")
+		} else {
+			mountOptions = append(mountOptions, CrossAccount)
+		}
 	}
 
 	if req.GetReadonly() {
@@ -203,18 +235,31 @@ func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 				continue
 			}
 
+			if f == "stunnel" && fsType == util.FileSystemTypeS3Files {
+				return nil, status.Errorf(codes.InvalidArgument,
+					"stunnel mount option is not supported by S3 Files file system.")
+			}
+
 			if !hasOption(mountOptions, f) {
 				mountOptions = append(mountOptions, f)
 			}
 		}
 	}
+	if fsType == util.FileSystemTypeS3Files {
+		memoryLimitInBytes := getCsiNodeEfsPluginContainerMemoryLimitInBytes()
+		if memoryLimitInBytes < minMemoryInBytesToEnableS3ReadCache {
+			klog.Infof("CSI node memory limit %d bytes is below minimum %d bytes required to enable S3 read cache. Adding nos3readcache into mount option.", memoryLimitInBytes, minMemoryInBytesToEnableS3ReadCache)
+			mountOptions = append(mountOptions, "nos3readcache")
+		}
+	}
+
 	klog.V(5).Infof("NodePublishVolume: creating dir %s", target)
 	if err := d.mounter.MakeDir(target); err != nil {
 		return nil, status.Errorf(codes.Internal, "Could not create dir %q: %v", target, err)
 	}
 
 	klog.V(5).Infof("NodePublishVolume: mounting %s at %s with options %v", source, target, mountOptions)
-	if err := d.mounter.Mount(source, target, "efs", mountOptions); err != nil {
+	if err := d.mounter.Mount(source, target, fsType.String(), mountOptions); err != nil {
 		os.Remove(target)
 		return nil, status.Errorf(codes.Internal, "Could not mount %q at %q: %v", source, target, err)
 	}
@@ -240,28 +285,37 @@ func (d *Driver) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpublish
 		return nil, status.Error(codes.InvalidArgument, "Target path not provided")
 	}
 
-	// Check if target directory is a mount point. GetDeviceNameFromMount
-	// given a mnt point, finds the device from /proc/mounts
-	// returns the device name, reference count, and error code
-	_, refCount, err := d.mounter.GetDeviceName(target)
-	if err != nil {
-		format := "failed to check if volume is mounted: %v"
-		return nil, status.Errorf(codes.Internal, format, err)
+	if d.forceUnmountAfterTimeout {
+		klog.V(5).Infof("NodeUnpublishVolume: will retry unmount %s with force after timeout %v", target, d.unmountTimeout)
+		err := d.mounter.UnmountWithForce(target, d.unmountTimeout)
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "Could not unmountWithForce %q: %v", target, err)
+		}
+	} else {
+		// Check if target directory is a mount point. GetDeviceNameFromMount
+		// given a mnt point, finds the device from /proc/mounts
+		// returns the device name, reference count, and error code
+		_, refCount, err := d.mounter.GetDeviceName(target)
+		if err != nil {
+			format := "failed to check if volume is mounted: %v"
+			return nil, status.Errorf(codes.Internal, format, err)
+		}
+
+		// From the spec: If the volume corresponding to the volume_id
+		// is not staged to the staging_target_path, the Plugin MUST
+		// reply 0 OK.
+		if refCount == 0 {
+			klog.V(5).Infof("NodeUnpublishVolume: %s target not mounted", target)
+			return &csi.NodeUnpublishVolumeResponse{}, nil
+		}
+
+		klog.V(5).Infof("NodeUnpublishVolume: unmounting %s", target)
+		err = d.mounter.Unmount(target)
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "Could not unmount %q: %v", target, err)
+		}
 	}
 
-	// From the spec: If the volume corresponding to the volume_id
-	// is not staged to the staging_target_path, the Plugin MUST
-	// reply 0 OK.
-	if refCount == 0 {
-		klog.V(5).Infof("NodeUnpublishVolume: %s target not mounted", target)
-		return &csi.NodeUnpublishVolumeResponse{}, nil
-	}
-
-	klog.V(5).Infof("NodeUnpublishVolume: unmounting %s", target)
-	err = d.mounter.Unmount(target)
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "Could not unmount %q: %v", target, err)
-	}
 	klog.V(5).Infof("NodeUnpublishVolume: %s unmounted", target)
 
 	//TODO: If `du` is running on a volume, unmount waits for it to complete. We should stop `du` on unmount in the future for NodeUnpublish
@@ -341,9 +395,15 @@ func (d *Driver) NodeGetInfo(ctx context.Context, req *csi.NodeGetInfoRequest) (
 	maxVolumesPerNode := d.volumeAttachLimit
 	klog.V(4).Infof("NodeGetInfo: maxVolumesPerNode=%d", maxVolumesPerNode)
 
+	availabilityZone := d.cloud.GetMetadata().GetAvailabilityZone()
+	klog.V(4).Infof("NodeGetInfo: availabilityZone=%s", availabilityZone)
+
+	topology := util.BuildTopology(availabilityZone)
+
 	return &csi.NodeGetInfoResponse{
-		NodeId:            d.nodeID,
-		MaxVolumesPerNode: maxVolumesPerNode,
+		NodeId:             d.nodeID,
+		MaxVolumesPerNode:  maxVolumesPerNode,
+		AccessibleTopology: topology,
 	}, nil
 }
 
@@ -353,6 +413,10 @@ func (d *Driver) isValidVolumeCapabilities(volCaps []*csi.VolumeCapability) erro
 	}
 
 	if err := d.validateAccessType(volCaps); err != nil {
+		return err
+	}
+
+	if err := d.validateMountOptions(volCaps); err != nil {
 		return err
 	}
 
@@ -390,6 +454,18 @@ func (d *Driver) validateAccessType(volCaps []*csi.VolumeCapability) error {
 	return nil
 }
 
+func (d *Driver) validateMountOptions(volCaps []*csi.VolumeCapability) error {
+	for _, volCap := range volCaps {
+		if mount := volCap.GetMount(); mount != nil {
+			mountOptions := mount.GetMountFlags()
+			if hasOption(mountOptions, "crossaccount") {
+				return fmt.Errorf("mount option 'crossaccount' cannot be set manually. The CSI driver automatically configures this based on Kubernetes secrets. See: https://github.com/kubernetes-sigs/aws-efs-csi-driver/tree/master/examples/kubernetes/efs/cross_account_mount")
+			}
+		}
+	}
+	return nil
+}
+
 func (d *Driver) validateFStype(volCaps []*csi.VolumeCapability) error {
 	isSupportedFStype := func(cap *csi.VolumeCapability) bool {
 		for _, m := range supportedFSTypes {
@@ -412,47 +488,93 @@ func (d *Driver) validateFStype(volCaps []*csi.VolumeCapability) error {
 	return nil
 }
 
-// parseVolumeId accepts a NodePublishVolumeRequest.VolumeId as a colon-delimited string of the
-// form `{fileSystemID}:{mountPath}:{accessPointID}`.
-//   - The `{fileSystemID}` is required, and expected to be of the form `fs-...`.
-//   - The other two fields are optional -- they may be empty or omitted entirely. For example,
-//     `fs-abcd1234::`, `fs-abcd1234:`, and `fs-abcd1234` are equivalent.
-//   - The `{mountPath}`, if specified, is not required to be absolute.
-//   - The `{accessPointID}` is expected to be of the form `fsap-...`.
+// parseVolumeId accepts a NodePublishVolumeRequest.VolumeId as a colon-delimited string in one of two formats:
 //
-// parseVolumeId returns the parsed values, of which `subpath` and `apid` may be empty; and an
-// error, which will be a `status.Error` with `codes.InvalidArgument`, or `nil` if the `volumeId`
-// was parsed successfully.
+// NEW FORMAT: `{fsType}:{fileSystemID}:{mountPath}:{accessPointID}`
+//   - The `{fsType}` indicates the filesystem type ("efs" or "s3files")
+//   - Examples: `efs:fs-abcd1234:::`, `s3files:fs-abcd1234::`, `efs:fs-abcd1234`, `s3files:fs-abcd1234:/path:fsap-xyz123`
+//
+// OLD FORMAT (backward compatibility): `{fileSystemID}:{mountPath}:{accessPointID}`
+//   - Same as the new format, treated as EFS filesystem type
+//   - Examples: `fs-abcd1234::`, `fs-abcd1234:`, `fs-abcd1234`, `fs-abcd1234:/path:fsap-xyz123`
+//
+// COMMON RULES:
+//   - The `{fileSystemID}` is required, and expected to be of the form `fs-...`
+//   - The `{mountPath}` and `{accessPointID}` are optional -- they may be empty or omitted entirely
+//   - The `{mountPath}`, if specified, is not required to be absolute
+//   - The `{accessPointID}` is expected to be of the form `fsap-...`
+//
+// parseVolumeId returns the filesystem type, parsed values (where `subpath` and `apid` may be empty),
+// and an error. The error will be a `status.Error` with `codes.InvalidArgument`, or `nil` if the
+// `volumeId` was parsed successfully. For old format volume IDs, `fsType` will be set to EFS.
+//
 // See the following issues for some background:
 // - https://github.com/kubernetes-sigs/aws-efs-csi-driver/issues/100
 // - https://github.com/kubernetes-sigs/aws-efs-csi-driver/issues/167
-func parseVolumeId(volumeId string) (fsid, subpath, apid string, err error) {
-	// Might as well do this up front, since the FSID is required and first in the string
-	if !isValidFileSystemId(volumeId) {
-		err = status.Errorf(codes.InvalidArgument, "volume ID '%s' is invalid: Expected a file system ID of the form 'fs-...'", volumeId)
-		return
-	}
-
+func parseVolumeId(volumeId string) (fsid, subpath, apid string, fsType util.FileSystemType, err error) {
 	tokens := strings.Split(volumeId, ":")
-	if len(tokens) > 3 {
-		err = status.Errorf(codes.InvalidArgument, "volume ID '%s' is invalid: Expected at most three fields separated by ':'", volumeId)
-		return
-	}
 
-	// Okay, we know we have a FSID
-	fsid = tokens[0]
+	// Try to parse first token as filesystem type to determine format
+	parsedFsType, parseErr := util.ParseFileSystemType(tokens[0])
 
-	// Do we have a subpath?
-	if len(tokens) >= 2 && tokens[1] != "" {
-		subpath = path.Clean(tokens[1])
-	}
-
-	// Do we have an access point ID?
-	if len(tokens) == 3 && tokens[2] != "" {
-		apid = tokens[2]
-		if !isValidAccessPointId(apid) {
-			err = status.Errorf(codes.InvalidArgument, "volume ID '%s' has an invalid access point ID '%s': Expected it to be of the form 'fsap-...'", volumeId, apid)
+	if parseErr == nil { // New format: fsType:fileSystemID:mountPath:accessPointID
+		fsType = parsedFsType
+		if len(tokens) > 4 {
+			err = status.Errorf(codes.InvalidArgument, "volume ID '%s' is invalid: Expected at most four fields separated by ':'", volumeId)
 			return
+		}
+		if len(tokens) < 2 {
+			err = status.Errorf(codes.InvalidArgument, "volume ID '%s' is invalid: Missing file system ID", volumeId)
+			return
+		}
+
+		// Validate and extract fsid
+		fsid = tokens[1]
+		if !isValidFileSystemId(fsid) {
+			err = status.Errorf(codes.InvalidArgument, "volume ID '%s' is invalid: Expected a file system ID of the form 'fs-[0-9a-f]{8,40}'", volumeId)
+			return
+		}
+
+		// Extract subpath if present
+		if len(tokens) >= 3 && tokens[2] != "" {
+			subpath = path.Clean(tokens[2])
+		}
+
+		// Extract apid if present
+		if len(tokens) == 4 && tokens[3] != "" {
+			apid = tokens[3]
+			if !isValidAccessPointId(apid) {
+				err = status.Errorf(codes.InvalidArgument, "volume ID '%s' has an invalid access point ID '%s': Expected it to be of the form 'fsap-[0-9a-f]{8,40}'", volumeId, apid)
+				return
+			}
+		}
+	} else { // Old format (before S3 Files support was added): fileSystemID:mountPath:accessPointID
+		fsType = util.FileSystemTypeEFS
+
+		if len(tokens) > 3 {
+			err = status.Errorf(codes.InvalidArgument, "volume ID '%s' is invalid: Expected at most three fields separated by ':'", volumeId)
+			return
+		}
+
+		// Extract fsid
+		fsid = tokens[0]
+		if !isValidFileSystemId(fsid) {
+			err = status.Errorf(codes.InvalidArgument, "volume ID '%s' is invalid: Expected a file system ID of the form 'fs-[0-9a-f]{8,40}'", volumeId)
+			return
+		}
+
+		// Extract subpath if present
+		if len(tokens) >= 2 && tokens[1] != "" {
+			subpath = path.Clean(tokens[1])
+		}
+
+		// Extract apid if present
+		if len(tokens) == 3 && tokens[2] != "" {
+			apid = tokens[2]
+			if !isValidAccessPointId(apid) {
+				err = status.Errorf(codes.InvalidArgument, "volume ID '%s' has an invalid access point ID '%s': Expected it to be of the form 'fsap-[0-9a-f]{8,40}'", volumeId, apid)
+				return
+			}
 		}
 	}
 
@@ -470,11 +592,11 @@ func hasOption(options []string, opt string) bool {
 }
 
 func isValidFileSystemId(filesystemId string) bool {
-	return strings.HasPrefix(filesystemId, "fs-")
+	return strings.HasPrefix(filesystemId, "fs-") && hexSuffixRegex.MatchString(filesystemId[3:])
 }
 
 func isValidAccessPointId(accesspointId string) bool {
-	return strings.HasPrefix(accesspointId, "fsap-")
+	return strings.HasPrefix(accesspointId, "fsap-") && hexSuffixRegex.MatchString(accesspointId[5:])
 }
 
 // Struct for JSON patch operations
@@ -488,6 +610,11 @@ type JSONPatch struct {
 // This taint can be optionally applied by users to prevent startup race conditions such as
 // https://github.com/kubernetes/kubernetes/issues/95911
 func removeNotReadyTaint(k8sClient cloud.KubernetesAPIClient) error {
+	if os.Getenv("DISABLE_TAINT_WATCHER") != "" {
+		klog.V(4).InfoS("DISABLE_TAINT_WATCHER set, skipping taint removal")
+		return nil
+	}
+
 	nodeName := os.Getenv("CSI_NODE_NAME")
 	if nodeName == "" {
 		klog.V(4).InfoS("CSI_NODE_NAME missing, skipping taint removal")
@@ -537,10 +664,19 @@ func removeNotReadyTaint(k8sClient cloud.KubernetesAPIClient) error {
 		return err
 	}
 
-	_, err = clientset.CoreV1().Nodes().Patch(context.Background(), nodeName, k8stypes.JSONPatchType, patch, metav1.PatchOptions{})
+	patchedNode, err := clientset.CoreV1().Nodes().Patch(context.Background(), nodeName, k8stypes.JSONPatchType, patch, metav1.PatchOptions{})
 	if err != nil {
 		return err
 	}
+
+	// Verify taint was actually removed from the patched node
+	for _, taint := range patchedNode.Spec.Taints {
+		if taint.Key == AgentNotReadyNodeTaintKey {
+			klog.V(4).InfoS("Taint still present on node, will retry", "key", taint.Key, "effect", taint.Effect)
+			return fmt.Errorf("taint %s still present after patch", AgentNotReadyNodeTaintKey)
+		}
+	}
+
 	klog.InfoS("Removed taint(s) from local node", "node", nodeName)
 	return nil
 }
@@ -559,11 +695,6 @@ func tryRemoveNotReadyTaintUntilSucceed(interval time.Duration, removeFn func() 
 }
 
 func getMaxInflightMountCalls(maxInflightMountCallsOptIn bool, maxInflightMountCalls int64) int64 {
-	if maxInflightMountCallsOptIn && maxInflightMountCalls <= 0 {
-		klog.Errorf("Fatal error: maxInflightMountCalls must be greater than 0 when maxInflightMountCallsOptIn is true!")
-		klog.FlushAndExit(klog.ExitFlushTimeout, 1)
-	}
-
 	if !maxInflightMountCallsOptIn {
 		klog.V(4).Infof("MaxInflightMountCallsOptIn is false, setting maxInflightMountCalls to %d and inflight check is disabled", UnsetMaxInflightMountCounts)
 		return UnsetMaxInflightMountCounts
@@ -573,12 +704,18 @@ func getMaxInflightMountCalls(maxInflightMountCallsOptIn bool, maxInflightMountC
 	return maxInflightMountCalls
 }
 
-func getVolumeAttachLimit(volumeAttachLimitOptIn bool, volumeAttachLimit int64) int64 {
-	if volumeAttachLimitOptIn && volumeAttachLimit <= 0 {
-		klog.Errorf("Fatal error: volumeAttachLimit must be greater than 0 when volumeAttachLimitOptIn is true!")
-		klog.FlushAndExit(klog.ExitFlushTimeout, 1)
+func getCsiNodeEfsPluginContainerMemoryLimitInBytes() int64 {
+	if v := os.Getenv("CSI_NODE_MEMORY_LIMIT"); v != "" {
+		if memLimit, err := strconv.ParseInt(v, 10, 64); err == nil {
+			klog.V(4).Infof("Container memory limit from CSI_NODE_MEMORY_LIMIT: %d bytes", memLimit)
+			return memLimit
+		}
 	}
+	klog.Warning("CSI_NODE_MEMORY_LIMIT is not defined.")
+	return -1
+}
 
+func getVolumeAttachLimit(volumeAttachLimitOptIn bool, volumeAttachLimit int64) int64 {
 	if !volumeAttachLimitOptIn {
 		klog.V(4).Infof("VolumeAttachLimitOptIn is false, setting maxVolumesPerNode to zero so that container orchestrator will decide the value")
 		return 0

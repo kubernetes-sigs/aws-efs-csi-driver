@@ -11,18 +11,15 @@ import (
 	smithyhttp "github.com/aws/smithy-go/transport/http"
 )
 
-// Creates an import volume task using metadata from the specified disk image.
-//
 // This API action supports only single-volume VMs. To import multi-volume VMs,
 // use ImportImageinstead. To import a disk to a snapshot, use ImportSnapshot instead.
 //
-// This API action is not supported by the Command Line Interface (CLI). For
-// information about using the Amazon EC2 CLI, which is deprecated, see [Importing Disks to Amazon EBS]in the
-// Amazon EC2 CLI Reference PDF file.
+// Creates an import volume task using metadata from the specified disk image.
 //
 // For information about the import manifest referenced by this API action, see [VM Import Manifest].
 //
-// [Importing Disks to Amazon EBS]: https://awsdocs.s3.amazonaws.com/EC2/ec2-clt.pdf#importing-your-volumes-into-amazon-ebs
+// This API action is not supported by the Command Line Interface (CLI).
+//
 // [VM Import Manifest]: https://docs.aws.amazon.com/AWSEC2/latest/APIReference/manifest.html
 func (c *Client) ImportVolume(ctx context.Context, params *ImportVolumeInput, optFns ...func(*Options)) (*ImportVolumeOutput, error) {
 	if params == nil {
@@ -41,11 +38,6 @@ func (c *Client) ImportVolume(ctx context.Context, params *ImportVolumeInput, op
 
 type ImportVolumeInput struct {
 
-	// The Availability Zone for the resulting EBS volume.
-	//
-	// This member is required.
-	AvailabilityZone *string
-
 	// The disk image.
 	//
 	// This member is required.
@@ -55,6 +47,16 @@ type ImportVolumeInput struct {
 	//
 	// This member is required.
 	Volume *types.VolumeDetail
+
+	// The Availability Zone for the resulting EBS volume.
+	//
+	// Either AvailabilityZone or AvailabilityZoneId must be specified, but not both.
+	AvailabilityZone *string
+
+	// The ID of the Availability Zone for the resulting EBS volume.
+	//
+	// Either AvailabilityZone or AvailabilityZoneId must be specified, but not both.
+	AvailabilityZoneId *string
 
 	// A description of the volume.
 	Description *string
@@ -143,6 +145,9 @@ func (c *Client) addOperationImportVolumeMiddlewares(stack *middleware.Stack, op
 	if err = addUserAgentRetryMode(stack, options); err != nil {
 		return err
 	}
+	if err = addCredentialSource(stack, options); err != nil {
+		return err
+	}
 	if err = addOpImportVolumeValidationMiddleware(stack); err != nil {
 		return err
 	}
@@ -162,6 +167,36 @@ func (c *Client) addOperationImportVolumeMiddlewares(stack *middleware.Stack, op
 		return err
 	}
 	if err = addDisableHTTPSMiddleware(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptBeforeRetryLoop(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptAttempt(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptExecution(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptBeforeSerialization(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptAfterSerialization(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptBeforeSigning(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptAfterSigning(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptTransmit(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptBeforeDeserialization(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptAfterDeserialization(stack, options); err != nil {
 		return err
 	}
 	if err = addSpanInitializeStart(stack); err != nil {

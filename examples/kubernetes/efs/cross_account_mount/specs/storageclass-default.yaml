@@ -1,0 +1,20 @@
+# Cross-account dynamic provisioning — Mode C (per-node AZ selection, default).
+# Provisioner secret carries only `awsRoleArn` (no `crossaccount` key) and the
+# StorageClass omits `az`. The controller resolves all available mount targets
+# and each node selects the target in its own AZ at mount time; if none exists,
+# it falls back to any available target (with a warning logged).
+# Use when you want AZ resilience without DNS prerequisites.
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: efs-sc
+provisioner: efs.csi.aws.com
+parameters:
+  provisioningMode: efs-ap
+  fileSystemId: fs-1234abcd
+  directoryPerms: "700"
+  gidRangeStart: "1000" # optional
+  gidRangeEnd: "2000" # optional
+  basePath: "/dynamic_provisioning" # optional
+  csi.storage.k8s.io/provisioner-secret-name: x-account
+  csi.storage.k8s.io/provisioner-secret-namespace: kube-system

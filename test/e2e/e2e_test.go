@@ -40,6 +40,10 @@ var (
 	combinedMountTargetSubnetIds string
 	// Combined label selectors in the form of key1=value1,key2=value2.
 	combinedEfsDriverLabelSelectors string
+
+	// Upgrade test flags
+	upgradeNewImageTag  string
+	upgradeNewImageRepo string
 )
 
 func init() {
@@ -61,15 +65,23 @@ func init() {
 
 	flag.StringVar(&ClusterName, "cluster-name", "", "the cluster name")
 	flag.StringVar(&Region, "region", "us-west-2", "the region")
-	flag.StringVar(&FileSystemId, "file-system-id", "", "the ID of an existing file system")
+	flag.StringVar(&FileSystemId, "file-system-id", "", "the ID of an existing EFS file system")
 	flag.StringVar(&FileSystemName, "file-system-name", "", "name to use for provisioned EFS file system, only used if -file-system-id is not set")
 	flag.BoolVar(&CreateFileSystem, "create-file-system", true, "provision a file system for the test with name -file-system-name. Requires -cluster-name and -region. Either this should be true or file-system-id should be set to an existing file system, otherwise tests will fail")
+	flag.StringVar(&S3FilesFileSystemId, "s3files-file-system-id", "", "the ID of an existing S3Files file system")
+	flag.StringVar(&S3FilesFileSystemName, "s3files-file-system-name", "", "name to use for provisioned S3Files file system, only used if -s3files-file-system-id is not set")
+	flag.BoolVar(&CreateS3FilesFileSystem, "create-s3files-file-system", true, "provision an S3Files file system for the test with name -s3files-file-system-name. Requires -cluster-name and -region. Either this should be true or s3files-file-system-id should be set to an existing S3Files file system to run S3Files tests")
 	flag.BoolVar(&DeployDriver, "deploy-driver", false, "deploy a driver. Either this should be true or a driver should already be deployed, otherwise the tests will fail")
 	flag.StringVar(&combinedMountTargetSecurityGroupIds, "mount-target-security-group-ids", "", "comma-separated list of security group IDs to use for mount targets of provisioned EFS file system, only used if -file-system-id is not set")
 	flag.StringVar(&combinedMountTargetSubnetIds, "mount-target-subnet-ids", "", "comma-separated list of subnet IDs to use for mount targets of provisioned EFS file system, only used if -file-system-id is not set")
 	flag.StringVar(&EfsDriverNamespace, "efs-driver-namespace", "kube-system", "namespace of EFS driver pods")
 	flag.StringVar(&combinedEfsDriverLabelSelectors, "efs-driver-label-selectors", "app=efs-csi-node", "comma-separated label selectors for EFS driver pods, follows the form key1=value1,key2=value2")
-
+	flag.StringVar(&CrossAccountSecretName, "cross-account-secret-name", "", "name of a pre-existing K8s secret in kube-system with awsRoleArn for cross-account EFS access")
+	flag.StringVar(&CrossAccountAZ, "cross-account-az", "", "availability zone for cross-account mount target selection")
+	flag.StringVar(&CrossAccountMountTargetIP, "cross-account-mount-target-ip", "", "mount target IP for static PV tests; used when testing cross-account static provisioning without crossaccount=true")
+	flag.StringVar(&CrossAccountSecretCrossaccountMode, "cross-account-secret-crossaccount-mode", "", "value of the crossaccount field in the pre-configured cross-account secret ('true' or unset). When 'true', static PV tests use crossaccount=true (requires Route 53 AZ-specific zones); otherwise, tests use mounttargetip")
+	flag.StringVar(&upgradeNewImageTag, "upgrade-new-image-tag", "", "image tag of the new driver version for upgrade tests")
+	flag.StringVar(&upgradeNewImageRepo, "upgrade-new-image-repo", "", "image repository of the new driver version for upgrade tests (defaults to upgrade-old-image-repo)")
 	flag.Parse()
 
 	var err error
@@ -79,6 +91,16 @@ func init() {
 	}
 	MountTargetSecurityGroupIds = parseCommaSeparatedStrings(combinedMountTargetSecurityGroupIds)
 	MountTargetSubnetIds = parseCommaSeparatedStrings(combinedMountTargetSubnetIds)
+
+	validateFlags()
+}
+
+func validateFlags() {
+	if CrossAccountSecretName != "" && CrossAccountSecretCrossaccountMode != "true" && CrossAccountMountTargetIP == "" {
+		log.Fatalln("--cross-account-mount-target-ip is required when --cross-account-secret-name is set and " +
+			"--cross-account-secret-crossaccount-mode is not 'true', because static provisioning requires " +
+			"mounttargetip when cross-account DNS is not enabled")
+	}
 }
 
 func TestEFSCSI(t *testing.T) {

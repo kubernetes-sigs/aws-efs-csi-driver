@@ -15,12 +15,13 @@ limitations under the License.
 package driver
 
 import (
+	"sync"
+	"time"
+
 	"github.com/container-storage-interface/spec/lib/go/csi"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/klog/v2"
 	"k8s.io/kubernetes/pkg/volume/util/fs"
-	"sync"
-	"time"
 )
 
 type volMetrics struct {
@@ -93,7 +94,7 @@ func (v VolStatterImpl) removeFromCache(volId string) {
 }
 
 func (v VolStatterImpl) launchVolStatsRoutine(volId, volPath string, fsRateLimit int) {
-	fsId, _, _, err := parseVolumeId(volId)
+	fsId, _, _, _, err := parseVolumeId(volId)
 	if err != nil {
 		klog.Errorf("Failed to launch Stat routine: Could not parse File System ID from volume Id - %s.", volId)
 		return

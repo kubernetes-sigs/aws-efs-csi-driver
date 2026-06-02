@@ -155,9 +155,10 @@ HELM_ARGS=(upgrade --install "${DRIVER_NAME}"
 if [[ -f "$HELM_VALUES_FILE" ]]; then
   HELM_ARGS+=(-f "${HELM_VALUES_FILE}")
 fi
-eval "EXPANDED_HELM_EXTRA_FLAGS=$HELM_EXTRA_FLAGS"
+eval "EXPANDED_HELM_EXTRA_FLAGS=\"$HELM_EXTRA_FLAGS\""
 if [[ -n "$EXPANDED_HELM_EXTRA_FLAGS" ]]; then
-  HELM_ARGS+=("${EXPANDED_HELM_EXTRA_FLAGS}")
+  read -ra HELM_EXTRA_FLAGS_ARRAY <<< "${EXPANDED_HELM_EXTRA_FLAGS}"
+  HELM_ARGS+=("${HELM_EXTRA_FLAGS_ARRAY[@]}")
 fi
 set -x
 "${HELM_BIN}" "${HELM_ARGS[@]}"
@@ -183,9 +184,10 @@ HELM_ARGS=(upgrade --install "${DRIVER_NAME}"
 if [[ -f "$HELM_VALUES_FILE" ]]; then
   HELM_ARGS+=(-f "${HELM_VALUES_FILE}")
 fi
-eval "EXPANDED_HELM_EXTRA_FLAGS=$HELM_EXTRA_FLAGS"
+eval "EXPANDED_HELM_EXTRA_FLAGS=\"$HELM_EXTRA_FLAGS\""
 if [[ -n "$EXPANDED_HELM_EXTRA_FLAGS" ]]; then
-  HELM_ARGS+=("${EXPANDED_HELM_EXTRA_FLAGS}")
+  read -ra HELM_EXTRA_FLAGS_ARRAY <<< "${EXPANDED_HELM_EXTRA_FLAGS}"
+  HELM_ARGS+=("${HELM_EXTRA_FLAGS_ARRAY[@]}")
 fi
 set -x
 "${HELM_BIN}" "${HELM_ARGS[@]}"
@@ -201,10 +203,11 @@ fi
 loudecho "Driver deployment complete, time used: $secondUsed seconds"
 
 loudecho "Testing focus ${GINKGO_FOCUS}"
-eval "EXPANDED_TEST_EXTRA_FLAGS=$TEST_EXTRA_FLAGS"
+eval "EXPANDED_TEST_EXTRA_FLAGS=\"$TEST_EXTRA_FLAGS\""
 set -x
 set +e
-${GINKGO_BIN} -p -nodes="${GINKGO_NODES}" -v --focus="${GINKGO_FOCUS}" --skip="${GINKGO_SKIP}" --junit-report=junit.xml "${TEST_PATH}" -- -kubeconfig="${KUBECONFIG}" -report-dir="${ARTIFACTS}" -gce-zone="${FIRST_ZONE}" "${EXPANDED_TEST_EXTRA_FLAGS}"
+read -ra EXTRA_FLAGS_ARRAY <<< "${EXPANDED_TEST_EXTRA_FLAGS}"
+${GINKGO_BIN} -p -nodes="${GINKGO_NODES}" -v --focus="${GINKGO_FOCUS}" --skip="${GINKGO_SKIP}" --junit-report=junit.xml "${TEST_PATH}" -- -kubeconfig="${KUBECONFIG}" -report-dir="${ARTIFACTS}" -gce-zone="${FIRST_ZONE}" "${EXTRA_FLAGS_ARRAY[@]}"
 TEST_PASSED=$?
 set -e
 set +x

@@ -1,0 +1,23 @@
+# Cross-account static provisioning — explicit mount target IP.
+# Use when you want to pin the PV to a specific mount target (for example a
+# single-AZ workload, or when you cannot meet the efs-utils crossaccount DNS
+# prerequisites). The node honors `mounttargetip` directly. The PV does not
+# accept an `az` key — to target a particular AZ, supply that AZ's mount
+# target IP here.
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: efs-pv
+spec:
+  capacity:
+    storage: 5Gi
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: efs-sc
+  persistentVolumeReclaimPolicy: Retain
+  csi:
+    driver: efs.csi.aws.com
+    volumeHandle: efs:[Filesystem ID]
+    volumeAttributes:
+      mounttargetip: "[MOUNT TARGET IP ADDRESS]"

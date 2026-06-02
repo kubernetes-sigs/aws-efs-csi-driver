@@ -12,15 +12,20 @@ metadata:
     {{- end }}
 spec:
   replicas: {{ .Values.controller.replicaCount }}
+  {{- if or (kindIs "float64" .Values.controller.revisionHistoryLimit) (kindIs "int64" .Values.controller.revisionHistoryLimit) }}
+  revisionHistoryLimit: {{ .Values.controller.revisionHistoryLimit }}
+  {{- end }}
+  {{- if .Values.controller.rollingUpdate }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      {{- toYaml .Values.controller.rollingUpdate | nindent 6 }}
+  {{- end }}
   selector:
     matchLabels:
       app: {{ .Values.controller.name }}
       app.kubernetes.io/name: {{ include "aws-efs-csi-driver.name" . }}
       app.kubernetes.io/instance: {{ .Release.Name }}
-  {{- with .Values.controller.updateStrategy }}
-  strategy:
-    {{ toYaml . | nindent 4 }}
-  {{- end }}
   template:
     metadata:
       labels:
@@ -79,6 +84,7 @@ spec:
             {{- end }}
             - --v={{ .Values.controller.logLevel }}
             - --delete-access-point-root-dir={{ hasKey .Values.controller "deleteAccessPointRootDir" | ternary .Values.controller.deleteAccessPointRootDir false }}
+            - --debug-logs={{ .Values.debugLogs }}
           env:
             - name: CSI_ENDPOINT
               value: unix:///var/lib/csi/sockets/pluginproxy/csi.sock
@@ -188,7 +194,11 @@ spec:
           {{- end }}
       volumes:
         - name: socket-dir
+          {{- if .Values.controller.socketDirVolume }}
+          {{- toYaml .Values.controller.socketDirVolume | nindent 10 }}
+          {{- else }}
           emptyDir: {}
+          {{- end }}
         {{- with .Values.controller.volumes }}
         {{- toYaml . | nindent 8 }}
         {{- end }}

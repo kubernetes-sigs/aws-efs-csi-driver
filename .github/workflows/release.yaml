@@ -1,32 +1,57 @@
 name: Release
 on:
-  push:
-    # Sequence of patterns matched against refs/tags
-    tags:
-      - "v*" # Push events to matching v*, i.e. v1.0, v20.15.10
+  pull_request_target:
+    types: 
+      - closed
+    branches:
+      - release-*
 
 permissions:
   contents: write # Create releases
 
 jobs:
-  build:
+  release:
+    # will only be triggered if PR title begins with [POST-RELEASE v*.*.*]
     name: Release
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    if: |
+      github.event.pull_request.merged == true && 
+      startsWith(github.event.pull_request.title, '[POST-RELEASE')
     steps:
       - name: Checkout code
-        uses: actions/checkout@v1
-      - name: Create Release
-        id: create-release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ github.ref }}
-          release_name: ${{ github.ref }}
-          body: |
-            AWS EFS CSI Driver
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-            ## CHANGELOG
-            See [CHANGELOG](https://github.com/kubernetes-sigs/aws-efs-csi-driver/blob/master/CHANGELOG-2.x.md) for full list of changes
-          draft: false
-          prerelease: false
+      - name: Extract version
+        id: extract-version
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          VERSION=$(echo "$PR_TITLE" | grep -oE '^\[POST-RELEASE v[0-9]+\.[0-9]+\.[0-9]+\]' | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+')
+          
+          if [ -z "$VERSION" ]; then
+            echo "Error: PR title must start with [POST-RELEASE vx.x.x]"
+            exit 1
+          fi
+          
+          echo "Extracted VERSION: $VERSION"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          
+      - name: Create Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          tag="${{ steps.extract-version.outputs.version }}"
+          major="${tag#v}"
+          major="${major%%.*}"
+          changelog="CHANGELOG-${major}.x.md"
+          
+          gh release create "$tag" \
+            --target "${{ github.event.pull_request.merge_commit_sha }}" \
+            --title "$tag" --notes-file - <<EOF
+          AWS EFS CSI Driver
+          
+          ## CHANGELOG
+          See [CHANGELOG](https://github.com/kubernetes-sigs/aws-efs-csi-driver/blob/master/${changelog}) for full list of changes
+          EOF

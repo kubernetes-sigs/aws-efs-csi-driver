@@ -16,14 +16,14 @@ import (
 // be the default policy or an explicit policy set or updated using this API
 // operation. EFS file system policies have a 20,000 character limit. When an
 // explicit policy is set, it overrides the default policy. For more information
-// about the default file system policy, see [Default EFS File System Policy].
+// about the default file system policy, see [Default EFS file system policy].
 //
 // EFS file system policies have a 20,000 character limit.
 //
 // This operation requires permissions for the
 // elasticfilesystem:PutFileSystemPolicy action.
 //
-// [Default EFS File System Policy]: https://docs.aws.amazon.com/efs/latest/ug/iam-access-control-nfs-efs.html#default-filesystempolicy
+// [Default EFS file system policy]: https://docs.aws.amazon.com/efs/latest/ug/iam-access-control-nfs-efs.html#default-filesystempolicy
 func (c *Client) PutFileSystemPolicy(ctx context.Context, params *PutFileSystemPolicyInput, optFns ...func(*Options)) (*PutFileSystemPolicyOutput, error) {
 	if params == nil {
 		params = &PutFileSystemPolicyInput{}
@@ -49,9 +49,9 @@ type PutFileSystemPolicyInput struct {
 
 	// The FileSystemPolicy that you're creating. Accepts a JSON formatted policy
 	// definition. EFS file system policies have a 20,000 character limit. To find out
-	// more about the elements that make up a file system policy, see [EFS Resource-based Policies].
+	// more about the elements that make up a file system policy, see [Resource-based policies within Amazon EFS].
 	//
-	// [EFS Resource-based Policies]: https://docs.aws.amazon.com/efs/latest/ug/access-control-overview.html#access-control-manage-access-intro-resource-policies
+	// [Resource-based policies within Amazon EFS]: https://docs.aws.amazon.com/efs/latest/ug/security_iam_service-with-iam.html#security_iam_service-with-iam-resource-based-policies
 	//
 	// This member is required.
 	Policy *string
@@ -126,6 +126,9 @@ func (c *Client) addOperationPutFileSystemPolicyMiddlewares(stack *middleware.St
 	if err = addRecordResponseTiming(stack); err != nil {
 		return err
 	}
+	if err = addSpanRetryLoop(stack, options); err != nil {
+		return err
+	}
 	if err = addClientUserAgent(stack, options); err != nil {
 		return err
 	}
@@ -142,6 +145,9 @@ func (c *Client) addOperationPutFileSystemPolicyMiddlewares(stack *middleware.St
 		return err
 	}
 	if err = addUserAgentRetryMode(stack, options); err != nil {
+		return err
+	}
+	if err = addCredentialSource(stack, options); err != nil {
 		return err
 	}
 	if err = addOpPutFileSystemPolicyValidationMiddleware(stack); err != nil {
@@ -163,6 +169,48 @@ func (c *Client) addOperationPutFileSystemPolicyMiddlewares(stack *middleware.St
 		return err
 	}
 	if err = addDisableHTTPSMiddleware(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptBeforeRetryLoop(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptAttempt(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptExecution(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptBeforeSerialization(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptAfterSerialization(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptBeforeSigning(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptAfterSigning(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptTransmit(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptBeforeDeserialization(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptAfterDeserialization(stack, options); err != nil {
+		return err
+	}
+	if err = addSpanInitializeStart(stack); err != nil {
+		return err
+	}
+	if err = addSpanInitializeEnd(stack); err != nil {
+		return err
+	}
+	if err = addSpanBuildRequestStart(stack); err != nil {
+		return err
+	}
+	if err = addSpanBuildRequestEnd(stack); err != nil {
 		return err
 	}
 	return nil

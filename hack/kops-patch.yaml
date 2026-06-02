@@ -1,30 +1,11 @@
 spec:
-  additionalPolicies:
-    node: |
-      [
-        {
-          "Effect": "Allow",
-          "Action": [
-            "elasticfilesystem:CreateAccessPoint",
-            "elasticfilesystem:DeleteAccessPoint",
-            "elasticfilesystem:DescribeMountTargets",
-            "ec2:DescribeAvailabilityZones",
-            "elasticfilesystem:DescribeMountTargets",
-            "elasticfilesystem:DescribeAccessPoints",
-            "elasticfilesystem:DescribeFileSystems",
-            "elasticfilesystem:ClientMount",
-            "elasticfilesystem:ClientWrite",
-            "elasticfilesystem:CreateTags",
-            "elasticfilesystem:CreateMountTarget",
-            "elasticfilesystem:DeleteMountTarget",
-            "elasticfilesystem:DeleteTags",
-            "elasticfilesystem:TagResource",
-            "elasticfilesystem:UntagResource"
-          ],
-          "Resource": "*"
-        }
-      ]
-
+  externalPolicies:
+    node:
+      - arn:aws:iam::aws:policy/service-role/AmazonS3FilesCSIDriverPolicy
+      - arn:aws:iam::aws:policy/service-role/AmazonEFSCSIDriverPolicy
+      - arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess
+      - arn:aws:iam::aws:policy/AmazonElasticFileSystemsUtils
+      - arn:aws:iam::aws:policy/AmazonS3FilesClientFullAccess
   cloudConfig:
     awsEBSCSIDriver:
       managed: true

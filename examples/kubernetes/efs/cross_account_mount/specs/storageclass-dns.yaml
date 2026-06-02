@@ -1,0 +1,21 @@
+# Cross-account dynamic provisioning — Mode A (DNS-based).
+# Provisioner secret carries `crossaccount=true`, so the controller writes
+# `crossaccount: "true"` into the PV's volumeAttributes and does NOT bake a
+# mount target IP. Each node uses efs-utils DNS resolution to mount the
+# target in its own AZ at NodePublishVolume time. Requires the efs-utils
+# crossaccount prerequisites on every node:
+# https://github.com/aws/efs-utils?tab=readme-ov-file#crossaccount-option-prerequisites
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: efs-sc
+provisioner: efs.csi.aws.com
+parameters:
+  provisioningMode: efs-ap
+  fileSystemId: fs-1234abcd
+  directoryPerms: "700"
+  gidRangeStart: "1000" # optional
+  gidRangeEnd: "2000" # optional
+  basePath: "/dynamic_provisioning" # optional
+  csi.storage.k8s.io/provisioner-secret-name: x-account
+  csi.storage.k8s.io/provisioner-secret-namespace: kube-system

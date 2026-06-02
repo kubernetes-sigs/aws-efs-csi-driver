@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/aws/smithy-go"
@@ -11,24 +12,33 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/efs"
 	"github.com/aws/aws-sdk-go-v2/service/efs/types"
+	"github.com/aws/aws-sdk-go-v2/service/s3files"
+	s3filestypes "github.com/aws/aws-sdk-go-v2/service/s3files/types"
 	"github.com/golang/mock/gomock"
 	"github.com/kubernetes-sigs/aws-efs-csi-driver/pkg/cloud/mocks"
+	"github.com/kubernetes-sigs/aws-efs-csi-driver/pkg/util"
 )
+
+func setupTest(t *testing.T) (*gomock.Controller, *cloud, *mocks.MockEfs, *mocks.MockS3Files) {
+	mockctl := gomock.NewController(t)
+	mockEfs := mocks.NewMockEfs(mockctl)
+	mockS3Files := mocks.NewMockS3Files(mockctl)
+	c := &cloud{
+		efs:     mockEfs,
+		s3files: mockS3Files,
+	}
+	return mockctl, c, mockEfs, mockS3Files
+}
 
 type errtyp struct {
 	code    string
 	message string
 }
 
-var (
-	ErrCodeAccessPointNotFound = "AccessPointNotFound"
-	ErrCodeFileSystemNotFound  = "FileSystemNotFound"
-)
-
 func TestCreateAccessPoint(t *testing.T) {
 	var (
-		arn                  = "arn:aws:elasticfilesystem:us-east-1:1234567890:access-point/fsap-abcd1234xyz987"
-		accessPointId        = "fsap-abcd1234xyz987"
+		arn                  = "arn:aws:elasticfilesystem:us-east-1:1234567890:access-point/fsap-abcd1234"
+		accessPointId        = "fsap-abcd1234"
 		fsId                 = "fs-abcd1234"
 		uid            int64 = 1001
 		gid            int64 = 1001
@@ -44,11 +54,7 @@ func TestCreateAccessPoint(t *testing.T) {
 		{
 			name: "Success",
 			testFunc: func(t *testing.T) {
-				mockCtl := gomock.NewController(t)
-				mockEfs := mocks.NewMockEfs(mockCtl)
-				c := &cloud{
-					efs: mockEfs,
-				}
+				mockCtl, c, mockEfs, _ := setupTest(t)
 
 				tags := make(map[string]string)
 				tags["cluster"] = "efs"
@@ -83,7 +89,7 @@ func TestCreateAccessPoint(t *testing.T) {
 
 				ctx := context.Background()
 				mockEfs.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(output, nil)
-				res, err := c.CreateAccessPoint(ctx, clientToken, req)
+				res, err := c.CreateAccessPoint(ctx, clientToken, req, util.FileSystemTypeEFS)
 
 				if err != nil {
 					t.Fatalf("CreateAccessPointFailed is failed: %v", err)
@@ -106,9 +112,7 @@ func TestCreateAccessPoint(t *testing.T) {
 		{
 			name: "Fail",
 			testFunc: func(t *testing.T) {
-				mockCtl := gomock.NewController(t)
-				mockEfs := mocks.NewMockEfs(mockCtl)
-				c := &cloud{efs: mockEfs}
+				mockCtl, c, mockEfs, _ := setupTest(t)
 
 				req := &AccessPointOptions{
 					FileSystemId:   fsId,
@@ -120,7 +124,7 @@ func TestCreateAccessPoint(t *testing.T) {
 
 				ctx := context.Background()
 				mockEfs.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(nil, errors.New("CreateAccessPoint failed"))
-				_, err := c.CreateAccessPoint(ctx, clientToken, req)
+				_, err := c.CreateAccessPoint(ctx, clientToken, req, util.FileSystemTypeEFS)
 				if err == nil {
 					t.Fatalf("CreateAccessPoint did not fail")
 				}
@@ -130,9 +134,7 @@ func TestCreateAccessPoint(t *testing.T) {
 		{
 			name: "Fail: Access Denied",
 			testFunc: func(t *testing.T) {
-				mockCtl := gomock.NewController(t)
-				mockEfs := mocks.NewMockEfs(mockCtl)
-				c := &cloud{efs: mockEfs}
+				mockCtl, c, mockEfs, _ := setupTest(t)
 
 				req := &AccessPointOptions{
 					FileSystemId:   fsId,
@@ -148,7 +150,7 @@ func TestCreateAccessPoint(t *testing.T) {
 						Code:    AccessDeniedException,
 						Message: "Access Denied",
 					})
-				_, err := c.CreateAccessPoint(ctx, clientToken, req)
+				_, err := c.CreateAccessPoint(ctx, clientToken, req, util.FileSystemTypeEFS)
 				if err == nil {
 					t.Fatalf("CreateAccessPoint did not fail")
 				}
@@ -161,9 +163,7 @@ func TestCreateAccessPoint(t *testing.T) {
 		{
 			name: "Error: Access Point already exists",
 			testFunc: func(t *testing.T) {
-				mockCtl := gomock.NewController(t)
-				mockEfs := mocks.NewMockEfs(mockCtl)
-				c := &cloud{efs: mockEfs}
+				mockCtl, c, mockEfs, _ := setupTest(t)
 
 				req := &AccessPointOptions{
 					FileSystemId:   fsId,
@@ -180,7 +180,7 @@ func TestCreateAccessPoint(t *testing.T) {
 						Message: "Access point already exists",
 					})
 
-				_, err := c.CreateAccessPoint(ctx, clientToken, req)
+				_, err := c.CreateAccessPoint(ctx, clientToken, req, util.FileSystemTypeEFS)
 				if err == nil {
 					t.Fatalf("CreateAccessPoint did not return error")
 				}
@@ -199,7 +199,7 @@ func TestCreateAccessPoint(t *testing.T) {
 
 func TestDeleteAccessPoint(t *testing.T) {
 	var (
-		accessPointId = "fsap-abcd1234xyz987"
+		accessPointId = "fsap-abcd1234"
 	)
 	testCases := []struct {
 		name     string
@@ -208,14 +208,12 @@ func TestDeleteAccessPoint(t *testing.T) {
 		{
 			name: "Success",
 			testFunc: func(t *testing.T) {
-				mockctl := gomock.NewController(t)
-				mockEfs := mocks.NewMockEfs(mockctl)
-				c := &cloud{efs: mockEfs}
+				mockctl, c, mockEfs, _ := setupTest(t)
 
 				output := &efs.DeleteAccessPointOutput{}
 				ctx := context.Background()
 				mockEfs.EXPECT().DeleteAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(output, nil)
-				err := c.DeleteAccessPoint(ctx, accessPointId)
+				err := c.DeleteAccessPoint(ctx, accessPointId, util.FileSystemTypeEFS)
 				if err != nil {
 					t.Fatalf("Delete Access Point failed: %v", err)
 				}
@@ -226,15 +224,13 @@ func TestDeleteAccessPoint(t *testing.T) {
 		{
 			name: "Fail: Access Point Not Found",
 			testFunc: func(t *testing.T) {
-				mockctl := gomock.NewController(t)
-				mockEfs := mocks.NewMockEfs(mockctl)
-				c := &cloud{efs: mockEfs}
+				mockctl, c, mockEfs, _ := setupTest(t)
 				ctx := context.Background()
 				mockEfs.EXPECT().DeleteAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(nil,
 					&types.AccessPointNotFound{
 						Message: aws.String("Access Point not found"),
 					})
-				err := c.DeleteAccessPoint(ctx, accessPointId)
+				err := c.DeleteAccessPoint(ctx, accessPointId, util.FileSystemTypeEFS)
 				if err == nil {
 					t.Fatalf("DeleteAccessPoint did not fail")
 				}
@@ -247,16 +243,14 @@ func TestDeleteAccessPoint(t *testing.T) {
 		{
 			name: "Fail: Access Denied",
 			testFunc: func(t *testing.T) {
-				mockctl := gomock.NewController(t)
-				mockEfs := mocks.NewMockEfs(mockctl)
-				c := &cloud{efs: mockEfs}
+				mockctl, c, mockEfs, _ := setupTest(t)
 				ctx := context.Background()
 				mockEfs.EXPECT().DeleteAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(nil,
 					&smithy.GenericAPIError{
 						Code:    AccessDeniedException,
 						Message: "Access Denied",
 					})
-				err := c.DeleteAccessPoint(ctx, accessPointId)
+				err := c.DeleteAccessPoint(ctx, accessPointId, util.FileSystemTypeEFS)
 				if err == nil {
 					t.Fatalf("DeleteAccessPoint did not fail")
 				}
@@ -269,13 +263,11 @@ func TestDeleteAccessPoint(t *testing.T) {
 		{
 			name: "Fail: Other",
 			testFunc: func(t *testing.T) {
-				mockctl := gomock.NewController(t)
-				mockEfs := mocks.NewMockEfs(mockctl)
-				c := &cloud{efs: mockEfs}
+				mockctl, c, mockEfs, _ := setupTest(t)
 
 				ctx := context.Background()
 				mockEfs.EXPECT().DeleteAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(nil, errors.New("DeleteAccessPoint failed"))
-				err := c.DeleteAccessPoint(ctx, accessPointId)
+				err := c.DeleteAccessPoint(ctx, accessPointId, util.FileSystemTypeEFS)
 				if err == nil {
 					t.Fatalf("DeleteAccessPoint did not fail")
 				}
@@ -290,8 +282,8 @@ func TestDeleteAccessPoint(t *testing.T) {
 
 func TestDescribeAccessPoint(t *testing.T) {
 	var (
-		arn                  = "arn:aws:elasticfilesystem:us-east-1:1234567890:access-point/fsap-abcd1234xyz987"
-		accessPointId        = "fsap-abcd1234xyz987"
+		arn                  = "arn:aws:elasticfilesystem:us-east-1:1234567890:access-point/fsap-abcd1234"
+		accessPointId        = "fsap-abcd1234"
 		fsId                 = "fs-abcd1234"
 		uid            int64 = 1001
 		gid            int64 = 1001
@@ -305,9 +297,7 @@ func TestDescribeAccessPoint(t *testing.T) {
 		{
 			name: "Success",
 			testFunc: func(t *testing.T) {
-				mockctl := gomock.NewController(t)
-				mockEfs := mocks.NewMockEfs(mockctl)
-				c := &cloud{efs: mockEfs}
+				mockctl, c, mockEfs, _ := setupTest(t)
 
 				output := &efs.DescribeAccessPointsOutput{
 					AccessPoints: []types.AccessPointDescription{
@@ -335,7 +325,7 @@ func TestDescribeAccessPoint(t *testing.T) {
 				}
 				ctx := context.Background()
 				mockEfs.EXPECT().DescribeAccessPoints(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(output, nil)
-				res, err := c.DescribeAccessPoint(ctx, accessPointId)
+				res, err := c.DescribeAccessPoint(ctx, accessPointId, fsId, util.FileSystemTypeEFS)
 				if err != nil {
 					t.Fatalf("Describe Access Point failed: %v", err)
 				}
@@ -357,9 +347,7 @@ func TestDescribeAccessPoint(t *testing.T) {
 		{
 			name: "Success - nil Posix user",
 			testFunc: func(t *testing.T) {
-				mockctl := gomock.NewController(t)
-				mockEfs := mocks.NewMockEfs(mockctl)
-				c := &cloud{efs: mockEfs}
+				mockctl, c, mockEfs, _ := setupTest(t)
 
 				output := &efs.DescribeAccessPointsOutput{
 					AccessPoints: []types.AccessPointDescription{
@@ -383,7 +371,7 @@ func TestDescribeAccessPoint(t *testing.T) {
 				}
 				ctx := context.Background()
 				mockEfs.EXPECT().DescribeAccessPoints(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(output, nil)
-				res, err := c.DescribeAccessPoint(ctx, accessPointId)
+				res, err := c.DescribeAccessPoint(ctx, accessPointId, fsId, util.FileSystemTypeEFS)
 				if err != nil {
 					t.Fatalf("Describe Access Point failed: %v", err)
 				}
@@ -405,9 +393,7 @@ func TestDescribeAccessPoint(t *testing.T) {
 		{
 			name: "Fail: DescribeAccessPoint result has 0 access points",
 			testFunc: func(t *testing.T) {
-				mockctl := gomock.NewController(t)
-				mockEfs := mocks.NewMockEfs(mockctl)
-				c := &cloud{efs: mockEfs}
+				mockctl, c, mockEfs, _ := setupTest(t)
 
 				output := &efs.DescribeAccessPointsOutput{
 					AccessPoints: []types.AccessPointDescription{},
@@ -415,7 +401,7 @@ func TestDescribeAccessPoint(t *testing.T) {
 				}
 				ctx := context.Background()
 				mockEfs.EXPECT().DescribeAccessPoints(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(output, nil)
-				_, err := c.DescribeAccessPoint(ctx, accessPointId)
+				_, err := c.DescribeAccessPoint(ctx, accessPointId, fsId, util.FileSystemTypeEFS)
 				if err == nil {
 					t.Fatalf("DescribeAccessPoint did not fail")
 				}
@@ -425,9 +411,7 @@ func TestDescribeAccessPoint(t *testing.T) {
 		{
 			name: "Fail: DescribeAccessPoint result has more than 1 access points",
 			testFunc: func(t *testing.T) {
-				mockctl := gomock.NewController(t)
-				mockEfs := mocks.NewMockEfs(mockctl)
-				c := &cloud{efs: mockEfs}
+				mockctl, c, mockEfs, _ := setupTest(t)
 
 				output := &efs.DescribeAccessPointsOutput{
 					AccessPoints: []types.AccessPointDescription{
@@ -474,7 +458,7 @@ func TestDescribeAccessPoint(t *testing.T) {
 				}
 				ctx := context.Background()
 				mockEfs.EXPECT().DescribeAccessPoints(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(output, nil)
-				_, err := c.DescribeAccessPoint(ctx, accessPointId)
+				_, err := c.DescribeAccessPoint(ctx, accessPointId, fsId, util.FileSystemTypeEFS)
 				if err == nil {
 					t.Fatalf("DescribeAccessPoint did not fail")
 				}
@@ -484,16 +468,14 @@ func TestDescribeAccessPoint(t *testing.T) {
 		{
 			name: "Fail: Access Point Not Found",
 			testFunc: func(t *testing.T) {
-				mockctl := gomock.NewController(t)
-				mockEfs := mocks.NewMockEfs(mockctl)
-				c := &cloud{efs: mockEfs}
+				mockctl, c, mockEfs, _ := setupTest(t)
 
 				ctx := context.Background()
 				mockEfs.EXPECT().DescribeAccessPoints(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(nil,
 					&types.AccessPointNotFound{
 						Message: aws.String("Access Point not found"),
 					})
-				_, err := c.DescribeAccessPoint(ctx, accessPointId)
+				_, err := c.DescribeAccessPoint(ctx, accessPointId, fsId, util.FileSystemTypeEFS)
 				if err == nil {
 					t.Fatalf("DescribeAccessPoint did not fail")
 				}
@@ -506,9 +488,7 @@ func TestDescribeAccessPoint(t *testing.T) {
 		{
 			name: "Fail: Access Denied",
 			testFunc: func(t *testing.T) {
-				mockctl := gomock.NewController(t)
-				mockEfs := mocks.NewMockEfs(mockctl)
-				c := &cloud{efs: mockEfs}
+				mockctl, c, mockEfs, _ := setupTest(t)
 
 				ctx := context.Background()
 				mockEfs.EXPECT().DescribeAccessPoints(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(nil,
@@ -516,7 +496,7 @@ func TestDescribeAccessPoint(t *testing.T) {
 						Code:    AccessDeniedException,
 						Message: "Access Denied",
 					})
-				_, err := c.DescribeAccessPoint(ctx, accessPointId)
+				_, err := c.DescribeAccessPoint(ctx, accessPointId, fsId, util.FileSystemTypeEFS)
 				if err == nil {
 					t.Fatalf("DescribeAccessPoint did not fail")
 				}
@@ -529,13 +509,11 @@ func TestDescribeAccessPoint(t *testing.T) {
 		{
 			name: "Fail: Other",
 			testFunc: func(t *testing.T) {
-				mockctl := gomock.NewController(t)
-				mockEfs := mocks.NewMockEfs(mockctl)
-				c := &cloud{efs: mockEfs}
+				mockctl, c, mockEfs, _ := setupTest(t)
 
 				ctx := context.Background()
 				mockEfs.EXPECT().DescribeAccessPoints(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(nil, errors.New("DescribeAccessPoint failed"))
-				_, err := c.DescribeAccessPoint(ctx, accessPointId)
+				_, err := c.DescribeAccessPoint(ctx, accessPointId, fsId, util.FileSystemTypeEFS)
 				if err == nil {
 					t.Fatalf("DescribeAccessPoint did not fail")
 				}
@@ -564,9 +542,7 @@ func TestFindAccessPointByClientToken(t *testing.T) {
 		{
 			name: "Success - clientToken found",
 			testFunc: func(t *testing.T) {
-				mockctl := gomock.NewController(t)
-				mockEfs := mocks.NewMockEfs(mockctl)
-				c := &cloud{efs: mockEfs}
+				mockctl, c, mockEfs, _ := setupTest(t)
 
 				output := &efs.DescribeAccessPointsOutput{
 					AccessPoints: []types.AccessPointDescription{
@@ -588,7 +564,7 @@ func TestFindAccessPointByClientToken(t *testing.T) {
 
 				ctx := context.Background()
 				mockEfs.EXPECT().DescribeAccessPoints(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(output, nil)
-				res, err := c.FindAccessPointByClientToken(ctx, clientToken, fsId)
+				res, err := c.FindAccessPointByClientToken(ctx, clientToken, fsId, util.FileSystemTypeEFS)
 				if err != nil {
 					t.Fatalf("Find Access Point by Client Token failed: %v", err)
 				}
@@ -603,9 +579,7 @@ func TestFindAccessPointByClientToken(t *testing.T) {
 		{
 			name: "Success - nil result if clientToken is not found",
 			testFunc: func(t *testing.T) {
-				mockctl := gomock.NewController(t)
-				mockEfs := mocks.NewMockEfs(mockctl)
-				c := &cloud{efs: mockEfs}
+				mockctl, c, mockEfs, _ := setupTest(t)
 
 				output := &efs.DescribeAccessPointsOutput{
 					AccessPoints: []types.AccessPointDescription{
@@ -627,7 +601,7 @@ func TestFindAccessPointByClientToken(t *testing.T) {
 
 				ctx := context.Background()
 				mockEfs.EXPECT().DescribeAccessPoints(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(output, nil)
-				res, err := c.FindAccessPointByClientToken(ctx, clientToken, fsId)
+				res, err := c.FindAccessPointByClientToken(ctx, clientToken, fsId, util.FileSystemTypeEFS)
 				if err != nil {
 					t.Fatalf("Find Access Point by Client Token failed: %v", err)
 				}
@@ -642,18 +616,145 @@ func TestFindAccessPointByClientToken(t *testing.T) {
 		{
 			name: "Fail - Access Denied",
 			testFunc: func(t *testing.T) {
-				mockctl := gomock.NewController(t)
-				mockEfs := mocks.NewMockEfs(mockctl)
-				c := &cloud{efs: mockEfs}
+				mockctl, c, mockEfs, _ := setupTest(t)
 				ctx := context.Background()
 				mockEfs.EXPECT().DescribeAccessPoints(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(nil,
 					&smithy.GenericAPIError{
 						Code:    AccessDeniedException,
 						Message: "Access Denied",
 					})
-				_, err := c.FindAccessPointByClientToken(ctx, clientToken, fsId)
+				_, err := c.FindAccessPointByClientToken(ctx, clientToken, fsId, util.FileSystemTypeEFS)
 				if err == nil {
 					t.Fatalf("Find Access Point by Client Token should have failed: %v", err)
+				}
+
+				mockctl.Finish()
+			},
+		},
+		{
+			name: "Success - clientToken found on second page",
+			testFunc: func(t *testing.T) {
+				mockctl, c, mockEfs, _ := setupTest(t)
+
+				nextToken := "page2"
+				page1 := &efs.DescribeAccessPointsOutput{
+					AccessPoints: []types.AccessPointDescription{
+						{
+							AccessPointId: aws.String("ap-other"),
+							FileSystemId:  aws.String(fsId),
+							ClientToken:   aws.String("differentToken"),
+							RootDirectory: &types.RootDirectory{Path: aws.String("/other")},
+							PosixUser:     &types.PosixUser{Gid: aws.Int64(Gid), Uid: aws.Int64(Uid)},
+						},
+					},
+					NextToken: &nextToken,
+				}
+				page2 := &efs.DescribeAccessPointsOutput{
+					AccessPoints: []types.AccessPointDescription{
+						{
+							AccessPointId: aws.String(accessPointId),
+							FileSystemId:  aws.String(fsId),
+							ClientToken:   aws.String(clientToken),
+							RootDirectory: &types.RootDirectory{Path: aws.String(path)},
+							PosixUser:     &types.PosixUser{Gid: aws.Int64(Gid), Uid: aws.Int64(Uid)},
+						},
+					},
+					NextToken: nil,
+				}
+
+				ctx := context.Background()
+				gomock.InOrder(
+					mockEfs.EXPECT().DescribeAccessPoints(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(page1, nil),
+					mockEfs.EXPECT().DescribeAccessPoints(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(page2, nil),
+				)
+				res, err := c.FindAccessPointByClientToken(ctx, clientToken, fsId, util.FileSystemTypeEFS)
+				if err != nil {
+					t.Fatalf("FindAccessPointByClientToken failed: %v", err)
+				}
+				if res == nil {
+					t.Fatal("Result is nil")
+				}
+				if res.AccessPointId != accessPointId {
+					t.Fatalf("AccessPointId mismatched. Expected: %v, Actual: %v", accessPointId, res.AccessPointId)
+				}
+
+				mockctl.Finish()
+			},
+		},
+		{
+			name: "Success - nil result if clientToken not found across multiple pages",
+			testFunc: func(t *testing.T) {
+				mockctl, c, mockEfs, _ := setupTest(t)
+
+				nextToken := "page2"
+				page1 := &efs.DescribeAccessPointsOutput{
+					AccessPoints: []types.AccessPointDescription{
+						{
+							AccessPointId: aws.String("ap-other1"),
+							FileSystemId:  aws.String(fsId),
+							ClientToken:   aws.String("otherToken1"),
+							RootDirectory: &types.RootDirectory{Path: aws.String("/other1")},
+							PosixUser:     &types.PosixUser{Gid: aws.Int64(Gid), Uid: aws.Int64(Uid)},
+						},
+					},
+					NextToken: &nextToken,
+				}
+				page2 := &efs.DescribeAccessPointsOutput{
+					AccessPoints: []types.AccessPointDescription{
+						{
+							AccessPointId: aws.String("ap-other2"),
+							FileSystemId:  aws.String(fsId),
+							ClientToken:   aws.String("otherToken2"),
+							RootDirectory: &types.RootDirectory{Path: aws.String("/other2")},
+							PosixUser:     &types.PosixUser{Gid: aws.Int64(Gid), Uid: aws.Int64(Uid)},
+						},
+					},
+					NextToken: nil,
+				}
+
+				ctx := context.Background()
+				gomock.InOrder(
+					mockEfs.EXPECT().DescribeAccessPoints(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(page1, nil),
+					mockEfs.EXPECT().DescribeAccessPoints(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(page2, nil),
+				)
+				res, err := c.FindAccessPointByClientToken(ctx, clientToken, fsId, util.FileSystemTypeEFS)
+				if err != nil {
+					t.Fatalf("FindAccessPointByClientToken failed: %v", err)
+				}
+				if res != nil {
+					t.Fatal("Result should be nil. No access point with the specified token")
+				}
+
+				mockctl.Finish()
+			},
+		},
+		{
+			name: "Fail - error on second page",
+			testFunc: func(t *testing.T) {
+				mockctl, c, mockEfs, _ := setupTest(t)
+
+				nextToken := "page2"
+				page1 := &efs.DescribeAccessPointsOutput{
+					AccessPoints: []types.AccessPointDescription{
+						{
+							AccessPointId: aws.String("ap-other"),
+							FileSystemId:  aws.String(fsId),
+							ClientToken:   aws.String("otherToken"),
+							RootDirectory: &types.RootDirectory{Path: aws.String("/other")},
+							PosixUser:     &types.PosixUser{Gid: aws.Int64(Gid), Uid: aws.Int64(Uid)},
+						},
+					},
+					NextToken: &nextToken,
+				}
+
+				ctx := context.Background()
+				gomock.InOrder(
+					mockEfs.EXPECT().DescribeAccessPoints(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(page1, nil),
+					mockEfs.EXPECT().DescribeAccessPoints(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(nil, errors.New("throttled")),
+				)
+				_, err := c.FindAccessPointByClientToken(ctx, clientToken, fsId, util.FileSystemTypeEFS)
+				if err == nil {
+					t.Fatal("Expected error on second page")
 				}
 
 				mockctl.Finish()
@@ -679,9 +780,7 @@ func TestListAccessPoints(t *testing.T) {
 		{
 			name: "Success",
 			testFunc: func(t *testing.T) {
-				mockctl := gomock.NewController(t)
-				mockEfs := mocks.NewMockEfs(mockctl)
-				c := &cloud{efs: mockEfs}
+				mockctl, c, mockEfs, _ := setupTest(t)
 
 				output := &efs.DescribeAccessPointsOutput{
 					AccessPoints: []types.AccessPointDescription{
@@ -699,7 +798,7 @@ func TestListAccessPoints(t *testing.T) {
 
 				ctx := context.Background()
 				mockEfs.EXPECT().DescribeAccessPoints(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(output, nil)
-				res, err := c.ListAccessPoints(ctx, fsId)
+				res, err := c.ListAccessPoints(ctx, fsId, util.FileSystemTypeEFS)
 				if err != nil {
 					t.Fatalf("List Access Points failed: %v", err)
 				}
@@ -729,9 +828,7 @@ func TestListAccessPoints(t *testing.T) {
 		{
 			name: "Success - multiple access points",
 			testFunc: func(t *testing.T) {
-				mockctl := gomock.NewController(t)
-				mockEfs := mocks.NewMockEfs(mockctl)
-				c := &cloud{efs: mockEfs}
+				mockctl, c, mockEfs, _ := setupTest(t)
 
 				output := &efs.DescribeAccessPointsOutput{
 					AccessPoints: []types.AccessPointDescription{
@@ -757,7 +854,7 @@ func TestListAccessPoints(t *testing.T) {
 
 				ctx := context.Background()
 				mockEfs.EXPECT().DescribeAccessPoints(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(output, nil)
-				res, err := c.ListAccessPoints(ctx, fsId)
+				res, err := c.ListAccessPoints(ctx, fsId, util.FileSystemTypeEFS)
 				if err != nil {
 					t.Fatalf("List Access Points failed: %v", err)
 				}
@@ -774,18 +871,104 @@ func TestListAccessPoints(t *testing.T) {
 			},
 		},
 		{
+			name: "Success - pagination across multiple pages",
+			testFunc: func(t *testing.T) {
+				mockctl, c, mockEfs, _ := setupTest(t)
+
+				nextToken := "page2"
+				page1 := &efs.DescribeAccessPointsOutput{
+					AccessPoints: []types.AccessPointDescription{
+						{
+							AccessPointId: aws.String("ap-1"),
+							FileSystemId:  aws.String(fsId),
+							PosixUser: &types.PosixUser{
+								Gid: aws.Int64(Gid),
+								Uid: aws.Int64(Uid),
+							},
+						},
+					},
+					NextToken: &nextToken,
+				}
+				page2 := &efs.DescribeAccessPointsOutput{
+					AccessPoints: []types.AccessPointDescription{
+						{
+							AccessPointId: aws.String("ap-2"),
+							FileSystemId:  aws.String(fsId),
+							PosixUser: &types.PosixUser{
+								Gid: aws.Int64(1001),
+								Uid: aws.Int64(1001),
+							},
+						},
+					},
+					NextToken: nil,
+				}
+
+				ctx := context.Background()
+				gomock.InOrder(
+					mockEfs.EXPECT().DescribeAccessPoints(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(page1, nil),
+					mockEfs.EXPECT().DescribeAccessPoints(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(page2, nil),
+				)
+				res, err := c.ListAccessPoints(ctx, fsId, util.FileSystemTypeEFS)
+				if err != nil {
+					t.Fatalf("List Access Points failed: %v", err)
+				}
+				if len(res) != 2 {
+					t.Fatalf("Expected 2 access points but got %d", len(res))
+				}
+				if res[0].AccessPointId != "ap-1" {
+					t.Fatalf("First AP ID mismatched. Expected: ap-1, Actual: %v", res[0].AccessPointId)
+				}
+				if res[1].AccessPointId != "ap-2" {
+					t.Fatalf("Second AP ID mismatched. Expected: ap-2, Actual: %v", res[1].AccessPointId)
+				}
+
+				mockctl.Finish()
+			},
+		},
+		{
+			name: "Fail - error on second page",
+			testFunc: func(t *testing.T) {
+				mockctl, c, mockEfs, _ := setupTest(t)
+
+				nextToken := "page2"
+				page1 := &efs.DescribeAccessPointsOutput{
+					AccessPoints: []types.AccessPointDescription{
+						{
+							AccessPointId: aws.String("ap-1"),
+							FileSystemId:  aws.String(fsId),
+							PosixUser: &types.PosixUser{
+								Gid: aws.Int64(Gid),
+								Uid: aws.Int64(Uid),
+							},
+						},
+					},
+					NextToken: &nextToken,
+				}
+
+				ctx := context.Background()
+				gomock.InOrder(
+					mockEfs.EXPECT().DescribeAccessPoints(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(page1, nil),
+					mockEfs.EXPECT().DescribeAccessPoints(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(nil, errors.New("throttled")),
+				)
+				_, err := c.ListAccessPoints(ctx, fsId, util.FileSystemTypeEFS)
+				if err == nil {
+					t.Fatal("Expected error on second page")
+				}
+
+				mockctl.Finish()
+			},
+		},
+		{
 			name: "Fail - Access Denied",
 			testFunc: func(t *testing.T) {
-				mockctl := gomock.NewController(t)
-				mockEfs := mocks.NewMockEfs(mockctl)
-				c := &cloud{efs: mockEfs}
+				mockctl, c, mockEfs, _ := setupTest(t)
 				ctx := context.Background()
 				mockEfs.EXPECT().DescribeAccessPoints(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(nil,
 					&smithy.GenericAPIError{
 						Code:    AccessDeniedException,
 						Message: "Access Denied",
 					})
-				_, err := c.ListAccessPoints(ctx, fsId)
+				_, err := c.ListAccessPoints(ctx, fsId, util.FileSystemTypeEFS)
 				if err == nil {
 					t.Fatalf("List Access Points should have failed: %v", err)
 				}
@@ -810,9 +993,7 @@ func TestDescribeFileSystem(t *testing.T) {
 		{
 			name: "Success",
 			testFunc: func(t *testing.T) {
-				mockctl := gomock.NewController(t)
-				mockEfs := mocks.NewMockEfs(mockctl)
-				c := &cloud{efs: mockEfs}
+				mockctl, c, mockEfs, _ := setupTest(t)
 
 				output := &efs.DescribeFileSystemsOutput{
 					FileSystems: []types.FileSystemDescription{
@@ -828,7 +1009,7 @@ func TestDescribeFileSystem(t *testing.T) {
 
 				ctx := context.Background()
 				mockEfs.EXPECT().DescribeFileSystems(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(output, nil)
-				res, err := c.DescribeFileSystem(ctx, fsId)
+				res, err := c.DescribeFileSystem(ctx, fsId, util.FileSystemTypeEFS)
 				if err != nil {
 					t.Fatalf("Describe File System failed: %v", err)
 				}
@@ -846,9 +1027,7 @@ func TestDescribeFileSystem(t *testing.T) {
 		{
 			name: "Fail: DescribeFileSystems result has 0 file systems",
 			testFunc: func(t *testing.T) {
-				mockctl := gomock.NewController(t)
-				mockEfs := mocks.NewMockEfs(mockctl)
-				c := &cloud{efs: mockEfs}
+				mockctl, c, mockEfs, _ := setupTest(t)
 
 				output := &efs.DescribeFileSystemsOutput{
 					FileSystems: []types.FileSystemDescription{},
@@ -856,7 +1035,7 @@ func TestDescribeFileSystem(t *testing.T) {
 
 				ctx := context.Background()
 				mockEfs.EXPECT().DescribeFileSystems(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(output, nil)
-				_, err := c.DescribeFileSystem(ctx, fsId)
+				_, err := c.DescribeFileSystem(ctx, fsId, util.FileSystemTypeEFS)
 				if err == nil {
 					t.Fatalf("DescribeFileSystem did not fail")
 				}
@@ -866,9 +1045,7 @@ func TestDescribeFileSystem(t *testing.T) {
 		{
 			name: "Fail: DescribeFileSystem result has more than 1 file-system",
 			testFunc: func(t *testing.T) {
-				mockctl := gomock.NewController(t)
-				mockEfs := mocks.NewMockEfs(mockctl)
-				c := &cloud{efs: mockEfs}
+				mockctl, c, mockEfs, _ := setupTest(t)
 
 				output := &efs.DescribeFileSystemsOutput{
 					FileSystems: []types.FileSystemDescription{
@@ -891,7 +1068,7 @@ func TestDescribeFileSystem(t *testing.T) {
 
 				ctx := context.Background()
 				mockEfs.EXPECT().DescribeFileSystems(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(output, nil)
-				_, err := c.DescribeFileSystem(ctx, fsId)
+				_, err := c.DescribeFileSystem(ctx, fsId, util.FileSystemTypeEFS)
 				if err == nil {
 					t.Fatalf("DescribeFileSystem did not fail")
 				}
@@ -901,16 +1078,14 @@ func TestDescribeFileSystem(t *testing.T) {
 		{
 			name: "Fail: File System Not Found",
 			testFunc: func(t *testing.T) {
-				mockctl := gomock.NewController(t)
-				mockEfs := mocks.NewMockEfs(mockctl)
-				c := &cloud{efs: mockEfs}
+				mockctl, c, mockEfs, _ := setupTest(t)
 
 				ctx := context.Background()
 				mockEfs.EXPECT().DescribeFileSystems(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(nil,
 					&types.FileSystemNotFound{
 						Message: aws.String("File System not found"),
 					})
-				_, err := c.DescribeFileSystem(ctx, fsId)
+				_, err := c.DescribeFileSystem(ctx, fsId, util.FileSystemTypeEFS)
 				if err == nil {
 					t.Fatalf("DescribeFileSystem did not fail")
 				}
@@ -933,7 +1108,7 @@ func TestDescribeFileSystem(t *testing.T) {
 						Code:    AccessDeniedException,
 						Message: "Access Denied",
 					})
-				_, err := c.DescribeFileSystem(ctx, fsId)
+				_, err := c.DescribeFileSystem(ctx, fsId, util.FileSystemTypeEFS)
 				if err == nil {
 					t.Fatalf("DescribeFileSystem did not fail")
 				}
@@ -946,13 +1121,11 @@ func TestDescribeFileSystem(t *testing.T) {
 		{
 			name: "Fail: Other",
 			testFunc: func(t *testing.T) {
-				mockctl := gomock.NewController(t)
-				mockEfs := mocks.NewMockEfs(mockctl)
-				c := &cloud{efs: mockEfs}
+				mockctl, c, mockEfs, _ := setupTest(t)
 
 				ctx := context.Background()
 				mockEfs.EXPECT().DescribeFileSystems(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(nil, errors.New("DescribeFileSystem failed"))
-				_, err := c.DescribeFileSystem(ctx, fsId)
+				_, err := c.DescribeFileSystem(ctx, fsId, util.FileSystemTypeEFS)
 				if err == nil {
 					t.Fatalf("DescribeFileSystem did not fail")
 				}
@@ -1075,7 +1248,11 @@ func TestDescribeMountTargets(t *testing.T) {
 			mockctl := gomock.NewController(t)
 			defer mockctl.Finish()
 			mockEfs := mocks.NewMockEfs(mockctl)
-			c := &cloud{efs: mockEfs}
+			mockS3Files := mocks.NewMockS3Files(mockctl)
+			c := &cloud{
+				efs:     mockEfs,
+				s3files: mockS3Files,
+			}
 			ctx := context.Background()
 
 			if tc.mockOutput != nil {
@@ -1086,9 +1263,565 @@ func TestDescribeMountTargets(t *testing.T) {
 				mockEfs.EXPECT().DescribeMountTargets(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(nil, tc.mockError)
 			}
 
-			res, err := c.DescribeMountTargets(ctx, fsId, az)
+			res, err := c.DescribeMountTargets(ctx, fsId, az, util.FileSystemTypeEFS)
 			testResult(t, "DescribeMountTargets", res, err, tc.expectError)
 
+		})
+	}
+}
+
+// S3Files-specific unit tests for the s3files changes
+
+func TestCreateAccessPointS3Files(t *testing.T) {
+	var (
+		accessPointId        = "fsap-abcd1234xyz987"
+		fileSystemId         = "fs-abcd1234"
+		uid            int64 = 1001
+		gid            int64 = 1001
+		directoryPerms       = "0777"
+		directoryPath        = "/test"
+		volName              = "volName"
+		clientToken          = volName
+	)
+	testCases := []struct {
+		name     string
+		testFunc func(t *testing.T)
+	}{
+		{
+			name: "S3Files Success",
+			testFunc: func(t *testing.T) {
+				mockCtl, c, _, mockS3Files := setupTest(t)
+
+				tags := make(map[string]string)
+				tags["cluster"] = "s3files"
+
+				req := &AccessPointOptions{
+					FileSystemId:   fileSystemId,
+					Uid:            uid,
+					Gid:            gid,
+					DirectoryPerms: directoryPerms,
+					DirectoryPath:  directoryPath,
+					Tags:           tags,
+				}
+
+				output := &s3files.CreateAccessPointOutput{
+					AccessPointId: aws.String(accessPointId),
+					ClientToken:   aws.String("test"),
+					FileSystemId:  aws.String(fileSystemId),
+					PosixUser: &s3filestypes.PosixUser{
+						Gid: aws.Int64(gid),
+						Uid: aws.Int64(uid),
+					},
+					RootDirectory: &s3filestypes.RootDirectory{
+						CreationPermissions: &s3filestypes.CreationPermissions{
+							OwnerGid:    aws.Int64(gid),
+							OwnerUid:    aws.Int64(uid),
+							Permissions: aws.String(directoryPerms),
+						},
+						Path: aws.String(directoryPath),
+					},
+				}
+
+				ctx := context.Background()
+				mockS3Files.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(output, nil)
+				res, err := c.CreateAccessPoint(ctx, clientToken, req, util.FileSystemTypeS3Files)
+
+				if err != nil {
+					t.Fatalf("CreateAccessPoint failed: %v", err)
+				}
+
+				if res == nil {
+					t.Fatal("Result is nil")
+				}
+
+				if accessPointId != res.AccessPointId {
+					t.Fatalf("AccessPointId mismatched. Expected: %v, Actual: %v", accessPointId, res.AccessPointId)
+				}
+
+				if fileSystemId != res.FileSystemId {
+					t.Fatalf("FileSystemId mismatched. Expected: %v, Actual: %v", fileSystemId, res.FileSystemId)
+				}
+				mockCtl.Finish()
+			},
+		},
+		{
+			name: "S3Files Fail: Access Denied",
+			testFunc: func(t *testing.T) {
+				mockCtl, c, _, mockS3Files := setupTest(t)
+
+				req := &AccessPointOptions{
+					FileSystemId:   fileSystemId,
+					Uid:            uid,
+					Gid:            gid,
+					DirectoryPerms: directoryPerms,
+					DirectoryPath:  directoryPath,
+				}
+
+				ctx := context.Background()
+				mockS3Files.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(nil,
+					&smithy.GenericAPIError{
+						Code:    AccessDeniedException,
+						Message: "Access Denied",
+					})
+				_, err := c.CreateAccessPoint(ctx, clientToken, req, util.FileSystemTypeS3Files)
+				if err == nil {
+					t.Fatalf("CreateAccessPoint did not fail")
+				}
+				if err != ErrAccessDenied {
+					t.Fatalf("Failed. Expected: %v, Actual:%v", ErrAccessDenied, err)
+				}
+				mockCtl.Finish()
+			},
+		},
+		{
+			name: "S3Files Error: Access Point already exists",
+			testFunc: func(t *testing.T) {
+				mockCtl, c, _, mockS3Files := setupTest(t)
+
+				req := &AccessPointOptions{
+					FileSystemId:   fileSystemId,
+					Uid:            uid,
+					Gid:            gid,
+					DirectoryPerms: directoryPerms,
+					DirectoryPath:  directoryPath,
+				}
+
+				ctx := context.Background()
+				mockS3Files.EXPECT().CreateAccessPoint(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil,
+					&smithy.GenericAPIError{
+						Code:    ConflictException,
+						Message: "Access Point already exists.",
+					})
+
+				_, err := c.CreateAccessPoint(ctx, clientToken, req, util.FileSystemTypeS3Files)
+				if err == nil {
+					t.Fatalf("CreateAccessPoint did not return error")
+				}
+				if err != ErrAlreadyExists {
+					t.Fatalf("Failed. Expected: %v, Actual:%v", ErrAlreadyExists, err)
+				}
+				mockCtl.Finish()
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, tc.testFunc)
+	}
+}
+
+func TestDeleteAccessPointS3Files(t *testing.T) {
+	var (
+		accessPointId = "fsap-abcd1234xyz987"
+	)
+	testCases := []struct {
+		name     string
+		testFunc func(t *testing.T)
+	}{
+		{
+			name: "S3Files Success",
+			testFunc: func(t *testing.T) {
+				mockctl, c, _, mockS3Files := setupTest(t)
+
+				output := &s3files.DeleteAccessPointOutput{}
+				ctx := context.Background()
+				mockS3Files.EXPECT().DeleteAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(output, nil)
+				err := c.DeleteAccessPoint(ctx, accessPointId, util.FileSystemTypeS3Files)
+				if err != nil {
+					t.Fatalf("Delete Access Point failed: %v", err)
+				}
+
+				mockctl.Finish()
+			},
+		},
+		{
+			name: "S3Files Fail: Access Point Not Found",
+			testFunc: func(t *testing.T) {
+				mockctl, c, _, mockS3Files := setupTest(t)
+				ctx := context.Background()
+				mockS3Files.EXPECT().DeleteAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(nil,
+					&s3filestypes.ResourceNotFoundException{
+						Message: aws.String("Access Point 'fsap-abcd1234xyz987' does not exist."),
+					})
+				err := c.DeleteAccessPoint(ctx, accessPointId, util.FileSystemTypeS3Files)
+				if err == nil {
+					t.Fatalf("DeleteAccessPoint did not fail")
+				}
+				if err != ErrNotFound {
+					t.Fatalf("Failed. Expected: %v, Actual:%v", ErrNotFound, err)
+				}
+				mockctl.Finish()
+			},
+		},
+		{
+			name: "S3Files Fail: Access Denied",
+			testFunc: func(t *testing.T) {
+				mockctl, c, _, mockS3Files := setupTest(t)
+				ctx := context.Background()
+				mockS3Files.EXPECT().DeleteAccessPoint(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(nil,
+					&smithy.GenericAPIError{
+						Code:    AccessDeniedException,
+						Message: "Access Denied",
+					})
+				err := c.DeleteAccessPoint(ctx, accessPointId, util.FileSystemTypeS3Files)
+				if err == nil {
+					t.Fatalf("DeleteAccessPoint did not fail")
+				}
+				if err != ErrAccessDenied {
+					t.Fatalf("Failed. Expected: %v, Actual:%v", ErrAccessDenied, err)
+				}
+				mockctl.Finish()
+			},
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, tc.testFunc)
+	}
+}
+
+func TestDescribeAccessPointS3Files(t *testing.T) {
+	var (
+		accessPointId        = "fsap-abcd1234xyz987"
+		fileSystemId         = "fs-abcd1234"
+		uid            int64 = 1001
+		gid            int64 = 1001
+		directoryPerms       = "0777"
+		directoryPath        = "/test"
+	)
+	testCases := []struct {
+		name     string
+		testFunc func(t *testing.T)
+	}{
+		{
+			name: "S3Files Success",
+			testFunc: func(t *testing.T) {
+				mockctl, c, _, mockS3Files := setupTest(t)
+
+				output := &s3files.ListAccessPointsOutput{
+					AccessPoints: []s3filestypes.ListAccessPointsDescription{
+						{
+							AccessPointId: aws.String(accessPointId),
+							FileSystemId:  aws.String(fileSystemId),
+							PosixUser: &s3filestypes.PosixUser{
+								Gid: aws.Int64(gid),
+								Uid: aws.Int64(uid),
+							},
+							RootDirectory: &s3filestypes.RootDirectory{
+								CreationPermissions: &s3filestypes.CreationPermissions{
+									OwnerGid:    aws.Int64(gid),
+									OwnerUid:    aws.Int64(uid),
+									Permissions: aws.String(directoryPerms),
+								},
+								Path: aws.String(directoryPath),
+							},
+						},
+					},
+					NextToken: nil,
+				}
+				ctx := context.Background()
+				mockS3Files.EXPECT().ListAccessPoints(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(output, nil)
+				res, err := c.DescribeAccessPoint(ctx, accessPointId, fileSystemId, util.FileSystemTypeS3Files)
+				if err != nil {
+					t.Fatalf("Describe Access Point failed: %v", err)
+				}
+
+				if res == nil {
+					t.Fatal("Result is nil")
+				}
+
+				if accessPointId != res.AccessPointId {
+					t.Fatalf("AccessPointId mismatched. Expected: %v, Actual: %v", accessPointId, res.AccessPointId)
+				}
+
+				if fileSystemId != res.FileSystemId {
+					t.Fatalf("FileSystemId mismatched. Expected: %v, Actual: %v", fileSystemId, res.FileSystemId)
+				}
+				mockctl.Finish()
+			},
+		},
+		{
+			name: "S3Files Fail: Access Point Not Found",
+			testFunc: func(t *testing.T) {
+				mockctl, c, _, mockS3Files := setupTest(t)
+
+				output := &s3files.ListAccessPointsOutput{
+					AccessPoints: []s3filestypes.ListAccessPointsDescription{},
+					NextToken:    nil,
+				}
+				ctx := context.Background()
+				mockS3Files.EXPECT().ListAccessPoints(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(output, nil)
+				_, err := c.DescribeAccessPoint(ctx, accessPointId, fileSystemId, util.FileSystemTypeS3Files)
+				if err == nil {
+					t.Fatalf("DescribeAccessPoint did not fail")
+				}
+				if err != ErrNotFound {
+					t.Fatalf("Failed. Expected: %v, Actual: %v", ErrNotFound, err)
+				}
+				mockctl.Finish()
+			},
+		},
+		{
+			name: "S3Files Fail: Access Denied",
+			testFunc: func(t *testing.T) {
+				mockctl, c, _, mockS3Files := setupTest(t)
+
+				ctx := context.Background()
+				mockS3Files.EXPECT().ListAccessPoints(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(nil,
+					&smithy.GenericAPIError{
+						Code:    AccessDeniedException,
+						Message: "Access Denied",
+					})
+				_, err := c.DescribeAccessPoint(ctx, accessPointId, fileSystemId, util.FileSystemTypeS3Files)
+				if err == nil {
+					t.Fatalf("DescribeAccessPoint did not fail")
+				}
+				if err != ErrAccessDenied {
+					t.Fatalf("Failed. Expected: %v, Actual:%v", ErrAccessDenied, err)
+				}
+				mockctl.Finish()
+			},
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, tc.testFunc)
+	}
+}
+
+func TestListAccessPointsS3Files(t *testing.T) {
+	var (
+		fileSystemId        = "fs-abcd1234"
+		accessPointId       = "fsap-abc123"
+		Gid           int64 = 1000
+		Uid           int64 = 1000
+	)
+	testCases := []struct {
+		name     string
+		testFunc func(t *testing.T)
+	}{
+		{
+			name: "S3Files Success",
+			testFunc: func(t *testing.T) {
+				mockctl, c, _, mockS3Files := setupTest(t)
+
+				output := &s3files.ListAccessPointsOutput{
+					AccessPoints: []s3filestypes.ListAccessPointsDescription{
+						{
+							AccessPointId: aws.String(accessPointId),
+							FileSystemId:  aws.String(fileSystemId),
+							PosixUser: &s3filestypes.PosixUser{
+								Gid: aws.Int64(Gid),
+								Uid: aws.Int64(Uid),
+							},
+						},
+					},
+					NextToken: nil,
+				}
+
+				ctx := context.Background()
+				mockS3Files.EXPECT().ListAccessPoints(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(output, nil)
+				res, err := c.ListAccessPoints(ctx, fileSystemId, util.FileSystemTypeS3Files)
+				if err != nil {
+					t.Fatalf("List Access Points failed: %v", err)
+				}
+
+				if res == nil {
+					t.Fatal("Result is nil")
+				}
+
+				if len(res) != 1 {
+					t.Fatalf("Expected only one AccessPoint in response but got: %v", res)
+				}
+
+				mockctl.Finish()
+			},
+		},
+		{
+			name: "S3Files Success - multiple access points",
+			testFunc: func(t *testing.T) {
+				mockctl, c, _, mockS3Files := setupTest(t)
+
+				output := &s3files.ListAccessPointsOutput{
+					AccessPoints: []s3filestypes.ListAccessPointsDescription{
+						{
+							AccessPointId: aws.String(accessPointId),
+							FileSystemId:  aws.String(fileSystemId),
+							PosixUser: &s3filestypes.PosixUser{
+								Gid: aws.Int64(Gid),
+								Uid: aws.Int64(Uid),
+							},
+						},
+						{
+							AccessPointId: aws.String(accessPointId + "2"),
+							FileSystemId:  aws.String(fileSystemId),
+							PosixUser: &s3filestypes.PosixUser{
+								Gid: aws.Int64(1001),
+								Uid: aws.Int64(1001),
+							},
+						},
+					},
+					NextToken: nil,
+				}
+
+				ctx := context.Background()
+				mockS3Files.EXPECT().ListAccessPoints(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(output, nil)
+				res, err := c.ListAccessPoints(ctx, fileSystemId, util.FileSystemTypeS3Files)
+				if err != nil {
+					t.Fatalf("List Access Points failed: %v", err)
+				}
+
+				if res == nil {
+					t.Fatal("Result is nil")
+				}
+
+				if len(res) != 2 {
+					t.Fatalf("Expected two AccessPoints in response but got: %v", res)
+				}
+
+				mockctl.Finish()
+			},
+		},
+		{
+			name: "S3Files Fail - Access Denied",
+			testFunc: func(t *testing.T) {
+				mockctl, c, _, mockS3Files := setupTest(t)
+				ctx := context.Background()
+				mockS3Files.EXPECT().ListAccessPoints(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(nil,
+					&smithy.GenericAPIError{
+						Code:    AccessDeniedException,
+						Message: "Access Denied",
+					})
+				_, err := c.ListAccessPoints(ctx, fileSystemId, util.FileSystemTypeS3Files)
+				if err == nil {
+					t.Fatalf("List Access Points should have failed: %v", err)
+				}
+
+				mockctl.Finish()
+			},
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, tc.testFunc)
+	}
+}
+
+func TestDescribeFileSystemS3Files(t *testing.T) {
+	var (
+		fileSystemId = "fs-abcd1234"
+	)
+	testCases := []struct {
+		name     string
+		testFunc func(t *testing.T)
+	}{
+		{
+			name: "S3Files Success",
+			testFunc: func(t *testing.T) {
+				mockctl, c, _, mockS3Files := setupTest(t)
+
+				output := &s3files.ListFileSystemsOutput{
+					FileSystems: []s3filestypes.ListFileSystemsDescription{
+						{
+							FileSystemId: aws.String(fileSystemId),
+						},
+					},
+				}
+
+				ctx := context.Background()
+				mockS3Files.EXPECT().ListFileSystems(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(output, nil)
+				res, err := c.DescribeFileSystem(ctx, fileSystemId, util.FileSystemTypeS3Files)
+				if err != nil {
+					t.Fatalf("Describe S3 Files failed: %v", err)
+				}
+
+				if res == nil {
+					t.Fatal("Result is nil")
+				}
+
+				if fileSystemId != res.FileSystemId {
+					t.Fatalf("FileSystemId mismatched. Expected: %v, Actual: %v", fileSystemId, res.FileSystemId)
+				}
+				mockctl.Finish()
+			},
+		},
+		{
+			name: "S3Files Fail: S3 Files Not Found",
+			testFunc: func(t *testing.T) {
+				mockctl, c, _, mockS3Files := setupTest(t)
+
+				output := &s3files.ListFileSystemsOutput{
+					FileSystems: []s3filestypes.ListFileSystemsDescription{},
+				}
+
+				ctx := context.Background()
+				mockS3Files.EXPECT().ListFileSystems(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(output, nil)
+				_, err := c.DescribeFileSystem(ctx, fileSystemId, util.FileSystemTypeS3Files)
+				if err == nil {
+					t.Fatalf("DescribeFileSystem did not fail")
+				}
+				if err != ErrNotFound {
+					t.Fatalf("Failed. Expected: %v, Actual:%v", ErrNotFound, err)
+				}
+				mockctl.Finish()
+			},
+		},
+		{
+			name: "S3Files Fail: Access Denied",
+			testFunc: func(t *testing.T) {
+				mockctl, c, _, mockS3Files := setupTest(t)
+
+				ctx := context.Background()
+				mockS3Files.EXPECT().ListFileSystems(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(nil,
+					&smithy.GenericAPIError{
+						Code:    AccessDeniedException,
+						Message: "Access Denied",
+					})
+				_, err := c.DescribeFileSystem(ctx, fileSystemId, util.FileSystemTypeS3Files)
+				if err == nil {
+					t.Fatalf("DescribeFileSystem did not fail")
+				}
+				if err != ErrAccessDenied {
+					t.Fatalf("Failed. Expected: %v, Actual:%v", ErrAccessDenied, err)
+				}
+				mockctl.Finish()
+			},
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, tc.testFunc)
+	}
+}
+
+func TestDescribeMountTargetsS3Files(t *testing.T) {
+	var (
+		fileSystemId = "fs-abcd1234"
+		az           = "us-east-1a"
+	)
+
+	testCases := []struct {
+		name        string
+		expectError errtyp
+	}{
+		{
+			name: "S3Files Fail: DescribeMountTargets not implemented",
+			expectError: errtyp{
+				message: "DescribeMountTargets is not implemented for s3files in CSI Driver",
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			mockctl := gomock.NewController(t)
+			defer mockctl.Finish()
+			mockEfs := mocks.NewMockEfs(mockctl)
+			mockS3Files := mocks.NewMockS3Files(mockctl)
+			c := &cloud{
+				efs:     mockEfs,
+				s3files: mockS3Files,
+			}
+			ctx := context.Background()
+
+			res, err := c.DescribeMountTargets(ctx, fileSystemId, az, util.FileSystemTypeS3Files)
+			testResult(t, "DescribeMountTargets", res, err, tc.expectError)
 		})
 	}
 }
@@ -1113,7 +1846,8 @@ func testResult(t *testing.T, funcName string, ret interface{}, err error, expec
 }
 
 func Test_findAccessPointByPath(t *testing.T) {
-	fsId := "testFsId"
+	fsId := "fs-abcd1234"
+	accessPointId := "fsap-abcd1234xyz987"
 	clientToken := "testPvcName"
 	dirPath := "testPath"
 	diffClientToken := aws.String("diff")
@@ -1121,15 +1855,16 @@ func Test_findAccessPointByPath(t *testing.T) {
 	mockctl := gomock.NewController(t)
 	defer mockctl.Finish()
 	mockEfs := mocks.NewMockEfs(mockctl)
+	mockS3Files := mocks.NewMockS3Files(mockctl)
 
 	expectedSingleAP := &AccessPoint{
-		AccessPointId:      "testApId",
+		AccessPointId:      accessPointId,
 		AccessPointRootDir: dirPath,
 		FileSystemId:       fsId,
 	}
 
 	expectedSingleAPWithPosixUser := &AccessPoint{
-		AccessPointId:      "testApId",
+		AccessPointId:      accessPointId,
 		AccessPointRootDir: dirPath,
 		PosixUser: &PosixUser{
 			Uid: 1000,
@@ -1174,20 +1909,114 @@ func Test_findAccessPointByPath(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := &cloud{efs: mockEfs}
+			c := &cloud{
+				efs:     mockEfs,
+				s3files: mockS3Files,
+			}
 			ctx := context.Background()
 
 			if tt.prepare != nil {
 				tt.prepare(mockEfs)
 			}
 
-			gotAccessPoint, err := c.FindAccessPointByClientToken(ctx, tt.args.clientToken, tt.args.accessPointOpts.FileSystemId)
+			gotAccessPoint, err := c.FindAccessPointByClientToken(ctx, tt.args.clientToken, tt.args.accessPointOpts.FileSystemId, util.FileSystemTypeEFS)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("findAccessPointByClientToken() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if !reflect.DeepEqual(gotAccessPoint, tt.wantAccessPoint) {
 				t.Errorf("findAccessPointByClientToken() gotAccessPoint = %v, want %v", gotAccessPoint, tt.wantAccessPoint)
+			}
+		})
+	}
+}
+
+func TestValidateFIPSRegion(t *testing.T) {
+	tests := []struct {
+		name      string
+		region    string
+		envValue  string
+		wantErr   bool
+		errSubstr string
+	}{
+		{
+			name:     "FIPS not enabled, non-US region, no error",
+			region:   "eu-central-1",
+			envValue: "",
+			wantErr:  false,
+		},
+		{
+			name:     "FIPS enabled, US region, no error",
+			region:   "us-east-1",
+			envValue: "true",
+			wantErr:  false,
+		},
+		{
+			name:     "FIPS enabled, US west region, no error",
+			region:   "us-west-2",
+			envValue: "true",
+			wantErr:  false,
+		},
+		{
+			name:     "FIPS enabled, Canada region, no error",
+			region:   "ca-central-1",
+			envValue: "true",
+			wantErr:  false,
+		},
+		{
+			name:      "FIPS enabled, EU region, error",
+			region:    "eu-central-1",
+			envValue:  "true",
+			wantErr:   true,
+			errSubstr: "FIPS endpoints are not available in region eu-central-1",
+		},
+		{
+			name:      "FIPS enabled, AP region, error",
+			region:    "ap-southeast-1",
+			envValue:  "true",
+			wantErr:   true,
+			errSubstr: "FIPS endpoints are only supported in US and Canada regions",
+		},
+		{
+			name:     "FIPS enabled case-insensitive TRUE, US region, no error",
+			region:   "us-east-1",
+			envValue: "TRUE",
+			wantErr:  false,
+		},
+		{
+			name:      "FIPS enabled case-insensitive True, non-US region, error",
+			region:    "eu-west-1",
+			envValue:  "True",
+			wantErr:   true,
+			errSubstr: "AWS_USE_FIPS_ENDPOINT=false",
+		},
+		{
+			name:     "FIPS set to false, non-US region, no error",
+			region:   "eu-west-1",
+			envValue: "false",
+			wantErr:  false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.envValue != "" {
+				t.Setenv("AWS_USE_FIPS_ENDPOINT", tt.envValue)
+			} else {
+				t.Setenv("AWS_USE_FIPS_ENDPOINT", "")
+			}
+
+			err := validateFIPSRegion(tt.region)
+			if tt.wantErr && err == nil {
+				t.Errorf("validateFIPSRegion() expected error but got nil")
+			}
+			if !tt.wantErr && err != nil {
+				t.Errorf("validateFIPSRegion() unexpected error: %v", err)
+			}
+			if tt.wantErr && err != nil && tt.errSubstr != "" {
+				if !strings.Contains(err.Error(), tt.errSubstr) {
+					t.Errorf("validateFIPSRegion() error = %q, want substring %q", err.Error(), tt.errSubstr)
+				}
 			}
 		})
 	}

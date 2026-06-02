@@ -68,7 +68,7 @@ type DescribeVpcPeeringConnectionsInput struct {
 	//   - status-message - A message that provides more information about the status
 	//   of the VPC peering connection, if applicable.
 	//
-	//   - tag : - The key/value combination of a tag assigned to the resource. Use the
+	//   - tag - The key/value combination of a tag assigned to the resource. Use the
 	//   tag key in the filter name and the tag value as the filter value. For example,
 	//   to find all resources that have a tag with the key Owner and the value TeamA ,
 	//   specify tag:Owner for the filter name and TeamA for the filter value.
@@ -177,6 +177,9 @@ func (c *Client) addOperationDescribeVpcPeeringConnectionsMiddlewares(stack *mid
 	if err = addUserAgentRetryMode(stack, options); err != nil {
 		return err
 	}
+	if err = addCredentialSource(stack, options); err != nil {
+		return err
+	}
 	if err = stack.Initialize.Add(newServiceMetadataMiddleware_opDescribeVpcPeeringConnections(options.Region), middleware.Before); err != nil {
 		return err
 	}
@@ -193,6 +196,36 @@ func (c *Client) addOperationDescribeVpcPeeringConnectionsMiddlewares(stack *mid
 		return err
 	}
 	if err = addDisableHTTPSMiddleware(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptBeforeRetryLoop(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptAttempt(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptExecution(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptBeforeSerialization(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptAfterSerialization(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptBeforeSigning(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptAfterSigning(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptTransmit(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptBeforeDeserialization(stack, options); err != nil {
+		return err
+	}
+	if err = addInterceptAfterDeserialization(stack, options); err != nil {
 		return err
 	}
 	if err = addSpanInitializeStart(stack); err != nil {
@@ -378,7 +411,11 @@ func vpcPeeringConnectionDeletedStateRetryable(ctx context.Context, input *Descr
 		var v2 []types.VpcPeeringConnectionStateReasonCode
 		for _, v := range v1 {
 			v3 := v.Status
-			v4 := v3.Code
+			var v4 types.VpcPeeringConnectionStateReasonCode
+			if v3 != nil {
+				v5 := v3.Code
+				v4 = v5
+			}
 			v2 = append(v2, v4)
 		}
 		expectedValue := "deleted"
@@ -407,6 +444,9 @@ func vpcPeeringConnectionDeletedStateRetryable(ctx context.Context, input *Descr
 		}
 	}
 
+	if err != nil {
+		return false, err
+	}
 	return true, nil
 }
 
@@ -589,6 +629,9 @@ func vpcPeeringConnectionExistsStateRetryable(ctx context.Context, input *Descri
 		}
 	}
 
+	if err != nil {
+		return false, err
+	}
 	return true, nil
 }
 

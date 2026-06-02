@@ -1,3 +1,30 @@
+# V2.3.1
+* Update AccessPointPerFsLimit to 10000 ([#1806](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1806), [@DavidXU12345](https://github.com/DavidXU12345))
+* Fix Validation for Hardcoded AccessPoint GID/UID ([#1809](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1809), [@samuhale](https://github.com/samuhale))
+* Remove Extraneous Describe Call from CreateVolume ([#1810](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1810), [@samuhale](https://github.com/samuhale))
+# V2.3.0
+* fix: Add CSI topology for One Zone EFS ([#1761](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1761), [@aliyajo](https://github.com/aliyajo))
+* Upgrade golang to 1.25.5 to fix high CVE ([#1763](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1763), [@DavidXU12345](https://github.com/DavidXU12345))
+* fix: verify startup taint removal after patch to prevent false positives ([#1774](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1774), [@aliyajo](https://github.com/aliyajo))
+* Fix OpenSSL CVE ([#1775](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1775), [@YangjinanHu](https://github.com/YangjinanHu))
+* Fix Sidecar CVEs ([#1779](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1779), [@YangjinanHu](https://github.com/YangjinanHu))
+* Upgrade k8s.io/kubernetes from v1.33.4 to v1.33.6 to fix CVE ([#1781](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1781), [@DavidXU12345](https://github.com/DavidXU12345))
+# V2.2.0
+* Add revisionHistoryLimit support in charts ([#1760](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1760), [@DavidXU12345](https://github.com/DavidXU12345))
+* Upgrade sidecar to fix CVEs ([#1758](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1758), [@DavidXU12345](https://github.com/DavidXU12345))
+* Add force-unmount-after-timeout configuration to the helm chart ([#1751](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1751), [@brainfair](https://github.com/brainfair))
+* Add opt-in parameter to disable node mutation permissions ([#1739](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1739), [@dankova22](https://github.com/dankova22))
+* feat: Add ability to configure emptyDir params (sizeLimit, medium) ([#1727](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1727), [@mkilchhofer](https://github.com/mkilchhofer))
+* Support whitespace in tag keys and values ([#1716](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1716), [@slackfan](https://github.com/slackfan))
+* feat: added support for externalId in cross-account EFS configuration ([#1690](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1690), [@andylim0221](https://github.com/andylim0221))
+# V2.1.15
+* Golang upgrade ([#1738](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1738), [@DavidXU12345](https://github.com/DavidXU12345))
+* Update efs-utils conf for eu regions DNS ([#1737](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1737), [@dankova22](https://github.com/dankova22))
+* Update Dockerfile for new efs-utils dependencies ([#1736](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1736), [@dankova22](https://github.com/dankova22))
+* Specify fileSystemId from K8 ConfigMap/Secret ([#1724](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1724), [@aliyajo](https://github.com/aliyajo))
+* Add force unmount after timeout option ([#1710](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1710), [@DavidXU12345](https://github.com/DavidXU12345))
+# V2.1.14
+* Upgrade aws-sdk-go-v2 to latest version ([#1729](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1729), [@DavidXU12345](https://github.com/DavidXU12345))
 # V2.1.13
 * Update Dependencies ([#1709](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1709), [@zmaguire](https://github.com/zmaguire))
 * Set PosixUser.Uid correctly in ListAccessPoints ([#1707](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1707), [@yerzhan7](https://github.com/yerzhan7))
@@ -20,7 +47,7 @@
 * CVE-2025-22869: bump golang.org/x/crypto to v0.35.0 ([#1611](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1611)), [@kunalmemane](https://github.com/kunalmemane)
 # V2.1.8
 * Remove unused workflow that publishes images to dockerhub ([#1621](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1621), [@jrakas-dev](https://github.com/jrakas-dev))
-*  Return existing access point if one already exists during create workflow ([#1620](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1620), [@jrakas-dev](https://github.com/jrakas-dev))
+* Return existing access point if one already exists during create workflow ([#1620](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1620), [@jrakas-dev](https://github.com/jrakas-dev))
 * Clean install openssl and standardize eks distro ([#1619](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1619), [@dankova22](https://github.com/dankova22))
 * Fix centos image in pod config examples ([#1611](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1611), [@thakurmi](https://github.com/thakurmi))
 # V2.1.7

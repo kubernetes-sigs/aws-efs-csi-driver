@@ -10,15 +10,20 @@ metadata:
     {{ toYaml . | nindent 4 }}
     {{- end }}
 spec:
+  {{- if or (kindIs "float64" .Values.node.revisionHistoryLimit) (kindIs "int64" .Values.node.revisionHistoryLimit) }}
+  revisionHistoryLimit: {{ .Values.node.revisionHistoryLimit }}
+  {{- end }}
+  {{- if .Values.node.rollingUpdate }}
+  updateStrategy: 
+    type: RollingUpdate
+    rollingUpdate:
+      {{- toYaml .Values.node.rollingUpdate | nindent 6 }}
+  {{- end }}
   selector:
     matchLabels:
       app: efs-csi-node
       app.kubernetes.io/name: {{ include "aws-efs-csi-driver.name" . }}
       app.kubernetes.io/instance: {{ .Release.Name }}
-  {{- with .Values.node.updateStrategy }}
-  updateStrategy:
-    {{ toYaml . | nindent 4 }}
-  {{- end }}
   template:
     metadata:
       labels:
@@ -85,6 +90,18 @@ spec:
             - --max-inflight-mount-calls={{ hasKey .Values.node "maxInflightMountCalls" | ternary .Values.node.maxInflightMountCalls 10 }}
             - --volume-attach-limit-opt-in={{ hasKey .Values.node "volumeAttachLimitOptIn" | ternary .Values.node.volumeAttachLimitOptIn false }}
             - --volume-attach-limit={{ hasKey .Values.node "volumeAttachLimit" | ternary .Values.node.volumeAttachLimit 20 }}
+            - --force-unmount-after-timeout={{ hasKey .Values.node "forceUnmountAfterTimeout" | ternary .Values.node.forceUnmountAfterTimeout false }}
+            - --unmount-timeout={{ hasKey .Values.node "unmountTimeout" | ternary .Values.node.unmountTimeout "30s" }}
+            - --debug-logs={{ .Values.debugLogs }}
+            - --efs-cloudwatch-log-enabled={{ hasKey .Values.node "efsCloudWatchLogEnabled" | ternary .Values.node.efsCloudWatchLogEnabled false }}
+            - --s3files-cloudwatch-log-enabled={{ hasKey .Values.node "s3filesCloudWatchLogEnabled" | ternary .Values.node.s3filesCloudWatchLogEnabled true }}
+            - --s3files-cloudwatch-metrics-enabled={{ hasKey .Values.node "s3filesCloudWatchMetricsEnabled" | ternary .Values.node.s3filesCloudWatchMetricsEnabled true }}
+            {{- if .Values.node.efsUtilsConfOverrides }}
+            - --efs-utils-conf-overrides={{ .Values.node.efsUtilsConfOverrides }}
+            {{- end }}
+            {{- if .Values.node.s3filesUtilsConfOverrides }}
+            - --s3files-utils-conf-overrides={{ .Values.node.s3filesUtilsConfOverrides }}
+            {{- end }}
           env:
             - name: CSI_ENDPOINT
               value: unix:/csi/csi.sock
@@ -92,8 +109,18 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
+            - name: CSI_NODE_MEMORY_LIMIT
+              valueFrom:
+                resourceFieldRef:
+                  containerName: efs-plugin
+                  divisor: "0"
+                  resource: limits.memory
             {{- if .Values.useFIPS }}
             - name: AWS_USE_FIPS_ENDPOINT
+              value: "true"
+            {{- end }}
+            {{- if .Values.node.serviceAccount.disableMutation }}
+            - name: DISABLE_TAINT_WATCHER
               value: "true"
             {{- end }}
             - name: PORT_RANGE_UPPER_BOUND
