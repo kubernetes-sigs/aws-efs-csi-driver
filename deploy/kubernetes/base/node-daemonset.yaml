@@ -78,6 +78,7 @@ spec:
               valueFrom:
                 resourceFieldRef:
                   containerName: efs-plugin
+                  divisor: "0"
                   resource: limits.memory
             - name: PORT_RANGE_UPPER_BOUND
               value: "21049"
