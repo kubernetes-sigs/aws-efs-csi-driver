@@ -35,8 +35,15 @@ spec:
         {{- with .Values.controller.podLabels }}
         {{ toYaml . | nindent 8 }}
         {{- end }}
-      {{- with .Values.controller.podAnnotations }}
-      annotations: {{- toYaml . | nindent 8 }}
+      {{- if or .Values.controller.podAnnotations (and .Values.controller.enableMetrics .Values.controller.enablePrometheusAnnotations) }}
+      annotations:
+        {{- with .Values.controller.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+        {{- if and .Values.controller.enableMetrics .Values.controller.enablePrometheusAnnotations }}
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "3301"
+        {{- end }}
       {{- end }}
     spec:
       {{- if hasKey .Values.controller "hostNetwork" }}
@@ -85,6 +92,9 @@ spec:
             - --v={{ .Values.controller.logLevel }}
             - --delete-access-point-root-dir={{ hasKey .Values.controller "deleteAccessPointRootDir" | ternary .Values.controller.deleteAccessPointRootDir false }}
             - --debug-logs={{ .Values.debugLogs }}
+            {{- if .Values.controller.enableMetrics }}
+            - --http-endpoint=0.0.0.0:3301
+            {{- end }}
           env:
             - name: CSI_ENDPOINT
               value: unix:///var/lib/csi/sockets/pluginproxy/csi.sock
@@ -115,6 +125,11 @@ spec:
             - name: healthz
               containerPort: {{ .Values.controller.healthPort }}
               protocol: TCP
+            {{- if .Values.controller.enableMetrics }}
+            - name: metrics
+              containerPort: 3301
+              protocol: TCP
+            {{- end }}
           {{- with .Values.controller.livenessProbe }}
           livenessProbe:
             {{- toYaml . | nindent 12 }}
