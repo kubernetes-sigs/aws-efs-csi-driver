@@ -24,6 +24,7 @@ import (
 	"k8s.io/klog/v2"
 
 	"github.com/kubernetes-sigs/aws-efs-csi-driver/pkg/driver"
+	"github.com/kubernetes-sigs/aws-efs-csi-driver/pkg/metrics"
 )
 
 // etcAmazonEfs is the non-negotiable directory that the mount.efs will use for config files. We will create a symlink here.
@@ -65,6 +66,12 @@ func main() {
 	if err != nil {
 		klog.Fatalln(err)
 	}
+	if *options.HTTPEndpoint != "" {
+		r := metrics.InitializeRecorder()
+		r.InitializeAPIMetrics()
+		r.InitializeMetricsHandler(*options.HTTPEndpoint, "/metrics", *options.MetricsCertFile, *options.MetricsKeyFile)
+	}
+
 	drv := driver.NewDriver(options, etcAmazonEfs)
 	if err := drv.Run(); err != nil {
 		klog.Fatalln(err)

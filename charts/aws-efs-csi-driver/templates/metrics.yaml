@@ -1,0 +1,42 @@
+{{- if .Values.controller.enableMetrics }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: efs-csi-controller
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: efs-csi-controller
+    {{- include "aws-efs-csi-driver.labels" . | nindent 4 }}
+spec:
+  selector:
+    app: efs-csi-controller
+    {{- include "aws-efs-csi-driver.selectorLabels" . | nindent 4 }}
+  ports:
+  - name: metrics
+    port: 3301
+    targetPort: 3301
+    protocol: TCP
+{{- if .Values.controller.serviceMonitor.enabled }}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: efs-csi-controller
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: efs-csi-controller
+    {{- include "aws-efs-csi-driver.labels" . | nindent 4 }}
+spec:
+  endpoints:
+  - interval: 15s
+    path: /metrics
+    port: metrics
+  namespaceSelector:
+    matchNames:
+      - {{ .Release.Namespace }}
+  selector:
+    matchLabels:
+      app: efs-csi-controller
+{{- end }}
+{{- end }}
