@@ -6,6 +6,7 @@ iam:
         name: efs-csi-node-sa
         namespace: kube-system
       attachPolicyARNs:
+      - arn:aws:iam::aws:policy/AmazonS3FilesClientFullAccess
       - arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess
       - arn:aws:iam::aws:policy/AmazonElasticFileSystemsUtils
     - metadata:
