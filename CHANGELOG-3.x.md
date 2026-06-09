@@ -23,3 +23,8 @@
 * Use pagination for EFS DescribeAccessPoints ([#1876](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1876), [@DavidXU12345](https://github.com/DavidXU12345))
 * Add --efs-utils-conf-overrides and --s3files-utils-conf-overrides CLI flags ([#1880](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1880), [@DavidXU12345](https://github.com/DavidXU12345))
 * Upgrade go version to fix CVE ([#1885](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1885), [@DavidXU12345](https://github.com/DavidXU12345))
+
+# V3.3.0
+* feat: add configurable health probes for controller and node components ([#1720](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1720), [@vagharsh](https://github.com/vagharsh))
+* fix(e2e): validate encryptInTransit via efs-proxy --tls flag ([#1878](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1878), [@YangjinanHu](https://github.com/YangjinanHu))
+* fix: add explicit divisor to resourceFieldRef to prevent perpetual diff ([#1899](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1899), [@DavidXU12345](https://github.com/DavidXU12345))
