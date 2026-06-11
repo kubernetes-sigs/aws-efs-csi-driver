@@ -37,6 +37,9 @@ type Options struct {
 	S3FilesCloudWatchMetricsEnabled *bool
 	EfsUtilsConfOverrides           *string
 	S3FilesUtilsConfOverrides       *string
+	HTTPEndpoint    *string
+	MetricsCertFile *string
+	MetricsKeyFile  *string
 
 	efsUtilsConfOverridesParsed     []ConfOverride
 	s3filesUtilsConfOverridesParsed []ConfOverride
@@ -68,6 +71,9 @@ func NewOptions() *Options {
 		S3FilesCloudWatchMetricsEnabled: flag.Bool("s3files-cloudwatch-metrics-enabled", true, "Enable CloudWatch metrics emission for S3 files in s3files-utils.conf."),
 		EfsUtilsConfOverrides:           flag.String("efs-utils-conf-overrides", "", "Comma-separated section:key=value overrides applied to efs-utils.conf. These take precedence over other flags that control the same config (e.g., efs-cloudwatch-log-enabled)."),
 		S3FilesUtilsConfOverrides:       flag.String("s3files-utils-conf-overrides", "", "Comma-separated section:key=value overrides applied to s3files-utils.conf. These take precedence over other flags that control the same config (e.g., s3files-cloudwatch-log-enabled, s3files-cloudwatch-metrics-enabled)."),
+		HTTPEndpoint:    flag.String("http-endpoint", "", "TCP network address for the Prometheus metrics HTTP server (e.g. 0.0.0.0:3301). Disabled when empty."),
+		MetricsCertFile: flag.String("metrics-cert-file", "", "Path to the TLS certificate file for the metrics server. Requires --metrics-key-file."),
+		MetricsKeyFile:  flag.String("metrics-key-file", "", "Path to the TLS private key file for the metrics server. Requires --metrics-cert-file."),
 	}
 }
 
