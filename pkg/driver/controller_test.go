@@ -972,6 +972,73 @@ func TestCreateVolume(t *testing.T) {
 			},
 		},
 		{
+			name: "Fail: reuseAccessPoint precheck rejects existing access point that violates requested StorageClass basePath and UID/GID",
+			testFunc: func(t *testing.T) {
+				// reuseAccessPoint precheck must validate the existing access
+				// point against the requested StorageClass constraints instead
+				// of binding to it unconditionally. A requester who can choose
+				// the PVC name (which derives the reuse client token) must not
+				// be able to bind to an access point rooted under a different
+				// base path or with a different POSIX identity.
+				mockCtl := gomock.NewController(t)
+				mockCloud := mocks.NewMockCloud(mockCtl)
+
+				driver := &Driver{
+					endpoint:     endpoint,
+					cloud:        mockCloud,
+					gidAllocator: NewGidAllocator(),
+					lockManager:  NewLockManagerMap(),
+					tags:         parseTagsFromStr(""),
+				}
+				pvcNameVal := "shared-claim"
+
+				req := &csi.CreateVolumeRequest{
+					Name: volumeName,
+					VolumeCapabilities: []*csi.VolumeCapability{
+						stdVolCap,
+					},
+					CapacityRange: &csi.CapacityRange{
+						RequiredBytes: capacityRange,
+					},
+					Parameters: map[string]string{
+						ProvisioningMode:    "efs-ap",
+						FsId:                fsId,
+						BasePath:            "/tenant-a",
+						Uid:                 "1000",
+						Gid:                 "1000",
+						DirectoryPerms:      "777",
+						ReuseAccessPointKey: "true",
+						PvcNameKey:          pvcNameVal,
+					},
+				}
+
+				ctx := context.Background()
+
+				// Existing access point belonging to a different tenant: rooted
+				// under /tenant-b and owned by uid/gid 2000.
+				existingAP := &cloud.AccessPoint{
+					AccessPointId:      apId,
+					FileSystemId:       fsId,
+					AccessPointRootDir: "/tenant-b/shared-claim",
+					PosixUser: &cloud.PosixUser{
+						Gid: 2000,
+						Uid: 2000,
+					},
+				}
+				mockCloud.EXPECT().FindAccessPointByClientToken(gomock.Eq(ctx), gomock.Any(), gomock.Eq(fsId), gomock.Eq(util.FileSystemTypeEFS)).Return(existingAP, nil)
+
+				_, err := driver.CreateVolume(ctx, req)
+				if err == nil {
+					t.Fatal("CreateVolume should have rejected the mismatched existing access point")
+				}
+				if status.Code(err) != codes.AlreadyExists {
+					t.Fatalf("Expected error code %v, got %v (err: %v)", codes.AlreadyExists, status.Code(err), err)
+				}
+
+				mockCtl.Finish()
+			},
+		},
+		{
 			name: "Success: reuseAccessPointName is true with existing access point not found",
 			testFunc: func(t *testing.T) {
 				mockCtl := gomock.NewController(t)

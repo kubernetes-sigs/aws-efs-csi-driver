@@ -142,12 +142,14 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 		azName                 string
 		basePath               string
 		gid                    int64
+		gidSpecified           bool
 		gidMin                 int64
 		gidMax                 int64
 		localCloud             cloud.Cloud
 		provisioningMode       string
 		roleArn                string
 		uid                    int64
+		uidSpecified           bool
 		crossAccountDNSEnabled bool
 		fsType                 util.FileSystemType
 	)
@@ -202,6 +204,13 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 		return nil, err
 	}
 
+	// Parse the StorageClass-driven access point constraints (base path, POSIX
+	// uid/gid and gid range).
+	basePath, uid, uidSpecified, gid, gidSpecified, gidMin, gidMax, err = parseAccessPointConstraints(volumeParams)
+	if err != nil {
+		return nil, err
+	}
+
 	var accessPoint *cloud.AccessPoint
 	//if reuseAccessPoint is true, check for AP with same Root Directory exists in efs
 	// if found reuse that AP
@@ -213,6 +222,12 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 		if existingAP != nil {
 			//AP path already exists
 			klog.V(2).Infof("Existing AccessPoint found : %+v", existingAP)
+
+			// Enforce the same validation that the CreateAccessPoint ErrAlreadyExists path applies before reusing it.
+			if err = validateExistingAccessPoint(existingAP, basePath, gid, gidSpecified, uid, uidSpecified, gidMin, gidMax); err != nil {
+				return nil, status.Errorf(codes.AlreadyExists, "Invalid existing access point: %v", err)
+			}
+
 			accessPoint = &cloud.AccessPoint{
 				AccessPointId: existingAP.AccessPointId,
 				FileSystemId:  existingAP.FileSystemId,
@@ -242,67 +257,6 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 		}
 
 		accessPointsOptions.Tags = tags
-
-		uid = -1
-		var uidSpecified = false
-		if value, ok := volumeParams[Uid]; ok {
-			uid, err = strconv.ParseInt(value, 10, 64)
-			if err != nil {
-				return nil, status.Errorf(codes.InvalidArgument, "Failed to parse invalid %v: %v", Uid, err)
-			}
-			if uid < 0 {
-				return nil, status.Errorf(codes.InvalidArgument, "%v must be greater or equal than 0", Uid)
-			}
-			uidSpecified = true
-		}
-
-		gid = -1
-		var gidSpecified = false
-		if value, ok := volumeParams[Gid]; ok {
-			gid, err = strconv.ParseInt(value, 10, 64)
-			if err != nil {
-				return nil, status.Errorf(codes.InvalidArgument, "Failed to parse invalid %v: %v", Gid, err)
-			}
-			if gid < 0 {
-				return nil, status.Errorf(codes.InvalidArgument, "%v must be greater or equal than 0", Gid)
-			}
-			gidSpecified = true
-		}
-
-		if value, ok := volumeParams[GidMin]; ok {
-			gidMin, err = strconv.ParseInt(value, 10, 64)
-			if err != nil {
-				return nil, status.Errorf(codes.InvalidArgument, "Failed to parse invalid %v: %v", GidMin, err)
-			}
-			if gidMin <= 0 {
-				return nil, status.Errorf(codes.InvalidArgument, "%v must be greater than 0", GidMin)
-			}
-		}
-
-		if value, ok := volumeParams[GidMax]; ok {
-			// Ensure GID min is provided with GID max
-			if gidMin == 0 {
-				return nil, status.Errorf(codes.InvalidArgument, "Missing %v parameter", GidMin)
-			}
-			gidMax, err = strconv.ParseInt(value, 10, 64)
-			if err != nil {
-				return nil, status.Errorf(codes.InvalidArgument, "Failed to parse invalid %v: %v", GidMax, err)
-			}
-			if gidMax <= gidMin {
-				return nil, status.Errorf(codes.InvalidArgument, "%v must be greater than %v", GidMax, GidMin)
-			}
-		} else {
-			// Ensure GID max is provided with GID min
-			if gidMin != 0 {
-				return nil, status.Errorf(codes.InvalidArgument, "Missing %v parameter", GidMax)
-			}
-		}
-
-		// Assign default GID ranges if not provided
-		if gidMin == 0 && gidMax == 0 {
-			gidMin = DefaultGidMin
-			gidMax = DefaultGidMax
-		}
 
 		if value, ok := volumeParams[DirectoryPerms]; ok {
 			accessPointsOptions.DirectoryPerms = value
@@ -343,10 +297,6 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 		}
 		if gid == -1 {
 			gid = allocatedGid
-		}
-
-		if value, ok := volumeParams[BasePath]; ok {
-			basePath = value
 		}
 
 		rootDirName := volName
@@ -831,6 +781,75 @@ func validatePathRequirements(proposedPath string) (bool, error) {
 	} else {
 		return true, nil
 	}
+}
+
+// parseAccessPointConstraints parses the StorageClass parameters that define
+// the requested access point's base path and POSIX identity.
+func parseAccessPointConstraints(volumeParams map[string]string) (basePath string, uid int64, uidSpecified bool, gid int64, gidSpecified bool, gidMin int64, gidMax int64, err error) {
+	uid = -1
+	if value, ok := volumeParams[Uid]; ok {
+		uid, err = strconv.ParseInt(value, 10, 64)
+		if err != nil {
+			return "", 0, false, 0, false, 0, 0, status.Errorf(codes.InvalidArgument, "Failed to parse invalid %v: %v", Uid, err)
+		}
+		if uid < 0 {
+			return "", 0, false, 0, false, 0, 0, status.Errorf(codes.InvalidArgument, "%v must be greater or equal than 0", Uid)
+		}
+		uidSpecified = true
+	}
+
+	gid = -1
+	if value, ok := volumeParams[Gid]; ok {
+		gid, err = strconv.ParseInt(value, 10, 64)
+		if err != nil {
+			return "", 0, false, 0, false, 0, 0, status.Errorf(codes.InvalidArgument, "Failed to parse invalid %v: %v", Gid, err)
+		}
+		if gid < 0 {
+			return "", 0, false, 0, false, 0, 0, status.Errorf(codes.InvalidArgument, "%v must be greater or equal than 0", Gid)
+		}
+		gidSpecified = true
+	}
+
+	if value, ok := volumeParams[GidMin]; ok {
+		gidMin, err = strconv.ParseInt(value, 10, 64)
+		if err != nil {
+			return "", 0, false, 0, false, 0, 0, status.Errorf(codes.InvalidArgument, "Failed to parse invalid %v: %v", GidMin, err)
+		}
+		if gidMin <= 0 {
+			return "", 0, false, 0, false, 0, 0, status.Errorf(codes.InvalidArgument, "%v must be greater than 0", GidMin)
+		}
+	}
+
+	if value, ok := volumeParams[GidMax]; ok {
+		// Ensure GID min is provided with GID max
+		if gidMin == 0 {
+			return "", 0, false, 0, false, 0, 0, status.Errorf(codes.InvalidArgument, "Missing %v parameter", GidMin)
+		}
+		gidMax, err = strconv.ParseInt(value, 10, 64)
+		if err != nil {
+			return "", 0, false, 0, false, 0, 0, status.Errorf(codes.InvalidArgument, "Failed to parse invalid %v: %v", GidMax, err)
+		}
+		if gidMax <= gidMin {
+			return "", 0, false, 0, false, 0, 0, status.Errorf(codes.InvalidArgument, "%v must be greater than %v", GidMax, GidMin)
+		}
+	} else {
+		// Ensure GID max is provided with GID min
+		if gidMin != 0 {
+			return "", 0, false, 0, false, 0, 0, status.Errorf(codes.InvalidArgument, "Missing %v parameter", GidMax)
+		}
+	}
+
+	// Assign default GID ranges if not provided
+	if gidMin == 0 && gidMax == 0 {
+		gidMin = DefaultGidMin
+		gidMax = DefaultGidMax
+	}
+
+	if value, ok := volumeParams[BasePath]; ok {
+		basePath = value
+	}
+
+	return basePath, uid, uidSpecified, gid, gidSpecified, gidMin, gidMax, nil
 }
 
 func get64LenHash(text string) string {
