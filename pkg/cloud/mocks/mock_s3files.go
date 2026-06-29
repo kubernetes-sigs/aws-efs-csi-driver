@@ -114,3 +114,23 @@ func (mr *MockS3FilesMockRecorder) ListFileSystems(arg0, arg1 interface{}, arg2 
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListFileSystems", reflect.TypeOf((*MockS3Files)(nil).ListFileSystems), varargs...)
 }
+
+// ListMountTargets mocks base method.
+func (m *MockS3Files) ListMountTargets(arg0 context.Context, arg1 *s3files.ListMountTargetsInput, arg2 ...func(*s3files.Options)) (*s3files.ListMountTargetsOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "ListMountTargets", varargs...)
+	ret0, _ := ret[0].(*s3files.ListMountTargetsOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListMountTargets indicates an expected call of ListMountTargets.
+func (mr *MockS3FilesMockRecorder) ListMountTargets(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListMountTargets", reflect.TypeOf((*MockS3Files)(nil).ListMountTargets), varargs...)
+}

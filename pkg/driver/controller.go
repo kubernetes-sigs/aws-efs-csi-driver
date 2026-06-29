@@ -531,6 +531,16 @@ func (d *Driver) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeRequest)
 			}
 		}
 
+		// Pass the AZ-ID explicitly so the S3 Files mount works without IMDS (e.g. when http_put_response_hop_limit=1).
+		if fsType == util.FileSystemTypeS3Files {
+			mountTarget, err := localCloud.DescribeMountTargets(ctx, fileSystemId, "", fsType)
+			if err != nil {
+				klog.Warningf("DeleteVolume: failed to describe S3 Files mount targets for %v: %v", fileSystemId, err)
+			} else if mountTarget != nil && mountTarget.AZId != "" {
+				mountOptions = append(mountOptions, "azid="+mountTarget.AZId)
+			}
+		}
+
 		// Create the target directory, This won't fail if it already exists
 		if err := d.mounter.MakeDir(fsRoot); err != nil {
 			return nil, status.Errorf(codes.Internal, "Could not create dir %q: %v", fsRoot, err)

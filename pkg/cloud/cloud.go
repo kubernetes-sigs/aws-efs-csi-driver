@@ -112,6 +112,7 @@ type S3Files interface {
 	DeleteAccessPoint(context.Context, *s3files.DeleteAccessPointInput, ...func(*s3files.Options)) (*s3files.DeleteAccessPointOutput, error)
 	ListAccessPoints(context.Context, *s3files.ListAccessPointsInput, ...func(*s3files.Options)) (*s3files.ListAccessPointsOutput, error)
 	ListFileSystems(context.Context, *s3files.ListFileSystemsInput, ...func(*s3files.Options)) (*s3files.ListFileSystemsOutput, error)
+	ListMountTargets(context.Context, *s3files.ListMountTargetsInput, ...func(*s3files.Options)) (*s3files.ListMountTargetsOutput, error)
 }
 
 type Cloud interface {
@@ -701,7 +702,41 @@ func (c *cloud) DescribeMountTargets(ctx context.Context, fileSystemId, azName s
 			IPAddress:     *mountTarget.IpAddress,
 		}, nil
 	case util.FileSystemTypeS3Files:
-		return nil, fmt.Errorf("DescribeMountTargets is not implemented for s3files in CSI Driver")
+		var nextToken *string
+		for {
+			listMtInput := &s3files.ListMountTargetsInput{
+				FileSystemId: &fileSystemId,
+				NextToken:    nextToken,
+			}
+			klog.V(5).Infof("Calling ListMountTargets with input: %+v", *listMtInput)
+			res, err := c.s3files.ListMountTargets(ctx, listMtInput, func(o *s3files.Options) {
+				o.Retryer = c.rm.describeMountTargetsRetryer
+			})
+			if err != nil {
+				if isAccessDenied(err) {
+					return nil, ErrAccessDenied
+				}
+				if isS3FilesFileSystemNotFound(err) {
+					return nil, ErrNotFound
+				}
+				return nil, fmt.Errorf("List S3 Files Mount Targets failed: %v", err)
+			}
+			for _, mt := range res.MountTargets {
+				if mt.Status != s3filestypes.LifeCycleStateAvailable || mt.AvailabilityZoneId == nil {
+					continue
+				}
+				target := &MountTarget{AZId: *mt.AvailabilityZoneId}
+				if mt.MountTargetId != nil {
+					target.MountTargetId = *mt.MountTargetId
+				}
+				return target, nil
+			}
+			if res.NextToken == nil {
+				break
+			}
+			nextToken = res.NextToken
+		}
+		return nil, fmt.Errorf("No available mount targets for S3 Files file system %v", fileSystemId)
 	default:
 		return nil, fmt.Errorf("Unsupported fsType: %v", err)
 	}

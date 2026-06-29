@@ -1792,18 +1792,59 @@ func TestDescribeFileSystemS3Files(t *testing.T) {
 
 func TestDescribeMountTargetsS3Files(t *testing.T) {
 	var (
-		fileSystemId = "fs-abcd1234"
-		az           = "us-east-1a"
+		fileSystemId  = "fs-abcd1234"
+		az            = "us-east-1a"
+		azId          = "use1-az1"
+		mountTargetId = "fsmt-abcd1234"
 	)
 
 	testCases := []struct {
-		name        string
-		expectError errtyp
+		name         string
+		listOutput   *s3files.ListMountTargetsOutput
+		listErr      error
+		expectError  errtyp
+		expectedAZId string
 	}{
 		{
-			name: "S3Files Fail: DescribeMountTargets not implemented",
+			name: "S3Files Success: returns available mount target AZ-ID",
+			listOutput: &s3files.ListMountTargetsOutput{
+				MountTargets: []s3filestypes.ListMountTargetsDescription{
+					{
+						MountTargetId:      aws.String(mountTargetId),
+						AvailabilityZoneId: aws.String(azId),
+						Status:             s3filestypes.LifeCycleStateAvailable,
+					},
+				},
+			},
+			expectedAZId: azId,
+		},
+		{
+			name: "S3Files Success: IPv6-only mount target",
+			listOutput: &s3files.ListMountTargetsOutput{
+				MountTargets: []s3filestypes.ListMountTargetsDescription{
+					{
+						MountTargetId:      aws.String(mountTargetId),
+						AvailabilityZoneId: aws.String(azId),
+						Ipv6Address:        aws.String("2600:1f18::1"),
+						Status:             s3filestypes.LifeCycleStateAvailable,
+					},
+				},
+			},
+			expectedAZId: azId,
+		},
+		{
+			name: "S3Files Skips non-available mount targets",
+			listOutput: &s3files.ListMountTargetsOutput{
+				MountTargets: []s3filestypes.ListMountTargetsDescription{
+					{
+						MountTargetId:      aws.String(mountTargetId),
+						AvailabilityZoneId: aws.String(azId),
+						Status:             s3filestypes.LifeCycleStateCreating,
+					},
+				},
+			},
 			expectError: errtyp{
-				message: "DescribeMountTargets is not implemented for s3files in CSI Driver",
+				message: "No available mount targets for S3 Files file system " + fileSystemId,
 			},
 		},
 	}
@@ -1817,11 +1858,17 @@ func TestDescribeMountTargetsS3Files(t *testing.T) {
 			c := &cloud{
 				efs:     mockEfs,
 				s3files: mockS3Files,
+				rm:      newRetryManager(false),
 			}
 			ctx := context.Background()
 
+			mockS3Files.EXPECT().ListMountTargets(gomock.Any(), gomock.Any(), gomock.Any()).Return(tc.listOutput, tc.listErr)
+
 			res, err := c.DescribeMountTargets(ctx, fileSystemId, az, util.FileSystemTypeS3Files)
 			testResult(t, "DescribeMountTargets", res, err, tc.expectError)
+			if tc.expectError.message == "" && res.AZId != tc.expectedAZId {
+				t.Fatalf("Expected AZ-ID %s, got %s", tc.expectedAZId, res.AZId)
+			}
 		})
 	}
 }
