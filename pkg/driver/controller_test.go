@@ -848,6 +848,230 @@ func TestCreateVolume(t *testing.T) {
 			},
 		},
 		{
+			name: "Success: enableTagging=true keeps the default cluster tag",
+			testFunc: func(t *testing.T) {
+				// GIVEN a StorageClass with enableTagging=true and no operator --tags
+				mockCtl := gomock.NewController(t)
+				mockCloud := mocks.NewMockCloud(mockCtl)
+
+				driver := &Driver{
+					endpoint:     endpoint,
+					cloud:        mockCloud,
+					gidAllocator: NewGidAllocator(),
+					lockManager:  NewLockManagerMap(),
+				}
+
+				req := &csi.CreateVolumeRequest{
+					Name: volumeName,
+					VolumeCapabilities: []*csi.VolumeCapability{
+						stdVolCap,
+					},
+					CapacityRange: &csi.CapacityRange{
+						RequiredBytes: capacityRange,
+					},
+					Parameters: map[string]string{
+						ProvisioningMode: "efs-ap",
+						FsId:             fsId,
+						DirectoryPerms:   "777",
+						BasePath:         "test",
+						Uid:              "1000",
+						Gid:              "1001",
+						"enableTagging":  "true",
+					},
+				}
+
+				ctx := context.Background()
+				accessPoint := &cloud.AccessPoint{
+					AccessPointId: apId,
+					FileSystemId:  fsId,
+				}
+				// THEN the access point is still stamped with the default cluster tag
+				// (customers key IAM condition keys on it, so it must stay present)
+				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Eq(volumeName), gomock.Any(), gomock.Eq(util.FileSystemTypeEFS)).Return(accessPoint, nil).
+					Do(func(ctx context.Context, clientToken string, accessPointsOptions *cloud.AccessPointOptions, fsType util.FileSystemType) {
+						if accessPointsOptions.Tags[DefaultTagKey] != DefaultTagValue {
+							t.Fatalf("Expected default tag %q=%q to be present, got tags: %v", DefaultTagKey, DefaultTagValue, accessPointsOptions.Tags)
+						}
+					})
+
+				// WHEN a volume is provisioned
+				res, err := driver.CreateVolume(ctx, req)
+
+				if err != nil {
+					t.Fatalf("CreateVolume failed: %v", err)
+				}
+				if res.Volume == nil {
+					t.Fatal("Volume is nil")
+				}
+				if res.Volume.VolumeId != volumeId {
+					t.Fatalf("Volume Id mismatched. Expected: %v, Actual: %v", volumeId, res.Volume.VolumeId)
+				}
+				mockCtl.Finish()
+			},
+		},
+		{
+			name: "Success: enableTagging=false skips all access point tagging",
+			testFunc: func(t *testing.T) {
+				// GIVEN a StorageClass with enableTagging=false and no operator --tags
+				mockCtl := gomock.NewController(t)
+				mockCloud := mocks.NewMockCloud(mockCtl)
+
+				driver := &Driver{
+					endpoint:     endpoint,
+					cloud:        mockCloud,
+					gidAllocator: NewGidAllocator(),
+					lockManager:  NewLockManagerMap(),
+				}
+
+				req := &csi.CreateVolumeRequest{
+					Name: volumeName,
+					VolumeCapabilities: []*csi.VolumeCapability{
+						stdVolCap,
+					},
+					CapacityRange: &csi.CapacityRange{
+						RequiredBytes: capacityRange,
+					},
+					Parameters: map[string]string{
+						ProvisioningMode: "efs-ap",
+						FsId:             fsId,
+						DirectoryPerms:   "777",
+						BasePath:         "test",
+						Uid:              "1000",
+						Gid:              "1001",
+						"enableTagging":  "false",
+					},
+				}
+
+				ctx := context.Background()
+				accessPoint := &cloud.AccessPoint{
+					AccessPointId: apId,
+					FileSystemId:  fsId,
+				}
+				// THEN the access point is created with no tags at all, so the driver
+				// issues no Tagris tagging write (this is the EFS-82385 relief path)
+				mockCloud.EXPECT().CreateAccessPoint(gomock.Eq(ctx), gomock.Eq(volumeName), gomock.Any(), gomock.Eq(util.FileSystemTypeEFS)).Return(accessPoint, nil).
+					Do(func(ctx context.Context, clientToken string, accessPointsOptions *cloud.AccessPointOptions, fsType util.FileSystemType) {
+						if len(accessPointsOptions.Tags) != 0 {
+							t.Fatalf("Expected no tags when enableTagging=false, got: %v", accessPointsOptions.Tags)
+						}
+					})
+
+				// WHEN a volume is provisioned
+				res, err := driver.CreateVolume(ctx, req)
+
+				if err != nil {
+					t.Fatalf("CreateVolume failed: %v", err)
+				}
+				if res.Volume == nil {
+					t.Fatal("Volume is nil")
+				}
+				if res.Volume.VolumeId != volumeId {
+					t.Fatalf("Volume Id mismatched. Expected: %v, Actual: %v", volumeId, res.Volume.VolumeId)
+				}
+				mockCtl.Finish()
+			},
+		},
+		{
+			name: "Fail: enableTagging=false with operator --tags returns InvalidArgument",
+			testFunc: func(t *testing.T) {
+				// GIVEN enableTagging=false but the operator also configured --tags
+				// (a contradiction: "don't tag" vs "tag with these")
+				mockCtl := gomock.NewController(t)
+				mockCloud := mocks.NewMockCloud(mockCtl)
+
+				driver := &Driver{
+					endpoint:     endpoint,
+					cloud:        mockCloud,
+					gidAllocator: NewGidAllocator(),
+					lockManager:  NewLockManagerMap(),
+					tags:         parseTagsFromStr("cluster:efs"),
+				}
+
+				req := &csi.CreateVolumeRequest{
+					Name: volumeName,
+					VolumeCapabilities: []*csi.VolumeCapability{
+						stdVolCap,
+					},
+					CapacityRange: &csi.CapacityRange{
+						RequiredBytes: capacityRange,
+					},
+					Parameters: map[string]string{
+						ProvisioningMode: "efs-ap",
+						FsId:             fsId,
+						DirectoryPerms:   "777",
+						BasePath:         "test",
+						Uid:              "1000",
+						Gid:              "1001",
+						"enableTagging":  "false",
+					},
+				}
+
+				ctx := context.Background()
+
+				// WHEN a volume is provisioned
+				_, err := driver.CreateVolume(ctx, req)
+
+				// THEN it fails loud with InvalidArgument and never creates the AP
+				// (no CreateAccessPoint expectation is set on the mock)
+				if err == nil {
+					t.Fatal("CreateVolume did not fail")
+				}
+				if status.Code(err) != codes.InvalidArgument {
+					t.Fatalf("Did not throw InvalidArgument error, instead threw %v", err)
+				}
+				mockCtl.Finish()
+			},
+		},
+		{
+			name: "Fail: invalid enableTagging value returns InvalidArgument",
+			testFunc: func(t *testing.T) {
+				// GIVEN a StorageClass with a non-boolean enableTagging value
+				mockCtl := gomock.NewController(t)
+				mockCloud := mocks.NewMockCloud(mockCtl)
+
+				driver := &Driver{
+					endpoint:     endpoint,
+					cloud:        mockCloud,
+					gidAllocator: NewGidAllocator(),
+					lockManager:  NewLockManagerMap(),
+				}
+
+				req := &csi.CreateVolumeRequest{
+					Name: volumeName,
+					VolumeCapabilities: []*csi.VolumeCapability{
+						stdVolCap,
+					},
+					CapacityRange: &csi.CapacityRange{
+						RequiredBytes: capacityRange,
+					},
+					Parameters: map[string]string{
+						ProvisioningMode: "efs-ap",
+						FsId:             fsId,
+						DirectoryPerms:   "777",
+						BasePath:         "test",
+						Uid:              "1000",
+						Gid:              "1001",
+						"enableTagging":  "notabool",
+					},
+				}
+
+				ctx := context.Background()
+
+				// WHEN a volume is provisioned
+				_, err := driver.CreateVolume(ctx, req)
+
+				// THEN it fails with InvalidArgument and never creates the AP
+				// (no CreateAccessPoint expectation is set on the mock)
+				if err == nil {
+					t.Fatal("CreateVolume did not fail")
+				}
+				if status.Code(err) != codes.InvalidArgument {
+					t.Fatalf("Did not throw InvalidArgument error, instead threw %v", err)
+				}
+				mockCtl.Finish()
+			},
+		},
+		{
 			name: "Success: Normal flow with invalid tags",
 			testFunc: func(t *testing.T) {
 				mockCtl := gomock.NewController(t)

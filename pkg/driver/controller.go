@@ -49,6 +49,7 @@ const (
 	DefaultTagKey          = "efs.csi.aws.com/cluster"
 	DefaultTagValue        = "true"
 	DirectoryPerms         = "directoryPerms"
+	EnableTagging          = "enableTagging"
 	EnsureUniqueDirectory  = "ensureUniqueDirectory"
 	ExternalId             = "externalId"
 	FsId                   = "fileSystemId"
@@ -116,6 +117,23 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 		if err != nil {
 			return nil, status.Error(codes.InvalidArgument, "Invalid value for enforceZoneAffinity parameter")
 		}
+	}
+
+	// enableTagging defaults to true to preserve backward compatibility: the
+	// default efs.csi.aws.com/cluster tag is used by customers in IAM condition
+	// keys, so existing StorageClasses must keep tagging access points. Setting it
+	// to false skips access point tagging entirely, letting customers avoid the
+	// throughput limits of tagging every access point.
+	enableTagging := true
+	if enableTaggingStr, ok := volumeParams[EnableTagging]; ok {
+		enableTagging, err = strconv.ParseBool(enableTaggingStr)
+		if err != nil {
+			return nil, status.Error(codes.InvalidArgument, "Invalid value for enableTagging parameter")
+		}
+	}
+
+	if !enableTagging && len(d.tags) != 0 {
+		return nil, status.Error(codes.InvalidArgument, "enableTagging is false but the driver is configured with --tags; set enableTagging=true or remove the --tags flag")
 	}
 
 	if volName == "" {
@@ -244,19 +262,11 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 	}
 
 	if accessPoint == nil {
-		// Create tags
-		tags := map[string]string{
-			DefaultTagKey: DefaultTagValue,
+		if enableTagging {
+			accessPointsOptions.Tags = d.buildAccessPointTags()
+		} else {
+			klog.V(4).Infof("enableTagging=false: skipping access point tagging for volume %s", volName)
 		}
-
-		// Append input tags to default tag
-		if len(d.tags) != 0 {
-			for k, v := range d.tags {
-				tags[k] = v
-			}
-		}
-
-		accessPointsOptions.Tags = tags
 
 		if value, ok := volumeParams[DirectoryPerms]; ok {
 			accessPointsOptions.DirectoryPerms = value
@@ -856,6 +866,18 @@ func get64LenHash(text string) string {
 	h := sha256.New()
 	h.Write([]byte(text))
 	return fmt.Sprintf("%x", h.Sum(nil))
+}
+
+// buildAccessPointTags returns the tags applied to a new access point: the
+// default cluster tag plus any operator-provided tags from the --tags flag.
+func (d *Driver) buildAccessPointTags() map[string]string {
+	tags := map[string]string{
+		DefaultTagKey: DefaultTagValue,
+	}
+	for k, v := range d.tags {
+		tags[k] = v
+	}
+	return tags
 }
 
 func validateExistingAccessPoint(existingAccessPoint *cloud.AccessPoint, basePath string, gid int64, gidSpecified bool, uid int64, uidSpecified bool, gidMin int64, gidMax int64) error {
