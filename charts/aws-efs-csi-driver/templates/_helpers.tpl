@@ -45,6 +45,16 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- end -}}
 
 {{/*
+Common selector labels
+*/}}
+{{- define "aws-efs-csi-driver.selectorLabels" -}}
+app.kubernetes.io/name: {{ include "aws-efs-csi-driver.name" . }}
+{{- if ne .Release.Name "kustomize" }}
+app.kubernetes.io/instance: {{ .Release.Name }}
+{{- end }}
+{{- end -}}
+
+{{/*
 Create a string out of the map for controller tags flag
 */}}
 {{- define "aws-efs-csi-driver.tags" -}}
