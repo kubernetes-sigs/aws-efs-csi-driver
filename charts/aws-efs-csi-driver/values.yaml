@@ -56,6 +56,15 @@ controller:
   name: efs-csi-controller
   # Number of replicas for the CSI controller service deployment
   replicaCount: 2
+  # enableMetrics enables the Prometheus metrics endpoint on the controller.
+  # When true, the driver exposes metrics on port 3301.
+  enableMetrics: false
+  # enablePrometheusAnnotations adds prometheus.io scrape annotations to the controller pod.
+  enablePrometheusAnnotations: true
+  # serviceMonitor controls creation of Prometheus Operator ServiceMonitor resources.
+  # Requires the Prometheus Operator CRDs to be installed.
+  serviceMonitor:
+    enabled: false
   # Number for the log level verbosity
   logLevel: 2
   # If set, add pv/pvc metadata to plugin create requests as parameters.
