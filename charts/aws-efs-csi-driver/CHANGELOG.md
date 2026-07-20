@@ -1,4 +1,6 @@
 # Helm chart
+# v4.4.0
+* Add `sidecars.csiProvisioner.env` to set additional environment variables on the csi-provisioner container
 # v4.3.0
 * Bump app/driver version to `v3.3.0`
 # v4.2.0
