@@ -28,3 +28,10 @@
 * feat: add configurable health probes for controller and node components ([#1720](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1720), [@vagharsh](https://github.com/vagharsh))
 * fix(e2e): validate encryptInTransit via efs-proxy --tls flag ([#1878](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1878), [@YangjinanHu](https://github.com/YangjinanHu))
 * fix: add explicit divisor to resourceFieldRef to prevent perpetual diff ([#1899](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1899), [@DavidXU12345](https://github.com/DavidXU12345))
+
+# V3.4.0
+* Add support for API metrics in the EFS CSI Driver ([#1903](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1903), [@andersvw](https://github.com/andersvw))
+* reuseAccessPoint precheck must validate the existing access point against the requested StorageClass constraints instead of binding to it unconditionally ([#1912](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1912), [@zmaguire](https://github.com/zmaguire))
+* feat: add enableTagging StorageClass parameter ([#1916](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1916), [@ABBennett](https://github.com/ABBennett))
+* chart: Add selectorLabels helper ([#1917](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1917), [@YangjinanHu](https://github.com/YangjinanHu))
+
