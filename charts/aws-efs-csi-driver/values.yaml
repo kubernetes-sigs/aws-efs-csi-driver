@@ -37,7 +37,7 @@ sidecars:
   csiProvisioner:
     image:
       repository: public.ecr.aws/csi-components/csi-provisioner
-      tag: v6.2.0-eksbuild.7
+      tag: v6.3.0-eksbuild.1
       pullPolicy: IfNotPresent
     resources: {}
     securityContext:
