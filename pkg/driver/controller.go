@@ -212,7 +212,17 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 			return nil, status.Error(codes.InvalidArgument, "Invalid value for reuseAccessPoint parameter")
 		}
 		if reuseAccessPoint {
-			clientToken = get64LenHash(volumeParams[PvcNameKey])
+			// The reuse client-token is derived from the PVC name only. When the
+			// external-provisioner runs without --extra-create-metadata the PVC name
+			// is not passed to the driver, so hashing it would collapse every
+			// reuse-enabled volume onto the sha256("") token and a single shared
+			// access point. Reject an empty identity instead of silently colliding.
+			pvcName := volumeParams[PvcNameKey]
+			if pvcName == "" {
+				return nil, status.Error(codes.InvalidArgument,
+					"reuseAccessPoint requires a non-empty PVC name; enable the external-provisioner --extra-create-metadata flag so the PVC name is passed to the driver")
+			}
+			clientToken = get64LenHash(pvcName)
 			klog.V(5).Infof("Client token : %s", clientToken)
 		}
 	}
