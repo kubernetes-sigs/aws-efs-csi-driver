@@ -560,7 +560,13 @@ func (d *Driver) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeRequest)
 		// Before removing, ensure the removal path exists and is a directory
 		apRootPath := fsRoot + accessPoint.AccessPointRootDir
 		if pathInfo, err := d.mounter.Stat(apRootPath); err == nil && !os.IsNotExist(err) && pathInfo.IsDir() {
+			klog.Infof("DeleteVolume: DELETING root directory for access point %s on filesystem %s", accessPointId, fileSystemId)
 			err = os.RemoveAll(apRootPath)
+			if err != nil {
+				klog.Errorf("DeleteVolume: RemoveAll for access point %s FAILED: %v", accessPointId, err)
+			} else {
+				klog.Infof("DeleteVolume: RemoveAll for access point %s SUCCEEDED - directory deleted from filesystem %s", accessPointId, fileSystemId)
+			}
 		}
 		if err != nil {
 			return nil, status.Errorf(codes.Internal, "Could not delete access point root directory %q: %v", accessPoint.AccessPointRootDir, err)
