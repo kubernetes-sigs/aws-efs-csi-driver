@@ -388,6 +388,12 @@ func (c *cloud) DescribeAccessPoint(ctx context.Context, accessPointId string, f
 			return nil, fmt.Errorf("DescribeAccessPoint failed. Expected exactly 1 access point in DescribeAccessPoint result. However, received %d access points", len(accessPoints))
 		}
 
+		// Verify the access point belongs to the expected filesystem.
+		if *accessPoints[0].FileSystemId != fileSystemId {
+			return nil, fmt.Errorf("access point %s does not belong to filesystem %s",
+				accessPointId, fileSystemId)
+		}
+
 		return &AccessPoint{
 			AccessPointId:      *accessPoints[0].AccessPointId,
 			FileSystemId:       *accessPoints[0].FileSystemId,
