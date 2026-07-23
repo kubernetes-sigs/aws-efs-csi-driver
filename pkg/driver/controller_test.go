@@ -1196,6 +1196,63 @@ func TestCreateVolume(t *testing.T) {
 			},
 		},
 		{
+			name: "Fail: reuseAccessPoint is true but PVC name is empty",
+			testFunc: func(t *testing.T) {
+				// When the external-provisioner runs without --extra-create-metadata
+				// the PVC name is not passed to the driver. Hashing an empty name
+				// would collapse every reuse-enabled volume onto the sha256("")
+				// token and a single shared access point, so the driver must reject
+				// the request instead of silently colliding.
+				mockCtl := gomock.NewController(t)
+				mockCloud := mocks.NewMockCloud(mockCtl)
+
+				driver := &Driver{
+					endpoint:     endpoint,
+					cloud:        mockCloud,
+					gidAllocator: NewGidAllocator(),
+					lockManager:  NewLockManagerMap(),
+					tags:         parseTagsFromStr(""),
+				}
+
+				req := &csi.CreateVolumeRequest{
+					Name: volumeName,
+					VolumeCapabilities: []*csi.VolumeCapability{
+						stdVolCap,
+					},
+					CapacityRange: &csi.CapacityRange{
+						RequiredBytes: capacityRange,
+					},
+					Parameters: map[string]string{
+						ProvisioningMode:    "efs-ap",
+						FsId:                fsId,
+						GidMin:              "1000",
+						GidMax:              "2000",
+						DirectoryPerms:      "777",
+						AzName:              "us-east-1a",
+						ReuseAccessPointKey: "true",
+						// PvcNameKey intentionally omitted (empty PVC name).
+					},
+				}
+
+				ctx := context.Background()
+
+				// No access point lookup or creation should occur; the driver must
+				// fail fast before touching the cloud.
+				_, err := driver.CreateVolume(ctx, req)
+
+				if err == nil {
+					t.Fatal("CreateVolume succeeded but expected an error for empty PVC name")
+				}
+
+				st, ok := status.FromError(err)
+				if !ok || st.Code() != codes.InvalidArgument {
+					t.Fatalf("Expected InvalidArgument error, got: %v", err)
+				}
+
+				mockCtl.Finish()
+			},
+		},
+		{
 			name: "Fail: reuseAccessPoint precheck rejects existing access point that violates requested StorageClass basePath and UID/GID",
 			testFunc: func(t *testing.T) {
 				// reuseAccessPoint precheck must validate the existing access
