@@ -520,6 +520,49 @@ func TestDescribeAccessPoint(t *testing.T) {
 				mockctl.Finish()
 			},
 		},
+		{
+			name: "Fail: Access point belongs to different filesystem",
+			testFunc: func(t *testing.T) {
+				mockctl, c, mockEfs, _ := setupTest(t)
+
+				differentFsId := "fs-differentfs"
+				output := &efs.DescribeAccessPointsOutput{
+					AccessPoints: []types.AccessPointDescription{
+						{
+							AccessPointArn: aws.String(arn),
+							AccessPointId:  aws.String(accessPointId),
+							ClientToken:    aws.String("test"),
+							FileSystemId:   aws.String(fsId),
+							OwnerId:        aws.String("1234567890"),
+							PosixUser: &types.PosixUser{
+								Gid: aws.Int64(gid),
+								Uid: aws.Int64(uid),
+							},
+							RootDirectory: &types.RootDirectory{
+								CreationInfo: &types.CreationInfo{
+									OwnerGid:    aws.Int64(gid),
+									OwnerUid:    aws.Int64(uid),
+									Permissions: aws.String(directoryPerms),
+								},
+								Path: aws.String(directoryPath),
+							},
+						},
+					},
+					NextToken: nil,
+				}
+				ctx := context.Background()
+				mockEfs.EXPECT().DescribeAccessPoints(gomock.Eq(ctx), gomock.Any(), gomock.Any()).Return(output, nil)
+				_, err := c.DescribeAccessPoint(ctx, accessPointId, differentFsId, util.FileSystemTypeEFS)
+				if err == nil {
+					t.Fatalf("DescribeAccessPoint should have failed when access point belongs to a different filesystem")
+				}
+				expectedErrMsg := "access point fsap-abcd1234 does not belong to filesystem fs-differentfs"
+				if err.Error() != expectedErrMsg {
+					t.Fatalf("Unexpected error message. Expected: %v, Actual: %v", expectedErrMsg, err.Error())
+				}
+				mockctl.Finish()
+			},
+		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, tc.testFunc)
