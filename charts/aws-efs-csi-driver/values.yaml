@@ -69,7 +69,13 @@ controller:
   logLevel: 2
   # If set, add pv/pvc metadata to plugin create requests as parameters.
   extraCreateMetadata: true
-  # Add additional tags to access points
+  # Add additional tags to access points.
+  # NOTE: Custom tags require the controller's IAM policy to allow the extra tag
+  # keys on elasticfilesystem:CreateAccessPoint. The AWS-managed
+  # AmazonEFSCSIDriverPolicy only permits the default efs.csi.aws.com/cluster tag
+  # key, so custom tags will cause access point creation to fail (PVCs stuck in
+  # Pending) unless you attach a custom policy. See docs/install.md
+  # ("Custom tags require additional IAM permissions").
   tags:
     {}
     # environment: prod

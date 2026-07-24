@@ -28,6 +28,37 @@ The driver requires IAM permission to talk to Amazon EFS or Amazon S3 Files to m
 * Using IAM role for service account – Create an [IAM Role for service accounts](https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts.html) with the required permissions in [iam-policy-example.json](./iam-policy-example.json). Uncomment annotations and put the IAM role ARN in the [service-account manifest](../deploy/kubernetes/base/controller-serviceaccount.yaml). For example steps, see [Create an IAM policy and role for Amazon EKS](./iam-policy-create.md).
 * Using IAM [instance profile](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_use_switch-role-ec2_instance-profiles.html) – Grant all the worker nodes with [required permissions](./iam-policy-example.json) by attaching the policy to the instance profile of the worker.
 
+### Custom tags require additional IAM permissions
+
+If you configure the controller with custom tags (the `--tags` flag, or `controller.tags` in the Helm chart), the IAM policy attached to the controller service account must allow those tag keys on `elasticfilesystem:CreateAccessPoint`. Otherwise dynamic provisioning fails: `CreateAccessPoint` is denied, and PVCs stay stuck in `Pending` with a permission error in the controller logs.
+
+This most commonly affects clusters using the AWS-managed `AmazonEFSCSIDriverPolicy`. That policy gates access point creation with a condition that only allows the default `efs.csi.aws.com/cluster` tag key:
+
+```json
+"Condition": {
+  "ForAllValues:StringEquals": {
+    "aws:TagKeys": "efs.csi.aws.com/cluster"
+  }
+}
+```
+
+Because `ForAllValues:StringEquals` requires *every* tag key in the request to be in the allow-list, adding any custom key (for example `environment`) makes the condition fail. To use custom tags, attach a customer-managed policy (or an inline policy) that grants `elasticfilesystem:CreateAccessPoint` without restricting the tag keys. The example policy in this repo, [iam-policy-example.json](./iam-policy-example.json), already does this — it only requires the default tag to be present and does not restrict additional keys:
+
+```json
+{
+  "Effect": "Allow",
+  "Action": "elasticfilesystem:CreateAccessPoint",
+  "Resource": "*",
+  "Condition": {
+    "StringLike": {
+      "aws:RequestTag/efs.csi.aws.com/cluster": "true"
+    }
+  }
+}
+```
+
+If you must keep an `aws:TagKeys` restriction, extend the allow-list to include each of your custom tag keys.
+
 
 ## Deploy the driver
 
