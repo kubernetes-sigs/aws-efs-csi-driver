@@ -19,7 +19,7 @@ sidecars:
   livenessProbe:
     image:
       repository: public.ecr.aws/csi-components/livenessprobe
-      tag: v2.19.0-eksbuild.3
+      tag: v2.19.0-eksbuild.5
       pullPolicy: IfNotPresent
     resources: {}
     securityContext:
@@ -28,7 +28,7 @@ sidecars:
   nodeDriverRegistrar:
     image:
       repository: public.ecr.aws/csi-components/csi-node-driver-registrar
-      tag: v2.17.0-eksbuild.3
+      tag: v2.17.0-eksbuild.5
       pullPolicy: IfNotPresent
     resources: {}
     securityContext:
@@ -37,7 +37,7 @@ sidecars:
   csiProvisioner:
     image:
       repository: public.ecr.aws/csi-components/csi-provisioner
-      tag: v6.3.0-eksbuild.2
+      tag: v6.3.0-eksbuild.4
       pullPolicy: IfNotPresent
     resources: {}
     securityContext:
@@ -69,7 +69,13 @@ controller:
   logLevel: 2
   # If set, add pv/pvc metadata to plugin create requests as parameters.
   extraCreateMetadata: true
-  # Add additional tags to access points
+  # Add additional tags to access points.
+  # NOTE: Custom tags require the controller's IAM policy to allow the extra tag
+  # keys on elasticfilesystem:CreateAccessPoint. The AWS-managed
+  # AmazonEFSCSIDriverPolicy only permits the default efs.csi.aws.com/cluster tag
+  # key, so custom tags will cause access point creation to fail (PVCs stuck in
+  # Pending) unless you attach a custom policy. See docs/install.md
+  # ("Custom tags require additional IAM permissions").
   tags:
     {}
     # environment: prod
