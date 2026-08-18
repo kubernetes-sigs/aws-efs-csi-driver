@@ -37,3 +37,6 @@
 
 # V3.4.1
 * Validate access point filesystem ownership in DeleteVolume ([#1926](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1926), [@DavidXU12345](https://github.com/DavidXU12345))
+
+# V3.4.2
+* Reject empty PVC name when reuseAccessPoint is set ([#1927](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1927), [@DavidXU12345](https://github.com/DavidXU12345))
