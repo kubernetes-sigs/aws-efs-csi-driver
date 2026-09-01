@@ -19,7 +19,7 @@ spec:
   storageClassName: efs-sc
   csi:
     driver: efs.csi.aws.com
-    volumeHandle: efs:[FileSystemId]:[Path]
+    volumeHandle: "[FileSystemId]:[Path]"
 ```
 Replace `FileSystemId` of the EFS filesystem ID that needs to be mounted. And replace `Path` with a existing path on the filesystem.
 

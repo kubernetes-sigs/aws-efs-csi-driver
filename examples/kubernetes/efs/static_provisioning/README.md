@@ -18,7 +18,7 @@ spec:
   persistentVolumeReclaimPolicy: Retain
   csi:
     driver: efs.csi.aws.com
-    volumeHandle: efs:[FileSystemId] 
+    volumeHandle: "[FileSystemId]"
 ```
 Replace `VolumeHandle` value with `FileSystemId` of the EFS filesystem that needs to be mounted.
 
@@ -88,7 +88,7 @@ spec:
   persistentVolumeReclaimPolicy: Retain
   csi:
     driver: efs.csi.aws.com
-    volumeHandle:[FILESYSTEM ID]
+    volumeHandle: "[FILESYSTEM ID]"
     volumeAttributes:
       mounttargetip: "[MOUNT TARGET IP ADDRESS]"
 ```

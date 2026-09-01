@@ -443,7 +443,7 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 	return &csi.CreateVolumeResponse{
 		Volume: &csi.Volume{
 			CapacityBytes:      volSize,
-			VolumeId:           fsType.String() + ":" + accessPointsOptions.FileSystemId + "::" + accessPoint.AccessPointId,
+			VolumeId:           buildVolumeId(fsType, accessPointsOptions.FileSystemId, accessPoint.AccessPointId),
 			VolumeContext:      volContext,
 			AccessibleTopology: topology,
 		},

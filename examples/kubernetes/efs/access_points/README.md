@@ -29,7 +29,7 @@ spec:
   storageClassName: efs-sc
   csi:
     driver: efs.csi.aws.com
-    volumeHandle: efs:[FileSystemId]::[AccessPointId]
+    volumeHandle: "[FileSystemId]::[AccessPointId]"
 ---
 apiVersion: v1
 kind: PersistentVolume
@@ -45,7 +45,7 @@ spec:
   storageClassName: efs-sc
   csi:
     driver: efs.csi.aws.com
-    volumeHandle: efs:[FileSystemId]::[AccessPointId]
+    volumeHandle: "[FileSystemId]::[AccessPointId]"
 ```
 In each PersistentVolume, replace both the `[FileSystemId]` and the `[AccessPointId]` in `spec.csi.volumeHandle`.
 You can find these values using the AWS CLI:
@@ -90,8 +90,8 @@ as this could subject you to
 [issue #167](https://github.com/kubernetes-sigs/aws-efs-csi-driver/issues/167).
 
 - It is possible to use a combination of [volume path](../volume_path) and access points
-  with a `volumeHandle` of the form `efs:[FileSystemId]:[Subpath]:[AccessPointId]`, e.g.
-  `volumeHandle: efs:fs-e8a95a42:/my/subpath:fsap-19f752f0068c22464`. In this case:
+  with a `volumeHandle` of the form `[FileSystemId]:[Subpath]:[AccessPointId]`, e.g.
+  `volumeHandle: fs-e8a95a42:/my/subpath:fsap-19f752f0068c22464`. In this case:
   - The `[Subpath]` will be _under_ the configured access point directory. For example,
     if you configured your access point with `/ap1`, the above would mount to
     `/ap1/my/subpath`.

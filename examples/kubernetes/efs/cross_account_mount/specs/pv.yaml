@@ -17,6 +17,6 @@ spec:
   persistentVolumeReclaimPolicy: Retain
   csi:
     driver: efs.csi.aws.com
-    volumeHandle: efs:[Filesystem ID]
+    volumeHandle: "[Filesystem ID]"
     volumeAttributes:
       crossaccount: "true"
