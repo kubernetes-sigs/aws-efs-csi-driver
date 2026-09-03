@@ -20,6 +20,7 @@ import (
 	"context"
 	"net"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
@@ -57,6 +58,9 @@ type Driver struct {
 	volumeAttachLimit        int64
 	forceUnmountAfterTimeout bool
 	unmountTimeout           time.Duration
+	// inFlightUnpublishTargets holds target paths with a NodeUnpublishVolume in
+	// flight, so a kubelet retry cannot stack a handler behind a blocked one.
+	inFlightUnpublishTargets sync.Map
 	// metaDir is bind-mounted to /var/lib/kubelet/plugins/efs.csi.aws.com/mounts on the host.
 	metaDir string
 }

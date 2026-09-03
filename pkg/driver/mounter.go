@@ -15,6 +15,7 @@ package driver
 
 import (
 	"os"
+	"path/filepath"
 
 	mount_utils "k8s.io/mount-utils"
 )
@@ -52,8 +53,52 @@ func (m *NodeMounter) Stat(pathname string) (os.FileInfo, error) {
 	return os.Stat(pathname)
 }
 
+// GetDeviceName returns the device mounted at mountPath and the number of
+// /proc/mounts entries referring to it.
+//
+// It avoids mount_utils.GetDeviceNameFromMount, which resolves mountPath with
+// EvalSymlinks and so stats the mountpoint. That blocks uninterruptibly on an
+// unresponsive hard NFS mount. Symlinks are resolved on the parent only, and an
+// unmatched target yields refCount 0, which the caller reads as not mounted.
 func (m *NodeMounter) GetDeviceName(mountPath string) (string, int, error) {
-	return mount_utils.GetDeviceNameFromMount(m, mountPath)
+	mps, err := m.List()
+	if err != nil {
+		return "", 0, err
+	}
+
+	// Spellings that may appear in /proc/mounts. mountPath itself is never resolved.
+	cleanPath := filepath.Clean(mountPath)
+	candidates := []string{cleanPath}
+	if resolvedParent, err := filepath.EvalSymlinks(filepath.Dir(cleanPath)); err == nil {
+		if resolved := filepath.Join(resolvedParent, filepath.Base(cleanPath)); resolved != cleanPath {
+			candidates = append(candidates, resolved)
+		}
+	}
+
+	device := ""
+	for i := range mps {
+		for _, candidate := range candidates {
+			if mps[i].Path == candidate {
+				device = mps[i].Device
+				break
+			}
+		}
+		if device != "" {
+			break
+		}
+	}
+	if device == "" {
+		// Not mounted. Return 0 rather than counting entries with an empty Device.
+		return "", 0, nil
+	}
+
+	refCount := 0
+	for i := range mps {
+		if mps[i].Device == device {
+			refCount++
+		}
+	}
+	return device, refCount, nil
 }
 
 func (m *NodeMounter) IsLikelyNotMountPoint(target string) (bool, error) {

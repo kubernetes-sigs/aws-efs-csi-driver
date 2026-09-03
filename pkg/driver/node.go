@@ -359,6 +359,17 @@ func (d *Driver) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpublish
 		return nil, status.Error(codes.InvalidArgument, "Target path not provided")
 	}
 
+	// Unmounting an unresponsive hard NFS mount blocks for an unbounded time, and
+	// kubelet retries after its deadline while the abandoned handler runs on.
+	// Rejecting the duplicate keeps a wedged target to one stuck handler rather
+	// than one per retry.
+	guardKey := filepath.Clean(target)
+	if _, inFlight := d.inFlightUnpublishTargets.LoadOrStore(guardKey, struct{}{}); inFlight {
+		klog.Warningf("NodeUnpublishVolume: unpublish already in progress for %s, rejecting duplicate with ABORTED", guardKey)
+		return nil, status.Errorf(codes.Aborted, "An unpublish operation for target %q is already in progress", target)
+	}
+	defer d.inFlightUnpublishTargets.Delete(guardKey)
+
 	if d.forceUnmountAfterTimeout {
 		klog.V(5).Infof("NodeUnpublishVolume: will retry unmount %s with force after timeout %v", target, d.unmountTimeout)
 		err := d.mounter.UnmountWithForce(target, d.unmountTimeout)
@@ -366,9 +377,7 @@ func (d *Driver) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpublish
 			return nil, status.Errorf(codes.Internal, "Could not unmountWithForce %q: %v", target, err)
 		}
 	} else {
-		// Check if target directory is a mount point. GetDeviceNameFromMount
-		// given a mnt point, finds the device from /proc/mounts
-		// returns the device name, reference count, and error code
+		// Check whether the target is mounted, reading /proc/mounts without touching it.
 		_, refCount, err := d.mounter.GetDeviceName(target)
 		if err != nil {
 			format := "failed to check if volume is mounted: %v"
@@ -384,6 +393,9 @@ func (d *Driver) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpublish
 			return &csi.NodeUnpublishVolumeResponse{}, nil
 		}
 
+		// Still unbounded: umount of an unresponsive mount cannot be cancelled.
+		// Escalation to umount -f stays behind the forceUnmountAfterTimeout opt-in
+		// rather than becoming the default.
 		klog.V(5).Infof("NodeUnpublishVolume: unmounting %s", target)
 		err = d.mounter.Unmount(target)
 		if err != nil {

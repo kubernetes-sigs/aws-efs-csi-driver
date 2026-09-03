@@ -35,6 +35,8 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/kubernetes-sigs/aws-efs-csi-driver/pkg/driver/mocks"
 	"github.com/kubernetes-sigs/aws-efs-csi-driver/pkg/util"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -1052,6 +1054,111 @@ func TestNodePublishUnpublishVolumeConcurrent(t *testing.T) {
 		}(i)
 	}
 	wg.Wait()
+}
+
+// TestNodeUnpublishVolumeDeduplicatesConcurrentCalls pins the per-target
+// in-flight guard. Unmounting an unresponsive mount can outlive kubelet's
+// client-side RPC deadline by an unbounded margin, and kubelet then retries
+// while the first handler is still blocked. Each retry must be rejected
+// immediately rather than stacking another handler goroutine and OS thread
+// behind the same blocked syscall.
+func TestNodeUnpublishVolumeDeduplicatesConcurrentCalls(t *testing.T) {
+	// awaitOrFail keeps a regression from deadlocking the package: gomock's
+	// unexpected-call Fatalf runs runtime.Goexit inside the helper goroutine, so a
+	// channel it was going to close is never closed. Without a deadline here the
+	// test would hang until the whole package times out instead of failing.
+	awaitOrFail := func(t *testing.T, c <-chan struct{}, what string) {
+		t.Helper()
+		select {
+		case <-c:
+		case <-time.After(10 * time.Second):
+			t.Fatalf("timed out waiting for %s; the handler probably did not reach the unmount", what)
+		}
+	}
+
+	for _, forceUnmount := range []bool{false, true} {
+		name := "default unmount path"
+		if forceUnmount {
+			name = "forceUnmountAfterTimeout path"
+		}
+		t.Run(name, func(t *testing.T) {
+			mockCtrl := gomock.NewController(t)
+			defer mockCtrl.Finish()
+
+			mockMounter := mocks.NewMockMounter(mockCtrl)
+			driver := &Driver{
+				mounter:                  mockMounter,
+				metaDir:                  t.TempDir(),
+				forceUnmountAfterTimeout: forceUnmount,
+				unmountTimeout:           30 * time.Second,
+			}
+
+			req := &csi.NodeUnpublishVolumeRequest{VolumeId: volumeId, TargetPath: targetPath}
+
+			unmountStarted := make(chan struct{})
+			releaseUnmount := make(chan struct{})
+			block := func() error {
+				close(unmountStarted)
+				<-releaseUnmount
+				return nil
+			}
+
+			// The first call blocks in the unmount, as it would on a wedged mount.
+			// The guard must cover both branches, so each is exercised.
+			if forceUnmount {
+				mockMounter.EXPECT().UnmountWithForce(gomock.Eq(targetPath), gomock.Eq(30*time.Second)).
+					DoAndReturn(func(string, time.Duration) error { return block() })
+			} else {
+				mockMounter.EXPECT().GetDeviceName(gomock.Eq(targetPath)).Return("", 1, nil)
+				mockMounter.EXPECT().Unmount(gomock.Eq(targetPath)).DoAndReturn(func(string) error { return block() })
+			}
+
+			firstDone := make(chan error, 1)
+			go func() {
+				_, err := driver.NodeUnpublishVolume(context.Background(), req)
+				firstDone <- err
+			}()
+			awaitOrFail(t, unmountStarted, "the first unpublish to reach the unmount")
+
+			// A second call for the same target while the first is blocked must be
+			// rejected without reaching the mounter at all. No further expectations
+			// are registered, so gomock fails the test on any unexpected call.
+			_, err := driver.NodeUnpublishVolume(context.Background(), req)
+			if status.Code(err) != codes.Aborted {
+				t.Fatalf("duplicate in-flight unpublish: got code %v (%v), expected Aborted", status.Code(err), err)
+			}
+
+			// A spelling variant of the same target must also be rejected, so a
+			// trailing slash cannot bypass the guard.
+			_, err = driver.NodeUnpublishVolume(context.Background(), &csi.NodeUnpublishVolumeRequest{
+				VolumeId:   volumeId,
+				TargetPath: targetPath + "/",
+			})
+			if status.Code(err) != codes.Aborted {
+				t.Fatalf("non-canonical spelling of an in-flight target: got code %v (%v), expected Aborted", status.Code(err), err)
+			}
+
+			close(releaseUnmount)
+			select {
+			case err := <-firstDone:
+				if err != nil {
+					t.Fatalf("first NodeUnpublishVolume failed: %v", err)
+				}
+			case <-time.After(10 * time.Second):
+				t.Fatal("timed out waiting for the first unpublish to return")
+			}
+
+			// The guard must be released once the first call returns.
+			if !forceUnmount {
+				mockMounter.EXPECT().GetDeviceName(gomock.Eq(targetPath)).Return("", 0, nil)
+			} else {
+				mockMounter.EXPECT().UnmountWithForce(gomock.Eq(targetPath), gomock.Eq(30*time.Second)).Return(nil)
+			}
+			if _, err := driver.NodeUnpublishVolume(context.Background(), req); err != nil {
+				t.Fatalf("NodeUnpublishVolume after the guard was released failed: %v", err)
+			}
+		})
+	}
 }
 
 func TestNodeGetVolumeStats(t *testing.T) {
