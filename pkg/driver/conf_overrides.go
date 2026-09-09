@@ -12,6 +12,49 @@ type ConfOverride struct {
 	Value   string
 }
 
+// efsUtilsConfOverridesDenylist is the set of security-sensitive keys that must
+// never be settable via --efs-utils-conf-overrides. These keys control the
+// mount transport DNS target and TLS certificate verification; allowing them to
+// be set through the conf-override interface lets a caller redirect the
+// transport or disable certificate checks. This is a defense-in-depth layer
+// that backs the EKS add-on schema denylist: it applies on every install path
+// (EKS add-on, self-managed Helm, and manual), not just the add-on API. Keys
+// are matched by name regardless of section.
+var efsUtilsConfOverridesDenylist = map[string]bool{
+	"dns_name_suffix":             true,
+	"dns_name_format":             true,
+	"stunnel_cafile":              true,
+	"stunnel_check_cert_hostname": true,
+	"stunnel_check_cert_validity": true,
+}
+
+// s3filesUtilsConfOverridesDenylist is the set of security-sensitive keys that
+// must never be settable via --s3files-utils-conf-overrides. See
+// efsUtilsConfOverridesDenylist for the rationale. It is defined separately so
+// the two conf files' denied sets can evolve independently.
+var s3filesUtilsConfOverridesDenylist = map[string]bool{
+	"dns_name_suffix":             true,
+	"dns_name_format":             true,
+	"stunnel_cafile":              true,
+	"stunnel_check_cert_hostname": true,
+	"stunnel_check_cert_validity": true,
+}
+
+// validateConfOverridesDenylist returns an error if any override targets a key
+// present in the supplied denylist. Comparison is case-insensitive: efs-utils
+// reads the written conf with Python ConfigParser, whose default optionxform
+// lowercases option names, so a case variant (e.g. DNS_NAME_SUFFIX) would
+// otherwise be applied as the denied key. flagName is used only for error
+// messages (e.g. "efs-utils-conf-overrides").
+func validateConfOverridesDenylist(overrides []ConfOverride, denylist map[string]bool, flagName string) error {
+	for _, o := range overrides {
+		if denylist[strings.ToLower(o.Key)] {
+			return fmt.Errorf("override key %q is not permitted for %s: this key controls transport security and cannot be set via conf overrides", o.Key, flagName)
+		}
+	}
+	return nil
+}
+
 // parseConfOverrides parses a comma-separated "section:key=value" string into ConfOverride structs.
 func parseConfOverrides(raw string) ([]ConfOverride, error) {
 	raw = strings.TrimSpace(raw)

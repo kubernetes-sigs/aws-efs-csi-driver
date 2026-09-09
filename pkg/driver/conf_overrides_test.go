@@ -5,6 +5,55 @@ import (
 	"testing"
 )
 
+func TestValidateConfOverridesDenylist(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		denylist map[string]bool
+		wantErr  bool
+	}{
+		// Safe keys observed in production usage — must pass.
+		{name: "efs fips_mode_enabled allowed", input: "mount:fips_mode_enabled=true", denylist: efsUtilsConfOverridesDenylist, wantErr: false},
+		{name: "efs retry timeout allowed", input: "mount:retry_nfs_mount_command_timeout_sec=60", denylist: efsUtilsConfOverridesDenylist, wantErr: false},
+		{name: "efs stunnel health check timeout allowed", input: "mount-watchdog:stunnel_health_check_command_timeout_sec=90", denylist: efsUtilsConfOverridesDenylist, wantErr: false},
+		{name: "efs stunnel health check interval allowed", input: "mount-watchdog:stunnel_health_check_interval_min=1", denylist: efsUtilsConfOverridesDenylist, wantErr: false},
+		{name: "efs unmount count allowed", input: "mount-watchdog:unmount_count_for_consistency=10", denylist: efsUtilsConfOverridesDenylist, wantErr: false},
+		{name: "s3files readahead cache allowed", input: "proxy:readahead_cache_enabled=false", denylist: s3filesUtilsConfOverridesDenylist, wantErr: false},
+		{name: "efs multiple safe keys", input: "mount:fips_mode_enabled=true,mount-watchdog:unmount_count_for_consistency=10", denylist: efsUtilsConfOverridesDenylist, wantErr: false},
+		{name: "empty overrides pass", input: "", denylist: efsUtilsConfOverridesDenylist, wantErr: false},
+
+		// Denied security-sensitive keys — must be rejected regardless of section, for both files.
+		{name: "efs reject dns_name_suffix", input: "mount:dns_name_suffix=attacker.example.internal", denylist: efsUtilsConfOverridesDenylist, wantErr: true},
+		{name: "efs reject dns_name_format", input: "mount:dns_name_format={az}.{fs_id}.efs.{region}.evil.internal", denylist: efsUtilsConfOverridesDenylist, wantErr: true},
+		{name: "efs reject stunnel_cafile", input: "mount:stunnel_cafile=/tmp/evil.pem", denylist: efsUtilsConfOverridesDenylist, wantErr: true},
+		{name: "efs reject stunnel_check_cert_hostname", input: "mount:stunnel_check_cert_hostname=false", denylist: efsUtilsConfOverridesDenylist, wantErr: true},
+		{name: "efs reject stunnel_check_cert_validity", input: "mount:stunnel_check_cert_validity=false", denylist: efsUtilsConfOverridesDenylist, wantErr: true},
+		{name: "s3files reject dns_name_suffix", input: "mount:dns_name_suffix=attacker.example.internal", denylist: s3filesUtilsConfOverridesDenylist, wantErr: true},
+		{name: "s3files reject dns_name_format", input: "mount:dns_name_format={az_id}.{fs_id}.s3files.{region}.evil.internal", denylist: s3filesUtilsConfOverridesDenylist, wantErr: true},
+		{name: "s3files reject stunnel_cafile", input: "mount:stunnel_cafile=/tmp/evil.pem", denylist: s3filesUtilsConfOverridesDenylist, wantErr: true},
+		{name: "reject denied key in any section", input: "mount-watchdog:dns_name_suffix=evil.internal", denylist: efsUtilsConfOverridesDenylist, wantErr: true},
+		{name: "reject one denied among safe", input: "mount:fips_mode_enabled=true,mount:dns_name_suffix=attacker.example.internal", denylist: efsUtilsConfOverridesDenylist, wantErr: true},
+		{name: "reject full attack string", input: "mount:dns_name_suffix=attacker.example.internal,mount:stunnel_check_cert_hostname=false,mount:stunnel_check_cert_validity=false", denylist: efsUtilsConfOverridesDenylist, wantErr: true},
+
+		// Case variants — must be rejected (efs-utils ConfigParser lowercases option names).
+		{name: "reject uppercase dns_name_suffix", input: "mount:DNS_NAME_SUFFIX=evil", denylist: efsUtilsConfOverridesDenylist, wantErr: true},
+		{name: "reject mixed-case dns_name_suffix", input: "mount:Dns_Name_Suffix=evil", denylist: efsUtilsConfOverridesDenylist, wantErr: true},
+		{name: "reject uppercase stunnel_check_cert_hostname", input: "mount:STUNNEL_CHECK_CERT_HOSTNAME=false", denylist: s3filesUtilsConfOverridesDenylist, wantErr: true},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			overrides, err := parseConfOverrides(tc.input)
+			if err != nil {
+				t.Fatalf("parseConfOverrides(%q) unexpected error: %v", tc.input, err)
+			}
+			err = validateConfOverridesDenylist(overrides, tc.denylist, "test-flag")
+			if (err != nil) != tc.wantErr {
+				t.Errorf("validateConfOverridesDenylist(%q) error = %v, wantErr %v", tc.input, err, tc.wantErr)
+			}
+		})
+	}
+}
+
 func TestParseConfOverrides(t *testing.T) {
 	tests := []struct {
 		name      string

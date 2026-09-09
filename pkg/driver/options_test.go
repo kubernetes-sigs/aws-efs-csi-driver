@@ -282,6 +282,54 @@ func TestValidate(t *testing.T) {
 			},
 			expectError: true,
 		},
+		{
+			name: "denied key in efs-utils overrides",
+			opts: &Options{
+				MaxInflightMountCallsOptIn: boolPtr(false),
+				MaxInflightMountCalls:      int64Ptr(UnsetMaxInflightMountCounts),
+				VolumeAttachLimitOptIn:     boolPtr(false),
+				VolumeAttachLimit:          int64Ptr(UnsetVolumeAttachLimit),
+				EfsUtilsConfOverrides:      strPtr("mount:dns_name_suffix=attacker.example.internal"),
+				S3FilesUtilsConfOverrides:  strPtr(""),
+			},
+			expectError: true,
+		},
+		{
+			name: "denied key in s3files-utils overrides",
+			opts: &Options{
+				MaxInflightMountCallsOptIn: boolPtr(false),
+				MaxInflightMountCalls:      int64Ptr(UnsetMaxInflightMountCounts),
+				VolumeAttachLimitOptIn:     boolPtr(false),
+				VolumeAttachLimit:          int64Ptr(UnsetVolumeAttachLimit),
+				EfsUtilsConfOverrides:      strPtr(""),
+				S3FilesUtilsConfOverrides:  strPtr("mount:stunnel_check_cert_hostname=false"),
+			},
+			expectError: true,
+		},
+		{
+			name: "denied stunnel_cafile in efs-utils overrides",
+			opts: &Options{
+				MaxInflightMountCallsOptIn: boolPtr(false),
+				MaxInflightMountCalls:      int64Ptr(UnsetMaxInflightMountCounts),
+				VolumeAttachLimitOptIn:     boolPtr(false),
+				VolumeAttachLimit:          int64Ptr(UnsetVolumeAttachLimit),
+				EfsUtilsConfOverrides:      strPtr("mount:stunnel_cafile=/tmp/evil.pem"),
+				S3FilesUtilsConfOverrides:  strPtr(""),
+			},
+			expectError: true,
+		},
+		{
+			name: "denied uppercase key rejected in efs-utils overrides",
+			opts: &Options{
+				MaxInflightMountCallsOptIn: boolPtr(false),
+				MaxInflightMountCalls:      int64Ptr(UnsetMaxInflightMountCounts),
+				VolumeAttachLimitOptIn:     boolPtr(false),
+				VolumeAttachLimit:          int64Ptr(UnsetVolumeAttachLimit),
+				EfsUtilsConfOverrides:      strPtr("mount:DNS_NAME_SUFFIX=evil"),
+				S3FilesUtilsConfOverrides:  strPtr(""),
+			},
+			expectError: true,
+		},
 	}
 
 	for _, tc := range tests {

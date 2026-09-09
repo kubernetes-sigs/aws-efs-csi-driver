@@ -90,11 +90,17 @@ func (o *Options) Validate() error {
 	if err != nil {
 		return fmt.Errorf("invalid efs-utils-conf-overrides: %w", err)
 	}
+	if err := validateConfOverridesDenylist(parsed, efsUtilsConfOverridesDenylist, "efs-utils-conf-overrides"); err != nil {
+		return err
+	}
 	o.efsUtilsConfOverridesParsed = parsed
 
 	parsed, err = parseConfOverrides(*o.S3FilesUtilsConfOverrides)
 	if err != nil {
 		return fmt.Errorf("invalid s3files-utils-conf-overrides: %w", err)
+	}
+	if err := validateConfOverridesDenylist(parsed, s3filesUtilsConfOverridesDenylist, "s3files-utils-conf-overrides"); err != nil {
+		return err
 	}
 	o.s3filesUtilsConfOverridesParsed = parsed
 
