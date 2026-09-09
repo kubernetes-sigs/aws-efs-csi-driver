@@ -90,7 +90,7 @@ This example requires Kubernetes 1.17 or later and a driver version of 1.2.0 or 
 
    ```
    [...]
-   1 controller.go:737] successfully created PV pvc-5983ffec-96cf-40c1-9cd6-e5686ca84eca for PVC efs-claim and csi volume name efs:fs-95bcec92::fsap-02a88145b865d3a87
+   1 controller.go:737] successfully created PV pvc-5983ffec-96cf-40c1-9cd6-e5686ca84eca for PVC efs-claim and csi volume name fs-95bcec92::fsap-02a88145b865d3a87
    ```
 
    If you don't see the previous output, run the previous command using one of the other controller Pods.

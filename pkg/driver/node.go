@@ -670,6 +670,18 @@ func parseVolumeId(volumeId string) (fsid, subpath, apid string, fsType util.Fil
 	return
 }
 
+// buildVolumeId renders the volume handle returned by CreateVolume, and is the
+// inverse of parseVolumeId. EFS keeps the legacy un-prefixed form because
+// handles are also read by mounters outside this driver that predate the typed
+// format. parseVolumeId reads an un-prefixed handle as EFS, so nothing in this
+// driver depends on the prefix being present.
+func buildVolumeId(fsType util.FileSystemType, fileSystemId, accessPointId string) string {
+	if fsType == util.FileSystemTypeEFS {
+		return fileSystemId + "::" + accessPointId
+	}
+	return fsType.String() + ":" + fileSystemId + "::" + accessPointId
+}
+
 // Check and avoid adding duplicate mount options
 func hasOption(options []string, opt string) bool {
 	for _, o := range options {

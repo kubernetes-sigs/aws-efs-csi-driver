@@ -1805,6 +1805,51 @@ func TestIsValidMountTargetIP(t *testing.T) {
 	}
 }
 
+func TestBuildVolumeId(t *testing.T) {
+	testCases := []struct {
+		name     string
+		fsType   util.FileSystemType
+		fsid     string
+		apid     string
+		expected string
+	}{
+		{
+			name:     "EFS omits the type prefix",
+			fsType:   util.FileSystemTypeEFS,
+			fsid:     "fs-abcd1234",
+			apid:     "fsap-abcd1234",
+			expected: "fs-abcd1234::fsap-abcd1234",
+		},
+		{
+			name:     "S3 Files carries the type prefix",
+			fsType:   util.FileSystemTypeS3Files,
+			fsid:     "fs-abcd1234",
+			apid:     "fsap-abcd1234",
+			expected: "s3files:fs-abcd1234::fsap-abcd1234",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := buildVolumeId(tc.fsType, tc.fsid, tc.apid)
+			if got != tc.expected {
+				t.Fatalf("buildVolumeId(%q, %q, %q) = %q, expected %q", tc.fsType, tc.fsid, tc.apid, got, tc.expected)
+			}
+
+			// parseVolumeId is the inverse, so every handle this driver emits must
+			// resolve back to the same file system, access point and type.
+			fsid, subpath, apid, fsType, err := parseVolumeId(got)
+			if err != nil {
+				t.Fatalf("parseVolumeId(%q) returned an error: %v", got, err)
+			}
+			if fsid != tc.fsid || apid != tc.apid || fsType != tc.fsType || subpath != "" {
+				t.Errorf("parseVolumeId(%q) = (%q, %q, %q, %q), expected (%q, \"\", %q, %q)",
+					got, fsid, subpath, apid, fsType, tc.fsid, tc.apid, tc.fsType)
+			}
+		})
+	}
+}
+
 func TestGetCsiNodeEfsPluginContainerMemoryLimitInBytes(t *testing.T) {
 	testCases := []struct {
 		name     string

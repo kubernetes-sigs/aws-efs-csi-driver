@@ -18,7 +18,7 @@ spec:
   storageClassName: efs-sc
   csi:
     driver: efs.csi.aws.com
-    volumeHandle: efs:fs-e8a95a42:/dir1
+    volumeHandle: fs-e8a95a42:/dir1
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -46,7 +46,7 @@ spec:
   storageClassName: efs-sc
   csi:
     driver: efs.csi.aws.com
-    volumeHandle: efs:fs-e8a95a42:/dir2
+    volumeHandle: fs-e8a95a42:/dir2
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim

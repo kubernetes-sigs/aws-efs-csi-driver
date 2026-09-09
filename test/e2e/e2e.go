@@ -168,7 +168,9 @@ func (e *efsDriver) CreateVolume(ctx context.Context, config *storageframework.P
 func (e *efsDriver) GetPersistentVolumeSource(readOnly bool, fsType string, volume storageframework.TestVolume) (*v1.PersistentVolumeSource, *v1.VolumeNodeAffinity) {
 	pvSource := v1.PersistentVolumeSource{
 		CSI: &v1.CSIPersistentVolumeSource{
-			Driver:       e.driverInfo.Name,
+			Driver: e.driverInfo.Name,
+			// Deliberately the type-prefixed spelling. makeEFSPV uses the
+			// un-prefixed one for EFS, so both accepted forms get exercised.
 			VolumeHandle: e.config.FSType.String() + ":" + e.config.GetFSID(),
 		},
 	}
@@ -893,8 +895,19 @@ func makeEFSPVC(namespace, name string) *v1.PersistentVolumeClaim {
 	}
 }
 
+// staticVolumeHandle spells the volume handle for a static PV. EFS uses the
+// legacy un-prefixed form, which is what the driver emits and what the examples
+// document. S3 Files keeps its prefix, since an un-prefixed handle is parsed as
+// EFS.
+func staticVolumeHandle(config FileSystemTestConfig) string {
+	if config.FSType == util.FileSystemTypeEFS {
+		return config.GetFSID()
+	}
+	return config.FSType.String() + ":" + config.GetFSID()
+}
+
 func makeEFSPV(name, path string, volumeAttributes map[string]string, config FileSystemTestConfig) *v1.PersistentVolume {
-	volumeHandle := config.FSType.String() + ":" + config.GetFSID()
+	volumeHandle := staticVolumeHandle(config)
 	if path != "" {
 		volumeHandle += ":" + path
 	}

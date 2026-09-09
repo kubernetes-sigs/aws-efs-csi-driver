@@ -35,7 +35,7 @@ func TestCreateVolume(t *testing.T) {
 		volumeName          = "volumeName"
 		fsId                = "fs-abcd1234"
 		apId                = "fsap-abcd1234"
-		volumeId            = "efs:fs-abcd1234::fsap-abcd1234"
+		volumeId            = "fs-abcd1234::fsap-abcd1234"
 		capacityRange int64 = 5368709120
 		stdVolCap           = &csi.VolumeCapability{
 			AccessType: &csi.VolumeCapability_Mount{
@@ -707,7 +707,7 @@ func TestCreateVolume(t *testing.T) {
 
 					found := false
 					for _, ap := range accessPointArr {
-						if result.resp.Volume.VolumeId == fmt.Sprintf("efs:%s::%s", ap.FileSystemId, ap.AccessPointId) {
+						if result.resp.Volume.VolumeId == fmt.Sprintf("%s::%s", ap.FileSystemId, ap.AccessPointId) {
 							found = true
 							break
 						}
@@ -3390,7 +3390,7 @@ func TestCreateVolume(t *testing.T) {
 					t.Fatal("Volume is nil")
 				}
 
-				expectedVolumeId := "efs:" + fsId + "::" + apId
+				expectedVolumeId := fsId + "::" + apId
 				if res.Volume.VolumeId != expectedVolumeId {
 					t.Fatalf("Volume Id mismatched. Expected: %v, Actual: %v", expectedVolumeId, res.Volume.VolumeId)
 				}
@@ -3455,7 +3455,7 @@ func TestCreateVolume(t *testing.T) {
 					t.Fatal("Volume is nil")
 				}
 
-				expectedVolumeId := "efs:" + fsId + "::" + apId
+				expectedVolumeId := fsId + "::" + apId
 				if res.Volume.VolumeId != expectedVolumeId {
 					t.Fatalf("Volume Id mismatched. Expected: %v, Actual: %v", expectedVolumeId, res.Volume.VolumeId)
 				}
@@ -3519,7 +3519,7 @@ func TestCreateVolume(t *testing.T) {
 					t.Fatal("Volume is nil")
 				}
 
-				expectedVolumeId := "efs:" + fsId + "::" + apId
+				expectedVolumeId := fsId + "::" + apId
 				if res.Volume.VolumeId != expectedVolumeId {
 					t.Fatalf("Volume Id mismatched. Expected: %v, Actual: %v", expectedVolumeId, res.Volume.VolumeId)
 				}
@@ -5257,7 +5257,7 @@ func TestCreateDeleteVolumeRace(t *testing.T) {
 		apId                = "fsap-abcd1234"
 		fsId                = "fs-abcd1234"
 		endpoint            = "endpoint"
-		volumeId            = "efs:fs-abcd1234::fsap-abcd1234"
+		volumeId            = "fs-abcd1234::fsap-abcd1234"
 		volumeName          = "volumeName"
 		capacityRange int64 = 5368709120
 		stdVolCap           = &csi.VolumeCapability{
