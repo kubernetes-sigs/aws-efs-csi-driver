@@ -10,4 +10,4 @@ images:
   - name: public.ecr.aws/csi-components/csi-node-driver-registrar
     newTag: v2.17.0-eksbuild.7
   - name: public.ecr.aws/csi-components/csi-provisioner
-    newTag: v6.3.0-eksbuild.6
+    newTag: v6.3.0-eksbuild.7
