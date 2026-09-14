@@ -15,6 +15,7 @@ package driver
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -582,7 +583,14 @@ To avoid any errors, we check for this config and remove it directly on startup.
 func (w *execWatchdog) removeLibwrapOption(stateDir string) error {
 	stunnelFiles, err := os.ReadDir(stateDir)
 	if err != nil {
-		return fmt.Errorf("error reading directory %s: %v", efsStateDir, err)
+		if errors.Is(err, os.ErrNotExist) {
+			// The state directory is only mounted into the node DaemonSet.
+			// Without it there are no stunnel state files to fix, so there
+			// is nothing to do (e.g. in the controller Deployment).
+			klog.V(4).Infof("State directory %s does not exist, skipping libwrap cleanup", stateDir)
+			return nil
+		}
+		return fmt.Errorf("error reading directory %s: %v", stateDir, err)
 	}
 
 	for _, file := range stunnelFiles {
