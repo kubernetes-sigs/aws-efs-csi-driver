@@ -69,7 +69,7 @@ stunnel_check_cert_hostname = true
 # Use OCSP to check certificate validity. This option is not supported by certain stunnel versions.
 stunnel_check_cert_validity = false
 
-# Enable FIPS mode. stunnel complains if FIPS is available and enabled system-wide, but not set here.
+# Set to true to use FIPS-mode for stunnel. Enabling this will change the AWS SDK client to use FIPS as well.
 {{if .FipsEnabled -}}
 fips_mode_enabled = {{.FipsEnabled -}}
 {{else -}}
@@ -89,6 +89,11 @@ fall_back_to_mount_target_ip_address_enabled = true
 # By default, we use IMDSv2 to get the instance metadata, set this to true if you want to disable IMDSv2 usage
 disable_fetch_ec2_metadata_token = false
 
+# Timeout in seconds for HTTP requests made by the mount helper, including IMDS instance metadata retrieval,
+# ECS/EKS container credential lookups, and STS web identity token exchanges. Increase this value if running
+# in environments with higher network latency (e.g. MicroVMs).
+# url_request_timeout_sec = 1
+
 # By default, we enable efs-utils to retry failed mount.nfs command that due to (1) connection reset by peer (2) the
 # mount.nfs is not finished within 'retry_nfs_mount_command_timeout_sec'. If the retry count is set as N, initial N - 1
 # mount attempts will timeout if the command does not finish within 'retry_nfs_mount_command_timeout_sec' sec.
@@ -101,8 +106,10 @@ retry_nfs_mount_command_timeout_sec = 15
 [mount.cn-north-1]
 dns_name_suffix = amazonaws.com.cn
 
+
 [mount.cn-northwest-1]
 dns_name_suffix = amazonaws.com.cn
+
 
 [mount.eu-isoe-west-1]
 dns_name_suffix = cloud.adc-e.uk
@@ -216,6 +223,11 @@ fall_back_to_mount_target_ip_address_enabled = true
 # By default, we use IMDSv2 to get the instance metadata, set this to true if you want to disable IMDSv2 usage
 disable_fetch_ec2_metadata_token = false
 
+# Timeout in seconds for HTTP requests made by the mount helper, including IMDS instance metadata retrieval,
+# ECS/EKS container credential lookups, and STS web identity token exchanges. Increase this value if running
+# in environments with higher network latency (e.g. MicroVMs).
+# url_request_timeout_sec = 1
+
 # By default, we enable efs-utils to retry failed mount.nfs command that due to (1) connection reset by peer (2) the
 # mount.nfs is not finished within 'retry_nfs_mount_command_timeout_sec'. If the retry count is set as N, initial N - 1
 # mount attempts will timeout if the command does not finish within 'retry_nfs_mount_command_timeout_sec' sec.
@@ -226,10 +238,14 @@ retry_nfs_mount_command_count = 3
 retry_nfs_mount_command_timeout_sec = 15
 
 [mount.cn-north-1]
-dns_name_suffix = amazonaws.com.cn
+# S3 Files mount target DNS is under "on.amazonwebservices.com.cn"
+dns_name_suffix = on.amazonwebservices.com.cn
+
 
 [mount.cn-northwest-1]
-dns_name_suffix = amazonaws.com.cn
+# S3 Files mount target DNS is under "on.amazonwebservices.com.cn"
+dns_name_suffix = on.amazonwebservices.com.cn
+
 
 [mount.eu-isoe-west-1]
 dns_name_suffix = cloud.adc-e.uk
