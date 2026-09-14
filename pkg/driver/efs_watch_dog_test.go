@@ -471,6 +471,36 @@ libwrap = no
 	}
 }
 
+func TestRemoveLibwrapOptionWithNonexistentStateDirectory(t *testing.T) {
+	w := &execWatchdog{}
+
+	// The state directory is only mounted into the node DaemonSet; the
+	// controller Deployment has no stunnel state files to fix, so a
+	// missing directory must be treated as a no-op rather than an error.
+	stateDir := filepath.Join(t.TempDir(), "does-not-exist")
+	if err := w.removeLibwrapOption(stateDir); err != nil {
+		t.Fatalf("Expected no error for nonexistent state directory, got: %v", err)
+	}
+}
+
+func TestRemoveLibwrapOptionWithUnreadableStateDirectory(t *testing.T) {
+	w := &execWatchdog{}
+
+	// A state directory that exists but cannot be read is still an error,
+	// and the error must name the directory that was actually passed in.
+	stateDir := filepath.Join(t.TempDir(), "not-a-directory")
+	if err := os.WriteFile(stateDir, []byte("x"), 0644); err != nil {
+		t.Fatalf("Failed to write file: %v", err)
+	}
+	err := w.removeLibwrapOption(stateDir)
+	if err == nil {
+		t.Fatalf("Expected error for state directory that is a regular file")
+	}
+	if !strings.Contains(err.Error(), stateDir) {
+		t.Errorf("Expected error to mention %q, got: %v", stateDir, err)
+	}
+}
+
 func verifyFileContent(t *testing.T, fileName string, expectedFileContent string) {
 	fileContent, err := os.ReadFile(fileName)
 	if err != nil {
