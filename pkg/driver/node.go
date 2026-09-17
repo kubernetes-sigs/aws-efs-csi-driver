@@ -764,7 +764,7 @@ type JSONPatch struct {
 // removeNotReadyTaint removes the taint efs.csi.aws.com/agent-not-ready from the local node
 // This taint can be optionally applied by users to prevent startup race conditions such as
 // checkDriverRegistration verifies that the driver is registered in the CSINode object
-// by checking that the CSINode exists, lists our driver name, and has Allocatable set.
+// by checking that the CSINode exists and lists our driver name in Spec.Drivers.
 // Returns nil when registered, error otherwise.
 func checkDriverRegistration(k8sClient cloud.KubernetesAPIClient, driverName string) error {
 	nodeName := os.Getenv("CSI_NODE_NAME")
@@ -786,10 +786,9 @@ func checkDriverRegistration(k8sClient cloud.KubernetesAPIClient, driverName str
 	}
 	for _, driver := range csiNode.Spec.Drivers {
 		if driver.Name == driverName {
-			if driver.Allocatable != nil {
-				return nil // Driver registered with allocatable set
-			}
-			return fmt.Errorf("driver %s found in CSINode but Allocatable not yet set", driverName)
+			// Driver is registered with kubelet. Allocatable is intentionally
+			// not required here (EFS has no volume attach limit).
+			return nil
 		}
 	}
 	return fmt.Errorf("driver %s not yet listed in CSINode", driverName)
