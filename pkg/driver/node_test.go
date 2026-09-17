@@ -2147,7 +2147,7 @@ func TestCheckDriverRegistration(t *testing.T) {
 			errSubstr: "not yet listed in CSINode",
 		},
 		{
-			name: "CSINode exists, driver listed, Allocatable nil",
+			name: "CSINode exists, driver listed, Allocatable nil - success (EFS has no attach limit)",
 			setup: func(t *testing.T, mockCtl *gomock.Controller) func() (kubernetes.Interface, error) {
 				t.Setenv("CSI_NODE_NAME", nodeName)
 				mockClient := mocks.NewMockKubernetesClient(mockCtl)
@@ -2171,8 +2171,7 @@ func TestCheckDriverRegistration(t *testing.T) {
 					return mockClient, nil
 				}
 			},
-			expectErr: true,
-			errSubstr: "Allocatable not yet set",
+			expectErr: false,
 		},
 		{
 			name: "CSINode exists, driver listed, Allocatable set - success",
