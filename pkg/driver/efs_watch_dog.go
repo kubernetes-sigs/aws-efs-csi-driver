@@ -25,6 +25,7 @@ import (
 	"strings"
 	"sync"
 	"text/template"
+	"time"
 
 	"k8s.io/klog/v2"
 )
@@ -530,7 +531,7 @@ func (w *execWatchdog) stop() {
 	close(w.stopCh)
 
 	w.mu.Lock()
-	if w.cmd.Process != nil {
+	if w.cmd != nil && w.cmd.Process != nil {
 		p := w.cmd.Process
 		err := p.Kill()
 		if err != nil {
@@ -540,17 +541,27 @@ func (w *execWatchdog) stop() {
 	w.mu.Unlock()
 }
 
+// watchdogRestartDelay spaces out relaunch attempts so a watchdog that exits
+// (or fails to start) immediately cannot spin the loop into a fork storm.
+var watchdogRestartDelay = 5 * time.Second
+
 // runLoop starts the monitoring loop
 func (w *execWatchdog) runLoop(stopCh <-chan struct{}) {
 	for {
 		select {
 		case <-stopCh:
 			klog.V(4).Infof("stopping...")
-			break
+			return
 		default:
 			err := w.exec()
 			if err != nil {
 				klog.Errorf("Process %s exits %s", w.execCmd, err)
+			}
+			select {
+			case <-stopCh:
+				klog.V(4).Infof("stopping...")
+				return
+			case <-time.After(watchdogRestartDelay):
 			}
 		}
 	}
@@ -561,15 +572,18 @@ func (w *execWatchdog) exec() error {
 	cmd.Stdout = newInfoRedirect(w.execCmd)
 	cmd.Stderr = newErrRedirect(w.execCmd)
 
-	w.cmd = cmd
-
 	w.mu.Lock()
 	err := cmd.Start()
 	if err != nil {
+		w.mu.Unlock()
 		return err
 	}
+	w.cmd = cmd
+	// Only cmd.Wait() below may collect this child; keep the reaper off it.
+	ownChild(cmd.Process.Pid)
 	w.mu.Unlock()
 
+	defer disownChild(cmd.Process.Pid)
 	return cmd.Wait()
 }
 
