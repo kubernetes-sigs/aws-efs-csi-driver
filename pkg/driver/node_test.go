@@ -408,6 +408,29 @@ func TestNodePublishVolume(t *testing.T) {
 			maxInflightMountCalls: UnsetMaxInflightMountCounts,
 		},
 		{
+			name: "fail: mount option with embedded newline is rejected",
+			req: &csi.NodePublishVolumeRequest{
+				VolumeId: volumeId,
+				VolumeCapability: &csi.VolumeCapability{
+					AccessType: &csi.VolumeCapability_Mount{
+						Mount: &csi.VolumeCapability_MountVolume{
+							MountFlags: []string{"tls\nverify = 0"},
+						},
+					},
+					AccessMode: &csi.VolumeCapability_AccessMode{
+						Mode: csi.VolumeCapability_AccessMode_MULTI_NODE_MULTI_WRITER,
+					},
+				},
+				TargetPath: targetPath,
+			},
+			expectMakeDir: false,
+			expectError: errtyp{
+				code:    "InvalidArgument",
+				message: "mountOptions entry contains a disallowed control character at byte 3",
+			},
+			maxInflightMountCalls: UnsetMaxInflightMountCounts,
+		},
+		{
 			name: "fail: too many fields in volume handle",
 			req: &csi.NodePublishVolumeRequest{
 				VolumeId:         volumeId + ":/a/b/::four!",
