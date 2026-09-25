@@ -51,3 +51,10 @@
 * fix: validate every mount target IP in the mounttargetipmap attribute ([#1951](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1951), [@vmishra22](https://github.com/vmishra22))
 * fix: quote controller.timeout value in the controller deployment template ([#1952](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1952), [@aliyajo](https://github.com/aliyajo))
 * fix: denylist sensitive keys in efs-utils and s3files-utils conf overrides ([#1955](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1955), [@wangnyue](https://github.com/wangnyue))
+
+# V3.5.1
+* fix: keep efs-utils conf consistent with efs-utils repo ([#1961](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1961), [@DavidXU12345](https://github.com/DavidXU12345))
+* fix: skip libwrap cleanup when efs state directory does not exist ([#1962](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1962), [@KR-Ravindra](https://github.com/KR-Ravindra))
+* fix: update BasePath parsing for reuseAccessPoint ([#1964](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1964), [@samuhale](https://github.com/samuhale))
+* fix: remove startup taint when EFS driver registered without Allocatable ([#1965](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1965), [@wangnyue](https://github.com/wangnyue))
+* fix: reap all orphaned zombies reparented to the driver, not just stunnel/efs-proxy ([#1970](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1970), [@aliyajo](https://github.com/aliyajo))
