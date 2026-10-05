@@ -10,12 +10,12 @@
 | gid                   |        |                 | true     | POSIX group Id to be applied for [Access Point root directory](https://docs.aws.amazon.com/efs/latest/ug/efs-access-points.html#enforce-root-directory-access-point) creation.                                                                                                                                                                                                                |
 | gidRangeStart         |        | 50000           | true     | Start range of the POSIX group Id to be applied for [Access Point root directory](https://docs.aws.amazon.com/efs/latest/ug/efs-access-points.html#enforce-root-directory-access-point) creation. Not used if uid/gid is set.                                                                                                                                                                 |
 | gidRangeEnd           |        | 7000000         | true     | End range of the POSIX group Id. Not used if uid/gid is set.                                                                                                                                                                                                                                                                                                                                  |
-| basePath              |        |                 | true     | Path under which access points for dynamic provisioning is created. If this parameter is not specified, access points are created under the root directory of the file system                                                                                                                                                                                                                 |
+| basePath              |        |                 | true     | Path under which access points for dynamic provisioning is created. If this parameter is not specified, access points are created under the root directory of the file system. **`basePath` is a placement parameter, not a tenant-isolation boundary** — see [Access point reuse and tenant isolation](#access-point-reuse-and-tenant-isolation).                                                                                                                                                           |
 | subPathPattern        |        | `/${.PV.name}`  | true     | The template used to construct the subPath under which each of the access points created under Dynamic Provisioning. Can be made up of fixed strings and limited variables, is akin to the 'subPathPattern' variable on the [nfs-subdir-external-provisioner](https://github.com/kubernetes-sigs/nfs-subdir-external-provisioner) chart. Supports `.PVC.name`,`.PVC.namespace` and `.PV.name` |
 | ensureUniqueDirectory |        | true            | true     | **NOTE: Only set this to false if you're sure this is the behaviour you want**.<br/> Used when dynamic provisioning is enabled, if set to true, appends the a UID to the pattern specified in `subPathPattern` to ensure that access points will not accidentally point at the same directory.                                                                                                |
 | az                    |        | ""              | true     | Used for cross-account dynamic provisioning. When set, the controller prefers the mount target in this Availability Zone; if none exists in that AZ, it falls back to a random available mount target. When unset, the controller resolves all available mount targets and each CSI node selects the mount target in its own AZ at mount time, with fallback to any available mount target if the node's AZ has none. See [Cross-account provisioning](#cross-account-provisioning) for the full behavior matrix. |
 | enforceZoneAffinity | true/false | false       | true     | When set to `true`, queries the availability zone of the EFS filesystem and returns CSI topology constraints. For One Zone EFS filesystems, this ensures pods are scheduled only in the zone where the filesystem is located. Regional EFS filesystems (multi-AZ) will have no topology constraints. Supports both `volumeBindingMode` values: `Immediate` and `WaitForFirstConsumer`. |
-| reuseAccessPoint      |        | false           | true     | When set to true, it creates the Access Point client-token from the provided PVC name. So that the AccessPoint can be replicated from a different cluster if same PVC name and storageclass configuration are used. This feature is currently only supported for a single filesystem per account/region. If attempting to reuse access points across multiple clusters and filesystems within the same region, volume provisioning will fail. If you wish to use the same EFS accesspoint across different clusters for multiple filesystems in a single region, we recommend manually creating the access points and [statically provisioning](https://github.com/kubernetes-sigs/aws-efs-csi-driver/tree/master/examples/kubernetes/access_points) those volumes.<br/><br/>**WARNING — cross-namespace data sharing:** The reuse client-token is derived from the **PVC name only**; the PVC namespace is not part of it. Two PVCs that share the same name in different namespaces of the same cluster resolve to the **same** access point and therefore mount the **same** root directory and data. This is intentional (it also enables cross-cluster reconnection), but it means Kubernetes namespaces do **not** act as a data-isolation boundary for reuse-enabled volumes. Deleting one such PVC can also remove the shared access point and root directory out from under the other. Do **not** enable `reuseAccessPoint` on a StorageClass shared across mutually-distrusting tenants; use a dedicated StorageClass (and ideally a dedicated filesystem) per trust boundary. `reuseAccessPoint` also requires the external-provisioner `--extra-create-metadata` flag so the PVC name is available; without it the driver rejects the request rather than collapsing all reuse-enabled volumes onto one access point. |
+| reuseAccessPoint      |        | false           | true     | When set to true, it creates the Access Point client-token from the provided PVC name. So that the AccessPoint can be replicated from a different cluster if same PVC name and storageclass configuration are used. This feature is currently only supported for a single filesystem per account/region. If attempting to reuse access points across multiple clusters and filesystems within the same region, volume provisioning will fail. If you wish to use the same EFS accesspoint across different clusters for multiple filesystems in a single region, we recommend manually creating the access points and [statically provisioning](https://github.com/kubernetes-sigs/aws-efs-csi-driver/tree/master/examples/kubernetes/access_points) those volumes.<br/><br/>**WARNING — cross-namespace data sharing:** The reuse client-token is derived from the **PVC name only**; the PVC namespace is not part of it. Two PVCs that share the same name in different namespaces of the same cluster resolve to the **same** access point and therefore mount the **same** root directory and data. This is intentional (it also enables cross-cluster reconnection), but it means Kubernetes namespaces do **not** act as a data-isolation boundary for reuse-enabled volumes. Deleting one such PVC can also remove the shared access point and root directory out from under the other. Do **not** enable `reuseAccessPoint` on a StorageClass shared across mutually-distrusting tenants; use a dedicated StorageClass (and ideally a dedicated filesystem) per trust boundary. `reuseAccessPoint` also requires the external-provisioner `--extra-create-metadata` flag so the PVC name is available; without it the driver rejects the request rather than collapsing all reuse-enabled volumes onto one access point. See [Access point reuse and tenant isolation](#access-point-reuse-and-tenant-isolation) for the full isolation contract, including how `basePath` relates to reuse. |
 | enableTagging         | true/false | true        | true     | **NOTE: Only set this to false if you're sure this is the behaviour you want**.<br/> When true, the driver tags each access point it creates with the default `efs.csi.aws.com/cluster` tag (plus any tags from the controller's `--tags` flag). Set to false to create access points without any tags, which avoids the throughput limits of tagging every access point. Setting `enableTagging: "false"` while the controller is also configured with `--tags` is rejected with an `InvalidArgument` error. |
 
 **Note**
@@ -27,6 +27,42 @@
  * When user enforcement is enabled, Amazon EFS replaces the NFS client's user and group IDs with the identity configured on the access point for all file system operations.
  * The uid/gid configured on the access point is either the uid/gid specified in the storage class, a value in the gidRangeStart-gidRangeEnd (used as both uid/gid) specified in the storage class, or is a value selected by the driver is no uid/gid or gidRange is specified.
  * We suggest using [static provisioning](https://github.com/kubernetes-sigs/aws-efs-csi-driver/blob/master/examples/kubernetes/static_provisioning/README.md) if you do not wish to use user identity enforcement.
+
+### Access point reuse and tenant isolation
+
+**Use a dedicated EFS file system for each trust boundary.** The file system is the
+enforceable boundary between workloads that must not read or write each other's
+data. Access points, `basePath`, and `subPathPattern` organize and scope access
+*within* a file system; they are not a substitute for separate file systems
+between mutually-distrusting tenants.
+
+**The reuse client token is derived from the PVC name only.** When
+`reuseAccessPoint: true`, the driver sets the access point creation (client)
+token to a hash of the PVC name — the PVC's namespace is **not** part of it.
+Two PVCs with the same name (in different namespaces, or in different clusters)
+therefore resolve to the **same** access point, root directory, and data by
+design. This is what enables cross-cluster reconnection: recreate a PVC with the
+same name and StorageClass and it reattaches to the existing access point.
+
+Two consequences follow from this that matter for isolation:
+
+* **Do not enable `reuseAccessPoint: true` on a StorageClass shared across
+  mutually-distrusting tenants.** A tenant that can choose its PVC name can land
+  on another tenant's access point and data simply by reusing the name. Scope
+  reuse-enabled StorageClasses to a single trust boundary, and give each trust
+  boundary its own file system.
+* **Deleting a shared PVC can remove the access point out from under the other
+  user.** Because both PVCs point at the same access point, deleting one can
+  delete the access point the other still relies on.
+
+**`basePath` is a placement parameter, not a tenant-isolation boundary.** It
+controls where a *newly created* access point's root directory is placed. On
+reuse it does not select the access point: the client token (the PVC-name hash)
+resolves the access point first, and `basePath` is then only a consistency
+sanity-check — the driver verifies the resolved access point's root directory
+sits under the configured `basePath` and otherwise fails provisioning. A
+matching `basePath` does not make a reused access point belong to a different
+tenant, and it grants no additional separation.
 
 ### Cross-account provisioning
 
