@@ -899,8 +899,19 @@ func (d *Driver) buildAccessPointTags() map[string]string {
 func validateExistingAccessPoint(existingAccessPoint *cloud.AccessPoint, basePath string, gid int64, gidSpecified bool, uid int64, uidSpecified bool, gidMin int64, gidMax int64) error {
 	normalizedBasePath := strings.Trim(basePath, "/")
 	normalizedAccessPointPath := strings.Trim(existingAccessPoint.AccessPointRootDir, "/")
-	if normalizedBasePath != "" &&
-		normalizedAccessPointPath != normalizedBasePath &&
+	if normalizedBasePath == "" {
+		// No basePath: the driver creates roots directly under the filesystem
+		// root as path.Join("/", "", rootDirName) -- at most a single path
+		// component. Reuse must therefore reject an existing access point whose
+		// root is a *nested* path (which implies a basePath the StorageClass did
+		// not request); the filesystem root itself (empty) or a single-component
+		// root is consistent and accepted. Without this, an omitted basePath
+		// would apply no path constraint at all (strings.HasPrefix(x, "") is
+		// always true), letting a request bind to any existing access point.
+		if strings.Contains(normalizedAccessPointPath, "/") {
+			return fmt.Errorf("access point found but has different base path than what's specified in storage class")
+		}
+	} else if normalizedAccessPointPath != normalizedBasePath &&
 		!strings.HasPrefix(normalizedAccessPointPath, normalizedBasePath+"/") {
 		return fmt.Errorf("access point found but has different base path than what's specified in storage class")
 	}
