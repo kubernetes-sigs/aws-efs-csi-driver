@@ -38,7 +38,7 @@ This example requires Kubernetes 1.17 or later and a driver version of 1.2.0 or 
       * `directoryPerms` - The directory permissions of the root directory created by the access point.
       * `gidRangeStart` (Optional) - The starting range of the Posix group ID to be applied onto the root directory of the access point. The default value is `50000`. 
       * `gidRangeEnd` (Optional) - The ending range of the Posix group ID. The default value is `7000000`.
-      * `basePath` (Optional) - The path on the file system under which the access point root directory is created. If the path isn't provided, the access points root directory is created under the root of the file system.
+      * `basePath` (Optional) - The path on the file system under which the access point root directory is created. If the path isn't provided, the access points root directory is created under the root of the file system. `basePath` is a placement parameter, not a tenant-isolation boundary — see the isolation note below.
       * `subPathPattern` (Optional) - A pattern that describes the subPath under which an access point should be created. So if the pattern were `${.PVC.namespace}/${PVC.name}`, the PVC namespace is `foo` and the PVC name is `pvc-123-456`, and the `basePath` is `/dynamic_provisioner` the access point would be
         created at `/dynamic_provisioner/foo/pvc-123-456`.
       * `ensureUniqueDirectory` (Optional) - A boolean that ensures that, if set, a UUID is appended to the final element of
@@ -51,6 +51,26 @@ This example requires Kubernetes 1.17 or later and a driver version of 1.2.0 or 
       ```sh
       kubectl apply -f storageclass.yaml
       ```
+
+   **Tenant isolation**
+
+   Use a dedicated EFS file system for each trust boundary. The file system is
+   the enforceable boundary between workloads that must not read or write each
+   other's data; access points, `basePath`, and `subPathPattern` organize access
+   *within* a file system and are not a substitute for separate file systems
+   between mutually-distrusting tenants.
+
+   In particular, do **not** set `reuseAccessPoint: true` on a StorageClass
+   shared across mutually-distrusting tenants. The reuse client token is derived
+   from the PVC name only (the namespace is not part of it), so two PVCs with the
+   same name — in different namespaces or clusters — resolve to the same access
+   point, root directory, and data by design (this is what enables cross-cluster
+   reconnection). A tenant that can choose its PVC name could therefore reach
+   another tenant's data, and deleting one such PVC can remove the shared access
+   point out from under the other. `basePath` does not mitigate this: on reuse it
+   is only a consistency sanity-check on the access point already resolved by the
+   client token. See [Storage Class Parameters](../../../../docs/parameters.md#access-point-reuse-and-tenant-isolation)
+   for details.
 
 2. Test automatic provisioning by deploying a Pod that makes use of the PVC: 
 
