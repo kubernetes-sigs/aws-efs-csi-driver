@@ -26,6 +26,12 @@ Instrumented EFS API operations (`service="efs"`): `CreateAccessPoint`, `DeleteA
 
 Instrumented S3Files API operations (`service="s3files"`): `CreateAccessPoint`, `DeleteAccessPoint`, `ListAccessPoints`, `ListFileSystems`.
 
+## Sidecar Metrics (`csi-provisioner`)
+
+When `controller.enableMetrics: true` is set, the `csi-provisioner` sidecar serves its own metrics (operation latency, workqueue, and Go runtime) on `0.0.0.0:3302/metrics`. The port is named `metrics-prov` on both the container and the `Service`, and the `ServiceMonitor` scrapes it. The `prometheus.io/port` annotation only covers the driver's port 3301.
+
+To serve these metrics on a different address, pass `--http-endpoint` or `--metrics-address` in `sidecars.csiProvisioner.additionalArgs`. The chart then skips its own `--http-endpoint`, but the declared port stays 3302.
+
 ## TLS
 
 The metrics endpoint can be served over TLS by providing `--metrics-cert-file` and `--metrics-key-file` flags to the driver.

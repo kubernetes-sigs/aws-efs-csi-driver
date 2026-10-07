@@ -165,6 +165,53 @@ tests:
             prometheus.io/scrape: "true"
             prometheus.io/port: "3301"
 
+  - it: exposes csi-provisioner metrics on 3302 when enableMetrics is true
+    set:
+      controller:
+        enableMetrics: true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[?(@.name == "csi-provisioner")].args
+          content: --http-endpoint=0.0.0.0:3302
+      - contains:
+          path: spec.template.spec.containers[?(@.name == "csi-provisioner")].ports
+          content:
+            name: metrics-prov
+            containerPort: 3302
+            protocol: TCP
+
+  - it: leaves the csi-provisioner endpoint to additionalArgs that set --http-endpoint
+    set:
+      controller:
+        enableMetrics: true
+      sidecars:
+        csiProvisioner:
+          additionalArgs:
+            - --http-endpoint=0.0.0.0:9090
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[?(@.name == "csi-provisioner")].args
+          content: --http-endpoint=0.0.0.0:3302
+      - contains:
+          path: spec.template.spec.containers[?(@.name == "csi-provisioner")].args
+          content: --http-endpoint=0.0.0.0:9090
+
+  - it: leaves the csi-provisioner endpoint to additionalArgs that set --metrics-address
+    set:
+      controller:
+        enableMetrics: true
+      sidecars:
+        csiProvisioner:
+          additionalArgs:
+            - --metrics-address=0.0.0.0:9090
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[?(@.name == "csi-provisioner")].args
+          content: --http-endpoint=0.0.0.0:3302
+      - contains:
+          path: spec.template.spec.containers[?(@.name == "csi-provisioner")].args
+          content: --metrics-address=0.0.0.0:9090
+
   - it: omits prometheus annotations when enablePrometheusAnnotations is false
     set:
       controller:
