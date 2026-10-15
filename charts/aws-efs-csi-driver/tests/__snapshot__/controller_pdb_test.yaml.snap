@@ -1,0 +1,21 @@
+renders minAvailable and the eviction policy when enabled:
+  1: |
+    apiVersion: policy/v1
+    kind: PodDisruptionBudget
+    metadata:
+      labels:
+        app.kubernetes.io/instance: efs
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: aws-efs-csi-driver
+        app.kubernetes.io/version: 0.0.0
+        helm.sh/chart: aws-efs-csi-driver-0.0.0
+      name: efs-csi-controller
+      namespace: kube-system
+    spec:
+      minAvailable: 1
+      selector:
+        matchLabels:
+          app: efs-csi-controller
+          app.kubernetes.io/instance: efs
+          app.kubernetes.io/name: aws-efs-csi-driver
+      unhealthyPodEvictionPolicy: IfHealthyBudget

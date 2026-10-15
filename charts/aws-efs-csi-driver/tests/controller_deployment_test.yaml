@@ -1,0 +1,354 @@
+suite: controller deployment
+templates:
+  - templates/controller-deployment.yaml
+release:
+  name: efs
+  namespace: kube-system
+chart:
+  version: 0.0.0
+  appVersion: 0.0.0
+tests:
+  - it: renders a deployment with the default values
+    set:
+      image:
+        tag: v0.0.0
+      sidecars:
+        csiProvisioner:
+          image:
+            tag: v0.0.0
+        livenessProbe:
+          image:
+            tag: v0.0.0
+    asserts:
+      - matchSnapshot: {}
+
+  - it: is not rendered when controller.create is false
+    set:
+      controller:
+        create: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: honours controller.name in the name and selector labels
+    set:
+      controller:
+        name: my-controller
+    asserts:
+      - equal:
+          path: metadata.name
+          value: my-controller
+      - equal:
+          path: spec.selector.matchLabels.app
+          value: my-controller
+      - equal:
+          path: spec.template.metadata.labels.app
+          value: my-controller
+
+  - it: defaults the image tag to the chart appVersion when the tag is empty
+    set:
+      image:
+        tag: ""
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[?(@.name == "efs-plugin")].image
+          value: public.ecr.aws/efs-csi-driver/amazon/aws-efs-csi-driver:v0.0.0
+
+  - it: uses the configured image and sidecar images
+    set:
+      image:
+        repository: example.com/efs
+        tag: v9.9.9
+        pullPolicy: Always
+      sidecars:
+        csiProvisioner:
+          image:
+            repository: example.com/provisioner
+            tag: v1.0.0
+        livenessProbe:
+          image:
+            repository: example.com/livenessprobe
+            tag: v2.0.0
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[?(@.name == "efs-plugin")].image
+          value: example.com/efs:v9.9.9
+      - equal:
+          path: spec.template.spec.containers[?(@.name == "efs-plugin")].imagePullPolicy
+          value: Always
+      - equal:
+          path: spec.template.spec.containers[?(@.name == "csi-provisioner")].image
+          value: example.com/provisioner:v1.0.0
+      - equal:
+          path: spec.template.spec.containers[?(@.name == "liveness-probe")].image
+          value: example.com/livenessprobe:v2.0.0
+
+  - it: renders controller tags as a space-separated key:value list
+    set:
+      controller:
+        tags:
+          environment: prod
+          region: us-east-1
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[?(@.name == "efs-plugin")].args
+          content: --tags=environment:prod region:us-east-1
+
+  - it: forwards logLevel, debugLogs and deleteAccessPointRootDir
+    set:
+      controller:
+        logLevel: 5
+        deleteAccessPointRootDir: true
+      debugLogs: true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[?(@.name == "efs-plugin")].args
+          content: --v=5
+      - contains:
+          path: spec.template.spec.containers[?(@.name == "efs-plugin")].args
+          content: --delete-access-point-root-dir=true
+      - contains:
+          path: spec.template.spec.containers[?(@.name == "efs-plugin")].args
+          content: --debug-logs=true
+      - contains:
+          path: spec.template.spec.containers[?(@.name == "csi-provisioner")].args
+          content: --v=5
+
+  - it: adds the FIPS, regional STS and extra env variables when enabled
+    set:
+      useFIPS: true
+      controller:
+        regionalStsEndpoints: true
+        env:
+          - name: FOO
+            value: bar
+      portRangeUpperBound: "30000"
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[?(@.name == "efs-plugin")].env
+          content:
+            name: AWS_USE_FIPS_ENDPOINT
+            value: "true"
+      - contains:
+          path: spec.template.spec.containers[?(@.name == "efs-plugin")].env
+          content:
+            name: AWS_STS_REGIONAL_ENDPOINTS
+            value: regional
+      - contains:
+          path: spec.template.spec.containers[?(@.name == "efs-plugin")].env
+          content:
+            name: PORT_RANGE_UPPER_BOUND
+            value: "30000"
+      - contains:
+          path: spec.template.spec.containers[?(@.name == "efs-plugin")].env
+          content:
+            name: FOO
+            value: bar
+
+  - it: exposes metrics and prometheus annotations when enableMetrics is true
+    set:
+      controller:
+        enableMetrics: true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[?(@.name == "efs-plugin")].args
+          content: --http-endpoint=0.0.0.0:3301
+      - contains:
+          path: spec.template.spec.containers[?(@.name == "efs-plugin")].ports
+          content:
+            name: metrics
+            containerPort: 3301
+            protocol: TCP
+      - equal:
+          path: spec.template.metadata.annotations
+          value:
+            prometheus.io/scrape: "true"
+            prometheus.io/port: "3301"
+
+  - it: omits prometheus annotations when enablePrometheusAnnotations is false
+    set:
+      controller:
+        enableMetrics: true
+        enablePrometheusAnnotations: false
+    asserts:
+      - notExists:
+          path: spec.template.metadata.annotations
+
+  - it: merges podAnnotations with the prometheus annotations
+    set:
+      controller:
+        enableMetrics: true
+        podAnnotations:
+          foo: bar
+    asserts:
+      - equal:
+          path: spec.template.metadata.annotations
+          value:
+            foo: bar
+            prometheus.io/scrape: "true"
+            prometheus.io/port: "3301"
+
+  - it: adds podLabels and additionalLabels
+    set:
+      controller:
+        podLabels:
+          team: storage
+        additionalLabels:
+          owner: platform
+    asserts:
+      - equal:
+          path: spec.template.metadata.labels.team
+          value: storage
+      - equal:
+          path: metadata.labels.owner
+          value: platform
+
+  - it: drops extra-create-metadata and appends additional provisioner args
+    set:
+      controller:
+        extraCreateMetadata: false
+      sidecars:
+        csiProvisioner:
+          additionalArgs:
+            - --retry-interval-max=5m
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[?(@.name == "csi-provisioner")].args
+          content: --extra-create-metadata
+      - contains:
+          path: spec.template.spec.containers[?(@.name == "csi-provisioner")].args
+          content: --retry-interval-max=5m
+
+  - it: falls back to controller.resources for sidecars without their own resources
+    set:
+      controller:
+        resources:
+          requests:
+            cpu: 100m
+      sidecars:
+        livenessProbe:
+          resources:
+            requests:
+              cpu: 10m
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[?(@.name == "efs-plugin")].resources
+          value:
+            requests:
+              cpu: 100m
+      - equal:
+          path: spec.template.spec.containers[?(@.name == "csi-provisioner")].resources
+          value:
+            requests:
+              cpu: 100m
+      - equal:
+          path: spec.template.spec.containers[?(@.name == "liveness-probe")].resources
+          value:
+            requests:
+              cpu: 10m
+
+  - it: renders readiness and startup probes when configured
+    set:
+      controller:
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: healthz
+        startupProbe:
+          httpGet:
+            path: /healthz
+            port: healthz
+          failureThreshold: 30
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[?(@.name == "efs-plugin")].readinessProbe.httpGet.path
+          value: /healthz
+      - equal:
+          path: spec.template.spec.containers[?(@.name == "efs-plugin")].startupProbe.failureThreshold
+          value: 30
+
+  - it: uses healthPort for the container port and the liveness-probe sidecar
+    set:
+      controller:
+        healthPort: 9999
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[?(@.name == "efs-plugin")].ports
+          content:
+            name: healthz
+            containerPort: 9999
+            protocol: TCP
+      - contains:
+          path: spec.template.spec.containers[?(@.name == "liveness-probe")].args
+          content: --health-port=9999
+
+  - it: renders a RollingUpdate strategy when rollingUpdate is set
+    set:
+      controller:
+        rollingUpdate:
+          maxUnavailable: 1
+    asserts:
+      - equal:
+          path: spec.strategy
+          value:
+            type: RollingUpdate
+            rollingUpdate:
+              maxUnavailable: 1
+
+  - it: injects the controller label selector into topologySpreadConstraints
+    set:
+      controller:
+        topologySpreadConstraints:
+          - maxSkew: 1
+            topologyKey: topology.kubernetes.io/zone
+            whenUnsatisfiable: ScheduleAnyway
+    asserts:
+      - equal:
+          path: spec.template.spec.topologySpreadConstraints
+          value:
+            - maxSkew: 1
+              topologyKey: topology.kubernetes.io/zone
+              whenUnsatisfiable: ScheduleAnyway
+              labelSelector:
+                matchLabels:
+                  app: efs-csi-controller
+
+  - it: renders imagePullSecrets
+    set:
+      imagePullSecrets:
+        - my-secret
+    asserts:
+      - equal:
+          path: spec.template.spec.imagePullSecrets
+          value:
+            - name: my-secret
+
+  - it: uses a custom socketDirVolume and appends extra volumes and mounts
+    set:
+      controller:
+        socketDirVolume:
+          emptyDir:
+            medium: Memory
+        volumes:
+          - name: extra
+            emptyDir: {}
+        volumeMounts:
+          - name: extra
+            mountPath: /extra
+    asserts:
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: socket-dir
+            emptyDir:
+              medium: Memory
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: extra
+            emptyDir: {}
+      - contains:
+          path: spec.template.spec.containers[?(@.name == "efs-plugin")].volumeMounts
+          content:
+            name: extra
+            mountPath: /extra
