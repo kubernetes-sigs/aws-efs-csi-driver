@@ -105,6 +105,25 @@ retry_nfs_mount_command = true
 retry_nfs_mount_command_count = 3
 retry_nfs_mount_command_timeout_sec = 15
 
+# Number of Tokio worker threads each efs-proxy process starts. One efs-proxy
+# process is launched per TLS mount, and by default each one starts one worker
+# thread per CPU visible to it, so a node with many CPUs and many mounts uses a
+# correspondingly large number of tasks/PIDs. Set a positive integer no greater
+# than the number of CPUs available to this host to bound that per-mount cost;
+# leave it commented out to keep one worker thread per available CPU. A value
+# above the available CPU count is refused by efs-proxy at startup -- extra
+# workers beyond that add a thread stack and scheduling overhead each without
+# adding parallelism. Reducing the worker count trades parallelism inside a
+# single mount for lower per-mount thread usage, so measure before lowering it
+# on a throughput-sensitive workload. Only mounts started after the change pick
+# up the new value; already-running proxies keep the count they started with.
+# This item is the supported way to bound the worker count. If the
+# TOKIO_WORKER_THREADS environment variable happens to be set in the mount
+# helper's environment, this item takes precedence over it; that variable is
+# a Tokio implementation detail, is not validated, and is not a supported way
+# to configure efs-proxy.
+# efs_proxy_worker_threads = 8
+
 [mount.cn-north-1]
 dns_name_suffix = amazonaws.com.cn
 
@@ -238,6 +257,25 @@ disable_fetch_ec2_metadata_token = false
 retry_nfs_mount_command = true
 retry_nfs_mount_command_count = 3
 retry_nfs_mount_command_timeout_sec = 15
+
+# Number of Tokio worker threads each efs-proxy process starts. One efs-proxy
+# process is launched per TLS mount, and by default each one starts one worker
+# thread per CPU visible to it, so a node with many CPUs and many mounts uses a
+# correspondingly large number of tasks/PIDs. Set a positive integer no greater
+# than the number of CPUs available to this host to bound that per-mount cost;
+# leave it commented out to keep one worker thread per available CPU. A value
+# above the available CPU count is refused by efs-proxy at startup -- extra
+# workers beyond that add a thread stack and scheduling overhead each without
+# adding parallelism. Reducing the worker count trades parallelism inside a
+# single mount for lower per-mount thread usage, so measure before lowering it
+# on a throughput-sensitive workload. Only mounts started after the change pick
+# up the new value; already-running proxies keep the count they started with.
+# This item is the supported way to bound the worker count. If the
+# TOKIO_WORKER_THREADS environment variable happens to be set in the mount
+# helper's environment, this item takes precedence over it; that variable is
+# a Tokio implementation detail, is not validated, and is not a supported way
+# to configure efs-proxy.
+# efs_proxy_worker_threads = 8
 
 [mount.cn-north-1]
 # S3 Files mount target DNS is under "on.amazonwebservices.com.cn"
