@@ -29,6 +29,7 @@ GO111MODULE=on
 GOPROXY=direct
 GOPATH=$(shell go env GOPATH)
 GOOS=$(shell go env GOOS)
+GOARCH=$(shell go env GOARCH)
 
 REGISTRY?=amazon
 IMAGE?=$(REGISTRY)/aws-efs-csi-driver
@@ -104,7 +105,7 @@ bin /tmp/helm:
 HELM_VERSION ?= v3.19.0
 
 bin/helm: | /tmp/helm bin
-	@curl -o /tmp/helm/helm.tar.gz -sSL https://get.helm.sh/helm-${HELM_VERSION}-${GOOS}-amd64.tar.gz
+	@curl -o /tmp/helm/helm.tar.gz -sSL https://get.helm.sh/helm-${HELM_VERSION}-${GOOS}-${GOARCH}.tar.gz
 	@tar -zxf /tmp/helm/helm.tar.gz -C bin --strip-components=1
 	@rm -rf /tmp/helm/*
 
