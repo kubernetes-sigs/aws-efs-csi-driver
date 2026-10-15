@@ -51,3 +51,41 @@ tests:
           value: 1
       - notExists:
           path: spec.minAvailable
+
+  - it: renders only maxUnavailable when it is set alongside the default minAvailable
+    set:
+      controller:
+        podDisruptionBudget:
+          enabled: true
+          maxUnavailable: 1
+    asserts:
+      - equal:
+          path: spec.maxUnavailable
+          value: 1
+      - notExists:
+          path: spec.minAvailable
+
+  - it: renders a percentage maxUnavailable
+    set:
+      controller:
+        podDisruptionBudget:
+          enabled: true
+          maxUnavailable: 50%
+    asserts:
+      - equal:
+          path: spec.maxUnavailable
+          value: 50%
+      - notExists:
+          path: spec.minAvailable
+
+  - it: renders neither field when minAvailable is cleared and maxUnavailable is unset
+    set:
+      controller:
+        podDisruptionBudget:
+          enabled: true
+          minAvailable: null
+    asserts:
+      - notExists:
+          path: spec.minAvailable
+      - notExists:
+          path: spec.maxUnavailable

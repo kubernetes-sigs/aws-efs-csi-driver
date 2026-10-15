@@ -155,6 +155,8 @@ controller:
   # Pod Disruption Budget
   podDisruptionBudget: 
     enabled: false
+    # Only one of maxUnavailable and minAvailable is rendered; maxUnavailable
+    # takes precedence when set.
     # maxUnavailable: 1
     minAvailable: 1
     unhealthyPodEvictionPolicy: IfHealthyBudget
