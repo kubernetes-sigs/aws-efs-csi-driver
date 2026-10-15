@@ -114,6 +114,14 @@ verify:
 test:
 	go test -v -race ./pkg/...
 
+HELM ?= helm
+HELM_UNITTEST_VERSION ?= v1.0.3
+
+.PHONY: test-helm
+test-helm:
+	@$(HELM) plugin list | grep -q '^unittest' || $(HELM) plugin install https://github.com/helm-unittest/helm-unittest --version $(HELM_UNITTEST_VERSION)
+	$(HELM) unittest charts/aws-efs-csi-driver
+
 .PHONY: test-e2e
 test-e2e:
 	DRIVER_NAME=aws-efs-csi-driver \
