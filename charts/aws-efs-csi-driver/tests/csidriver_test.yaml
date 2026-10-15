@@ -1,0 +1,19 @@
+suite: CSIDriver
+templates:
+  - templates/csidriver.yaml
+chart:
+  version: 0.0.0
+  appVersion: 0.0.0
+tests:
+  - it: renders the CSIDriver as a pre-install and pre-upgrade hook by default
+    asserts:
+      - matchSnapshot: {}
+
+  - it: keeps the CSIDriver as a regular resource when hooks are disabled
+    set:
+      useHelmHooksForCSIDriver: false
+    asserts:
+      - equal:
+          path: metadata.annotations
+          value:
+            helm.sh/resource-policy: keep

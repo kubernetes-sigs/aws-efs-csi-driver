@@ -1,0 +1,72 @@
+renders a ServiceMonitor scraping the metrics port:
+  1: |
+    apiVersion: v1
+    kind: Service
+    metadata:
+      labels:
+        app: efs-csi-controller
+        app.kubernetes.io/instance: efs
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: aws-efs-csi-driver
+        app.kubernetes.io/version: 0.0.0
+        helm.sh/chart: aws-efs-csi-driver-0.0.0
+      name: efs-csi-controller
+      namespace: kube-system
+    spec:
+      ports:
+        - name: metrics
+          port: 3301
+          protocol: TCP
+          targetPort: 3301
+      selector:
+        app: efs-csi-controller
+        app.kubernetes.io/instance: efs
+        app.kubernetes.io/name: aws-efs-csi-driver
+  2: |
+    apiVersion: monitoring.coreos.com/v1
+    kind: ServiceMonitor
+    metadata:
+      labels:
+        app: efs-csi-controller
+        app.kubernetes.io/instance: efs
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: aws-efs-csi-driver
+        app.kubernetes.io/version: 0.0.0
+        helm.sh/chart: aws-efs-csi-driver-0.0.0
+      name: efs-csi-controller
+      namespace: kube-system
+    spec:
+      endpoints:
+        - interval: 15s
+          path: /metrics
+          port: metrics
+      namespaceSelector:
+        matchNames:
+          - kube-system
+      selector:
+        matchLabels:
+          app: efs-csi-controller
+renders only the Service when the ServiceMonitor is disabled:
+  1: |
+    apiVersion: v1
+    kind: Service
+    metadata:
+      labels:
+        app: efs-csi-controller
+        app.kubernetes.io/instance: efs
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: aws-efs-csi-driver
+        app.kubernetes.io/version: 0.0.0
+        helm.sh/chart: aws-efs-csi-driver-0.0.0
+      name: efs-csi-controller
+      namespace: kube-system
+    spec:
+      ports:
+        - name: metrics
+          port: 3301
+          protocol: TCP
+          targetPort: 3301
+      selector:
+        app: efs-csi-controller
+        app.kubernetes.io/instance: efs
+        app.kubernetes.io/name: aws-efs-csi-driver

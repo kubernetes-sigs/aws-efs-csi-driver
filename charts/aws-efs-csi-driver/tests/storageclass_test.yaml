@@ -1,0 +1,74 @@
+suite: storage classes
+templates:
+  - templates/storageclass.yaml
+chart:
+  version: 0.0.0
+  appVersion: 0.0.0
+tests:
+  - it: is not rendered by default
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: renders one StorageClass per entry
+    set:
+      storageClasses:
+        - name: efs-sc
+          annotations:
+            storageclass.kubernetes.io/is-default-class: "true"
+          mountOptions:
+            - tls
+          parameters:
+            provisioningMode: efs-ap
+            fileSystemId: fs-1122aabb
+            directoryPerms: "700"
+          reclaimPolicy: Retain
+          volumeBindingMode: WaitForFirstConsumer
+        - name: efs-sc-minimal
+    asserts:
+      - hasDocuments:
+          count: 2
+      - isKind:
+          of: StorageClass
+      - equal:
+          path: provisioner
+          value: efs.csi.aws.com
+      - equal:
+          path: metadata.name
+          value: efs-sc
+        documentIndex: 0
+      - equal:
+          path: metadata.annotations
+          value:
+            storageclass.kubernetes.io/is-default-class: "true"
+        documentIndex: 0
+      - equal:
+          path: mountOptions
+          value:
+            - tls
+        documentIndex: 0
+      - equal:
+          path: parameters
+          value:
+            provisioningMode: efs-ap
+            fileSystemId: fs-1122aabb
+            directoryPerms: "700"
+        documentIndex: 0
+      - equal:
+          path: reclaimPolicy
+          value: Retain
+        documentIndex: 0
+      - equal:
+          path: volumeBindingMode
+          value: WaitForFirstConsumer
+        documentIndex: 0
+      - equal:
+          path: metadata.name
+          value: efs-sc-minimal
+        documentIndex: 1
+      - notExists:
+          path: parameters
+        documentIndex: 1
+      - notExists:
+          path: reclaimPolicy
+        documentIndex: 1

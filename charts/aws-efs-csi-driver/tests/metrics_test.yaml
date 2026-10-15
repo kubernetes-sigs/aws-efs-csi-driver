@@ -1,0 +1,39 @@
+suite: controller metrics
+templates:
+  - templates/metrics.yaml
+release:
+  name: efs
+  namespace: kube-system
+chart:
+  version: 0.0.0
+  appVersion: 0.0.0
+tests:
+  - it: is not rendered by default
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: renders only the Service when the ServiceMonitor is disabled
+    set:
+      controller:
+        enableMetrics: true
+    asserts:
+      - matchSnapshot: {}
+
+  - it: renders a ServiceMonitor scraping the metrics port
+    set:
+      controller:
+        enableMetrics: true
+        serviceMonitor:
+          enabled: true
+    asserts:
+      - matchSnapshot: {}
+
+  - it: does not render a ServiceMonitor without enableMetrics
+    set:
+      controller:
+        serviceMonitor:
+          enabled: true
+    asserts:
+      - hasDocuments:
+          count: 0
