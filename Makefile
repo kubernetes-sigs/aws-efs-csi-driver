@@ -101,8 +101,10 @@ clean:
 bin /tmp/helm:
 	@mkdir -p $@
 
+HELM_VERSION ?= v3.19.0
+
 bin/helm: | /tmp/helm bin
-	@curl -o /tmp/helm/helm.tar.gz -sSL https://get.helm.sh/helm-v3.5.3-${GOOS}-amd64.tar.gz
+	@curl -o /tmp/helm/helm.tar.gz -sSL https://get.helm.sh/helm-${HELM_VERSION}-${GOOS}-amd64.tar.gz
 	@tar -zxf /tmp/helm/helm.tar.gz -C bin --strip-components=1
 	@rm -rf /tmp/helm/*
 
@@ -111,15 +113,17 @@ verify:
 	./hack/verify-all
 
 .PHONY: test
-test:
+test: helm-unittest
 	go test -v -race ./pkg/...
 
-HELM ?= helm
 HELM_UNITTEST_VERSION ?= v1.0.3
+HELM ?= $(or $(shell command -v helm 2>/dev/null),bin/helm)
 
-.PHONY: test-helm
-test-helm:
-	@$(HELM) plugin list | grep -q '^unittest' || $(HELM) plugin install https://github.com/helm-unittest/helm-unittest --version $(HELM_UNITTEST_VERSION)
+.PHONY: helm-unittest
+helm-unittest: $(HELM)
+	@$(HELM) plugin list | grep -q '^unittest' || \
+		$(HELM) plugin install https://github.com/helm-unittest/helm-unittest --version $(HELM_UNITTEST_VERSION) \
+		$$($(HELM) version --short | grep -q '^v4' && echo --verify=false)
 	$(HELM) unittest charts/aws-efs-csi-driver
 
 .PHONY: test-e2e
