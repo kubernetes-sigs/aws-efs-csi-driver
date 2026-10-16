@@ -851,33 +851,37 @@ func (c *cloud) DeleteS3FilesFileSystem(resources *S3FilesResources) error {
 
 func (c *cloud) ensureS3FilesFileSystemStatus(fileSystemId string, status s3filestypes.LifeCycleState) error {
 	ctx := context.TODO()
+	deadline := time.Now().Add(s3FilesWaitTimeout)
 
 	for {
-		request := &s3files.ListFileSystemsInput{}
-		response, err := c.s3filesclient.ListFileSystems(ctx, request)
+		// Look the file system up by ID. ListFileSystems is paginated, so scanning
+		// only its first page can miss the file system and wait forever.
+		response, err := c.s3filesclient.GetFileSystem(ctx, &s3files.GetFileSystemInput{
+			FileSystemId: aws.String(fileSystemId),
+		})
 		if err != nil {
 			return err
 		}
 
-		for _, cd := range response.FileSystems {
-			if cd.FileSystemId != nil && *cd.FileSystemId == fileSystemId {
-				if cd.Status == status {
-					return nil
-				}
-				statusMsg := ""
-				if cd.StatusMessage != nil {
-					statusMsg = *cd.StatusMessage
-				}
-				fmt.Printf("S3Files file system %s status: %s (waiting for %s) with message %s\n", fileSystemId, cd.Status, status, statusMsg)
-				break
-			}
+		if response.Status == status {
+			return nil
 		}
+		statusMsg := aws.ToString(response.StatusMessage)
+		if isTerminalS3FilesState(response.Status, status) {
+			return fmt.Errorf("S3Files file system %s entered state %s while waiting for %s: %s", fileSystemId, response.Status, status, statusMsg)
+		}
+		if time.Now().After(deadline) {
+			return fmt.Errorf("timed out after %s waiting for S3Files file system %s to reach %s (last state %s: %s)", s3FilesWaitTimeout, fileSystemId, status, response.Status, statusMsg)
+		}
+		fmt.Printf("S3Files file system %s status: %s (waiting for %s) with message %s\n", fileSystemId, response.Status, status, statusMsg)
 		time.Sleep(10 * time.Second)
 	}
 }
 
 func (c *cloud) ensureS3FilesMountTargetStatus(fileSystemId string, status s3filestypes.LifeCycleState) error {
 	ctx := context.TODO()
+	deadline := time.Now().Add(s3FilesWaitTimeout)
+
 	for {
 		request := &s3files.ListMountTargetsInput{
 			FileSystemId: aws.String(fileSystemId),
@@ -887,21 +891,26 @@ func (c *cloud) ensureS3FilesMountTargetStatus(fileSystemId string, status s3fil
 			return err
 		}
 
-		done := true
-		for _, target := range response.MountTargets {
-			if target.Status != status {
-				done = false
-				statusMsg := ""
-				if target.StatusMessage != nil {
-					statusMsg = *target.StatusMessage
-				}
-				fmt.Printf("S3Files mount target %s status: %s (waiting for %s) with message %s\n", *target.MountTargetId, target.Status, status, statusMsg)
+		var pending *s3filestypes.ListMountTargetsDescription
+		for i := range response.MountTargets {
+			if response.MountTargets[i].Status != status {
+				pending = &response.MountTargets[i]
 				break
 			}
 		}
-		if done {
+		if pending == nil {
 			return nil
 		}
+
+		mountTargetId := aws.ToString(pending.MountTargetId)
+		statusMsg := aws.ToString(pending.StatusMessage)
+		if isTerminalS3FilesState(pending.Status, status) {
+			return fmt.Errorf("S3Files mount target %s entered state %s while waiting for %s: %s", mountTargetId, pending.Status, status, statusMsg)
+		}
+		if time.Now().After(deadline) {
+			return fmt.Errorf("timed out after %s waiting for S3Files mount target %s to reach %s (last state %s: %s)", s3FilesWaitTimeout, mountTargetId, status, pending.Status, statusMsg)
+		}
+		fmt.Printf("S3Files mount target %s status: %s (waiting for %s) with message %s\n", mountTargetId, pending.Status, status, statusMsg)
 		time.Sleep(10 * time.Second)
 	}
 }
@@ -958,34 +967,51 @@ func (c *cloud) ensureNoS3FilesMountTarget(fileSystemId string) error {
 
 func (c *cloud) ensureNoS3FilesFileSystem(fileSystemId string) error {
 	ctx := context.TODO()
-	timeout := time.After(5 * time.Minute)
+	deadline := time.Now().Add(s3FilesWaitTimeout)
 
 	for {
-		select {
-		case <-timeout:
-			return fmt.Errorf("timed out waiting for S3Files file system %s to be deleted", fileSystemId)
-		default:
-		}
-
-		request := &s3files.ListFileSystemsInput{}
-		response, err := c.s3filesclient.ListFileSystems(ctx, request)
+		// Look the file system up by ID rather than scanning the first page of
+		// ListFileSystems, which would report a file system that is not on that
+		// page as already deleted.
+		response, err := c.s3filesclient.GetFileSystem(ctx, &s3files.GetFileSystemInput{
+			FileSystemId: aws.String(fileSystemId),
+		})
 		if err != nil {
+			var notFoundErr *s3filestypes.ResourceNotFoundException
+			if errors.As(err, &notFoundErr) {
+				return nil
+			}
 			return err
 		}
-
-		found := false
-		for _, fs := range response.FileSystems {
-			if fs.FileSystemId != nil && *fs.FileSystemId == fileSystemId {
-				fmt.Printf("S3Files file system %s status: %s (waiting for deletion)\n", fileSystemId, fs.Status)
-				found = true
-				break
-			}
-		}
-		if !found {
+		if response.Status == s3filestypes.LifeCycleStateDeleted {
 			return nil
 		}
+		if time.Now().After(deadline) {
+			return fmt.Errorf("timed out after %s waiting for S3Files file system %s to be deleted (last state %s)", s3FilesWaitTimeout, fileSystemId, response.Status)
+		}
+		fmt.Printf("S3Files file system %s status: %s (waiting for deletion)\n", fileSystemId, response.Status)
 		time.Sleep(10 * time.Second)
 	}
+}
+
+// s3FilesWaitTimeout bounds how long the e2e setup and cleanup wait for an
+// S3Files file system or mount target to change state, so a resource that
+// never settles fails the suite with its last known state instead of hanging.
+const s3FilesWaitTimeout = 15 * time.Minute
+
+// isTerminalS3FilesState reports whether state is one the resource cannot
+// leave on its own to reach want, so there is no point in waiting further.
+func isTerminalS3FilesState(state, want s3filestypes.LifeCycleState) bool {
+	if state == want {
+		return false
+	}
+	switch state {
+	case s3filestypes.LifeCycleStateError,
+		s3filestypes.LifeCycleStateDeleting,
+		s3filestypes.LifeCycleStateDeleted:
+		return true
+	}
+	return false
 }
 
 // Helper function to delete S3 bucket
