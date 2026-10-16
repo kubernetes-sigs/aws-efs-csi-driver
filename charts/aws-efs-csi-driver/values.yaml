@@ -58,7 +58,8 @@ controller:
   # Number of replicas for the CSI controller service deployment
   replicaCount: 2
   # enableMetrics enables the Prometheus metrics endpoint on the controller.
-  # When true, the driver exposes metrics on port 3301.
+  # When true, the driver exposes metrics on port 3301 and the csi-provisioner
+  # sidecar on port 3302.
   enableMetrics: false
   # enablePrometheusAnnotations adds prometheus.io scrape annotations to the controller pod.
   enablePrometheusAnnotations: true
