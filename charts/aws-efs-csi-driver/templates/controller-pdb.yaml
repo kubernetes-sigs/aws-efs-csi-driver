@@ -17,8 +17,7 @@ spec:
   {{- end }}
   {{- if .Values.controller.podDisruptionBudget.maxUnavailable }}
   maxUnavailable: {{ .Values.controller.podDisruptionBudget.maxUnavailable }}
-  {{- end }}
-  {{- if .Values.controller.podDisruptionBudget.minAvailable }}
+  {{- else if .Values.controller.podDisruptionBudget.minAvailable }}
   minAvailable: {{ .Values.controller.podDisruptionBudget.minAvailable }}
   {{- end }}
 {{- end -}}
