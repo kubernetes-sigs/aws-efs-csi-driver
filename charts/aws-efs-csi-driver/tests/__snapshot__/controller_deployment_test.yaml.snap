@@ -1,0 +1,113 @@
+renders a deployment with the default values:
+  1: |
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      labels:
+        app.kubernetes.io/name: aws-efs-csi-driver
+      name: efs-csi-controller
+      namespace: kube-system
+    spec:
+      replicas: 2
+      revisionHistoryLimit: 10
+      selector:
+        matchLabels:
+          app: efs-csi-controller
+          app.kubernetes.io/instance: efs
+          app.kubernetes.io/name: aws-efs-csi-driver
+      template:
+        metadata:
+          labels:
+            app: efs-csi-controller
+            app.kubernetes.io/instance: efs
+            app.kubernetes.io/name: aws-efs-csi-driver
+        spec:
+          containers:
+            - args:
+                - --endpoint=$(CSI_ENDPOINT)
+                - --logtostderr
+                - --v=2
+                - --delete-access-point-root-dir=false
+                - --debug-logs=false
+              env:
+                - name: CSI_ENDPOINT
+                  value: unix:///var/lib/csi/sockets/pluginproxy/csi.sock
+                - name: CSI_NODE_NAME
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: spec.nodeName
+                - name: PORT_RANGE_UPPER_BOUND
+                  value: "21049"
+              image: public.ecr.aws/efs-csi-driver/amazon/aws-efs-csi-driver:v0.0.0
+              imagePullPolicy: IfNotPresent
+              livenessProbe:
+                failureThreshold: 5
+                httpGet:
+                  path: /healthz
+                  port: healthz
+                initialDelaySeconds: 10
+                periodSeconds: 10
+                timeoutSeconds: 3
+              name: efs-plugin
+              ports:
+                - containerPort: 9909
+                  name: healthz
+                  protocol: TCP
+              securityContext:
+                privileged: true
+              volumeMounts:
+                - mountPath: /var/lib/csi/sockets/pluginproxy/
+                  name: socket-dir
+            - args:
+                - --csi-address=$(ADDRESS)
+                - --v=2
+                - --feature-gates=Topology=true
+                - --extra-create-metadata
+                - --leader-election
+                - --leader-election-renew-deadline=10s
+                - --leader-election-lease-duration=15s
+                - --worker-threads=100
+                - --timeout=15s
+              env:
+                - name: ADDRESS
+                  value: /var/lib/csi/sockets/pluginproxy/csi.sock
+              image: public.ecr.aws/csi-components/csi-provisioner:v0.0.0
+              imagePullPolicy: IfNotPresent
+              name: csi-provisioner
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+              volumeMounts:
+                - mountPath: /var/lib/csi/sockets/pluginproxy/
+                  name: socket-dir
+            - args:
+                - --csi-address=/csi/csi.sock
+                - --health-port=9909
+              image: public.ecr.aws/csi-components/livenessprobe:v0.0.0
+              imagePullPolicy: IfNotPresent
+              name: liveness-probe
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+              volumeMounts:
+                - mountPath: /csi
+                  name: socket-dir
+          dnsPolicy: ClusterFirst
+          hostNetwork: false
+          nodeSelector:
+            kubernetes.io/os: linux
+          priorityClassName: system-cluster-critical
+          securityContext:
+            fsGroup: 0
+            runAsGroup: 0
+            runAsNonRoot: false
+            runAsUser: 0
+          serviceAccountName: efs-csi-controller-sa
+          tolerations:
+            - key: CriticalAddonsOnly
+              operator: Exists
+            - key: efs.csi.aws.com/agent-not-ready
+              operator: Exists
+          volumes:
+            - emptyDir: {}
+              name: socket-dir

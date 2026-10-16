@@ -29,6 +29,7 @@ GO111MODULE=on
 GOPROXY=direct
 GOPATH=$(shell go env GOPATH)
 GOOS=$(shell go env GOOS)
+GOARCH=$(shell go env GOARCH)
 
 REGISTRY?=amazon
 IMAGE?=$(REGISTRY)/aws-efs-csi-driver
@@ -101,8 +102,10 @@ clean:
 bin /tmp/helm:
 	@mkdir -p $@
 
+HELM_VERSION ?= v3.19.0
+
 bin/helm: | /tmp/helm bin
-	@curl -o /tmp/helm/helm.tar.gz -sSL https://get.helm.sh/helm-v3.5.3-${GOOS}-amd64.tar.gz
+	@curl -o /tmp/helm/helm.tar.gz -sSL https://get.helm.sh/helm-${HELM_VERSION}-${GOOS}-${GOARCH}.tar.gz
 	@tar -zxf /tmp/helm/helm.tar.gz -C bin --strip-components=1
 	@rm -rf /tmp/helm/*
 
@@ -111,8 +114,18 @@ verify:
 	./hack/verify-all
 
 .PHONY: test
-test:
+test: helm-unittest
 	go test -v -race ./pkg/...
+
+HELM_UNITTEST_VERSION ?= v1.0.3
+HELM ?= $(or $(shell command -v helm 2>/dev/null),bin/helm)
+
+.PHONY: helm-unittest
+helm-unittest: $(HELM)
+	@$(HELM) plugin list | grep -q '^unittest' || \
+		$(HELM) plugin install https://github.com/helm-unittest/helm-unittest --version $(HELM_UNITTEST_VERSION) \
+		$$($(HELM) version --short | grep -q '^v4' && echo --verify=false)
+	$(HELM) unittest charts/aws-efs-csi-driver
 
 .PHONY: test-e2e
 test-e2e:

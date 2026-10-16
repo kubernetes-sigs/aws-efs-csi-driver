@@ -1,0 +1,257 @@
+suite: node daemonset
+templates:
+  - templates/node-daemonset.yaml
+release:
+  name: efs
+  namespace: kube-system
+chart:
+  version: 0.0.0
+  appVersion: 0.0.0
+tests:
+  - it: renders a daemonset with the default values
+    set:
+      image:
+        tag: v0.0.0
+      sidecars:
+        nodeDriverRegistrar:
+          image:
+            tag: v0.0.0
+        livenessProbe:
+          image:
+            tag: v0.0.0
+    asserts:
+      - matchSnapshot: {}
+
+  - it: defaults the image tag to the chart appVersion when the tag is empty
+    set:
+      image:
+        tag: ""
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[?(@.name == "efs-plugin")].image
+          value: public.ecr.aws/efs-csi-driver/amazon/aws-efs-csi-driver:v0.0.0
+
+  - it: forwards the optional node settings that are not in values.yaml
+    set:
+      node:
+        maxInflightMountCallsOptIn: true
+        maxInflightMountCalls: 4
+        volumeAttachLimitOptIn: true
+        volumeAttachLimit: 8
+        forceUnmountAfterTimeout: true
+        unmountTimeout: 1m
+        efsCloudWatchLogEnabled: true
+        s3filesCloudWatchLogEnabled: false
+        s3filesCloudWatchMetricsEnabled: false
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[?(@.name == "efs-plugin")].args
+          content: --max-inflight-mount-calls-opt-in=true
+      - contains:
+          path: spec.template.spec.containers[?(@.name == "efs-plugin")].args
+          content: --max-inflight-mount-calls=4
+      - contains:
+          path: spec.template.spec.containers[?(@.name == "efs-plugin")].args
+          content: --volume-attach-limit-opt-in=true
+      - contains:
+          path: spec.template.spec.containers[?(@.name == "efs-plugin")].args
+          content: --volume-attach-limit=8
+      - contains:
+          path: spec.template.spec.containers[?(@.name == "efs-plugin")].args
+          content: --force-unmount-after-timeout=true
+      - contains:
+          path: spec.template.spec.containers[?(@.name == "efs-plugin")].args
+          content: --unmount-timeout=1m
+      - contains:
+          path: spec.template.spec.containers[?(@.name == "efs-plugin")].args
+          content: --efs-cloudwatch-log-enabled=true
+      - contains:
+          path: spec.template.spec.containers[?(@.name == "efs-plugin")].args
+          content: --s3files-cloudwatch-log-enabled=false
+      - contains:
+          path: spec.template.spec.containers[?(@.name == "efs-plugin")].args
+          content: --s3files-cloudwatch-metrics-enabled=false
+
+  - it: forwards volume metrics settings
+    set:
+      node:
+        volMetricsOptIn: true
+        volMetricsRefreshPeriod: 60
+        volMetricsFsRateLimit: 10
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[?(@.name == "efs-plugin")].args
+          content: --vol-metrics-opt-in=true
+      - contains:
+          path: spec.template.spec.containers[?(@.name == "efs-plugin")].args
+          content: --vol-metrics-refresh-period=60
+      - contains:
+          path: spec.template.spec.containers[?(@.name == "efs-plugin")].args
+          content: --vol-metrics-fs-rate-limit=10
+
+  - it: forwards efs-utils and s3files-utils config overrides only when set
+    set:
+      node:
+        efsUtilsConfOverrides: mount-watchdog:stunnel_health_check_interval_min=1
+        s3filesUtilsConfOverrides: proxy:read_bypass_denylist_size=20000
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[?(@.name == "efs-plugin")].args
+          content: --efs-utils-conf-overrides=mount-watchdog:stunnel_health_check_interval_min=1
+      - contains:
+          path: spec.template.spec.containers[?(@.name == "efs-plugin")].args
+          content: --s3files-utils-conf-overrides=proxy:read_bypass_denylist_size=20000
+
+  - it: disables the taint watcher when the node service account cannot mutate
+    set:
+      node:
+        serviceAccount:
+          disableMutation: true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[?(@.name == "efs-plugin")].env
+          content:
+            name: DISABLE_TAINT_WATCHER
+            value: "true"
+
+  - it: adds the FIPS endpoint env variable when useFIPS is true
+    set:
+      useFIPS: true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[?(@.name == "efs-plugin")].env
+          content:
+            name: AWS_USE_FIPS_ENDPOINT
+            value: "true"
+
+  - it: derives every kubelet path from node.kubeletPath
+    set:
+      node:
+        kubeletPath: /var/lib/k0s/kubelet/
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[?(@.name == "efs-plugin")].volumeMounts
+          content:
+            name: kubelet-dir
+            mountPath: /var/lib/k0s/kubelet/
+            mountPropagation: Bidirectional
+      - contains:
+          path: spec.template.spec.containers[?(@.name == "csi-driver-registrar")].env
+          content:
+            name: DRIVER_REG_SOCK_PATH
+            value: /var/lib/k0s/kubelet/plugins/efs.csi.aws.com/csi.sock
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: plugin-dir
+            hostPath:
+              path: /var/lib/k0s/kubelet/plugins/efs.csi.aws.com/
+              type: DirectoryOrCreate
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: registration-dir
+            hostPath:
+              path: /var/lib/k0s/kubelet/plugins_registry/
+              type: Directory
+
+  - it: renders hostAliases for cross-VPC mounts
+    set:
+      node:
+        hostAliases:
+          fs-01234567:
+            ip: 10.10.2.2
+            region: us-east-2
+    asserts:
+      - equal:
+          path: spec.template.spec.hostAliases
+          value:
+            - ip: 10.10.2.2
+              hostnames:
+                - fs-01234567.efs.us-east-2.amazonaws.com
+
+  - it: renders dnsPolicy and dnsConfig
+    set:
+      node:
+        dnsPolicy: None
+        dnsConfig:
+          nameservers:
+            - 169.254.169.253
+    asserts:
+      - equal:
+          path: spec.template.spec.dnsPolicy
+          value: None
+      - equal:
+          path: spec.template.spec.dnsConfig.nameservers
+          value:
+            - 169.254.169.253
+
+  - it: renders an updateStrategy when rollingUpdate is set
+    set:
+      node:
+        rollingUpdate:
+          maxUnavailable: 20%
+    asserts:
+      - equal:
+          path: spec.updateStrategy
+          value:
+            type: RollingUpdate
+            rollingUpdate:
+              maxUnavailable: 20%
+
+  - it: uses healthPort for the container port and the liveness-probe sidecar
+    set:
+      node:
+        healthPort: 9999
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[?(@.name == "efs-plugin")].ports
+          content:
+            name: healthz
+            containerPort: 9999
+            protocol: TCP
+      - contains:
+          path: spec.template.spec.containers[?(@.name == "liveness-probe")].args
+          content: --health-port=9999
+
+  - it: renders podAnnotations, podLabels and additionalLabels
+    set:
+      node:
+        podAnnotations:
+          foo: bar
+        podLabels:
+          team: storage
+        additionalLabels:
+          owner: platform
+    asserts:
+      - equal:
+          path: spec.template.metadata.annotations
+          value:
+            foo: bar
+      - equal:
+          path: spec.template.metadata.labels.team
+          value: storage
+      - equal:
+          path: metadata.labels.owner
+          value: platform
+
+  - it: appends extra volumes and volume mounts
+    set:
+      node:
+        volumes:
+          - name: extra
+            emptyDir: {}
+        volumeMounts:
+          - name: extra
+            mountPath: /extra
+    asserts:
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: extra
+            emptyDir: {}
+      - contains:
+          path: spec.template.spec.containers[?(@.name == "efs-plugin")].volumeMounts
+          content:
+            name: extra
+            mountPath: /extra
