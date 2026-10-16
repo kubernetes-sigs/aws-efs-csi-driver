@@ -58,3 +58,7 @@
 * fix: update BasePath parsing for reuseAccessPoint ([#1964](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1964), [@samuhale](https://github.com/samuhale))
 * fix: remove startup taint when EFS driver registered without Allocatable ([#1965](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1965), [@wangnyue](https://github.com/wangnyue))
 * fix: reap all orphaned zombies reparented to the driver, not just stunnel/efs-proxy ([#1970](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1970), [@aliyajo](https://github.com/aliyajo))
+
+# V3.5.2
+* Fix invalid YAML in unit tests workflow ([#1977](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1977), [@Dev-next-gen](https://github.com/Dev-next-gen))
+* Upgrade sidecar and go dependencies to address CVEs ([#1982](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1982), [@samuhale](https://github.com/samuhale))
