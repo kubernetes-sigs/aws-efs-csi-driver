@@ -17,6 +17,10 @@ spec:
     port: 3301
     targetPort: 3301
     protocol: TCP
+  - name: metrics-prov
+    port: 3302
+    targetPort: 3302
+    protocol: TCP
 {{- if .Values.controller.serviceMonitor.enabled }}
 ---
 apiVersion: monitoring.coreos.com/v1
@@ -32,6 +36,9 @@ spec:
   - interval: 15s
     path: /metrics
     port: metrics
+  - interval: 15s
+    path: /metrics
+    port: metrics-prov
   namespaceSelector:
     matchNames:
       - {{ .Release.Namespace }}
