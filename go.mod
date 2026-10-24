@@ -162,4 +162,4 @@ require (
 
 replace k8s.io/kube-scheduler => k8s.io/kube-scheduler v0.33.2
 
-go 1.26.9
+go 1.26.10
