@@ -62,3 +62,9 @@
 # V3.5.2
 * Fix invalid YAML in unit tests workflow ([#1977](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1977), [@Dev-next-gen](https://github.com/Dev-next-gen))
 * Upgrade sidecar and go dependencies to address CVEs ([#1982](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1982), [@samuhale](https://github.com/samuhale))
+
+# V3.5.3
+* Reject control characters in user-supplied mount options ([#1969](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1969), [@wangnyue](https://github.com/wangnyue))
+* Bump Go to 1.26.10 and update sidecar images to fix CVE ([#1992](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1992), [#1994](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1994), [#1995](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1995), [@YangjinanHu](https://github.com/YangjinanHu))
+* Build efs-utils from latest release tag ([#1997](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1997), [@YangjinanHu](https://github.com/YangjinanHu))
+* Add DEVELOPMENT.md with build, test, and contribution guidance ([#1990](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1990), [@DavidXU12345](https://github.com/DavidXU12345))
