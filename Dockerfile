@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM public.ecr.aws/eks-distro-build-tooling/golang:1.25.5 as go-builder
+FROM public.ecr.aws/eks-distro-build-tooling/golang:1.26.10 as go-builder
 WORKDIR /go/src/github.com/kubernetes-sigs/aws-efs-csi-driver
 
 ARG TARGETOS
@@ -62,6 +62,7 @@ RUN mkdir -p /tmp/rpms && \
          rustup default stable && \
          git clone https://github.com/aws/efs-utils && \
          cd efs-utils && \
+         git checkout $(git describe --tags $(git rev-list --tags --max-count=1)) && \
          make rpm-without-system-rust && mv build/amazon-efs-utils*rpm /tmp/rpms && \
          # clean up efs-utils folder after install
          cd .. && rm -rf efs-utils && \

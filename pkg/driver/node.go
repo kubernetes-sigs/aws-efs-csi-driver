@@ -31,6 +31,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unicode"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
 	"github.com/kubernetes-sigs/aws-efs-csi-driver/pkg/cloud"
@@ -259,6 +260,11 @@ func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 
 	if m := volCap.GetMount(); m != nil {
 		for _, f := range m.MountFlags {
+			// Reject control characters in user-supplied mount options.
+			if i := strings.IndexFunc(f, func(r rune) bool { return unicode.IsControl(r) }); i >= 0 {
+				return nil, status.Errorf(codes.InvalidArgument,
+					"mountOptions entry contains a disallowed control character at byte %d", i)
+			}
 			// Special-case check for access point
 			// Not sure if `accesspoint` is allowed to have mixed case, but this shouldn't hurt,
 			// and it simplifies both matches (HasPrefix, hasOption) below.
