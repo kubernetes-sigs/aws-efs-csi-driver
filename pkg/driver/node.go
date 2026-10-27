@@ -373,6 +373,14 @@ func (d *Driver) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpublish
 		return nil, status.Error(codes.InvalidArgument, "Target path not provided")
 	}
 
+	// An unmount of an unresponsive mount can outlive kubelet's RPC timeout.
+	// Reject a retry for the same target instead of piling up blocked calls.
+	key := filepath.Clean(target)
+	if _, busy := d.inFlightUnpublish.LoadOrStore(key, struct{}{}); busy {
+		return nil, status.Errorf(codes.Aborted, "NodeUnpublishVolume for target %q is already in progress", target)
+	}
+	defer d.inFlightUnpublish.Delete(key)
+
 	if d.forceUnmountAfterTimeout {
 		klog.V(5).Infof("NodeUnpublishVolume: will retry unmount %s with force after timeout %v", target, d.unmountTimeout)
 		err := d.mounter.UnmountWithForce(target, d.unmountTimeout)

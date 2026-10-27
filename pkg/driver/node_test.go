@@ -1110,6 +1110,62 @@ func TestNodePublishUnpublishVolumeConcurrent(t *testing.T) {
 	wg.Wait()
 }
 
+func TestNodeUnpublishVolumeRejectsConcurrentCallForSameTarget(t *testing.T) {
+	for _, force := range []bool{false, true} {
+		t.Run(fmt.Sprintf("forceUnmountAfterTimeout=%v", force), func(t *testing.T) {
+			mockCtrl := gomock.NewController(t)
+			defer mockCtrl.Finish()
+			mockMounter, driver, ctx := setup(mockCtrl, NewVolStatter(), false, UnsetMaxInflightMountCounts)
+			driver.forceUnmountAfterTimeout = force
+
+			entered := make(chan struct{})
+			release := make(chan struct{})
+			block := func(string) error {
+				close(entered)
+				<-release
+				return nil
+			}
+			if force {
+				mockMounter.EXPECT().UnmountWithForce(targetPath, gomock.Any()).
+					DoAndReturn(func(target string, _ time.Duration) error { return block(target) })
+			} else {
+				mockMounter.EXPECT().GetDeviceName(targetPath).Return("", 1, nil)
+				mockMounter.EXPECT().Unmount(targetPath).DoAndReturn(block)
+			}
+
+			req := &csi.NodeUnpublishVolumeRequest{VolumeId: volumeId, TargetPath: targetPath}
+			first := make(chan error, 1)
+			go func() {
+				_, err := driver.NodeUnpublishVolume(ctx, req)
+				first <- err
+			}()
+			<-entered
+
+			// Same target, spelled differently: rejected without any mounter call.
+			dup := &csi.NodeUnpublishVolumeRequest{VolumeId: volumeId, TargetPath: targetPath + "/"}
+			_, err := driver.NodeUnpublishVolume(ctx, dup)
+			if status.Code(err) != codes.Aborted {
+				t.Fatalf("expected Aborted for a duplicate call, got %v", err)
+			}
+
+			close(release)
+			if err := <-first; err != nil {
+				t.Fatalf("first call failed: %v", err)
+			}
+
+			// The guard is released, so a later call runs normally.
+			if force {
+				mockMounter.EXPECT().UnmountWithForce(targetPath, gomock.Any()).Return(nil)
+			} else {
+				mockMounter.EXPECT().GetDeviceName(targetPath).Return("", 0, nil)
+			}
+			if _, err := driver.NodeUnpublishVolume(ctx, req); err != nil {
+				t.Fatalf("call after release failed: %v", err)
+			}
+		})
+	}
+}
+
 func TestNodeGetVolumeStats(t *testing.T) {
 	var (
 		validPath   = "/tmp/target"
