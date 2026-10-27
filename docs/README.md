@@ -43,6 +43,9 @@ The EFS CSI Driver follows semantic versioning. The version `MAJOR.MINOR.PATCH` 
 - New features will be released as a `MINOR` update.
 - Bug or vulnerability fixes will be released as a `PATCH` update.
 
+Only the latest version of EFS CSI Driver will continue to receive new features, fixes, and security patches. Please
+update to the latest version to receive continued support.
+
 ### Latest ECR Image
 | Tag    | Registry | Image                                                                     |
 |--------|----------|---------------------------------------------------------------------------|
