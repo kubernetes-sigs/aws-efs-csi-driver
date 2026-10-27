@@ -38,12 +38,11 @@ tests:
             app.kubernetes.io/name: aws-efs-csi-driver
             app.kubernetes.io/instance: efs
 
-  - it: renders maxUnavailable when minAvailable is cleared
+  - it: renders only maxUnavailable when it is the only field set
     set:
       controller:
         podDisruptionBudget:
           enabled: true
-          minAvailable: null
           maxUnavailable: 1
     asserts:
       - equal:
@@ -51,3 +50,53 @@ tests:
           value: 1
       - notExists:
           path: spec.minAvailable
+
+  - it: fails when both maxUnavailable and minAvailable are set
+    set:
+      controller:
+        podDisruptionBudget:
+          enabled: true
+          minAvailable: 1
+          maxUnavailable: 1
+    asserts:
+      - failedTemplate:
+          errorMessage: "controller.podDisruptionBudget: set only one of maxUnavailable and minAvailable"
+
+  - it: defaults minAvailable to 1 when neither field is set
+    set:
+      controller:
+        podDisruptionBudget:
+          enabled: true
+          minAvailable: null
+    asserts:
+      - equal:
+          path: spec.minAvailable
+          value: 1
+      - notExists:
+          path: spec.maxUnavailable
+
+  - it: renders a percentage maxUnavailable
+    set:
+      controller:
+        podDisruptionBudget:
+          enabled: true
+          maxUnavailable: 50%
+    asserts:
+      - equal:
+          path: spec.maxUnavailable
+          value: 50%
+      - notExists:
+          path: spec.minAvailable
+
+  - it: renders a custom minAvailable
+    set:
+      controller:
+        podDisruptionBudget:
+          enabled: true
+          minAvailable: 2
+    asserts:
+      - equal:
+          path: spec.minAvailable
+          value: 2
+      - notExists:
+          path: spec.maxUnavailable

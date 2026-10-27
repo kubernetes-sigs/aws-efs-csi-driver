@@ -1,4 +1,7 @@
 {{- if .Values.controller.podDisruptionBudget.enabled -}}
+{{- if and .Values.controller.podDisruptionBudget.maxUnavailable .Values.controller.podDisruptionBudget.minAvailable }}
+{{- fail "controller.podDisruptionBudget: set only one of maxUnavailable and minAvailable" }}
+{{- end }}
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
@@ -17,8 +20,7 @@ spec:
   {{- end }}
   {{- if .Values.controller.podDisruptionBudget.maxUnavailable }}
   maxUnavailable: {{ .Values.controller.podDisruptionBudget.maxUnavailable }}
-  {{- end }}
-  {{- if .Values.controller.podDisruptionBudget.minAvailable }}
-  minAvailable: {{ .Values.controller.podDisruptionBudget.minAvailable }}
+  {{- else }}
+  minAvailable: {{ .Values.controller.podDisruptionBudget.minAvailable | default 1 }}
   {{- end }}
 {{- end -}}
