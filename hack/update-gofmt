@@ -16,4 +16,4 @@
 
 set -euo pipefail
 
-find . -name "*.go" | grep -v "\/vendor\/" | xargs gofmt -s -w
+git ls-files "*.go" | xargs gofmt -s -w

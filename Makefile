@@ -58,7 +58,7 @@ word-hyphen = $(word $2,$(subst -, ,$1))
 .PHONY: linux/$(ARCH) bin/aws-efs-csi-driver
 linux/$(ARCH): bin/aws-efs-csi-driver
 bin/aws-efs-csi-driver: | bin
-	CGO_ENABLED=0 GOOS=linux GOARCH=$(ARCH) go build -mod=vendor -ldflags ${LDFLAGS} -o bin/aws-efs-csi-driver ./cmd/
+	CGO_ENABLED=0 GOOS=linux GOARCH=$(ARCH) go build -ldflags ${LDFLAGS} -o bin/aws-efs-csi-driver ./cmd/
 
 .PHONY: all
 all: all-image-docker
@@ -158,7 +158,7 @@ test-e2e-external-eks:
 .PHONY: test-e2e-bin
 test-e2e-bin:
 	mkdir -p bin
-	CGO_ENABLED=0 GOOS=linux go test -mod=vendor -ldflags ${LDFLAGS} -c -o bin/test-e2e ./test/e2e/
+	CGO_ENABLED=0 GOOS=linux go test -ldflags ${LDFLAGS} -c -o bin/test-e2e ./test/e2e/
 
 .PHONY: generate-kustomize
 generate-kustomize: bin/helm
