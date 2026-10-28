@@ -155,8 +155,10 @@ controller:
   # Pod Disruption Budget
   podDisruptionBudget: 
     enabled: false
+    # Set only one of maxUnavailable and minAvailable. If neither is set,
+    # the chart renders minAvailable: 1.
     # maxUnavailable: 1
-    minAvailable: 1
+    minAvailable: null
     unhealthyPodEvictionPolicy: IfHealthyBudget
   # securityContext on the controller pod
   securityContext:
