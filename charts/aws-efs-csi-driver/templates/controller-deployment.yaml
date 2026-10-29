@@ -89,6 +89,19 @@ spec:
             {{- if .Values.controller.tags }}
             - --tags={{ include "aws-efs-csi-driver.tags" .Values.controller.tags }}
             {{- end }}
+            {{- if .Values.controller.extraTags }}
+            - --extra-tags={{ include "aws-efs-csi-driver.extraTags" .Values.controller.extraTags }}
+            {{- end }}
+            {{- with .Values.controller.clusterName }}
+            - --cluster-name={{ . }}
+            {{- end }}
+            {{- with .Values.controller.clusterTagKey }}
+            - --cluster-tag-key={{ . }}
+            {{- end }}
+            {{- $clusterTagIsolation := include "aws-efs-csi-driver.clusterTagIsolation" . }}
+            {{- if ne $clusterTagIsolation "disable" }}
+            - --cluster-tag-isolation={{ $clusterTagIsolation }}
+            {{- end }}
             - --v={{ .Values.controller.logLevel }}
             - --delete-access-point-root-dir={{ hasKey .Values.controller "deleteAccessPointRootDir" | ternary .Values.controller.deleteAccessPointRootDir false }}
             - --debug-logs={{ .Values.debugLogs }}

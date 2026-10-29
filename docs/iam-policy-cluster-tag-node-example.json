@@ -1,0 +1,105 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "MountClusterFileSystem",
+      "Effect": "Allow",
+      "Action": [
+        "elasticfilesystem:ClientMount",
+        "elasticfilesystem:ClientWrite",
+        "elasticfilesystem:ClientRootAccess",
+        "s3files:ClientMount",
+        "s3files:ClientWrite",
+        "s3files:ClientRootAccess"
+      ],
+      "Resource": [
+        "arn:*:elasticfilesystem:*:*:file-system/*",
+        "arn:*:s3files:*:*:file-system/*"
+      ],
+      "Condition": {
+        "StringLike": {
+          "aws:PrincipalTag/eks-cluster-arn": "arn:*:eks:${aws:RequestedRegion}:*:cluster/*"
+        },
+        "StringEquals": {
+          "aws:ResourceTag/eks:eks-cluster-name": "${aws:PrincipalTag/eks-cluster-name}"
+        }
+      }
+    },
+    {
+      "Sid": "DescribeMountTargets",
+      "Effect": "Allow",
+      "Action": "elasticfilesystem:DescribeMountTargets",
+      "Resource": [
+        "arn:*:elasticfilesystem:*:*:file-system/*",
+        "arn:*:elasticfilesystem:*:*:access-point/*"
+      ],
+      "Condition": {
+        "StringLike": {
+          "aws:PrincipalTag/eks-cluster-arn": "arn:*:eks:${aws:RequestedRegion}:*:cluster/*"
+        }
+      }
+    },
+    {
+      "Sid": "DescribeAvailabilityZones",
+      "Effect": "Allow",
+      "Action": "ec2:DescribeAvailabilityZones",
+      "Resource": "*",
+      "Condition": {
+        "StringLike": {
+          "aws:PrincipalTag/eks-cluster-arn": "arn:*:eks:${aws:RequestedRegion}:*:cluster/*"
+        }
+      }
+    },
+    {
+      "Sid": "EfsUtilsLogs",
+      "Effect": "Allow",
+      "Action": [
+        "logs:CreateLogGroup",
+        "logs:PutRetentionPolicy",
+        "logs:CreateLogStream",
+        "logs:DescribeLogStreams",
+        "logs:PutLogEvents"
+      ],
+      "Resource": [
+        "arn:*:logs:*:*:log-group:/aws/efs/utils",
+        "arn:*:logs:*:*:log-group:/aws/efs/utils:log-stream:*"
+      ],
+      "Condition": {
+        "StringLike": {
+          "aws:PrincipalTag/eks-cluster-arn": "arn:*:eks:${aws:RequestedRegion}:*:cluster/*"
+        }
+      }
+    },
+    {
+      "Sid": "EfsUtilsMetrics",
+      "Effect": "Allow",
+      "Action": "cloudwatch:PutMetricData",
+      "Resource": "*",
+      "Condition": {
+        "StringLike": {
+          "aws:PrincipalTag/eks-cluster-arn": "arn:*:eks:${aws:RequestedRegion}:*:cluster/*"
+        },
+        "StringEquals": {
+          "cloudwatch:namespace": [
+            "efs-utils/EFS",
+            "efs-utils/S3Files"
+          ]
+        }
+      }
+    },
+    {
+      "Sid": "S3FilesDirectRead",
+      "Effect": "Allow",
+      "Action": "s3:GetObject",
+      "Resource": "arn:*:s3:::*/*",
+      "Condition": {
+        "StringLike": {
+          "aws:PrincipalTag/eks-cluster-arn": "arn:*:eks:${aws:RequestedRegion}:*:cluster/*"
+        },
+        "StringEquals": {
+          "aws:ResourceAccount": "${aws:PrincipalAccount}"
+        }
+      }
+    }
+  ]
+}

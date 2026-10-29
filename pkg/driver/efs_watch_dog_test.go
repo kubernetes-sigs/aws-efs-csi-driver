@@ -19,6 +19,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -839,8 +840,26 @@ func TestWriteConfigFileAddsMissingDriverKey(t *testing.T) {
 // containing it, the e2e drift check silently passes.
 const driverAddedKeyLogMarker = "so the driver added it"
 
+// syncBuffer is a goroutine-safe klog sink.
+type syncBuffer struct {
+	mu  sync.Mutex
+	buf bytes.Buffer
+}
+
+func (b *syncBuffer) Write(p []byte) (int, error) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.buf.Write(p)
+}
+
+func (b *syncBuffer) String() string {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.buf.String()
+}
+
 // captureKlog sends klog output to a buffer for the rest of the test.
-func captureKlog(t *testing.T) *bytes.Buffer {
+func captureKlog(t *testing.T) *syncBuffer {
 	t.Helper()
 	fs := flag.NewFlagSet("klog", flag.ContinueOnError)
 	klog.InitFlags(fs)
@@ -849,14 +868,14 @@ func captureKlog(t *testing.T) *bytes.Buffer {
 			t.Fatalf("setting klog flag %s: %v", name, err)
 		}
 	}
-	var buf bytes.Buffer
-	klog.SetOutput(&buf)
+	buf := &syncBuffer{}
+	klog.SetOutput(buf)
 	t.Cleanup(func() {
 		klog.Flush()
 		_ = fs.Set("logtostderr", "true")
 		klog.SetOutput(os.Stderr)
 	})
-	return &buf
+	return buf
 }
 
 // TestWriteConfigFileWarnsOnMissingDriverKey checks the warning the e2e drift
