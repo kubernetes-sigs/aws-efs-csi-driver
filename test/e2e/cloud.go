@@ -31,6 +31,7 @@ import (
 	ec2types "github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/aws/aws-sdk-go-v2/service/efs"
 	efstypes "github.com/aws/aws-sdk-go-v2/service/efs/types"
+	"github.com/aws/aws-sdk-go-v2/service/eks"
 	"github.com/aws/aws-sdk-go-v2/service/iam"
 	iamtypes "github.com/aws/aws-sdk-go-v2/service/iam/types"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
@@ -46,6 +47,7 @@ type cloud struct {
 	s3filesclient *s3files.Client
 	s3client      *s3.Client
 	iamclient     *iam.Client
+	eksclient     *eks.Client
 	region        string
 }
 
@@ -57,6 +59,7 @@ func NewCloud(region string) *cloud {
 		s3filesclient: s3files.NewFromConfig(cfg),
 		s3client:      s3.NewFromConfig(cfg),
 		iamclient:     iam.NewFromConfig(cfg),
+		eksclient:     eks.NewFromConfig(cfg),
 		region:        region,
 	}
 }

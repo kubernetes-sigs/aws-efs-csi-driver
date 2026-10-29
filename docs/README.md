@@ -57,6 +57,7 @@ You can find previous efs-csi-driver versions' images from [here](https://galler
 
 ## Documentation
 - [Parameters/Features](parameters.md)
+- [Cluster tag isolation (tag-based IAM policy)](cluster-tag-isolation.md)
 - [Driver Installation](install.md)
 - [Driver Upgrade](install.md#upgrading-the-amazon-efs-csi-driver)
 - [Driver Uninstallation](install.md#uninstalling-the-amazon-efs-csi-driver)

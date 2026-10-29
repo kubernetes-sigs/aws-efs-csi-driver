@@ -1,0 +1,51 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AddClusterTagToEfsAccessPoint",
+      "Effect": "Allow",
+      "Action": "elasticfilesystem:TagResource",
+      "Resource": "arn:*:elasticfilesystem:*:*:access-point/*",
+      "Condition": {
+        "StringLike": {
+          "aws:PrincipalTag/eks-cluster-arn": "arn:*:eks:${aws:RequestedRegion}:*:cluster/*"
+        },
+        "StringEquals": {
+          "aws:ResourceTag/efs.csi.aws.com/cluster": "true",
+          "aws:RequestTag/eks:eks-cluster-name": "${aws:PrincipalTag/eks-cluster-name}"
+        },
+        "Null": {
+          "aws:ResourceTag/eks:eks-cluster-name": "true"
+        },
+        "ForAllValues:StringEquals": {
+          "aws:TagKeys": [
+            "eks:eks-cluster-name"
+          ]
+        }
+      }
+    },
+    {
+      "Sid": "AddClusterTagToS3FilesAccessPoint",
+      "Effect": "Allow",
+      "Action": "s3files:TagResource",
+      "Resource": "arn:*:s3files:*:*:file-system/*/access-point/*",
+      "Condition": {
+        "StringLike": {
+          "aws:PrincipalTag/eks-cluster-arn": "arn:*:eks:${aws:RequestedRegion}:*:cluster/*"
+        },
+        "StringEquals": {
+          "aws:ResourceTag/efs.csi.aws.com/cluster": "true",
+          "aws:RequestTag/eks:eks-cluster-name": "${aws:PrincipalTag/eks-cluster-name}"
+        },
+        "Null": {
+          "aws:ResourceTag/eks:eks-cluster-name": "true"
+        },
+        "ForAllValues:StringEquals": {
+          "aws:TagKeys": [
+            "eks:eks-cluster-name"
+          ]
+        }
+      }
+    }
+  ]
+}

@@ -45,6 +45,10 @@ func (c *FakeCloudProvider) CreateAccessPoint(ctx context.Context, clientToken s
 		AccessPointId: apId,
 		FileSystemId:  fsId,
 		CapacityGiB:   accessPointOpts.CapacityGiB,
+		Tags:          map[string]string{},
+	}
+	for k, v := range accessPointOpts.Tags {
+		ap.Tags[k] = v
 	}
 
 	c.accessPoints[clientToken] = ap
@@ -120,4 +124,35 @@ func (c *FakeCloudProvider) ListAccessPoints(ctx context.Context, fileSystemId s
 		c.accessPoints[fileSystemId],
 	}
 	return accessPoints, nil
+}
+
+func (c *FakeCloudProvider) GetAccessPointTags(ctx context.Context, accessPointId string, fsType util.FileSystemType) (map[string]string, error) {
+	for _, ap := range c.accessPoints {
+		if ap.AccessPointId == accessPointId {
+			return ap.Tags, nil
+		}
+	}
+	return nil, ErrNotFound
+}
+
+func (c *FakeCloudProvider) GetFileSystemTags(ctx context.Context, fileSystemId string, fsType util.FileSystemType) (map[string]string, error) {
+	if _, ok := c.fileSystems[fileSystemId]; ok {
+		return map[string]string{}, nil
+	}
+	return nil, ErrNotFound
+}
+
+func (c *FakeCloudProvider) TagAccessPoint(ctx context.Context, accessPointId string, tags map[string]string, fsType util.FileSystemType) error {
+	for _, ap := range c.accessPoints {
+		if ap.AccessPointId == accessPointId {
+			if ap.Tags == nil {
+				ap.Tags = map[string]string{}
+			}
+			for k, v := range tags {
+				ap.Tags[k] = v
+			}
+			return nil
+		}
+	}
+	return ErrNotFound
 }

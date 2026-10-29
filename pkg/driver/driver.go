@@ -52,6 +52,7 @@ type Driver struct {
 	deleteAccessPointRootDir bool
 	adaptiveRetryMode        bool
 	tags                     map[string]string
+	clusterTag               clusterTagConfig
 	lockManager              LockManagerMap
 	inFlightMountTracker     *InFlightMountTracker
 	volumeAttachLimit        int64
@@ -83,7 +84,8 @@ func NewDriver(options *Options, efsUtilsCfgPath string) *Driver {
 		gidAllocator:             NewGidAllocator(),
 		deleteAccessPointRootDir: *options.DeleteAccessPointRootDir,
 		adaptiveRetryMode:        *options.AdaptiveRetryMode,
-		tags:                     parseTagsFromStr(strings.TrimSpace(*options.Tags)),
+		tags:                     options.tagsParsed,
+		clusterTag:               options.clusterTag,
 		lockManager:              NewLockManagerMap(),
 		inFlightMountTracker:     NewInFlightMountTracker(getMaxInflightMountCalls(*options.MaxInflightMountCallsOptIn, *options.MaxInflightMountCalls)),
 		volumeAttachLimit:        getVolumeAttachLimit(*options.VolumeAttachLimitOptIn, *options.VolumeAttachLimit),
@@ -141,6 +143,12 @@ func (d *Driver) Run() error {
 	reaper := newReaper()
 	klog.Info("Starting reaper")
 	reaper.start()
+
+	d.clusterTag.logSettings()
+	if d.clusterTag.backfill() {
+		b := &clusterTagBackfiller{cloud: d.cloud, clusterTag: d.clusterTag, newKubeClient: cloud.DefaultKubernetesAPIClient}
+		go b.run(context.Background(), clusterTagBackfillInterval)
+	}
 
 	// Remove taint from node to indicate driver startup success
 	// This is done at the last possible moment to prevent race conditions or false positive removals

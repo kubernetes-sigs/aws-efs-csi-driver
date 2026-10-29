@@ -1,0 +1,145 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "DescribeEfsResources",
+      "Effect": "Allow",
+      "Action": [
+        "elasticfilesystem:DescribeAccessPoints",
+        "elasticfilesystem:DescribeFileSystems",
+        "elasticfilesystem:DescribeMountTargets"
+      ],
+      "Resource": [
+        "arn:*:elasticfilesystem:*:*:file-system/*",
+        "arn:*:elasticfilesystem:*:*:access-point/*"
+      ],
+      "Condition": {
+        "StringLike": {
+          "aws:PrincipalTag/eks-cluster-arn": "arn:*:eks:${aws:RequestedRegion}:*:cluster/*"
+        }
+      }
+    },
+    {
+      "Sid": "ReadS3FilesResources",
+      "Effect": "Allow",
+      "Action": [
+        "s3files:GetAccessPoint",
+        "s3files:GetFileSystem",
+        "s3files:ListAccessPoints",
+        "s3files:ListFileSystems"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "StringLike": {
+          "aws:PrincipalTag/eks-cluster-arn": "arn:*:eks:${aws:RequestedRegion}:*:cluster/*"
+        }
+      }
+    },
+    {
+      "Sid": "DescribeAvailabilityZones",
+      "Effect": "Allow",
+      "Action": "ec2:DescribeAvailabilityZones",
+      "Resource": "*",
+      "Condition": {
+        "StringLike": {
+          "aws:PrincipalTag/eks-cluster-arn": "arn:*:eks:${aws:RequestedRegion}:*:cluster/*"
+        }
+      }
+    },
+    {
+      "Sid": "CreateAccessPointOnClusterFileSystem",
+      "Effect": "Allow",
+      "Action": [
+        "elasticfilesystem:CreateAccessPoint",
+        "s3files:CreateAccessPoint"
+      ],
+      "Resource": [
+        "arn:*:elasticfilesystem:*:*:file-system/*",
+        "arn:*:s3files:*:*:file-system/*"
+      ],
+      "Condition": {
+        "StringLike": {
+          "aws:PrincipalTag/eks-cluster-arn": "arn:*:eks:${aws:RequestedRegion}:*:cluster/*"
+        },
+        "StringEquals": {
+          "aws:RequestTag/eks:eks-cluster-name": "${aws:PrincipalTag/eks-cluster-name}",
+          "aws:ResourceTag/eks:eks-cluster-name": "${aws:PrincipalTag/eks-cluster-name}"
+        }
+      }
+    },
+    {
+      "Sid": "TagEfsAccessPointOnCreate",
+      "Effect": "Allow",
+      "Action": "elasticfilesystem:TagResource",
+      "Resource": "arn:*:elasticfilesystem:*:*:file-system/*",
+      "Condition": {
+        "StringLike": {
+          "aws:PrincipalTag/eks-cluster-arn": "arn:*:eks:${aws:RequestedRegion}:*:cluster/*"
+        },
+        "StringEquals": {
+          "elasticfilesystem:CreateAction": "CreateAccessPoint",
+          "aws:RequestTag/eks:eks-cluster-name": "${aws:PrincipalTag/eks-cluster-name}"
+        }
+      }
+    },
+    {
+      "Sid": "TagS3FilesAccessPointOnCreate",
+      "Effect": "Allow",
+      "Action": "s3files:TagResource",
+      "Resource": "arn:*:s3files:*:*:file-system/*",
+      "Condition": {
+        "StringLike": {
+          "aws:PrincipalTag/eks-cluster-arn": "arn:*:eks:${aws:RequestedRegion}:*:cluster/*"
+        },
+        "StringEquals": {
+          "s3files:CreateAction": "CreateAccessPoint",
+          "aws:RequestTag/eks:eks-cluster-name": "${aws:PrincipalTag/eks-cluster-name}"
+        }
+      }
+    },
+    {
+      "Sid": "DeleteClusterAccessPoint",
+      "Effect": "Allow",
+      "Action": [
+        "elasticfilesystem:DeleteAccessPoint",
+        "s3files:DeleteAccessPoint"
+      ],
+      "Resource": [
+        "arn:*:elasticfilesystem:*:*:access-point/*",
+        "arn:*:s3files:*:*:file-system/*/access-point/*"
+      ],
+      "Condition": {
+        "StringLike": {
+          "aws:PrincipalTag/eks-cluster-arn": "arn:*:eks:${aws:RequestedRegion}:*:cluster/*"
+        },
+        "StringEquals": {
+          "aws:ResourceTag/eks:eks-cluster-name": "${aws:PrincipalTag/eks-cluster-name}"
+        }
+      }
+    },
+    {
+      "Sid": "MountClusterFileSystemToDeleteAccessPointRootDir",
+      "Effect": "Allow",
+      "Action": [
+        "elasticfilesystem:ClientMount",
+        "elasticfilesystem:ClientWrite",
+        "elasticfilesystem:ClientRootAccess",
+        "s3files:ClientMount",
+        "s3files:ClientWrite",
+        "s3files:ClientRootAccess"
+      ],
+      "Resource": [
+        "arn:*:elasticfilesystem:*:*:file-system/*",
+        "arn:*:s3files:*:*:file-system/*"
+      ],
+      "Condition": {
+        "StringLike": {
+          "aws:PrincipalTag/eks-cluster-arn": "arn:*:eks:${aws:RequestedRegion}:*:cluster/*"
+        },
+        "StringEquals": {
+          "aws:ResourceTag/eks:eks-cluster-name": "${aws:PrincipalTag/eks-cluster-name}"
+        }
+      }
+    }
+  ]
+}
