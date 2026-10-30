@@ -6,8 +6,8 @@ images:
   - name: public.ecr.aws/efs-csi-driver/amazon/aws-efs-csi-driver
     newTag: v3.5.3
   - name: public.ecr.aws/csi-components/livenessprobe
-    newTag: v2.20.0-eksbuild.3
+    newTag: v2.20.0-eksbuild.4
   - name: public.ecr.aws/csi-components/csi-node-driver-registrar
-    newTag: v2.18.0-eksbuild.3
+    newTag: v2.18.0-eksbuild.4
   - name: public.ecr.aws/csi-components/csi-provisioner
-    newTag: v6.4.0-eksbuild.3
+    newTag: v6.4.0-eksbuild.4
