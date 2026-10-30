@@ -61,8 +61,8 @@ CVE fixes are only included in future releases; previously released versions are
 ### Latest ECR Image
 | Tag    | Registry | Image                                                                     |
 |--------|----------|---------------------------------------------------------------------------|
-| v3.5.3 | [Public ECR](https://gallery.ecr.aws/efs-csi-driver/amazon/aws-efs-csi-driver) | public.ecr.aws/efs-csi-driver/amazon/aws-efs-csi-driver:v3.5.3            |
-| v3.5.3 | [EKS Private ECR](https://docs.aws.amazon.com/eks/latest/userguide/add-ons-images.html) | {account-id}.dkr.ecr.{region}.amazonaws.com/eks/aws-efs-csi-driver:v3.5.3 |
+| v3.5.4 | [Public ECR](https://gallery.ecr.aws/efs-csi-driver/amazon/aws-efs-csi-driver) | public.ecr.aws/efs-csi-driver/amazon/aws-efs-csi-driver:v3.5.4            |
+| v3.5.4 | [EKS Private ECR](https://docs.aws.amazon.com/eks/latest/userguide/add-ons-images.html) | {account-id}.dkr.ecr.{region}.amazonaws.com/eks/aws-efs-csi-driver:v3.5.4 |
 
 **Note**  
 You can find previous efs-csi-driver versions' images from [here](https://gallery.ecr.aws/efs-csi-driver/amazon/aws-efs-csi-driver)
