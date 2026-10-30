@@ -54,7 +54,7 @@ stunnel_check_cert_hostname = true
 # Use OCSP to check certificate validity. This option is not supported by certain stunnel versions.
 stunnel_check_cert_validity = false
 
-# Set to true to use FIPS-mode for stunnel. Enabling this will change the AWS SDK client to use FIPS as well.
+# Set to true to use FIPS-mode for stunnel. Enabling this will change the AWS SDK client and the web identity STS call to use FIPS endpoints as well. FIPS endpoints exist only in US and Canada regions; elsewhere the mount logs a warning and the web identity STS call uses the standard endpoint.
 fips_mode_enabled = false
 
 # Define the port range that the TLS tunnel will choose from
@@ -202,7 +202,7 @@ stunnel_check_cert_hostname = true
 # Use OCSP to check certificate validity. This option is not supported by certain stunnel versions.
 stunnel_check_cert_validity = false
 
-# Set to true to use FIPS-mode for stunnel. Enabling this will change the AWS SDK client to use FIPS as well.
+# Set to true to use FIPS-mode for stunnel. Enabling this will change the AWS SDK client and the web identity STS call to use FIPS endpoints as well. FIPS endpoints exist only in US and Canada regions; elsewhere the mount logs a warning and the web identity STS call uses the standard endpoint.
 fips_mode_enabled = false
 
 # Define the port range that the TLS tunnel will choose from
