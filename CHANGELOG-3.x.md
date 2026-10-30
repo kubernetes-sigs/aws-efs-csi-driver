@@ -68,3 +68,8 @@
 * Bump Go to 1.26.10 and update sidecar images to fix CVE ([#1992](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1992), [#1994](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1994), [#1995](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1995), [@YangjinanHu](https://github.com/YangjinanHu))
 * Build efs-utils from latest release tag ([#1997](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1997), [@YangjinanHu](https://github.com/YangjinanHu))
 * Add DEVELOPMENT.md with build, test, and contribution guidance ([#1990](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1990), [@DavidXU12345](https://github.com/DavidXU12345))
+
+# V3.5.4
+* Allow PodDisruptionBudget maxUnavailable on its own and fail when both fields are set ([#1984](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1984), [@giuliocalzo](https://github.com/giuliocalzo))
+* Add CVE patching SLA to README ([#2004](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/2004), [@DavidXU12345](https://github.com/DavidXU12345))
+* Remove vendored dependencies and bump s3files to v1.10.0 ([#2005](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/2005), [@micahhausler](https://github.com/micahhausler))
