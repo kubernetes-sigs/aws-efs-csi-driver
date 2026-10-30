@@ -43,6 +43,21 @@ The EFS CSI Driver follows semantic versioning. The version `MAJOR.MINOR.PATCH` 
 - New features will be released as a `MINOR` update.
 - Bug or vulnerability fixes will be released as a `PATCH` update.
 
+Only the latest version of EFS CSI Driver will continue to receive new features, fixes, and security patches. Please
+update to the latest version to receive continued support.
+
+### CVE Patching SLA
+The driver images are regularly scanned for known vulnerabilities (CVEs). Fixes for CVEs affecting the driver are released within the following timelines, measured from the CVE's published date:
+
+| Severity | SLA      |
+|----------|----------|
+| Critical | 14 days  |
+| High     | 30 days  |
+| Medium   | 60 days  |
+| Low      | 120 days |
+
+CVE fixes are only included in future releases; previously released versions are not patched. To pick up a fix, upgrade to the latest release.
+
 ### Latest ECR Image
 | Tag    | Registry | Image                                                                     |
 |--------|----------|---------------------------------------------------------------------------|
