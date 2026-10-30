@@ -31,6 +31,7 @@ import (
 	ec2types "github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/aws/aws-sdk-go-v2/service/efs"
 	efstypes "github.com/aws/aws-sdk-go-v2/service/efs/types"
+	"github.com/aws/aws-sdk-go-v2/service/eks"
 	"github.com/aws/aws-sdk-go-v2/service/iam"
 	iamtypes "github.com/aws/aws-sdk-go-v2/service/iam/types"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
@@ -46,6 +47,7 @@ type cloud struct {
 	s3filesclient *s3files.Client
 	s3client      *s3.Client
 	iamclient     *iam.Client
+	eksclient     *eks.Client
 	region        string
 }
 
@@ -57,6 +59,7 @@ func NewCloud(region string) *cloud {
 		s3filesclient: s3files.NewFromConfig(cfg),
 		s3client:      s3.NewFromConfig(cfg),
 		iamclient:     iam.NewFromConfig(cfg),
+		eksclient:     eks.NewFromConfig(cfg),
 		region:        region,
 	}
 }
@@ -550,30 +553,28 @@ func (c *cloud) deleteMountTargets(fileSystemId string) error {
 	return nil
 }
 
-func (c *cloud) CreateS3FilesFileSystem(opts CreateOptions) (*S3FilesResources, error) {
+func (c *cloud) CreateS3FilesFileSystem(opts CreateOptions) (_ *S3FilesResources, err error) {
 	ctx := context.TODO()
 
 	// Track resources for cleanup
 	var bucketName string
 	var roleName string
 	var fileSystemId *string
-	success := false
 
-	// Defer cleanup of resources if creation fails
+	// If creation fails, delete what was created, file system first: the bucket
+	// can't be deleted while a file system uses it, and a file system whose role
+	// is gone can't recover. Cleanup failures are returned with the original error.
 	defer func() {
-		if !success {
-			if bucketName != "" {
-				fmt.Printf("Cleaning up S3 bucket due to failure: %s\n", bucketName)
-				if err := c.deleteS3Bucket(bucketName); err != nil {
-					fmt.Printf("Warning: failed to delete S3 bucket %s: %v\n", bucketName, err)
-				}
-			}
-			if roleName != "" {
-				fmt.Printf("Cleaning up IAM role due to failure: %s\n", roleName)
-				if err := c.deleteIAMRole(roleName); err != nil {
-					fmt.Printf("Warning: failed to delete IAM role %s: %v\n", roleName, err)
-				}
-			}
+		if err == nil {
+			return
+		}
+		resources := &S3FilesResources{BucketName: bucketName, RoleName: roleName}
+		if fileSystemId != nil {
+			resources.FileSystemId = *fileSystemId
+		}
+		fmt.Printf("Cleaning up S3Files resources after failure: %+v\n", *resources)
+		if cleanupErr := c.DeleteS3FilesFileSystem(resources); cleanupErr != nil {
+			err = errors.Join(err, fmt.Errorf("cleaning up after failed S3Files setup: %w", cleanupErr))
 		}
 	}()
 
@@ -581,7 +582,7 @@ func (c *cloud) CreateS3FilesFileSystem(opts CreateOptions) (*S3FilesResources, 
 	bucketName = fmt.Sprintf("s3files-csi-e2e-%s", strings.ToLower(opts.ClusterName))
 	fmt.Printf("Creating S3 bucket: %s\n", bucketName)
 
-	_, err := c.s3client.CreateBucket(ctx, &s3.CreateBucketInput{
+	_, err = c.s3client.CreateBucket(ctx, &s3.CreateBucketInput{
 		Bucket: aws.String(bucketName),
 		CreateBucketConfiguration: &s3types.CreateBucketConfiguration{
 			LocationConstraint: s3types.BucketLocationConstraint(c.region),
@@ -786,9 +787,6 @@ func (c *cloud) CreateS3FilesFileSystem(opts CreateOptions) (*S3FilesResources, 
 	fmt.Printf("Successfully created S3Files filesystem %s with bucket %s and role %s\n",
 		*fileSystemId, bucketName, roleName)
 
-	// Mark success to prevent cleanup
-	success = true
-
 	return &S3FilesResources{
 		FileSystemId: *fileSystemId,
 		BucketName:   bucketName,
@@ -796,57 +794,135 @@ func (c *cloud) CreateS3FilesFileSystem(opts CreateOptions) (*S3FilesResources, 
 	}, nil
 }
 
+// DeleteS3FilesFileSystem deletes the S3 Files file system with its mount
+// targets and access points, then its bucket and IAM role. It tries every step
+// and returns all failures, so a leaked resource fails the suite. Empty fields
+// are skipped, so it also cleans up after a partly failed CreateS3FilesFileSystem.
 func (c *cloud) DeleteS3FilesFileSystem(resources *S3FilesResources) error {
-	ctx := context.TODO()
-
-	// Delete mount targets
-	err := c.deleteS3FilesMountTargets(resources.FileSystemId)
-	if err != nil {
-		return err
-	}
-	err = c.ensureNoS3FilesMountTarget(resources.FileSystemId)
-	if err != nil {
-		return err
-	}
-
-	// Delete the S3 Files file system
-	request := &s3files.DeleteFileSystemInput{
-		FileSystemId: aws.String(resources.FileSystemId),
-		ForceDelete:  aws.Bool(true),
-	}
-	_, err = c.s3filesclient.DeleteFileSystem(ctx, request)
-	if err != nil {
-		var FileSystemNotFoundErr *s3filestypes.ResourceNotFoundException
-		switch {
-		case errors.As(err, &FileSystemNotFoundErr):
-			fmt.Printf("S3Files file system %s not found, continuing with cleanup\n", resources.FileSystemId)
-		default:
-			fmt.Printf("S3Files file system %s failed to be deleted, continuing with cleanup: %v\n", resources.FileSystemId, err)
-		}
-	} else {
-		// Wait for the S3 Files file system to be fully deleted before deleting the bucket
-		err = c.ensureNoS3FilesFileSystem(resources.FileSystemId)
+	var errs []error
+	if resources.FileSystemId != "" {
+		gone, err := c.deleteS3FilesFileSystem(resources.FileSystemId)
 		if err != nil {
-			fmt.Printf("Warning: failed to confirm S3Files file system %s deletion: %v\n", resources.FileSystemId, err)
-		} else {
-			fmt.Printf("S3Files file system %s is confirmed to be deleted\n", resources.FileSystemId)
+			errs = append(errs, err)
+		}
+		// The bucket can't be deleted while a file system uses it, and a file
+		// system whose role is gone can't recover, so keep both for a later
+		// cleanup to delete the file system.
+		if !gone {
+			fmt.Printf("Keeping S3 bucket %s and IAM role %s: S3Files file system %s is not confirmed deleted\n", resources.BucketName, resources.RoleName, resources.FileSystemId)
+			return errors.Join(errs...)
 		}
 	}
 
 	// Clean up S3 bucket
-	fmt.Printf("Cleaning up S3 bucket: %s\n", resources.BucketName)
-	err = c.deleteS3Bucket(resources.BucketName)
-	if err != nil {
-		fmt.Printf("Warning: failed to delete S3 bucket %s: %v\n", resources.BucketName, err)
+	if resources.BucketName != "" {
+		fmt.Printf("Cleaning up S3 bucket: %s\n", resources.BucketName)
+		if err := c.deleteS3Bucket(resources.BucketName); err != nil {
+			errs = append(errs, fmt.Errorf("deleting S3 bucket %s: %w", resources.BucketName, err))
+		}
 	}
 
 	// Clean up IAM role
-	fmt.Printf("Cleaning up IAM role: %s\n", resources.RoleName)
-	err = c.deleteIAMRole(resources.RoleName)
-	if err != nil {
-		fmt.Printf("Warning: failed to delete IAM role %s: %v\n", resources.RoleName, err)
+	if resources.RoleName != "" {
+		fmt.Printf("Cleaning up IAM role: %s\n", resources.RoleName)
+		if err := c.deleteIAMRole(resources.RoleName); err != nil {
+			errs = append(errs, fmt.Errorf("deleting IAM role %s: %w", resources.RoleName, err))
+		}
 	}
-	return nil
+	return errors.Join(errs...)
+}
+
+// deleteS3FilesFileSystem deletes an S3 Files file system with its mount targets
+// and access points, and waits until it is gone. It reports whether the file
+// system is confirmed deleted.
+func (c *cloud) deleteS3FilesFileSystem(fileSystemId string) (gone bool, _ error) {
+	ctx := context.TODO()
+	var errs []error
+
+	// Delete mount targets
+	err := c.deleteS3FilesMountTargets(fileSystemId)
+	if err == nil {
+		err = c.ensureNoS3FilesMountTarget(fileSystemId)
+	}
+	if err != nil {
+		errs = append(errs, fmt.Errorf("deleting mount targets of S3Files file system %s: %w", fileSystemId, err))
+	}
+
+	// DeleteFileSystem fails while the file system has access points, for
+	// example ones left behind by a volume that was never deleted.
+	if err := c.deleteS3FilesAccessPoints(fileSystemId); err != nil {
+		errs = append(errs, fmt.Errorf("deleting access points of S3Files file system %s: %w", fileSystemId, err))
+	}
+
+	// Delete the S3 Files file system
+	request := &s3files.DeleteFileSystemInput{
+		FileSystemId: aws.String(fileSystemId),
+		ForceDelete:  aws.Bool(true),
+	}
+	_, err = c.s3filesclient.DeleteFileSystem(ctx, request)
+	var FileSystemNotFoundErr *s3filestypes.ResourceNotFoundException
+	switch {
+	case err == nil:
+		// Wait for the S3 Files file system to be fully deleted before deleting the bucket
+		if err := c.ensureNoS3FilesFileSystem(fileSystemId); err != nil {
+			errs = append(errs, fmt.Errorf("confirming deletion of S3Files file system %s: %w", fileSystemId, err))
+		} else {
+			fmt.Printf("S3Files file system %s is confirmed to be deleted\n", fileSystemId)
+			gone = true
+		}
+	case errors.As(err, &FileSystemNotFoundErr):
+		fmt.Printf("S3Files file system %s not found, continuing with cleanup\n", fileSystemId)
+		gone = true
+	default:
+		errs = append(errs, fmt.Errorf("deleting S3Files file system %s: %w", fileSystemId, err))
+	}
+	return gone, errors.Join(errs...)
+}
+
+// deleteS3FilesAccessPoints deletes every access point of an S3 Files file
+// system and waits until none are left.
+func (c *cloud) deleteS3FilesAccessPoints(fileSystemId string) error {
+	ctx := context.TODO()
+	deadline := time.Now().Add(s3FilesWaitTimeout)
+	for {
+		var ids []string
+		var nextToken *string
+		for {
+			response, err := c.s3filesclient.ListAccessPoints(ctx, &s3files.ListAccessPointsInput{
+				FileSystemId: aws.String(fileSystemId),
+				NextToken:    nextToken,
+			})
+			if err != nil {
+				var notFoundErr *s3filestypes.ResourceNotFoundException
+				if errors.As(err, &notFoundErr) {
+					return nil
+				}
+				return err
+			}
+			for _, ap := range response.AccessPoints {
+				ids = append(ids, aws.ToString(ap.AccessPointId))
+			}
+			if response.NextToken == nil {
+				break
+			}
+			nextToken = response.NextToken
+		}
+		if len(ids) == 0 {
+			return nil
+		}
+		if time.Now().After(deadline) {
+			return fmt.Errorf("timed out after %s waiting for access points %v to be deleted", s3FilesWaitTimeout, ids)
+		}
+		for _, id := range ids {
+			fmt.Printf("Deleting leftover S3Files access point %s of file system %s\n", id, fileSystemId)
+			_, err := c.s3filesclient.DeleteAccessPoint(ctx, &s3files.DeleteAccessPointInput{AccessPointId: aws.String(id)})
+			var notFoundErr *s3filestypes.ResourceNotFoundException
+			if err != nil && !errors.As(err, &notFoundErr) {
+				return fmt.Errorf("deleting access point %s: %w", id, err)
+			}
+		}
+		time.Sleep(5 * time.Second)
+	}
 }
 
 func (c *cloud) ensureS3FilesFileSystemStatus(fileSystemId string, status s3filestypes.LifeCycleState) error {
@@ -1007,6 +1083,7 @@ func isTerminalS3FilesState(state, want s3filestypes.LifeCycleState) bool {
 	}
 	switch state {
 	case s3filestypes.LifeCycleStateError,
+		s3filestypes.LifeCycleStateMisconfigured,
 		s3filestypes.LifeCycleStateDeleting,
 		s3filestypes.LifeCycleStateDeleted:
 		return true

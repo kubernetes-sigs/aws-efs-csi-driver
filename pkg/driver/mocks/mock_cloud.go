@@ -241,6 +241,86 @@ func (mr *MockS3FilesMockRecorder) ListFileSystems(arg0, arg1 interface{}, arg2 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListFileSystems", reflect.TypeOf((*MockS3Files)(nil).ListFileSystems), varargs...)
 }
 
+// TagResource mocks base method.
+func (m *MockEfs) TagResource(arg0 context.Context, arg1 *efs.TagResourceInput, arg2 ...func(*efs.Options)) (*efs.TagResourceOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "TagResource", varargs...)
+	ret0, _ := ret[0].(*efs.TagResourceOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// TagResource indicates an expected call of TagResource.
+func (mr *MockEfsMockRecorder) TagResource(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TagResource", reflect.TypeOf((*MockEfs)(nil).TagResource), varargs...)
+}
+
+// GetAccessPoint mocks base method.
+func (m *MockS3Files) GetAccessPoint(arg0 context.Context, arg1 *s3files.GetAccessPointInput, arg2 ...func(*s3files.Options)) (*s3files.GetAccessPointOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "GetAccessPoint", varargs...)
+	ret0, _ := ret[0].(*s3files.GetAccessPointOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetAccessPoint indicates an expected call of GetAccessPoint.
+func (mr *MockS3FilesMockRecorder) GetAccessPoint(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAccessPoint", reflect.TypeOf((*MockS3Files)(nil).GetAccessPoint), varargs...)
+}
+
+// GetFileSystem mocks base method.
+func (m *MockS3Files) GetFileSystem(arg0 context.Context, arg1 *s3files.GetFileSystemInput, arg2 ...func(*s3files.Options)) (*s3files.GetFileSystemOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "GetFileSystem", varargs...)
+	ret0, _ := ret[0].(*s3files.GetFileSystemOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetFileSystem indicates an expected call of GetFileSystem.
+func (mr *MockS3FilesMockRecorder) GetFileSystem(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetFileSystem", reflect.TypeOf((*MockS3Files)(nil).GetFileSystem), varargs...)
+}
+
+// TagResource mocks base method.
+func (m *MockS3Files) TagResource(arg0 context.Context, arg1 *s3files.TagResourceInput, arg2 ...func(*s3files.Options)) (*s3files.TagResourceOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "TagResource", varargs...)
+	ret0, _ := ret[0].(*s3files.TagResourceOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// TagResource indicates an expected call of TagResource.
+func (mr *MockS3FilesMockRecorder) TagResource(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TagResource", reflect.TypeOf((*MockS3Files)(nil).TagResource), varargs...)
+}
+
 // MockCloud is a mock of Cloud interface.
 type MockCloud struct {
 	ctrl     *gomock.Controller
@@ -395,4 +475,48 @@ func (m *MockCloud) ListAccessPoints(ctx context.Context, fileSystemId string, f
 func (mr *MockCloudMockRecorder) ListAccessPoints(ctx, fileSystemId, fsType interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListAccessPoints", reflect.TypeOf((*MockCloud)(nil).ListAccessPoints), ctx, fileSystemId, fsType)
+}
+
+// GetAccessPointTags mocks base method.
+func (m *MockCloud) GetAccessPointTags(ctx context.Context, accessPointId string, fsType util.FileSystemType) (map[string]string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetAccessPointTags", ctx, accessPointId, fsType)
+	ret0, _ := ret[0].(map[string]string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetAccessPointTags indicates an expected call of GetAccessPointTags.
+func (mr *MockCloudMockRecorder) GetAccessPointTags(ctx, accessPointId, fsType interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAccessPointTags", reflect.TypeOf((*MockCloud)(nil).GetAccessPointTags), ctx, accessPointId, fsType)
+}
+
+// GetFileSystemTags mocks base method.
+func (m *MockCloud) GetFileSystemTags(ctx context.Context, fileSystemId string, fsType util.FileSystemType) (map[string]string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetFileSystemTags", ctx, fileSystemId, fsType)
+	ret0, _ := ret[0].(map[string]string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetFileSystemTags indicates an expected call of GetFileSystemTags.
+func (mr *MockCloudMockRecorder) GetFileSystemTags(ctx, fileSystemId, fsType interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetFileSystemTags", reflect.TypeOf((*MockCloud)(nil).GetFileSystemTags), ctx, fileSystemId, fsType)
+}
+
+// TagAccessPoint mocks base method.
+func (m *MockCloud) TagAccessPoint(ctx context.Context, accessPointId string, tags map[string]string, fsType util.FileSystemType) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "TagAccessPoint", ctx, accessPointId, tags, fsType)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// TagAccessPoint indicates an expected call of TagAccessPoint.
+func (mr *MockCloudMockRecorder) TagAccessPoint(ctx, accessPointId, tags, fsType interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TagAccessPoint", reflect.TypeOf((*MockCloud)(nil).TagAccessPoint), ctx, accessPointId, tags, fsType)
 }

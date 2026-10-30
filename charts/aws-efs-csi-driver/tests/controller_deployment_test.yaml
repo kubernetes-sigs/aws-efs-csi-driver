@@ -94,6 +94,92 @@ tests:
           path: spec.template.spec.containers[?(@.name == "efs-plugin")].args
           content: --tags=environment:prod region:us-east-1
 
+  - it: renders controller extraTags as a comma-separated key=value list
+    set:
+      controller:
+        extraTags:
+          team: storage
+          env: prod
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[?(@.name == "efs-plugin")].args
+          content: --extra-tags=env=prod,team=storage
+
+  - it: renders no cluster tag flags by default
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[?(@.name == "efs-plugin")].args
+          content: --cluster-tag-isolation=disable
+
+  - it: renders the cluster name, cluster tag key and isolation state
+    set:
+      controller:
+        clusterName: my-cluster
+        clusterTagKey: example.com/cluster
+        clusterTagIsolation: enforce
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[?(@.name == "efs-plugin")].args
+          content: --cluster-name=my-cluster
+      - contains:
+          path: spec.template.spec.containers[?(@.name == "efs-plugin")].args
+          content: --cluster-tag-key=example.com/cluster
+      - contains:
+          path: spec.template.spec.containers[?(@.name == "efs-plugin")].args
+          content: --cluster-tag-isolation=enforce
+
+  - it: fails a boolean value
+    set:
+      controller:
+        clusterName: my-cluster
+        clusterTagKey: example.com/cluster
+        clusterTagIsolation: false
+    asserts:
+      - failedTemplate:
+          errorMessage: 'controller.clusterTagIsolation must be one of "disable", "backfill" or "enforce", got the bool false'
+
+  - it: renders no isolation flag for disable
+    set:
+      controller:
+        clusterTagIsolation: disable
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[?(@.name == "efs-plugin")].args
+          content: --cluster-tag-isolation=disable
+
+  - it: fails the string off
+    set:
+      controller:
+        clusterTagIsolation: "off"
+    asserts:
+      - failedTemplate:
+          errorMessage: 'controller.clusterTagIsolation must be "disable", "backfill" or "enforce", got "off"'
+
+  - it: fails backfill without the cluster name
+    set:
+      controller:
+        clusterTagKey: example.com/cluster
+        clusterTagIsolation: backfill
+    asserts:
+      - failedTemplate:
+          errorMessage: controller.clusterTagIsolation=backfill requires controller.clusterName and controller.clusterTagKey
+
+  - it: fails an unknown isolation state
+    set:
+      controller:
+        clusterTagIsolation: strict
+    asserts:
+      - failedTemplate:
+          errorMessage: 'controller.clusterTagIsolation must be "disable", "backfill" or "enforce", got "strict"'
+
+  - it: fails an uppercase OFF
+    set:
+      controller:
+        clusterTagIsolation: "OFF"
+    asserts:
+      - failedTemplate:
+          errorMessage: 'controller.clusterTagIsolation must be "disable", "backfill" or "enforce", got "OFF"'
+
   - it: forwards logLevel, debugLogs and deleteAccessPointRootDir
     set:
       controller:

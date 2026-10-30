@@ -70,7 +70,10 @@ controller:
   logLevel: 2
   # If set, add pv/pvc metadata to plugin create requests as parameters.
   extraCreateMetadata: true
-  # Add additional tags to access points.
+  # Deprecated: use controller.extraTags. Add additional tags to access points
+  # (rendered as --tags "key:value key2:value2"). Overrides the default
+  # efs.csi.aws.com/cluster tag. Merged with controller.extraTags; the same key
+  # with different values fails at startup.
   # NOTE: Custom tags require the controller's IAM policy to allow the extra tag
   # keys on elasticfilesystem:CreateAccessPoint. The AWS-managed
   # AmazonEFSCSIDriverPolicy only permits the default efs.csi.aws.com/cluster tag
@@ -81,6 +84,36 @@ controller:
     {}
     # environment: prod
     # region: us-east-1
+  # Tags (rendered as --extra-tags=k1=v1,k2=v2) added to every AWS resource the
+  # controller creates. Not used to find, filter or isolate resources, and not
+  # the cluster tag. Overrides no other tag source and is not overridden: it is
+  # merged with controller.tags, and a key that controller.tags sets to a
+  # different value, or that equals efs.csi.aws.com/cluster or
+  # controller.clusterTagKey, fails at startup. The same IAM note as for
+  # controller.tags applies.
+  extraTags:
+    {}
+    # team: storage
+  # Name of the Kubernetes cluster (--cluster-name). With clusterTagKey, every
+  # access point the controller creates is tagged <clusterTagKey>=<clusterName>,
+  # except cross-account ones (StorageClass secret with awsRoleArn).
+  clusterName: ""
+  # Tag key whose value is clusterName (--cluster-tag-key). With clusterName, it
+  # is added to every access point the controller creates, in every
+  # clusterTagIsolation state. Empty by default (no cluster tag). The tag-based
+  # IAM policies use eks:eks-cluster-name (see docs/cluster-tag-isolation.md).
+  clusterTagKey: ""
+  # --cluster-tag-isolation. Set it to match the IAM policy attached to the
+  # controller (see docs/cluster-tag-isolation.md). The value is a string, and
+  # the chart fails to render any other value:
+  #   "disable":  no isolation (the default), plus the cluster tag on new access points.
+  #   "backfill": attach the tag-based policy and the backfill policy. Requires
+  #               clusterName and clusterTagKey. Tags existing access points this
+  #               cluster owns, at startup and every hour. Does not filter discovery.
+  #   "enforce":  attach the tag-based policy. Requires clusterName and
+  #               clusterTagKey. Ignores discovered access points that lack this
+  #               cluster's tag value. Does not backfill.
+  clusterTagIsolation: "disable"
   # Enable if you want the controller to also delete the
   # path on efs when deleteing an access point
   deleteAccessPointRootDir: false
@@ -120,9 +153,9 @@ controller:
   serviceAccount:
     create: true
     name: efs-csi-controller-sa
+    # IRSA only:
+    #   eks.amazonaws.com/role-arn: arn:aws:iam::111122223333:role/efs-csi-controller
     annotations: {}
-    ## Enable if EKS IAM for SA is used
-    #  eks.amazonaws.com/role-arn: arn:aws:iam::111122223333:role/efs-csi-role
   healthPort: 9909
   regionalStsEndpoints: false
   # Liveness probe configuration for the controller
@@ -252,9 +285,9 @@ node:
   serviceAccount:
     create: true
     name: efs-csi-node-sa
+    # IRSA only:
+    #   eks.amazonaws.com/role-arn: arn:aws:iam::111122223333:role/efs-csi-node
     annotations: {}
-    ## Enable if EKS IAM for SA is used
-    #  eks.amazonaws.com/role-arn: arn:aws:iam::111122223333:role/efs-csi-role
     # Disable mutating permissions for the node service account.
     # When disableMutation is true, some features of the EFS CSI Driver node pods will not function, such as taint removal.
     # Primarily useful in particularly security-sensitive environments, or on multi-tenant clusters that isolate tenants by node.

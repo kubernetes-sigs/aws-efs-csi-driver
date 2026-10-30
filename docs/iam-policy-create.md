@@ -1,5 +1,9 @@
 ## Create IAM roles for Amazon EKS
 
+> [!NOTE]
+> This page sets up the AWS managed policies. They don't isolate clusters: they give each cluster's driver IAM permissions to modify the EFS access points of other clusters in the account. Use them when several clusters share one file system.
+> Otherwise, for new clusters, follow [Set up driver permission](./install.md#set-up-driver-permission), which uses the tag-based policies described in [Cluster tag isolation](./cluster-tag-isolation.md).
+
 The following example details how to use IAM roles for service accounts to talk to Amazon EFS and Amazon S3 Files. The EFS CSI driver uses two service accounts with separate IAM roles:
 
 - `efs-csi-controller-sa` — used by the controller, requires `AmazonEFSCSIDriverPolicy`, `AmazonS3FilesCSIDriverPolicy`, and `AmazonS3FilesClientFullAccess`.
@@ -128,46 +132,7 @@ EKS Pod Identity is the recommended way to grant IAM permissions to pods on Amaz
 
 ### IAM Roles for Service Accounts (IRSA)
 
-You can create the roles using `eksctl` or the AWS CLI.
-
-#### [ eksctl ]
-
-   Run the following commands to create the IAM roles and Kubernetes service accounts. Each command attaches the required AWS managed policies, sets the Kubernetes service account with the IAM role ARN, and adds the Kubernetes service account name to the trust policy for the IAM role.
-
-   ```sh
-    USER_ACCOUNT={YOUR_AWS_ACCOUNT_ID}
-    CLUSTER_NAME={YOUR_CLUSTER_NAME}
-    REGION_CODE={YOUR_REGION_CODE}
-
-    # Create the controller role with AmazonEFSCSIDriverPolicy and AmazonS3FilesCSIDriverPolicy
-    CONTROLLER_ROLE_NAME={YOUR_CONTROLLER_IAM_ROLE_NAME}
-    eksctl create iamserviceaccount \
-       --name efs-csi-controller-sa \
-       --namespace kube-system \
-       --cluster $CLUSTER_NAME \
-       --role-name $CONTROLLER_ROLE_NAME \
-       --attach-policy-arn arn:aws:iam::aws:policy/service-role/AmazonEFSCSIDriverPolicy \
-       --attach-policy-arn arn:aws:iam::aws:policy/service-role/AmazonS3FilesCSIDriverPolicy \
-       --attach-policy-arn arn:aws:iam::aws:policy/AmazonS3FilesClientFullAccess \
-       --approve \
-       --region $REGION_CODE
-
-    # Create the node role with AmazonS3FilesClientFullAccess, AmazonS3ReadOnlyAccess and AmazonElasticFileSystemsUtils
-    NODE_ROLE_NAME={YOUR_NODE_IAM_ROLE_NAME}
-    eksctl create iamserviceaccount \
-      --name efs-csi-node-sa \
-      --namespace kube-system \
-      --cluster $CLUSTER_NAME \
-      --role-name $NODE_ROLE_NAME \
-      --attach-policy-arn arn:aws:iam::aws:policy/AmazonS3FilesClientFullAccess \
-      --attach-policy-arn arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess \
-      --attach-policy-arn arn:aws:iam::aws:policy/AmazonElasticFileSystemsUtils \
-      --approve \
-      --region $REGION_CODE
-   ```
-
-------
-#### [ AWS CLI ]
+Create the roles with the AWS CLI.
 
    1. Find your cluster's OIDC provider URL. Replace `{YOUR_CLUSTER_NAME}` with your value. If the output returns `None` review the **Prerequisites**.
 
