@@ -1,7 +1,7 @@
 controller:
   logLevel: 5
   serviceAccount:
-    create: false # let eksctl create it
+    create: false # eksctl creates it for the pod identity association
 node:
   logLevel: 5
   serviceAccount:
