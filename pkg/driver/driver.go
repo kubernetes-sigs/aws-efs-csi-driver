@@ -20,6 +20,7 @@ import (
 	"context"
 	"net"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
@@ -54,6 +55,8 @@ type Driver struct {
 	tags                     map[string]string
 	lockManager              LockManagerMap
 	inFlightMountTracker     *InFlightMountTracker
+	// inFlightUnpublish holds the target paths with a NodeUnpublishVolume in progress.
+	inFlightUnpublish        sync.Map
 	volumeAttachLimit        int64
 	forceUnmountAfterTimeout bool
 	unmountTimeout           time.Duration
