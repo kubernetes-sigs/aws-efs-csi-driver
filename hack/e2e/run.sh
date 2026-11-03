@@ -70,6 +70,9 @@ ARTIFACTS=${ARTIFACTS:-"${TEST_DIR}/artifacts"}
 GINKGO_FOCUS=${GINKGO_FOCUS:-"\[efs-csi]"}
 GINKGO_SKIP=${GINKGO_SKIP:-"\[Disruptive\]"}
 GINKGO_NODES=${GINKGO_NODES:-4}
+# Ginkgo counts downloading modules and compiling the test binary against
+# this timeout, not only running the specs. The default 1h is too tight.
+GINKGO_TIMEOUT=${GINKGO_TIMEOUT:-90m}
 TEST_EXTRA_FLAGS=${TEST_EXTRA_FLAGS:-}
 
 CLEAN=${CLEAN:-"true"}
@@ -207,7 +210,7 @@ eval "EXPANDED_TEST_EXTRA_FLAGS=\"$TEST_EXTRA_FLAGS\""
 set -x
 set +e
 read -ra EXTRA_FLAGS_ARRAY <<< "${EXPANDED_TEST_EXTRA_FLAGS}"
-${GINKGO_BIN} -p -nodes="${GINKGO_NODES}" -v --focus="${GINKGO_FOCUS}" --skip="${GINKGO_SKIP}" --junit-report=junit.xml "${TEST_PATH}" -- -kubeconfig="${KUBECONFIG}" -report-dir="${ARTIFACTS}" -gce-zone="${FIRST_ZONE}" "${EXTRA_FLAGS_ARRAY[@]}"
+${GINKGO_BIN} -p -nodes="${GINKGO_NODES}" -v --timeout="${GINKGO_TIMEOUT}" --focus="${GINKGO_FOCUS}" --skip="${GINKGO_SKIP}" --junit-report=junit.xml "${TEST_PATH}" -- -kubeconfig="${KUBECONFIG}" -report-dir="${ARTIFACTS}" -gce-zone="${FIRST_ZONE}" "${EXTRA_FLAGS_ARRAY[@]}"
 TEST_PASSED=$?
 set -e
 set +x
