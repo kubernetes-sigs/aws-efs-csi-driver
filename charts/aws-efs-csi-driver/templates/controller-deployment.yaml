@@ -172,6 +172,9 @@ spec:
             {{- if hasKey .Values.controller "timeout" }}
             - {{ printf "--timeout=%s" .Values.controller.timeout | quote }}
             {{- end }}
+            {{- if and .Values.controller.enableMetrics (not (regexMatch "(-http-endpoint)|(-metrics-address)" (join " " .Values.sidecars.csiProvisioner.additionalArgs))) }}
+            - --http-endpoint=0.0.0.0:3302
+            {{- end }}
             {{- range .Values.sidecars.csiProvisioner.additionalArgs }}
             - {{ . }}
             {{- end }}
@@ -184,6 +187,12 @@ spec:
           volumeMounts:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
+          {{- if .Values.controller.enableMetrics }}
+          ports:
+            - name: metrics-prov
+              containerPort: 3302
+              protocol: TCP
+          {{- end }}
           {{- with default .Values.controller.resources .Values.sidecars.csiProvisioner.resources }}
           resources: {{ toYaml . | nindent 12 }}
           {{- end }}

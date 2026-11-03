@@ -18,6 +18,10 @@ renders a ServiceMonitor scraping the metrics port:
           port: 3301
           protocol: TCP
           targetPort: 3301
+        - name: metrics-prov
+          port: 3302
+          protocol: TCP
+          targetPort: 3302
       selector:
         app: efs-csi-controller
         app.kubernetes.io/instance: efs
@@ -40,6 +44,9 @@ renders a ServiceMonitor scraping the metrics port:
         - interval: 15s
           path: /metrics
           port: metrics
+        - interval: 15s
+          path: /metrics
+          port: metrics-prov
       namespaceSelector:
         matchNames:
           - kube-system
@@ -66,6 +73,10 @@ renders only the Service when the ServiceMonitor is disabled:
           port: 3301
           protocol: TCP
           targetPort: 3301
+        - name: metrics-prov
+          port: 3302
+          protocol: TCP
+          targetPort: 3302
       selector:
         app: efs-csi-controller
         app.kubernetes.io/instance: efs
