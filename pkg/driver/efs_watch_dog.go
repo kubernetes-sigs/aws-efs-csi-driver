@@ -14,7 +14,6 @@ limitations under the License.
 package driver
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -24,336 +23,15 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"text/template"
 	"time"
 
 	"k8s.io/klog/v2"
 )
 
-// https://github.com/aws/efs-utils/blob/v1.30.2/dist/efs-utils.conf
 const (
 	efsUtilsConfigFileName     = "efs-utils.conf"
 	s3filesUtilsConfigFileName = "s3files-utils.conf"
 	efsStateDir                = "/var/run/efs"
-	efsUtilsConfigTemplate     = `
-#
-# Copyright 2017-2018 Amazon.com, Inc. and its affiliates. All Rights Reserved.
-#
-# Licensed under the MIT License. See the LICENSE accompanying this file
-# for the specific language governing permissions and limitations under
-# the License.
-#
-
-[DEFAULT]
-logging_level = {{if .DebugLogs}}DEBUG{{else}}INFO{{end}}
-logging_max_bytes = 1048576
-logging_file_count = 10
-# mode for /var/run/efs and subdirectories in octal
-state_file_dir_mode = 750
-
-[mount]
-dns_name_format = {az}.{fs_id}.efs.{region}.{dns_name_suffix}
-dns_name_suffix = amazonaws.com
-#The region of the file system when mounting from on-premises or cross region.
-{{if .Region -}}
-region = {{.Region -}}
-{{else -}}
-#region = us-east-1
-{{- end}}
-stunnel_debug_enabled = {{.DebugLogs}}
-#Uncomment the below option to save all stunnel logs for a file system to the same file
-#stunnel_logs_file = /var/log/amazon/efs/{fs_id}.stunnel.log
-stunnel_cafile = /etc/amazon/efs/efs-utils.crt
-
-# Validate the certificate hostname on mount. This option is not supported by certain stunnel versions.
-stunnel_check_cert_hostname = true
-
-# Use OCSP to check certificate validity. This option is not supported by certain stunnel versions.
-stunnel_check_cert_validity = false
-
-# Set to true to use FIPS-mode for stunnel. Enabling this will change the AWS SDK client and the web identity STS call to use FIPS endpoints as well. FIPS endpoints exist only in US and Canada regions; elsewhere the mount logs a warning and the web identity STS call uses the standard endpoint.
-{{if .FipsEnabled -}}
-fips_mode_enabled = {{.FipsEnabled -}}
-{{else -}}
-fips_mode_enabled = false
-{{- end}}
-
-# Define the port range that the TLS tunnel will choose from
-port_range_lower_bound = 20049
-port_range_upper_bound = {{.PortRangeUpperBound}}
-
-# Optimize read_ahead_kb for Linux 5.4+
-optimize_readahead = true
-
-# By default, we enable the feature to fallback to mount with mount target ip address when dns name cannot be resolved
-fall_back_to_mount_target_ip_address_enabled = true
-
-# By default, we use IMDSv2 to get the instance metadata, set this to true if you want to disable IMDSv2 usage
-disable_fetch_ec2_metadata_token = false
-
-# Timeout in seconds for HTTP requests made by the mount helper, including IMDS instance metadata retrieval,
-# ECS/EKS container credential lookups, and STS web identity token exchanges. Increase this value if running
-# in environments with higher network latency (e.g. MicroVMs).
-# url_request_timeout_sec = 1
-
-# By default, we enable efs-utils to retry failed mount.nfs command that due to (1) connection reset by peer (2) the
-# mount.nfs is not finished within 'retry_nfs_mount_command_timeout_sec'. If the retry count is set as N, initial N - 1
-# mount attempts will timeout if the command does not finish within 'retry_nfs_mount_command_timeout_sec' sec.
-# The last mount attempt will keep the existing behavior of mount.nfs.
-#
-retry_nfs_mount_command = true
-retry_nfs_mount_command_count = 3
-retry_nfs_mount_command_timeout_sec = 15
-
-# Number of Tokio worker threads each efs-proxy process starts. One efs-proxy
-# process is launched per TLS mount, and by default each one starts one worker
-# thread per CPU visible to it, so a node with many CPUs and many mounts uses a
-# correspondingly large number of tasks/PIDs. Set a positive integer no greater
-# than the number of CPUs available to this host to bound that per-mount cost;
-# leave it commented out to keep one worker thread per available CPU. A value
-# above the available CPU count is refused by efs-proxy at startup -- extra
-# workers beyond that add a thread stack and scheduling overhead each without
-# adding parallelism. Reducing the worker count trades parallelism inside a
-# single mount for lower per-mount thread usage, so measure before lowering it
-# on a throughput-sensitive workload. Only mounts started after the change pick
-# up the new value; already-running proxies keep the count they started with.
-# This item is the supported way to bound the worker count. If the
-# TOKIO_WORKER_THREADS environment variable happens to be set in the mount
-# helper's environment, this item takes precedence over it; that variable is
-# a Tokio implementation detail, is not validated, and is not a supported way
-# to configure efs-proxy.
-# efs_proxy_worker_threads = 8
-
-[mount.cn-north-1]
-dns_name_suffix = amazonaws.com.cn
-
-
-[mount.cn-northwest-1]
-dns_name_suffix = amazonaws.com.cn
-
-
-[mount.eu-isoe-west-1]
-dns_name_suffix = cloud.adc-e.uk
-stunnel_cafile = /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
-
-[mount.eusc-de-east-1]
-dns_name_suffix = amazonaws.eu
-stunnel_cafile = /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
-
-[mount.us-iso-east-1]
-dns_name_suffix = c2s.ic.gov
-stunnel_cafile = /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
-
-[mount.us-iso-west-1]
-dns_name_suffix = c2s.ic.gov
-stunnel_cafile = /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
-
-[mount.us-isob-east-1]
-dns_name_suffix = sc2s.sgov.gov
-stunnel_cafile = /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
-
-[mount.us-isob-west-1]
-dns_name_suffix = sc2s.sgov.gov
-stunnel_cafile = /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
-
-[mount.us-isof-east-1]
-dns_name_suffix = csp.hci.ic.gov
-stunnel_cafile = /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
-
-[mount.us-isof-south-1]
-dns_name_suffix = csp.hci.ic.gov
-stunnel_cafile = /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
-
-[mount-watchdog]
-enabled = true
-poll_interval_sec = 1
-unmount_count_for_consistency = 5
-unmount_grace_period_sec = 30
-
-# Set client auth/access point certificate renewal rate. Minimum value is 1 minute.
-tls_cert_renewal_interval_min = 60
-
-# Periodically check the health of stunnel to make sure the connection is fully established
-stunnel_health_check_enabled = true
-stunnel_health_check_interval_min = 5
-stunnel_health_check_command_timeout_sec = 30
-
-[client-info] 
-source={{.EfsClientSource}}
-
-[cloudwatch-log]
-enabled = {{.CloudWatchLogEnabled}}
-log_group_name = /aws/efs/utils
-
-# Possible values are : 1, 3, 5, 7, 14, 30, 60, 90, 120, 150, 180, 365, 400, 545, 731, 1827, and 3653
-# Comment this config to prevent log deletion
-retention_in_days = 14
-`
-	s3filesUtilsConfigTemplate = `
-#
-# Copyright 2017-2018 Amazon.com, Inc. and its affiliates. All Rights Reserved.
-#
-# Licensed under the MIT License. See the LICENSE accompanying this file
-# for the specific language governing permissions and limitations under
-# the License.
-#
-
-[DEFAULT]
-logging_level = {{if .DebugLogs}}DEBUG{{else}}INFO{{end}}
-logging_max_bytes = 1048576
-logging_file_count = 10
-# mode for /var/run/efs and subdirectories in octal
-state_file_dir_mode = 750
-
-[mount]
-dns_name_format = {az_id}.{fs_id}.s3files.{region}.{dns_name_suffix}
-dns_name_suffix = on.aws
-#The region of the file system when mounting from on-premises or cross region.
-{{if .Region -}}
-region = {{.Region -}}
-{{else -}}
-#region = us-east-1
-{{- end}}
-#Uncomment the below option to save all stunnel logs for a file system to the same file
-#stunnel_logs_file = /var/log/amazon/efs/{fs_id}.stunnel.log
-stunnel_cafile = /etc/amazon/efs/efs-utils.crt
-
-# Validate the certificate hostname on mount. This option is not supported by certain stunnel versions.
-stunnel_check_cert_hostname = true
-
-# Use OCSP to check certificate validity. This option is not supported by certain stunnel versions.
-stunnel_check_cert_validity = false
-
-# Set to true to use FIPS-mode for stunnel. Enabling this will change the AWS SDK client and the web identity STS call to use FIPS endpoints as well. FIPS endpoints exist only in US and Canada regions; elsewhere the mount logs a warning and the web identity STS call uses the standard endpoint.
-{{if .FipsEnabled -}}
-fips_mode_enabled = {{.FipsEnabled -}}
-{{else -}}
-fips_mode_enabled = false
-{{- end}}
-
-# Define the port range that the TLS tunnel will choose from
-port_range_lower_bound = 20049
-port_range_upper_bound = {{.PortRangeUpperBound}}
-
-# Optimize read_ahead_kb for Linux 5.4+
-optimize_readahead = true
-
-# By default, we enable the feature to fallback to mount with mount target ip address when dns name cannot be resolved
-fall_back_to_mount_target_ip_address_enabled = true
-
-# By default, we use IMDSv2 to get the instance metadata, set this to true if you want to disable IMDSv2 usage
-disable_fetch_ec2_metadata_token = false
-
-# Timeout in seconds for HTTP requests made by the mount helper, including IMDS instance metadata retrieval,
-# ECS/EKS container credential lookups, and STS web identity token exchanges. Increase this value if running
-# in environments with higher network latency (e.g. MicroVMs).
-# url_request_timeout_sec = 1
-
-# By default, we enable efs-utils to retry failed mount.nfs command that due to (1) connection reset by peer (2) the
-# mount.nfs is not finished within 'retry_nfs_mount_command_timeout_sec'. If the retry count is set as N, initial N - 1
-# mount attempts will timeout if the command does not finish within 'retry_nfs_mount_command_timeout_sec' sec.
-# The last mount attempt will keep the existing behavior of mount.nfs.
-#
-retry_nfs_mount_command = true
-retry_nfs_mount_command_count = 3
-retry_nfs_mount_command_timeout_sec = 15
-
-# Number of Tokio worker threads each efs-proxy process starts. One efs-proxy
-# process is launched per TLS mount, and by default each one starts one worker
-# thread per CPU visible to it, so a node with many CPUs and many mounts uses a
-# correspondingly large number of tasks/PIDs. Set a positive integer no greater
-# than the number of CPUs available to this host to bound that per-mount cost;
-# leave it commented out to keep one worker thread per available CPU. A value
-# above the available CPU count is refused by efs-proxy at startup -- extra
-# workers beyond that add a thread stack and scheduling overhead each without
-# adding parallelism. Reducing the worker count trades parallelism inside a
-# single mount for lower per-mount thread usage, so measure before lowering it
-# on a throughput-sensitive workload. Only mounts started after the change pick
-# up the new value; already-running proxies keep the count they started with.
-# This item is the supported way to bound the worker count. If the
-# TOKIO_WORKER_THREADS environment variable happens to be set in the mount
-# helper's environment, this item takes precedence over it; that variable is
-# a Tokio implementation detail, is not validated, and is not a supported way
-# to configure efs-proxy.
-# efs_proxy_worker_threads = 8
-
-[mount.cn-north-1]
-# S3 Files mount target DNS is under "on.amazonwebservices.com.cn"
-dns_name_suffix = on.amazonwebservices.com.cn
-
-
-[mount.cn-northwest-1]
-# S3 Files mount target DNS is under "on.amazonwebservices.com.cn"
-dns_name_suffix = on.amazonwebservices.com.cn
-
-
-[mount.eu-isoe-west-1]
-dns_name_suffix = cloud.adc-e.uk
-stunnel_cafile = /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
-
-[mount.eusc-de-east-1]
-dns_name_suffix = amazonaws.eu
-stunnel_cafile = /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
-
-[mount.us-iso-east-1]
-dns_name_suffix = c2s.ic.gov
-stunnel_cafile = /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
-
-[mount.us-iso-west-1]
-dns_name_suffix = c2s.ic.gov
-stunnel_cafile = /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
-
-[mount.us-isob-east-1]
-dns_name_suffix = sc2s.sgov.gov
-stunnel_cafile = /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
-
-[mount.us-isob-west-1]
-dns_name_suffix = sc2s.sgov.gov
-stunnel_cafile = /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
-
-[mount.us-isof-east-1]
-dns_name_suffix = csp.hci.ic.gov
-stunnel_cafile = /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
-
-[mount.us-isof-south-1]
-dns_name_suffix = csp.hci.ic.gov
-stunnel_cafile = /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
-
-# Note: mount-watchdog settings are configured in /etc/amazon/efs/efs-utils.conf
-# The watchdog process monitors all mount types and reads its configuration from that file.
-
-[proxy]
-proxy_logging_level = {{if .DebugLogs}}DEBUG{{else}}INFO{{end}}
-proxy_logging_max_bytes = 1048576
-proxy_logging_file_count = 10
-
-# CloudWatch metric emission from proxy, set to false to disable / opt-out
-metrics_enabled = {{.CloudWatchMetricsEnabled}}
-
-# Readbypass parameters, Uncomment the below options if you want override default value
-# read_bypass_denylist_size = 10000
-# read_bypass_denylist_ttl_seconds = 300
-# readahead_cache_enabled = true
-# s3_read_chunk_size_bytes = 1048576
-# readahead_cache_init_memory_size_mb = 10
-# readahead_cache_max_memory_size_mb = 1024
-# readahead_init_window_size_bytes = 8388608
-# readahead_max_window_size_bytes = 8388608
-# readahead_cache_eviction_interval_ms = 500
-# readahead_cache_target_utilization_percent = 80
-# read_bypass_max_in_flight_s3_bytes = 268435456
-
-[client-info] 
-source={{.EfsClientSource}}
-
-[cloudwatch-log]
-enabled = {{.CloudWatchLogEnabled}}
-log_group_name = /aws/efs/utils
-
-# Possible values are : 1, 3, 5, 7, 14, 30, 60, 90, 120, 150, 180, 365, 400, 545, 731, 1827, and 3653
-# Comment this config to prevent log deletion
-retention_in_days = 14
-`
 )
 
 // Watchdog defines the interface for process monitoring and supervising
@@ -509,6 +187,9 @@ func (w *execWatchdog) updateConfig(efsClientSource string) error {
 	// used on Fargate, IMDS queries suffice otherwise
 	region := os.Getenv("AWS_DEFAULT_REGION")
 	fipsEnabled := os.Getenv("FIPS_ENABLED")
+	if fipsEnabled == "" {
+		fipsEnabled = "false"
+	}
 	portRangeUpperBound := os.Getenv("PORT_RANGE_UPPER_BOUND")
 	val, err := strconv.Atoi(portRangeUpperBound)
 	if err != nil || val < 21049 {
@@ -525,27 +206,98 @@ func (w *execWatchdog) updateConfig(efsClientSource string) error {
 
 	efsCfg := cfg
 	efsCfg.CloudWatchLogEnabled = w.efsCloudWatchLogEnabled
-	if err := w.writeConfigFile(efsUtilsConfigFileName, efsUtilsConfigTemplate, efsCfg, w.efsUtilsConfOverrides); err != nil {
+	if err := w.updateConfigFile(efsUtilsConfigFileName, efsCfg, efsUtilsDriverConf(efsCfg), w.efsUtilsConfOverrides); err != nil {
 		return err
 	}
 
 	s3filesCfg := cfg
 	s3filesCfg.CloudWatchLogEnabled = w.s3filesCloudWatchLogEnabled
 	s3filesCfg.CloudWatchMetricsEnabled = w.s3filesCloudWatchMetricsEnabled
-	if err := w.writeConfigFile(s3filesUtilsConfigFileName, s3filesUtilsConfigTemplate, s3filesCfg, w.s3filesUtilsConfOverrides); err != nil {
+	if err := w.updateConfigFile(s3filesUtilsConfigFileName, s3filesCfg, s3filesUtilsDriverConf(s3filesCfg), w.s3filesUtilsConfOverrides); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (w *execWatchdog) writeConfigFile(fileName, templateContent string, cfg utilsConfig, overrides []ConfOverride) error {
-	tmpl := template.Must(template.New(fileName).Parse(templateContent))
-	var buf bytes.Buffer
-	if err := tmpl.Execute(&buf, cfg); err != nil {
-		return fmt.Errorf("cannot render config %s. Error: %v", fileName, err)
+// updateConfigFile sets the driver's keys on the conf file efs-utils installed
+// and writes the result into the config directory. It reads from the static
+// files directory rather than the config directory because that copy is the one
+// the image's efs-utils package put there, untouched by any earlier run.
+//
+// Both conf files must be installed: the image's efs-utils ships efs-utils.conf
+// and s3files-utils.conf, so a missing one means a broken image.
+func (w *execWatchdog) updateConfigFile(fileName string, cfg utilsConfig, driverConf, overrides []ConfOverride) error {
+	installedPath := filepath.Join(w.efsUtilsStaticFilesPath, fileName)
+	installed, err := os.ReadFile(installedPath)
+	if err != nil {
+		return fmt.Errorf("cannot read installed config file %s. Error: %v", installedPath, err)
 	}
+	return w.writeConfigFile(fileName, string(installed), cfg, driverConf, overrides)
+}
 
-	content := buf.String()
+// loggingLevel maps the --debug-logs flag onto the efs-utils log level.
+func loggingLevel(debugLogs bool) string {
+	if debugLogs {
+		return "DEBUG"
+	}
+	return "INFO"
+}
+
+// efsUtilsDriverConf returns the efs-utils.conf keys whose value comes from a
+// driver flag or the node environment. Every other key keeps the value the
+// installed efs-utils shipped, so a new efs-utils config option needs no change
+// here.
+func efsUtilsDriverConf(cfg utilsConfig) []ConfOverride {
+	conf := []ConfOverride{
+		{Section: "DEFAULT", Key: "logging_level", Value: loggingLevel(cfg.DebugLogs)},
+		{Section: "mount", Key: "stunnel_debug_enabled", Value: strconv.FormatBool(cfg.DebugLogs)},
+		{Section: "mount", Key: "fips_mode_enabled", Value: cfg.FipsEnabled},
+		{Section: "mount", Key: "port_range_upper_bound", Value: cfg.PortRangeUpperBound},
+		{Section: "cloudwatch-log", Key: "enabled", Value: strconv.FormatBool(cfg.CloudWatchLogEnabled)},
+	}
+	return append(conf, regionConf(cfg.Region)...)
+}
+
+// s3filesUtilsDriverConf is efsUtilsDriverConf for s3files-utils.conf. The two
+// key sets differ: s3files has no stunnel_debug_enabled, and its proxy log
+// level and CloudWatch metrics switch live in [proxy].
+func s3filesUtilsDriverConf(cfg utilsConfig) []ConfOverride {
+	conf := []ConfOverride{
+		{Section: "DEFAULT", Key: "logging_level", Value: loggingLevel(cfg.DebugLogs)},
+		{Section: "mount", Key: "fips_mode_enabled", Value: cfg.FipsEnabled},
+		{Section: "mount", Key: "port_range_upper_bound", Value: cfg.PortRangeUpperBound},
+		{Section: "proxy", Key: "proxy_logging_level", Value: loggingLevel(cfg.DebugLogs)},
+		{Section: "proxy", Key: "metrics_enabled", Value: strconv.FormatBool(cfg.CloudWatchMetricsEnabled)},
+		{Section: "cloudwatch-log", Key: "enabled", Value: strconv.FormatBool(cfg.CloudWatchLogEnabled)},
+	}
+	return append(conf, regionConf(cfg.Region)...)
+}
+
+// regionConf sets [mount] region only when the driver has a region to set. With
+// no region the key stays commented out as upstream ships it, which is what
+// makes efs-utils read the region from instance metadata instead.
+func regionConf(region string) []ConfOverride {
+	if region == "" {
+		return nil
+	}
+	return []ConfOverride{{Section: "mount", Key: "region", Value: region}}
+}
+
+// writeConfigFile writes installedConf with the driver's keys set on top of it.
+// driverConf goes on first and the operator's --*-conf-overrides last, so an
+// operator override of a key the driver also sets wins.
+//
+// A driver key missing from installedConf is added with a warning rather than
+// failing startup, matching the driver's behavior before it read the installed
+// conf. Operator overrides stay strict: a typo there is an error.
+func (w *execWatchdog) writeConfigFile(fileName, installedConf string, cfg utilsConfig, driverConf, overrides []ConfOverride) error {
+	content, added := setDriverConf(installedConf, driverConf)
+	for _, c := range added {
+		klog.Warningf("installed %s has no [%s] %s, so the driver added it; efs-utils may have renamed or dropped this key",
+			fileName, c.Section, c.Key)
+	}
+	content = setClientInfoSource(content, cfg.EfsClientSource)
+
 	if len(overrides) > 0 {
 		var err error
 		content, err = applyConfOverrides(content, overrides)
