@@ -190,3 +190,160 @@ func TestApplyConfOverrides(t *testing.T) {
 		})
 	}
 }
+
+// TestApplyConfOverridesOnInstalledConf exercises applyConfOverrides against
+// copies of the conf files efs-utils installs rather than a hand-written config,
+// because that is the input the driver actually gives it. The region and CloudWatch cases
+// matter most: efs-utils ships those keys commented out, so uncommenting them is
+// the only way the driver's own flags reach efs-utils.
+func TestApplyConfOverridesOnInstalledConf(t *testing.T) {
+	tests := []struct {
+		name string
+		// fileName is the conf fixture the override is applied to.
+		fileName string
+		// commentedOut says the key starts out commented in that file, so
+		// applying the override has to uncomment it.
+		commentedOut bool
+		override     ConfOverride
+	}{
+		{
+			name:         "commented-out region in efs-utils.conf",
+			fileName:     efsConfigFileName,
+			commentedOut: true,
+			override:     ConfOverride{Section: "mount", Key: "region", Value: "us-west-2"},
+		},
+		{
+			name:         "commented-out region in s3files-utils.conf",
+			fileName:     s3filesConfigFileName,
+			commentedOut: true,
+			override:     ConfOverride{Section: "mount", Key: "region", Value: "eu-west-1"},
+		},
+		{
+			name:         "commented-out cloudwatch-log enabled in efs-utils.conf",
+			fileName:     efsConfigFileName,
+			commentedOut: true,
+			override:     ConfOverride{Section: "cloudwatch-log", Key: "enabled", Value: "true"},
+		},
+		{
+			name:         "commented-out proxy readbypass key in s3files-utils.conf",
+			fileName:     s3filesConfigFileName,
+			commentedOut: true,
+			override:     ConfOverride{Section: "proxy", Key: "read_bypass_denylist_size", Value: "20000"},
+		},
+		{
+			name:     "uncommented proxy key in s3files-utils.conf",
+			fileName: s3filesConfigFileName,
+			override: ConfOverride{Section: "proxy", Key: "metrics_enabled", Value: "false"},
+		},
+		{
+			name:     "uncommented cloudwatch-log enabled in s3files-utils.conf",
+			fileName: s3filesConfigFileName,
+			override: ConfOverride{Section: "cloudwatch-log", Key: "enabled", Value: "false"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			config := readConfFixture(t, tt.fileName)
+			key := confKey{tt.override.Section, tt.override.Key}
+			// The assertion below would pass for the wrong reason if the key
+			// already held the value, or if the case claims a commented-out key
+			// that efs-utils in fact ships set, so check the starting state.
+			before, set := confValue(config, key)
+			if tt.commentedOut && set {
+				t.Fatalf("%s is already set to %q in %s, so this case does not exercise the commented-out path", key, before, tt.fileName)
+			}
+			if !tt.commentedOut && !set {
+				t.Fatalf("%s is not set in %s, so this case does not exercise the replace path", key, tt.fileName)
+			}
+			if before == tt.override.Value {
+				t.Fatalf("%s already holds %q, so this case proves nothing", key, before)
+			}
+
+			got, err := applyConfOverrides(config, []ConfOverride{tt.override})
+			if err != nil {
+				t.Fatalf("applyConfOverrides: %v", err)
+			}
+			after, set := confValue(got, key)
+			if !set {
+				t.Fatalf("%s is still not set after the override", key)
+			}
+			if after != tt.override.Value {
+				t.Errorf("%s = %q, want %q", key, after, tt.override.Value)
+			}
+		})
+	}
+}
+
+// TestSetClientInfoSource covers the one section the driver adds rather than
+// overrides, since efs-utils does not ship a [client-info] section.
+func TestSetClientInfoSource(t *testing.T) {
+	t.Run("appends the section when absent", func(t *testing.T) {
+		conf := readConfFixture(t, efsConfigFileName)
+		if strings.Contains(conf, "[client-info]") {
+			t.Fatalf("efs-utils.conf now ships [client-info]; setClientInfoSource should override it instead of appending")
+		}
+		got := setClientInfoSource(conf, "k8s")
+		if !strings.Contains(got, "\n[client-info]\nsource = k8s\n") {
+			t.Errorf("expected an appended [client-info] section, got tail:\n%s", got[max(0, len(got)-120):])
+		}
+	})
+
+	t.Run("overrides an existing source", func(t *testing.T) {
+		got := setClientInfoSource("[client-info]\nsource = old\n", "k8s")
+		if got != "[client-info]\nsource = k8s\n" {
+			t.Errorf("got %q", got)
+		}
+	})
+
+	t.Run("adds source to an existing empty section", func(t *testing.T) {
+		got := setClientInfoSource("[client-info]\n\n[other]\nkey = v\n", "k8s")
+		if !strings.Contains(got, "[client-info]\nsource = k8s\n") {
+			t.Errorf("got %q", got)
+		}
+		if !strings.Contains(got, "[other]\nkey = v\n") {
+			t.Errorf("the following section was damaged: %q", got)
+		}
+	})
+}
+
+// TestSetConfKeyPrefersLiveLine checks a live line wins over a commented-out one
+// for the same key. Uncommenting the commented line instead would leave the key
+// set twice, which ConfigParser rejects with DuplicateOptionError.
+func TestSetConfKeyPrefersLiveLine(t *testing.T) {
+	for _, tc := range []struct{ name, conf string }{
+		{"commented line first", "[mount]\n# region = us-east-1\nregion = us-east-2\n"},
+		{"live line first", "[mount]\nregion = us-east-2\n# region = us-east-1\n"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := applyConfOverrides(tc.conf, []ConfOverride{{Section: "mount", Key: "region", Value: "us-west-2"}})
+			if err != nil {
+				t.Fatalf("applyConfOverrides: %v", err)
+			}
+			if n := strings.Count(got, "\nregion = "); n != 1 {
+				t.Errorf("expected exactly one live region line, got %d in:\n%s", n, got)
+			}
+			if !strings.Contains(got, "region = us-west-2") || !strings.Contains(got, "# region = us-east-1") {
+				t.Errorf("expected the live line rewritten and the comment kept, got:\n%s", got)
+			}
+		})
+	}
+}
+
+// TestSetDriverConf covers the lenient path the driver's own keys take.
+func TestSetDriverConf(t *testing.T) {
+	conf := "[DEFAULT]\nlogging_level = INFO\n\n[mount]\n#region = us-east-1\ndns_name_suffix = amazonaws.com\n\n[proxy]\nmetrics_enabled = true\n"
+	got, added := setDriverConf(conf, []ConfOverride{
+		{Section: "mount", Key: "region", Value: "us-west-2"},        // commented out: uncommented, not added
+		{Section: "proxy", Key: "metrics_enabled", Value: "false"},   // live: replaced, not added
+		{Section: "mount", Key: "fips_mode_enabled", Value: "false"}, // missing key: added to [mount]
+		{Section: "cloudwatch-log", Key: "enabled", Value: "true"},   // missing section: appended
+	})
+	want := "[DEFAULT]\nlogging_level = INFO\n\n[mount]\nregion = us-west-2\ndns_name_suffix = amazonaws.com\nfips_mode_enabled = false\n\n[proxy]\nmetrics_enabled = false\n\n[cloudwatch-log]\nenabled = true\n"
+	if got != want {
+		t.Errorf("got:\n%s\nwant:\n%s", got, want)
+	}
+	if len(added) != 2 || added[0].Key != "fips_mode_enabled" || added[1].Section != "cloudwatch-log" {
+		t.Errorf("added = %+v, want fips_mode_enabled and [cloudwatch-log] enabled", added)
+	}
+}

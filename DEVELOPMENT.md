@@ -40,6 +40,8 @@ E2E tests need a Kubernetes cluster and EFS resources. See `test/e2e/README.md`.
 - When you add or bump a dependency, update `go.mod`/`go.sum` with `go get` and `go mod tidy`.
 - When you change chart templates or values, update the chart's helm-unittest tests and run `make generate-kustomize` if the rendered manifests change.
 - When you change driver parameters or behavior, update the matching docs under `docs/` (for example `docs/parameters.md`).
+- The driver builds `efs-utils.conf` and `s3files-utils.conf` from the ones efs-utils installs, so a new efs-utils config option needs no driver change. To make a new flag drive a key, add it to `efsUtilsDriverConf` or `s3filesUtilsDriverConf` in `pkg/driver/efs_watch_dog.go`, with a case in `TestSetupSetsDriverConfKeys`.
+- `pkg/driver/testdata/*.conf` are snapshots of efs-utils' `dist/` conf files, used only by tests. Refresh them when you add or rename a driver key.
 - When you change the IAM permissions the driver needs, update `docs/iam-policy-example.json` (see `docs/CONTRIBUTING.md`).
 - Don't edit `CHANGELOG-*.md` unless you're preparing a release.
 

@@ -34,17 +34,18 @@ RUN OS=${TARGETOS} ARCH=${TARGETARCH} make $TARGETOS/$TARGETARCH
 
 FROM public.ecr.aws/eks-distro-build-tooling/python:3.11-gcc-al23 as rpm-provider
 
-# Install efs-utils from github by default. It can be overriden to `yum` with --build-arg when building the Docker image.
-# If value of `EFSUTILSSOURCE` build arg is overriden with `yum`, docker will install efs-utils from Amazon Linux 2's yum repo.
-ARG EFSUTILSSOURCE=github
-# When EFSUTILSSOURCE=local, copy efs-utils.tar.gz to the repo root before building:
+# The image always ships the newest efs-utils release: the highest vX.Y.Z tag of
+# github.com/aws/efs-utils. The driver reads the conf files that release installs
+# (efs-utils.conf and s3files-utils.conf), so an older efs-utils is not supported.
+# EFSUTILSSOURCE=local is for developers testing unreleased efs-utils changes. Copy
+# efs-utils.tar.gz to the repo root before building:
 #   cp /path/to/efs-utils.tar.gz ./efs-utils.tar.gz
 #   docker build --build-arg EFSUTILSSOURCE=local .
+ARG EFSUTILSSOURCE=github
 COPY efs-utils.tar.gz* /tmp/efs-utils-local/
 RUN mkdir -p /tmp/rpms && \
-    if [ "$EFSUTILSSOURCE" = "yum" ]; \
-    then echo "Installing efs-utils from Amazon Linux 2 yum repo" && \
-         yum -y install --downloadonly --downloaddir=/tmp/rpms amazon-efs-utils-1.35.0-1.amzn2.noarch; \
+    if [ "$EFSUTILSSOURCE" != "github" ] && [ "$EFSUTILSSOURCE" != "local" ]; \
+    then echo "Unsupported EFSUTILSSOURCE=$EFSUTILSSOURCE: use github (default) or local" && exit 1; \
     elif [ "$EFSUTILSSOURCE" = "local" ]; \
     then echo "Installing efs-utils from local tarball" && \
          yum -y install systemd rpm-build make openssl-devel golang cmake && \
@@ -58,7 +59,7 @@ RUN mkdir -p /tmp/rpms && \
          make rpm-without-system-rust && mv build/amazon-efs-utils*rpm /tmp/rpms && \
          cd / && rm -rf /tmp/efs-utils-src /tmp/efs-utils-local && \
          yum clean all; \
-    else echo "Installing efs-utils from github using the latest git tag" && \
+    else echo "Installing efs-utils from github using the highest release tag" && \
          yum -y install systemd git rpm-build make openssl-devel curl golang cmake && \
          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y && \
          source $HOME/.cargo/env && \
@@ -66,7 +67,13 @@ RUN mkdir -p /tmp/rpms && \
          rustup default stable && \
          git clone https://github.com/aws/efs-utils && \
          cd efs-utils && \
-         git checkout $(git describe --tags $(git rev-list --tags --max-count=1)) && \
+         # Take the highest vX.Y.Z tag by version, not by tag date, so a later
+         # patch to an older release line cannot win, and skip pre-release or
+         # other suffixed tags, which version sort ranks above their release.
+         EFS_UTILS_TAG=$(git tag --list --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -n1) && \
+         if [ -z "$EFS_UTILS_TAG" ]; then echo "No vX.Y.Z release tag found in aws/efs-utils" && exit 1; fi && \
+         echo "Building efs-utils $EFS_UTILS_TAG" && \
+         git checkout "$EFS_UTILS_TAG" && \
          make rpm-without-system-rust && mv build/amazon-efs-utils*rpm /tmp/rpms && \
          # clean up efs-utils folder after install
          cd .. && rm -rf efs-utils && \
