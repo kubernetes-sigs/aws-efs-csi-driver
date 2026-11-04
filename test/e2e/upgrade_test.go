@@ -80,6 +80,12 @@ func testUpgrade(f *framework.Framework, config FileSystemTestConfig, prefix str
 	testData := prefix + "-upgrade-data-" + generateRandomString(8)
 	writePath := "/mnt/volume1/" + prefix + "-upgrade-test.txt"
 
+	// Runs after every other deferred cleanup, so the volumes are unmounted and
+	// deleted before the suite deletes the file system.
+	defer func() {
+		framework.ExpectNoError(deleteVolumesAndWait(f, config.GetFSID()), "deleting upgrade test volumes")
+	}()
+
 	// Step 1: Deploy old version of the driver
 	ginkgo.By("Installing latest released driver version via Helm (public chart)")
 	helmDeployFromRepo(f)
@@ -182,6 +188,37 @@ func testUpgrade(f *framework.Framework, config FileSystemTestConfig, prefix str
 	if output != newTestData {
 		ginkgo.Fail(fmt.Sprintf("Post-upgrade new mount read/write failed: expected %q, got %q", newTestData, output))
 	}
+}
+
+// deleteVolumesAndWait deletes the pods and PVCs in the test namespace and
+// waits until they and the PersistentVolumes on fileSystemId are gone.
+// Namespace deletion alone does not wait for volumes to be unmounted.
+func deleteVolumesAndWait(f *framework.Framework, fileSystemId string) error {
+	ctx := context.TODO()
+	ns := f.Namespace.Name
+	pods := f.ClientSet.CoreV1().Pods(ns)
+	pvcs := f.ClientSet.CoreV1().PersistentVolumeClaims(ns)
+	if err := pods.DeleteCollection(ctx, metav1.DeleteOptions{}, metav1.ListOptions{}); err != nil {
+		return fmt.Errorf("deleting pods: %w", err)
+	}
+	if err := pvcs.DeleteCollection(ctx, metav1.DeleteOptions{}, metav1.ListOptions{}); err != nil {
+		return fmt.Errorf("deleting PVCs: %w", err)
+	}
+	err := wait.PollUntilContextTimeout(ctx, 5*time.Second, volumeReleaseTimeout, true, func(ctx context.Context) (bool, error) {
+		podList, err := pods.List(ctx, metav1.ListOptions{})
+		if err != nil {
+			return false, nil
+		}
+		pvcList, err := pvcs.List(ctx, metav1.ListOptions{})
+		if err != nil {
+			return false, nil
+		}
+		return len(podList.Items) == 0 && len(pvcList.Items) == 0, nil
+	})
+	if err != nil {
+		return fmt.Errorf("pods and PVCs in %s still exist after %s: %w", ns, volumeReleaseTimeout, err)
+	}
+	return waitForFileSystemVolumesDeleted([]string{fileSystemId}, ns, volumeReleaseTimeout)
 }
 
 // helmDeployFromRepo installs the EFS CSI driver from the public Helm chart repository.

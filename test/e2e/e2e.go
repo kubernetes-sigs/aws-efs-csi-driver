@@ -2,6 +2,7 @@ package e2e
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"regexp"
@@ -306,25 +307,45 @@ var _ = ginkgo.SynchronizedBeforeSuite(func() []byte {
 var _ = ginkgo.SynchronizedAfterSuite(func() {
 	// allNodesBody: do nothing because only node 1 needs to delete EFS and S3Files
 }, func() {
+	// Namespace deletion is asynchronous, so pods of the last specs can still
+	// have volumes mounted. Deleting a file system under a mounted volume hangs
+	// the NFS mount, which keeps the pods, PVCs and access points from ever
+	// being deleted.
+	var created []string
+	if deleteFileSystem {
+		created = append(created, FileSystemId)
+	}
+	if deleteS3FilesFileSystem && s3FilesResources != nil {
+		created = append(created, S3FilesFileSystemId)
+	}
+	// A timed-out wait must not stop the deletes below: the file systems
+	// would leak. Its error is reported with theirs.
+	var errs []error
+	if len(created) > 0 {
+		ginkgo.By(fmt.Sprintf("Waiting for PersistentVolumes on %v to be deleted", created))
+		if err := waitForFileSystemVolumesDeleted(created, "", volumeReleaseTimeout); err != nil {
+			framework.Logf("Deleting file systems anyway: %v", err)
+			errs = append(errs, fmt.Errorf("waiting for PersistentVolumes to be deleted before deleting file systems: %w", err))
+		}
+	}
+
 	if deleteFileSystem {
 		ginkgo.By(fmt.Sprintf("Deleting EFS filesystem %q", FileSystemId))
 
 		c := NewCloud(Region)
-		err := c.DeleteFileSystem(FileSystemId)
-		if err != nil {
-			framework.ExpectNoError(err, "deleting file system")
+		if err := c.DeleteFileSystem(FileSystemId); err != nil {
+			errs = append(errs, fmt.Errorf("deleting file system: %w", err))
+		} else {
+			ginkgo.By(fmt.Sprintf("Deleted EFS filesystem %q", FileSystemId))
 		}
-
-		ginkgo.By(fmt.Sprintf("Deleted EFS filesystem %q", FileSystemId))
 	}
 
 	if deleteS3FilesFileSystem && s3FilesResources != nil {
 		ginkgo.By(fmt.Sprintf("Deleting S3Files filesystem %q", S3FilesFileSystemId))
 
 		c := NewCloud(Region)
-		err := c.DeleteS3FilesFileSystem(s3FilesResources)
-		if err != nil {
-			framework.ExpectNoError(err, "deleting S3Files file system")
+		if err := c.DeleteS3FilesFileSystem(s3FilesResources); err != nil {
+			errs = append(errs, fmt.Errorf("deleting S3Files file system: %w", err))
 		}
 	}
 
@@ -332,7 +353,66 @@ var _ = ginkgo.SynchronizedAfterSuite(func() {
 		ginkgo.By("Cleaning up EFS CSI driver")
 		kubectl.RunKubectlOrDie("delete", "-k", "github.com/kubernetes-sigs/aws-efs-csi-driver/deploy/kubernetes/overlays/stable/?ref=master")
 	}
+	framework.ExpectNoError(errors.Join(errs...), "cleaning up file systems")
 })
+
+// volumeReleaseTimeout bounds how long cleanup waits for the volumes of the
+// last specs to be unmounted and deleted.
+const volumeReleaseTimeout = 10 * time.Minute
+
+// waitForFileSystemVolumesDeleted waits until no PersistentVolume of this
+// driver references any of the file systems. A PV is deleted only after its
+// PVC, and a PVC only after no pod uses it, so this also waits for the
+// volumes to be unmounted. Released PVs are skipped: their claim is gone, so
+// nothing mounts them, and a Retain PV stays Released forever. If namespace is
+// not empty, only PVs claimed from that namespace are waited on.
+func waitForFileSystemVolumesDeleted(fileSystemIds []string, namespace string, timeout time.Duration) error {
+	cs, err := framework.LoadClientset()
+	if err != nil {
+		return err
+	}
+	var remaining []string
+	err = wait.PollUntilContextTimeout(context.TODO(), 5*time.Second, timeout, true, func(ctx context.Context) (bool, error) {
+		pvs, err := cs.CoreV1().PersistentVolumes().List(ctx, metav1.ListOptions{})
+		if err != nil {
+			framework.Logf("listing PersistentVolumes: %v", err)
+			return false, nil
+		}
+		remaining = nil
+		for _, pv := range pvs.Items {
+			if pv.Spec.CSI == nil || pv.Spec.CSI.Driver != "efs.csi.aws.com" || pv.Status.Phase == v1.VolumeReleased {
+				continue
+			}
+			if namespace != "" && claimNamespace(pv) != namespace {
+				continue
+			}
+			for _, id := range fileSystemIds {
+				if strings.Contains(pv.Spec.CSI.VolumeHandle, id) {
+					remaining = append(remaining, fmt.Sprintf("%s (%s, claim %s/%s)", pv.Name, pv.Status.Phase, claimNamespace(pv), claimName(pv)))
+				}
+			}
+		}
+		return len(remaining) == 0, nil
+	})
+	if err != nil {
+		return fmt.Errorf("PersistentVolumes still reference %v after %s: %v: %w", fileSystemIds, timeout, remaining, err)
+	}
+	return nil
+}
+
+func claimNamespace(pv v1.PersistentVolume) string {
+	if pv.Spec.ClaimRef == nil {
+		return ""
+	}
+	return pv.Spec.ClaimRef.Namespace
+}
+
+func claimName(pv v1.PersistentVolume) string {
+	if pv.Spec.ClaimRef == nil {
+		return ""
+	}
+	return pv.Spec.ClaimRef.Name
+}
 
 var _ = ginkgo.Describe("[efs-csi]", func() {
 	f := framework.NewDefaultFramework("efs")
