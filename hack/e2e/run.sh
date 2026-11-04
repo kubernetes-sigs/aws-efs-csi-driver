@@ -48,10 +48,10 @@ IMAGE_TAG=${IMAGE_TAG:-${TEST_ID}}
 
 # kops: must include patch version (e.g. 1.19.1)
 # eksctl: mustn't include patch version (e.g. 1.19)
-K8S_VERSION_KOPS=${K8S_VERSION_KOPS:-${K8S_VERSION:-1.33.0}}
-K8S_VERSION_EKSCTL=${K8S_VERSION_EKSCTL:-${K8S_VERSION:-1.33}}
+K8S_VERSION_KOPS=${K8S_VERSION_KOPS:-${K8S_VERSION:-1.36.6}}
+K8S_VERSION_EKSCTL=${K8S_VERSION_EKSCTL:-${K8S_VERSION:-1.36}}
 
-KOPS_VERSION=${KOPS_VERSION:-1.33.0}
+KOPS_VERSION=${KOPS_VERSION:-1.36.2}
 KOPS_STATE_FILE=${KOPS_STATE_FILE:-s3://k8s-kops-csi-shared-e2e}
 KOPS_PATCH_FILE=${KOPS_PATCH_FILE:-./hack/kops-patch.yaml}
 KOPS_PATCH_NODE_FILE=${KOPS_PATCH_NODE_FILE:-./hack/kops-patch-node.yaml}
@@ -70,8 +70,8 @@ ARTIFACTS=${ARTIFACTS:-"${TEST_DIR}/artifacts"}
 GINKGO_FOCUS=${GINKGO_FOCUS:-"\[efs-csi]"}
 GINKGO_SKIP=${GINKGO_SKIP:-"\[Disruptive\]"}
 GINKGO_NODES=${GINKGO_NODES:-4}
-# Ginkgo counts downloading modules and compiling the test binary against
-# this timeout, not only running the specs. The default 1h is too tight.
+# The test binaries are built before ginkgo runs them, so this covers suite
+# setup, the specs and suite cleanup.
 GINKGO_TIMEOUT=${GINKGO_TIMEOUT:-90m}
 TEST_EXTRA_FLAGS=${TEST_EXTRA_FLAGS:-}
 
@@ -110,6 +110,23 @@ ecr_build_and_push "${REGION}" \
   "${AWS_ACCOUNT_ID}" \
   "${IMAGE_NAME}" \
   "${IMAGE_TAG}"
+
+# Compile the e2e test binaries in the background while the cluster is
+# created, so compiling is off the critical path and outside ginkgo's
+# --timeout. The build log, with its duration, is printed before the tests run.
+loudecho "Building e2e test binaries in the background"
+E2E_TEST_DIR=${TEST_PATH%/...}
+E2E_BUILD_LOG=${TEST_DIR}/e2e-build.log
+find "${E2E_TEST_DIR}" -name '*.test' -type f -delete
+(
+  set +e
+  buildStartSec=$(date +'%s')
+  "${GINKGO_BIN}" build "${TEST_PATH}"
+  buildStatus=$?
+  echo "ginkgo build exited with ${buildStatus} after $(($(date +'%s') - buildStartSec)) seconds"
+  exit "${buildStatus}"
+) >"${E2E_BUILD_LOG}" 2>&1 &
+E2E_BUILD_PID=$!
 
 if [[ "${CLUSTER_TYPE}" == "kops" ]]; then
   kops_create_cluster \
@@ -205,15 +222,33 @@ if [ $secondUsed -gt $DRIVER_START_TIME_THRESHOLD_SECONDS ]; then
 fi
 loudecho "Driver deployment complete, time used: $secondUsed seconds"
 
+loudecho "Waiting for e2e test binaries to finish building"
+set +e
+wait "${E2E_BUILD_PID}"
+E2E_BUILD_STATUS=$?
+set -e
+cat "${E2E_BUILD_LOG}"
+E2E_TEST_BINS=()
+while IFS= read -r testBin; do
+  E2E_TEST_BINS+=("${testBin}")
+done < <(find "${E2E_TEST_DIR}" -name '*.test' -type f)
+
 loudecho "Testing focus ${GINKGO_FOCUS}"
 eval "EXPANDED_TEST_EXTRA_FLAGS=\"$TEST_EXTRA_FLAGS\""
-set -x
-set +e
 read -ra EXTRA_FLAGS_ARRAY <<< "${EXPANDED_TEST_EXTRA_FLAGS}"
-${GINKGO_BIN} -p -nodes="${GINKGO_NODES}" -v --timeout="${GINKGO_TIMEOUT}" --focus="${GINKGO_FOCUS}" --skip="${GINKGO_SKIP}" --junit-report=junit.xml "${TEST_PATH}" -- -kubeconfig="${KUBECONFIG}" -report-dir="${ARTIFACTS}" -gce-zone="${FIRST_ZONE}" "${EXTRA_FLAGS_ARRAY[@]}"
-TEST_PASSED=$?
-set -e
-set +x
+if [[ ${E2E_BUILD_STATUS} -ne 0 || ${#E2E_TEST_BINS[@]} -eq 0 ]]; then
+  loudecho "Building e2e test binaries failed, not running tests"
+  TEST_PASSED=1
+else
+  set -x
+  set +e
+  ${GINKGO_BIN} -p -nodes="${GINKGO_NODES}" -v --timeout="${GINKGO_TIMEOUT}" --focus="${GINKGO_FOCUS}" --skip="${GINKGO_SKIP}" --junit-report=junit.xml "${E2E_TEST_BINS[@]}" -- -kubeconfig="${KUBECONFIG}" -report-dir="${ARTIFACTS}" -gce-zone="${FIRST_ZONE}" "${EXTRA_FLAGS_ARRAY[@]}"
+  TEST_PASSED=$?
+  set -e
+  set +x
+fi
+# ginkgo does not remove precompiled test binaries.
+find "${E2E_TEST_DIR}" -name '*.test' -type f -delete
 loudecho "TEST_PASSED: ${TEST_PASSED}"
 
 OVERALL_TEST_PASSED="${TEST_PASSED}"

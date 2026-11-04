@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	ginkgo "github.com/onsi/ginkgo/v2"
@@ -217,66 +218,84 @@ var csiTestSuites = []func() storageframework.TestSuite{
 }
 
 var _ = ginkgo.SynchronizedBeforeSuite(func() []byte {
-	if CreateFileSystem {
+	createEfs := CreateFileSystem
+	if createEfs {
 		// Validate parameters
 		if Region == "" || ClusterName == "" {
 			ginkgo.By("CreateFileSystem is true. Set both Region and ClusterName so that the test can create a new file system. Or set CreateFileSystem false and set FileSystemId to an existing file system.")
 			return []byte{}
 		}
-
-		if FileSystemId == "" {
-			ginkgo.By(fmt.Sprintf("Creating EFS filesystem in region %q for cluster %q", Region, ClusterName))
-
-			c := NewCloud(Region)
-
-			opts := CreateOptions{
-				Name:             FileSystemName,
-				ClusterName:      ClusterName,
-				SecurityGroupIds: MountTargetSecurityGroupIds,
-				SubnetIds:        MountTargetSubnetIds,
-			}
-			id, err := c.CreateFileSystem(opts)
-			if err != nil {
-				framework.ExpectNoError(err, "creating file system")
-			}
-
-			FileSystemId = id
-			ginkgo.By(fmt.Sprintf("Created EFS filesystem %q in region %q for cluster %q", FileSystemId, Region, ClusterName))
-			deleteFileSystem = true
-		} else {
+		if FileSystemId != "" {
 			ginkgo.By(fmt.Sprintf("Using already-created EFS file system %q", FileSystemId))
+			createEfs = false
 		}
 	}
 
-	if CreateS3FilesFileSystem {
+	createS3Files := CreateS3FilesFileSystem
+	if createS3Files {
 		// Validate parameters
 		if Region == "" || ClusterName == "" {
 			ginkgo.By("CreateS3FilesFileSystem is true. Set both Region and ClusterName so that the test can create a new S3Files file system. Or set CreateS3FilesFileSystem false and set S3FilesFileSystemId to an existing S3Files file system.")
 			return []byte{}
 		}
-
-		if S3FilesFileSystemId == "" {
-			ginkgo.By(fmt.Sprintf("Creating S3Files filesystem in region %q for cluster %q", Region, ClusterName))
-
-			c := NewCloud(Region)
-
-			opts := CreateOptions{
-				Name:        S3FilesFileSystemName,
-				ClusterName: ClusterName,
-			}
-			resources, err := c.CreateS3FilesFileSystem(opts)
-			if err != nil {
-				framework.ExpectNoError(err, "creating S3Files file system")
-			}
-
-			s3FilesResources = resources
-			S3FilesFileSystemId = resources.FileSystemId
-			ginkgo.By(fmt.Sprintf("Created S3Files filesystem %q in region %q for cluster %q", S3FilesFileSystemId, Region, ClusterName))
-			deleteS3FilesFileSystem = true
-		} else {
+		if S3FilesFileSystemId != "" {
 			ginkgo.By(fmt.Sprintf("Using already-created S3Files file system %q", S3FilesFileSystemId))
+			createS3Files = false
 		}
 	}
+
+	// Create the EFS and S3Files file systems concurrently; each takes minutes.
+	// The goroutines only call the AWS APIs. Results are recorded and asserted
+	// here, after both finish, so a file system that was created is cleaned up
+	// by SynchronizedAfterSuite even if the other one failed.
+	var (
+		wg         sync.WaitGroup
+		efsId      string
+		efsErr     error
+		s3Files    *S3FilesResources
+		s3FilesErr error
+	)
+	if createEfs {
+		ginkgo.By(fmt.Sprintf("Creating EFS filesystem in region %q for cluster %q", Region, ClusterName))
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			defer ginkgo.GinkgoRecover()
+			efsId, efsErr = NewCloud(Region).CreateFileSystem(CreateOptions{
+				Name:             FileSystemName,
+				ClusterName:      ClusterName,
+				SecurityGroupIds: MountTargetSecurityGroupIds,
+				SubnetIds:        MountTargetSubnetIds,
+			})
+		}()
+	}
+	if createS3Files {
+		ginkgo.By(fmt.Sprintf("Creating S3Files filesystem in region %q for cluster %q", Region, ClusterName))
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			defer ginkgo.GinkgoRecover()
+			s3Files, s3FilesErr = NewCloud(Region).CreateS3FilesFileSystem(CreateOptions{
+				Name:        S3FilesFileSystemName,
+				ClusterName: ClusterName,
+			})
+		}()
+	}
+	wg.Wait()
+
+	if createEfs && efsErr == nil && efsId != "" {
+		FileSystemId = efsId
+		deleteFileSystem = true
+		ginkgo.By(fmt.Sprintf("Created EFS filesystem %q in region %q for cluster %q", FileSystemId, Region, ClusterName))
+	}
+	if createS3Files && s3FilesErr == nil && s3Files != nil {
+		s3FilesResources = s3Files
+		S3FilesFileSystemId = s3Files.FileSystemId
+		deleteS3FilesFileSystem = true
+		ginkgo.By(fmt.Sprintf("Created S3Files filesystem %q in region %q for cluster %q", S3FilesFileSystemId, Region, ClusterName))
+	}
+	framework.ExpectNoError(efsErr, "creating file system")
+	framework.ExpectNoError(s3FilesErr, "creating S3Files file system")
 
 	if DeployDriver {
 		cs, err := framework.LoadClientset()

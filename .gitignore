@@ -3,3 +3,4 @@ bin/
 *.DS_Store
 *.idea
 test/e2e/results/
+test/e2e/*.test
