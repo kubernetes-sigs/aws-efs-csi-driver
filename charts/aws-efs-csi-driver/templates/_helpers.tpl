@@ -64,3 +64,38 @@ Create a string out of the map for controller tags flag
 {{- end -}}
 {{- join " " $tags -}}
 {{- end -}}
+
+{{/*
+Create a string out of the map for the controller --extra-tags flag (k1=v1,k2=v2)
+*/}}
+{{- define "aws-efs-csi-driver.extraTags" -}}
+{{- $tags := list -}}
+{{- range $key, $val := . -}}
+{{- $tags = print $key "=" $val | append $tags -}}
+{{- end -}}
+{{- join "," $tags -}}
+{{- end -}}
+
+{{/*
+The controller --cluster-tag-isolation state. The value must be the string
+"disable", "backfill" or "enforce".
+*/}}
+{{- define "aws-efs-csi-driver.clusterTagIsolation" -}}
+{{- $state := .Values.controller.clusterTagIsolation -}}
+{{- if kindIs "invalid" $state -}}
+{{- $state = "disable" -}}
+{{- end -}}
+{{- if not (kindIs "string" $state) -}}
+{{- fail (printf "controller.clusterTagIsolation must be one of \"disable\", \"backfill\" or \"enforce\", got the %s %v" (kindOf $state) $state) -}}
+{{- end -}}
+{{- if not (has $state (list "" "disable" "backfill" "enforce")) -}}
+{{- fail (printf "controller.clusterTagIsolation must be \"disable\", \"backfill\" or \"enforce\", got %q" $state) -}}
+{{- end -}}
+{{- if eq $state "" -}}
+{{- $state = "disable" -}}
+{{- end -}}
+{{- if and (ne $state "disable") (or (not .Values.controller.clusterName) (not .Values.controller.clusterTagKey)) -}}
+{{- fail (printf "controller.clusterTagIsolation=%s requires controller.clusterName and controller.clusterTagKey" $state) -}}
+{{- end -}}
+{{- $state -}}
+{{- end -}}

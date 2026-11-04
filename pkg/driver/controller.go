@@ -133,7 +133,14 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 	}
 
 	if !enableTagging && len(d.tags) != 0 {
-		return nil, status.Error(codes.InvalidArgument, "enableTagging is false but the driver is configured with --tags; set enableTagging=true or remove the --tags flag")
+		return nil, status.Error(codes.InvalidArgument, "enableTagging is false but the driver is configured with --tags or --extra-tags; set enableTagging=true or remove those flags")
+	}
+
+	// With --cluster-name and --cluster-tag-key set, every access point must
+	// carry the cluster tag, so a StorageClass cannot opt out of tagging.
+	clusterTag := d.clusterTagFor(req.GetSecrets())
+	if !enableTagging && clusterTag.enabled() {
+		return nil, status.Errorf(codes.InvalidArgument, "enableTagging is false but the driver is configured with --cluster-name and --cluster-tag-key, which require the %s tag on every access point; set enableTagging=true", clusterTag.tagKey)
 	}
 
 	if volName == "" {
@@ -251,6 +258,10 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 			//AP path already exists
 			klog.V(2).Infof("Existing AccessPoint found : %+v", existingAP)
 
+			if err := d.checkClusterTag(clusterTag, existingAP); err != nil {
+				return nil, err
+			}
+
 			// Enforce the same validation that the CreateAccessPoint ErrAlreadyExists path applies before reusing it.
 			if err = validateExistingAccessPoint(existingAP, basePath, gid, gidSpecified, uid, uidSpecified, gidMin, gidMax); err != nil {
 				return nil, status.Errorf(codes.AlreadyExists, "Invalid existing access point: %v", err)
@@ -273,7 +284,7 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 
 	if accessPoint == nil {
 		if enableTagging {
-			accessPointsOptions.Tags = d.buildAccessPointTags()
+			accessPointsOptions.Tags = d.buildAccessPointTags(clusterTag)
 		} else {
 			klog.V(4).Infof("enableTagging=false: skipping access point tagging for volume %s", volName)
 		}
@@ -368,6 +379,9 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 				}
 				if existingAccessPoint == nil {
 					return nil, fmt.Errorf("No access point for client token %s was returned: %v", clientToken, err)
+				}
+				if err := d.checkClusterTag(clusterTag, existingAccessPoint); err != nil {
+					return nil, err
 				}
 				err = validateExistingAccessPoint(existingAccessPoint, basePath, gid, gidSpecified, uid, uidSpecified, gidMin, gidMax)
 				if err != nil {
@@ -530,6 +544,21 @@ func (d *Driver) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeRequest)
 				return &csi.DeleteVolumeResponse{}, nil
 			}
 			return nil, status.Errorf(codes.Internal, "Could not get describe Access Point: %v , error: %v", accessPointId, err)
+		}
+
+		// Never remove the root directory of an access point that is not tagged
+		// for this cluster.
+		if clusterTag := d.clusterTagFor(req.GetSecrets()); clusterTag.enforce() {
+			if accessPoint.Tags == nil {
+				tags, err := localCloud.GetAccessPointTags(ctx, accessPointId, fsType)
+				if err != nil {
+					return nil, status.Errorf(codes.Internal, "Could not read tags of Access Point %v: %v", accessPointId, err)
+				}
+				accessPoint.Tags = tags
+			}
+			if err := d.checkClusterTag(clusterTag, accessPoint); err != nil {
+				return nil, err
+			}
 		}
 
 		//Mount File System at it root and delete access point root directory
@@ -884,16 +913,44 @@ func get64LenHash(text string) string {
 	return fmt.Sprintf("%x", h.Sum(nil))
 }
 
+// clusterTagFor returns the cluster tag settings for a request. Requests whose
+// secrets set awsRoleArn act in another account as that account's role, so
+// isolation there is up to that account's IAM: they get no cluster tag and no
+// enforce checks.
+func (d *Driver) clusterTagFor(secrets map[string]string) clusterTagConfig {
+	if secrets[RoleArn] != "" {
+		return clusterTagConfig{isolation: ClusterTagIsolationDisable}
+	}
+	return d.clusterTag
+}
+
 // buildAccessPointTags returns the tags applied to a new access point: the
-// default cluster tag plus any operator-provided tags from the --tags flag.
-func (d *Driver) buildAccessPointTags() map[string]string {
+// default efs.csi.aws.com/cluster tag, then the operator-provided tags from
+// --tags and --extra-tags, then the cluster tag when clusterTag is enabled.
+// Option validation keeps the operator-provided tags from setting the cluster
+// tag key.
+func (d *Driver) buildAccessPointTags(clusterTag clusterTagConfig) map[string]string {
 	tags := map[string]string{
 		DefaultTagKey: DefaultTagValue,
 	}
 	for k, v := range d.tags {
 		tags[k] = v
 	}
+	for k, v := range clusterTag.tag() {
+		tags[k] = v
+	}
 	return tags
+}
+
+// checkClusterTag rejects a discovered access point that does not carry this
+// cluster's tag value when clusterTag is in enforce. In every other state it
+// accepts the access point.
+func (d *Driver) checkClusterTag(clusterTag clusterTagConfig, ap *cloud.AccessPoint) error {
+	if !clusterTag.enforce() || clusterTag.matches(ap.Tags) {
+		return nil
+	}
+	klog.InfoS("ignoring resource not tagged for this cluster", "resource", ap.AccessPointId, "tagKey", clusterTag.tagKey, "clusterName", clusterTag.clusterName, "tagValue", ap.Tags[clusterTag.tagKey])
+	return status.Errorf(codes.FailedPrecondition, "access point %s is not tagged %s=%s; it is ignored because --cluster-tag-isolation=enforce", ap.AccessPointId, clusterTag.tagKey, clusterTag.clusterName)
 }
 
 func validateExistingAccessPoint(existingAccessPoint *cloud.AccessPoint, basePath string, gid int64, gidSpecified bool, uid int64, uidSpecified bool, gidMin int64, gidMax int64) error {

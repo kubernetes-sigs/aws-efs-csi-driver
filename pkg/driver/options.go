@@ -4,7 +4,10 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"strings"
 	"time"
+
+	"k8s.io/klog/v2"
 )
 
 const (
@@ -40,9 +43,15 @@ type Options struct {
 	HTTPEndpoint                    *string
 	MetricsCertFile                 *string
 	MetricsKeyFile                  *string
+	ClusterName                     *string
+	ClusterTagKey                   *string
+	ClusterTagIsolation             *string
+	ExtraTags                       *string
 
 	efsUtilsConfOverridesParsed     []ConfOverride
 	s3filesUtilsConfOverridesParsed []ConfOverride
+	clusterTag                      clusterTagConfig
+	tagsParsed                      map[string]string
 }
 
 func NewOptions() *Options {
@@ -58,7 +67,7 @@ func NewOptions() *Options {
 		DeleteAccessPointRootDir: flag.Bool("delete-access-point-root-dir", false,
 			"Opt in to delete access point root directory by DeleteVolume. By default, DeleteVolume will delete the access point behind Persistent Volume and deleting access point will not delete the access point root directory or its contents."),
 		AdaptiveRetryMode:               flag.Bool("adaptive-retry-mode", true, "Opt out to use standard sdk retry configuration. By default, adaptive retry mode will be used to more heavily client side rate limit EFS API requests."),
-		Tags:                            flag.String("tags", "", "Space separated key:value pairs which will be added as tags for EFS resources. For example, 'environment:prod region:us-east-1'"),
+		Tags:                            flag.String("tags", "", "Deprecated: use --extra-tags. Space separated key:value pairs which will be added as tags for EFS resources. For example, 'environment:prod region:us-east-1'. Overrides the default efs.csi.aws.com/cluster tag. Merged with --extra-tags; the same key with different values fails at startup."),
 		MaxInflightMountCallsOptIn:      flag.Bool("max-inflight-mount-calls-opt-in", false, "Opt in to use max inflight mount calls limit."),
 		MaxInflightMountCalls:           flag.Int64("max-inflight-mount-calls", UnsetMaxInflightMountCounts, "New NodePublishVolume operation will be blocked if maximum number of inflight calls is reached. If maxInflightMountCallsOptIn is true, it has to be set to a positive value."),
 		VolumeAttachLimitOptIn:          flag.Bool("volume-attach-limit-opt-in", false, "Opt in to use volume attach limit."),
@@ -74,6 +83,10 @@ func NewOptions() *Options {
 		HTTPEndpoint:                    flag.String("http-endpoint", "", "TCP network address for the Prometheus metrics HTTP server (e.g. 0.0.0.0:3301). Disabled when empty."),
 		MetricsCertFile:                 flag.String("metrics-cert-file", "", "Path to the TLS certificate file for the metrics server. Requires --metrics-key-file."),
 		MetricsKeyFile:                  flag.String("metrics-key-file", "", "Path to the TLS private key file for the metrics server. Requires --metrics-cert-file."),
+		ClusterName:                     flag.String("cluster-name", "", "Name of the Kubernetes cluster this controller runs in. With --cluster-tag-key, every access point the controller creates is tagged <cluster-tag-key>=<cluster-name>, except cross-account ones (StorageClass secret with awsRoleArn)."),
+		ClusterTagKey:                   flag.String("cluster-tag-key", "", "Tag key whose value is --cluster-name. With --cluster-name, it is added to every access point the controller creates (except cross-account ones), in every --cluster-tag-isolation state. IAM policies use it to limit the controller to its own cluster's resources. Empty by default (no cluster tag)."),
+		ClusterTagIsolation:             flag.String("cluster-tag-isolation", string(ClusterTagIsolationDisable), "Set to match the IAM policy attached to the controller. disable: no isolation (the default), plus the cluster tag on new access points. backfill (attach the tag-based policy and the backfill policy): requires --cluster-name and --cluster-tag-key; tags existing access points this cluster owns, at startup and every hour; does not filter discovery. enforce (attach the tag-based policy): requires --cluster-name and --cluster-tag-key; ignores discovered access points that lack this cluster's tag value; does not backfill."),
+		ExtraTags:                       flag.String("extra-tags", "", "Tags (k1=v1,k2=v2) added to every AWS resource the controller creates. Not used to find, filter or isolate resources, and not the cluster tag. Overrides no other tag source and is not overridden: it is merged with the deprecated --tags, and a key that --tags sets to a different value, or that equals efs.csi.aws.com/cluster or --cluster-tag-key, fails at startup."),
 	}
 }
 
@@ -104,5 +117,32 @@ func (o *Options) Validate() error {
 	}
 	o.s3filesUtilsConfOverridesParsed = parsed
 
+	clusterTag, err := newClusterTagConfig(stringValue(o.ClusterName), stringValue(o.ClusterTagKey), stringValue(o.ClusterTagIsolation))
+	if err != nil {
+		return err
+	}
+	o.clusterTag = clusterTag
+
+	legacyTags := strings.TrimSpace(stringValue(o.Tags))
+	if legacyTags != "" {
+		klog.Warning("--tags is deprecated and will be removed in a future release; use --extra-tags with the k1=v1,k2=v2 format")
+	}
+	extraTags, err := parseExtraTags(stringValue(o.ExtraTags))
+	if err != nil {
+		return err
+	}
+	tags, err := mergeTags(parseTagsFromStr(legacyTags), extraTags, clusterTag)
+	if err != nil {
+		return err
+	}
+	o.tagsParsed = tags
+
 	return nil
+}
+
+func stringValue(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return *s
 }

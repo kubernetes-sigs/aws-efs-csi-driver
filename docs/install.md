@@ -15,7 +15,7 @@ There are potential race conditions on node startup (especially when a node is f
 This feature is activated by default, and cluster administrators should use the taint `efs.csi.aws.com/agent-not-ready:NoExecute` (any effect will work, but `NoExecute` is recommended). For example, EKS Managed Node Groups [support automatically tainting nodes](https://docs.aws.amazon.com/eks/latest/userguide/node-taints-managed-node-groups.html).
 
 **Prerequisites**
-+ An existing AWS Identity and Access Management \(IAM\) OpenID Connect \(OIDC\) provider for your cluster. To determine whether you already have one, or to create one, see [Creating an IAM OIDC provider for your cluster](https://docs.aws.amazon.com/eks/latest/userguide/enable-iam-roles-for-service-accounts.html).
++ Only for IAM roles for service accounts: an existing AWS Identity and Access Management \(IAM\) OpenID Connect \(OIDC\) provider for your cluster. EKS Pod Identity does not need one. To determine whether you already have one, or to create one, see [Creating an IAM OIDC provider for your cluster](https://docs.aws.amazon.com/eks/latest/userguide/enable-iam-roles-for-service-accounts.html).
 + The AWS CLI installed and configured on your device or AWS CloudShell. To install the latest version, see [Installing, updating, and uninstalling the AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-install.html) and [Quick configuration with `aws configure`](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-quickstart.html#cli-configure-quickstart-config) in the AWS Command Line Interface User Guide. The AWS CLI version installed in the AWS CloudShell may also be several versions behind the latest version. To update it, see [Installing AWS CLI to your home directory](https://docs.aws.amazon.com/cloudshell/latest/userguide/vm-specs.html#install-cli-software) in the AWS CloudShell User Guide.
 + The `kubectl` command line tool is installed on your device or AWS CloudShell. The version can be the same as or up to one minor version earlier or later than the Kubernetes version of your cluster. To install or upgrade `kubectl`, see [Installing or updating `kubectl`](https://kubernetes.io/docs/tasks/tools/#kubectl).
 
@@ -23,10 +23,64 @@ This feature is activated by default, and cluster administrators should use the 
 A Pod running on AWS Fargate automatically mounts an Amazon EFS file system or Amazon S3 file system, without needing the manual driver installation steps described on this page.
 
 ## Set up driver permission
-The driver requires IAM permission to talk to Amazon EFS or Amazon S3 Files to manage the volume on user's behalf. There are several methods to grant driver IAM permission:
-* Using the EKS Pod Identity Add-on - [Install the EKS Pod Identity add-on to your EKS cluster](https://docs.aws.amazon.com/eks/latest/userguide/pod-id-agent-setup.html). This doesn't need the efs-csi-driver to be installed through EKS add-on, it can be used no matter the method of installation of the efs-csi-driver. If this installation method is used, the ```AmazonEFSCSIDriverPolicy``` or ```AmazonS3FilesCSIDriverPolicy``` policy has to be added the cluster's node group's IAM role.
-* Using IAM role for service account – Create an [IAM Role for service accounts](https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts.html) with the required permissions in [iam-policy-example.json](./iam-policy-example.json). Uncomment annotations and put the IAM role ARN in the [service-account manifest](../deploy/kubernetes/base/controller-serviceaccount.yaml). For example steps, see [Create an IAM policy and role for Amazon EKS](./iam-policy-create.md).
-* Using IAM [instance profile](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_use_switch-role-ec2_instance-profiles.html) – Grant all the worker nodes with [required permissions](./iam-policy-example.json) by attaching the policy to the instance profile of the worker.
+The driver requires IAM permissions to talk to Amazon EFS or Amazon S3 Files to manage the volume on the user's behalf. The controller (`efs-csi-controller-sa`) creates and deletes access points. The node DaemonSet (`efs-csi-node-sa`) needs its own role for the `iam` mount option, S3 Files and efs-utils logs. Give each service account its own role.
+
+The examples below attach the tag-based policies, which limit each cluster's driver to the file systems and access points tagged for that cluster. See [Cluster tag isolation](./cluster-tag-isolation.md) for how the policies work. The AWS managed policies (`AmazonEFSCSIDriverPolicy` and the others in [Create IAM roles](./iam-policy-create.md)) don't isolate clusters: they give each cluster's driver IAM permissions to modify the EFS access points of other clusters in the account. Use them when several clusters share one file system (see [`AmazonEFSCSIDriverPolicy`: file systems shared between clusters](./cluster-tag-isolation.md#amazonefscsidriverpolicy-file-systems-shared-between-clusters)). If your cluster is in the AWS GovCloud Regions, replace `arn:aws:` with `arn:aws-us-gov:`. Likewise, if your cluster is in the AWS China Regions, replace `arn:aws:` with `arn:aws-cn:`.
+
+> [!IMPORTANT]
+> These steps are for new clusters. A cluster that already has access points created by the driver must migrate first:
+> those access points have no cluster tag, so `enforce` ignores them and the tag-based policy denies deleting them.
+> Follow [Existing clusters](./cluster-tag-isolation.md#existing-clusters) to backfill the cluster tag before you set `enforce`.
+
+Every file system the cluster uses must carry the cluster tag before you provision volumes on it:
+
+```sh
+aws efs tag-resource --resource-id fs-0123456789abcdef0 --tags Key=eks:eks-cluster-name,Value=my-cluster
+```
+
+### Amazon EKS: EKS Pod Identity (Recommended)
+With Pod Identity, one controller role and one node role can be shared by every cluster in the account, and each cluster's driver is still limited to its own resources. Create the roles once and repeat only the associations (step 3) and step 4 for each cluster. See [Roles per cluster](./cluster-tag-isolation.md#roles-per-cluster).
+
+1. Install the [EKS Pod Identity Agent](https://docs.aws.amazon.com/eks/latest/userguide/pod-id-agent-setup.html) add-on, if it is not already installed. The EFS CSI driver itself can be installed any way (Helm, manifests or the EKS add-on).
+   ```sh
+   aws eks create-addon --cluster-name my-cluster --addon-name eks-pod-identity-agent
+   ```
+
+2. Create the controller and node roles with the standard [EKS Pod Identity trust policy](https://docs.aws.amazon.com/eks/latest/userguide/pod-id-role.html), and attach the tag-based policies:
+   ```sh
+   aws iam create-role --role-name efs-csi-controller \
+     --assume-role-policy-document file://pod-identity-trust-policy.json
+   aws iam put-role-policy --role-name efs-csi-controller --policy-name efs-csi-cluster-tag \
+     --policy-document file://docs/iam-policy-cluster-tag-controller-example.json
+
+   aws iam create-role --role-name efs-csi-node \
+     --assume-role-policy-document file://pod-identity-trust-policy.json
+   aws iam put-role-policy --role-name efs-csi-node --policy-name efs-csi-cluster-tag-node \
+     --policy-document file://docs/iam-policy-cluster-tag-node-example.json
+   ```
+
+3. Associate the roles with the service accounts:
+   ```sh
+   aws eks create-pod-identity-association --cluster-name my-cluster --namespace kube-system \
+     --service-account efs-csi-controller-sa \
+     --role-arn arn:aws:iam::111122223333:role/efs-csi-controller
+   aws eks create-pod-identity-association --cluster-name my-cluster --namespace kube-system \
+     --service-account efs-csi-node-sa \
+     --role-arn arn:aws:iam::111122223333:role/efs-csi-node
+   ```
+
+4. When you [deploy the driver](#deploy-the-driver), set the cluster tag options:
+   ```sh
+   helm upgrade --install aws-efs-csi-driver aws-efs-csi-driver/aws-efs-csi-driver --namespace kube-system \
+     --set controller.clusterName=my-cluster \
+     --set controller.clusterTagKey=eks:eks-cluster-name \
+     --set controller.clusterTagIsolation=enforce
+   ```
+   Without Helm, pass the same values as controller flags:
+   `--cluster-name=my-cluster --cluster-tag-key=eks:eks-cluster-name --cluster-tag-isolation=enforce`.
+
+### Other credentials: IAM roles for service accounts
+The included tag-based policies need the session tags that EKS Pod Identity adds. With [IAM roles for service accounts (IRSA)](https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts.html), including on self-managed clusters through the [amazon-eks-pod-identity-webhook](https://github.com/aws/amazon-eks-pod-identity-webhook), follow [Create IAM roles](./iam-policy-create.md#iam-roles-for-service-accounts-irsa) to attach the AWS managed policies, and set `--cluster-tag-isolation=disable`. To isolate clusters without Pod Identity, you can write your own policy from the tag-based one (see [Other credentials](./cluster-tag-isolation.md#other-credentials)).
 
 ### Custom tags require additional IAM permissions
 

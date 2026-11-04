@@ -70,6 +70,9 @@ type AccessPoint struct {
 	// EFS does not consider capacity while provisioning new file systems or access points
 	CapacityGiB int64
 	PosixUser   *PosixUser
+	// Tags are the access point's tags, when the API call that returned the
+	// access point includes them.
+	Tags map[string]string
 }
 
 type PosixUser struct {
@@ -104,6 +107,7 @@ type Efs interface {
 	DescribeAccessPoints(context.Context, *efs.DescribeAccessPointsInput, ...func(*efs.Options)) (*efs.DescribeAccessPointsOutput, error)
 	DescribeFileSystems(context.Context, *efs.DescribeFileSystemsInput, ...func(*efs.Options)) (*efs.DescribeFileSystemsOutput, error)
 	DescribeMountTargets(context.Context, *efs.DescribeMountTargetsInput, ...func(*efs.Options)) (*efs.DescribeMountTargetsOutput, error)
+	TagResource(context.Context, *efs.TagResourceInput, ...func(*efs.Options)) (*efs.TagResourceOutput, error)
 }
 
 // S3Files abstracts S3Files client(https://docs.aws.amazon.com/sdk-for-go/api/service/s3files/)
@@ -112,6 +116,9 @@ type S3Files interface {
 	DeleteAccessPoint(context.Context, *s3files.DeleteAccessPointInput, ...func(*s3files.Options)) (*s3files.DeleteAccessPointOutput, error)
 	ListAccessPoints(context.Context, *s3files.ListAccessPointsInput, ...func(*s3files.Options)) (*s3files.ListAccessPointsOutput, error)
 	ListFileSystems(context.Context, *s3files.ListFileSystemsInput, ...func(*s3files.Options)) (*s3files.ListFileSystemsOutput, error)
+	GetAccessPoint(context.Context, *s3files.GetAccessPointInput, ...func(*s3files.Options)) (*s3files.GetAccessPointOutput, error)
+	GetFileSystem(context.Context, *s3files.GetFileSystemInput, ...func(*s3files.Options)) (*s3files.GetFileSystemOutput, error)
+	TagResource(context.Context, *s3files.TagResourceInput, ...func(*s3files.Options)) (*s3files.TagResourceOutput, error)
 }
 
 type Cloud interface {
@@ -124,6 +131,9 @@ type Cloud interface {
 	DescribeFileSystem(ctx context.Context, fileSystemId string, fsType util.FileSystemType) (fs *FileSystem, err error)
 	DescribeMountTargets(ctx context.Context, fileSystemId, az string, fsType util.FileSystemType) (fs *MountTarget, err error)
 	DescribeAvailableMountTargets(ctx context.Context, fileSystemId string) ([]*MountTarget, error)
+	GetAccessPointTags(ctx context.Context, accessPointId string, fsType util.FileSystemType) (tags map[string]string, err error)
+	GetFileSystemTags(ctx context.Context, fileSystemId string, fsType util.FileSystemType) (tags map[string]string, err error)
+	TagAccessPoint(ctx context.Context, accessPointId string, tags map[string]string, fsType util.FileSystemType) (err error)
 }
 
 type cloud struct {
@@ -398,6 +408,7 @@ func (c *cloud) DescribeAccessPoint(ctx context.Context, accessPointId string, f
 			AccessPointId:      *accessPoints[0].AccessPointId,
 			FileSystemId:       *accessPoints[0].FileSystemId,
 			AccessPointRootDir: *accessPoints[0].RootDirectory.Path,
+			Tags:               efsTagsToMap(accessPoints[0].Tags),
 		}, nil
 
 	case util.FileSystemTypeS3Files:
@@ -477,6 +488,7 @@ func (c *cloud) FindAccessPointByClientToken(ctx context.Context, clientToken, f
 							Gid: *ap.PosixUser.Gid,
 							Uid: *ap.PosixUser.Uid,
 						},
+						Tags: efsTagsToMap(ap.Tags),
 					}, nil
 				}
 			}
@@ -749,6 +761,130 @@ func (c *cloud) DescribeAvailableMountTargets(ctx context.Context, fileSystemId 
 		})
 	}
 	return result, nil
+}
+
+// GetAccessPointTags returns the tags of an access point.
+func (c *cloud) GetAccessPointTags(ctx context.Context, accessPointId string, fsType util.FileSystemType) (map[string]string, error) {
+	switch fsType {
+	case util.FileSystemTypeEFS:
+		res, err := c.efs.DescribeAccessPoints(ctx, &efs.DescribeAccessPointsInput{AccessPointId: &accessPointId}, func(o *efs.Options) {
+			o.Retryer = c.rm.describeAccessPointsRetryer
+		})
+		if err != nil {
+			if isAccessDenied(err) {
+				return nil, ErrAccessDenied
+			}
+			if isAccessPointNotFound(err) {
+				return nil, ErrNotFound
+			}
+			return nil, fmt.Errorf("describe access point failed: %v", err)
+		}
+		if len(res.AccessPoints) != 1 {
+			return nil, fmt.Errorf("expected exactly 1 access point for %s, received %d", accessPointId, len(res.AccessPoints))
+		}
+		return efsTagsToMap(res.AccessPoints[0].Tags), nil
+	case util.FileSystemTypeS3Files:
+		res, err := c.s3files.GetAccessPoint(ctx, &s3files.GetAccessPointInput{AccessPointId: &accessPointId})
+		if err != nil {
+			if isAccessDenied(err) {
+				return nil, ErrAccessDenied
+			}
+			if isS3FilesAccessPointNotFound(err) {
+				return nil, ErrNotFound
+			}
+			return nil, fmt.Errorf("get access point failed: %v", err)
+		}
+		return s3FilesTagsToMap(res.Tags), nil
+	default:
+		return nil, fmt.Errorf("unsupported fsType: %v", fsType)
+	}
+}
+
+// GetFileSystemTags returns the tags of a file system.
+func (c *cloud) GetFileSystemTags(ctx context.Context, fileSystemId string, fsType util.FileSystemType) (map[string]string, error) {
+	switch fsType {
+	case util.FileSystemTypeEFS:
+		res, err := c.efs.DescribeFileSystems(ctx, &efs.DescribeFileSystemsInput{FileSystemId: &fileSystemId}, func(o *efs.Options) {
+			o.Retryer = c.rm.describeFileSystemsRetryer
+		})
+		if err != nil {
+			if isAccessDenied(err) {
+				return nil, ErrAccessDenied
+			}
+			if isFileSystemNotFound(err) {
+				return nil, ErrNotFound
+			}
+			return nil, fmt.Errorf("describe file system failed: %v", err)
+		}
+		if len(res.FileSystems) != 1 {
+			return nil, fmt.Errorf("expected exactly 1 file system for %s, received %d", fileSystemId, len(res.FileSystems))
+		}
+		return efsTagsToMap(res.FileSystems[0].Tags), nil
+	case util.FileSystemTypeS3Files:
+		res, err := c.s3files.GetFileSystem(ctx, &s3files.GetFileSystemInput{FileSystemId: &fileSystemId})
+		if err != nil {
+			if isAccessDenied(err) {
+				return nil, ErrAccessDenied
+			}
+			if isS3FilesFileSystemNotFound(err) {
+				return nil, ErrNotFound
+			}
+			return nil, fmt.Errorf("get S3 Files file system failed: %v", err)
+		}
+		return s3FilesTagsToMap(res.Tags), nil
+	default:
+		return nil, fmt.Errorf("unsupported fsType: %v", fsType)
+	}
+}
+
+// TagAccessPoint adds tags to an existing access point. The request contains
+// only the given tags.
+func (c *cloud) TagAccessPoint(ctx context.Context, accessPointId string, tags map[string]string, fsType util.FileSystemType) error {
+	var err error
+	switch fsType {
+	case util.FileSystemTypeEFS:
+		_, err = c.efs.TagResource(ctx, &efs.TagResourceInput{ResourceId: &accessPointId, Tags: parseEfsTags(tags)})
+		if err != nil && isAccessPointNotFound(err) {
+			return ErrNotFound
+		}
+	case util.FileSystemTypeS3Files:
+		_, err = c.s3files.TagResource(ctx, &s3files.TagResourceInput{ResourceId: &accessPointId, Tags: parseS3FilesTags(tags)})
+		if err != nil && isS3FilesAccessPointNotFound(err) {
+			return ErrNotFound
+		}
+	default:
+		return fmt.Errorf("unsupported fsType: %v", fsType)
+	}
+	if err != nil {
+		if isAccessDenied(err) {
+			return fmt.Errorf("%w: %v", ErrAccessDenied, err)
+		}
+		return fmt.Errorf("failed to tag access point %s: %v", accessPointId, err)
+	}
+	return nil
+}
+
+func efsTagsToMap(tags []types.Tag) map[string]string {
+	if len(tags) == 0 {
+		return nil
+	}
+	m := make(map[string]string, len(tags))
+	for _, t := range tags {
+		if t.Key != nil && t.Value != nil {
+			m[*t.Key] = *t.Value
+		}
+	}
+	return m
+}
+
+func s3FilesTagsToMap(tags []s3filestypes.Tag) map[string]string {
+	m := make(map[string]string, len(tags))
+	for _, t := range tags {
+		if t.Key != nil && t.Value != nil {
+			m[*t.Key] = *t.Value
+		}
+	}
+	return m
 }
 
 func isFileSystemNotFound(err error) bool {
