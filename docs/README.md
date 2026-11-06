@@ -51,10 +51,10 @@ The driver images are regularly scanned for known vulnerabilities (CVEs). Fixes 
 
 | Severity | SLA      |
 |----------|----------|
-| Critical | 14 days  |
+| Critical | 15 days  |
 | High     | 30 days  |
-| Medium   | 60 days  |
-| Low      | 120 days |
+| Medium   | 100 days |
+| Low      | 100 days |
 
 CVE fixes are only included in future releases; previously released versions are not patched. To pick up a fix, upgrade to the latest release.
 
