@@ -1,0 +1,78 @@
+suite: node ValidatingAdmissionPolicy
+templates:
+  - templates/node-validatingadmissionpolicy.yaml
+release:
+  name: efs
+  namespace: kube-system
+capabilities:
+  majorVersion: 1
+  minorVersion: 30
+chart:
+  version: 0.0.0
+  appVersion: 0.0.0
+tests:
+  - it: creates the policy and binding on Kubernetes 1.30
+    asserts:
+      - hasDocuments:
+          count: 2
+      - matchSnapshot: {}
+
+  - it: skips the policy on Kubernetes 1.29
+    capabilities:
+      majorVersion: 1
+      minorVersion: 29
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: skips the policy when validatingAdmissionPolicy.enabled is false
+    set:
+      node:
+        validatingAdmissionPolicy:
+          enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: skips the policy when disableMutation is true
+    set:
+      node:
+        serviceAccount:
+          disableMutation: true
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: matches the configured service account when create is false
+    set:
+      node:
+        serviceAccount:
+          create: false
+          name: existing-node-sa
+    asserts:
+      - hasDocuments:
+          count: 2
+      - equal:
+          path: spec.matchConditions[0].expression
+          value: request.userInfo.username == "system:serviceaccount:kube-system:existing-node-sa"
+        documentIndex: 0
+
+  - it: matches the service account in the release namespace
+    release:
+      namespace: storage
+    asserts:
+      - equal:
+          path: spec.matchConditions[0].expression
+          value: request.userInfo.username == "system:serviceaccount:storage:efs-csi-node-sa"
+        documentIndex: 0
+
+  - it: matches the service account in any namespace for the kustomize manifests
+    release:
+      name: kustomize
+    asserts:
+      - equal:
+          path: spec.matchConditions[0].expression
+          value: >-
+            request.userInfo.username.startsWith('system:serviceaccount:') &&
+            request.userInfo.username.endsWith(':efs-csi-node-sa')
+        documentIndex: 0

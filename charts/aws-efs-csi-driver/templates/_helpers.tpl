@@ -99,3 +99,10 @@ The controller --cluster-tag-isolation state. The value must be the string
 {{- end -}}
 {{- $state -}}
 {{- end -}}
+
+{{/*
+The startup taint the node pods remove from their node. Must match AgentNotReadyNodeTaintKey in pkg/driver/driver.go.
+*/}}
+{{- define "aws-efs-csi-driver.agentNotReadyTaintKey" -}}
+efs.csi.aws.com/agent-not-ready
+{{- end -}}
