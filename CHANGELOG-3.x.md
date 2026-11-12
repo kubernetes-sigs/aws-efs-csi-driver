@@ -73,3 +73,9 @@
 * Allow PodDisruptionBudget maxUnavailable on its own and fail when both fields are set ([#1984](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1984), [@giuliocalzo](https://github.com/giuliocalzo))
 * Add CVE patching SLA to README ([#2004](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/2004), [@DavidXU12345](https://github.com/DavidXU12345))
 * Remove vendored dependencies and bump s3files to v1.10.0 ([#2005](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/2005), [@micahhausler](https://github.com/micahhausler))
+
+# V3.6.0
+* Expose csi-provisioner metrics when controller.enableMetrics is set ([#1980](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/1980), [@andersvw](https://github.com/andersvw))
+* Reject concurrent NodeUnpublishVolume calls for the same target ([#2002](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/2002), [@wangnyue](https://github.com/wangnyue))
+* Add cluster tag isolation for EFS access points ([#2003](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/2003), [@micahhausler](https://github.com/micahhausler))
+* Build efs-utils conf files from the installed efs-utils ([#2017](https://github.com/kubernetes-sigs/aws-efs-csi-driver/pull/2017), [@DavidXU12345](https://github.com/DavidXU12345))
