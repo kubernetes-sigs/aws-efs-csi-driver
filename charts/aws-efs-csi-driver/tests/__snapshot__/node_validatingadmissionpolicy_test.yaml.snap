@@ -1,0 +1,65 @@
+creates the policy and binding on Kubernetes 1.30:
+  1: |
+    apiVersion: admissionregistration.k8s.io/v1
+    kind: ValidatingAdmissionPolicy
+    metadata:
+      labels:
+        app.kubernetes.io/instance: efs
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: aws-efs-csi-driver
+        app.kubernetes.io/version: 0.0.0
+        helm.sh/chart: aws-efs-csi-driver-0.0.0
+      name: efs-csi-node
+    spec:
+      failurePolicy: Fail
+      matchConditions:
+        - expression: request.userInfo.username == "system:serviceaccount:kube-system:efs-csi-node-sa"
+          name: node-service-account
+      matchConstraints:
+        resourceRules:
+          - apiGroups:
+              - ""
+            apiVersions:
+              - '*'
+            operations:
+              - CREATE
+              - UPDATE
+              - DELETE
+            resources:
+              - nodes
+              - nodes/*
+      validations:
+        - expression: variables.nodeName != ''
+          message: the service account token is not bound to a pod on a node
+        - expression: variables.isUpdate
+          message: the EFS CSI node service account may only update Node objects
+        - expression: request.name == variables.nodeName
+          messageExpression: '''the EFS CSI node on '' + variables.nodeName + '' may only update its own Node object, not '' + request.name'
+        - expression: '!variables.isUpdate || ( object.metadata.?labels.orValue({}) == oldObject.metadata.?labels.orValue({}) && object.metadata.?annotations.orValue({}) == oldObject.metadata.?annotations.orValue({}) && object.metadata.?finalizers.orValue([]) == oldObject.metadata.?finalizers.orValue([]) && object.metadata.?ownerReferences.orValue([]) == oldObject.metadata.?ownerReferences.orValue([]) && object.spec.all(k, k == ''taints'' || (k in oldObject.spec && object.spec[k] == oldObject.spec[k])) && oldObject.spec.all(k, k == ''taints'' || k in object.spec))'
+          message: the EFS CSI node service account may only change the taints of its own Node object
+        - expression: variables.newTaints.all(t, t in variables.oldTaints) && variables.oldTaints.all(t, t.key == 'efs.csi.aws.com/agent-not-ready' || t in variables.newTaints)
+          message: the EFS CSI node service account may only remove the efs.csi.aws.com/agent-not-ready taint from its own Node object
+      variables:
+        - expression: 'request.userInfo.?extra[?''authentication.kubernetes.io/node-name''].orValue([]).size() == 1 ? request.userInfo.extra[''authentication.kubernetes.io/node-name''][0] : '''''
+          name: nodeName
+        - expression: request.operation == 'UPDATE' && request.?subResource.orValue('') == ''
+          name: isUpdate
+        - expression: 'variables.isUpdate ? oldObject.spec.?taints.orValue([]) : []'
+          name: oldTaints
+        - expression: 'variables.isUpdate ? object.spec.?taints.orValue([]) : []'
+          name: newTaints
+  2: |
+    apiVersion: admissionregistration.k8s.io/v1
+    kind: ValidatingAdmissionPolicyBinding
+    metadata:
+      labels:
+        app.kubernetes.io/instance: efs
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: aws-efs-csi-driver
+        app.kubernetes.io/version: 0.0.0
+        helm.sh/chart: aws-efs-csi-driver-0.0.0
+      name: efs-csi-node
+    spec:
+      policyName: efs-csi-node
+      validationActions:
+        - Deny

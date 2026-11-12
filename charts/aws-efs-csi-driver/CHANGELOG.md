@@ -1,4 +1,6 @@
 # Helm chart
+# Unreleased
+* Limit the node service account to removing the `efs.csi.aws.com/agent-not-ready` taint from its own Node, with a ValidatingAdmissionPolicy. Installed on Kubernetes 1.30 and later; set `node.validatingAdmissionPolicy.enabled=false` to not install it.
 # v4.5.4
 * Bump app/driver version to `v3.5.4`
 # v4.5.3
