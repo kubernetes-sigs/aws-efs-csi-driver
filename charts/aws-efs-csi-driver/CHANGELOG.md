@@ -1,4 +1,6 @@
 # Helm chart
+# v4.6.0
+* Bump app/driver version to `v3.6.0`
 # v4.5.4
 * Bump app/driver version to `v3.5.4`
 # v4.5.3
