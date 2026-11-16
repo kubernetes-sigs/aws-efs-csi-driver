@@ -61,6 +61,16 @@ func main() {
 		os.Exit(0)
 	}
 
+	// Before the driver starts any child process: the setting is inherited by mount.efs, the
+	// watchdog and every efs-proxy. A failure is logged and does not stop the driver.
+	if *options.DisableTransparentHugePages {
+		if err := driver.DisableTransparentHugePages(); err != nil {
+			klog.ErrorS(err, "Failed to disable transparent huge pages; continuing with the node's THP setting")
+		} else {
+			klog.InfoS("Transparent huge pages disabled for the driver and its child processes")
+		}
+	}
+
 	// chose which configuration directory we will use and create a symlink to it
 	err := driver.InitConfigDir(*options.EfsUtilsCfgLegacyDirPath, *options.EfsUtilsCfgDirPath, etcAmazonEfs)
 	if err != nil {

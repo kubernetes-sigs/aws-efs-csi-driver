@@ -338,6 +338,10 @@ node:
   #  maxSurge: 0
   #  maxUnavailable: 20%
 
+  # Turn off transparent huge pages for efs-plugin and every process it starts (mount.efs, the
+  # watchdog, efs-proxy, stunnel). Use it on nodes where THP is set to "always".
+  disableTransparentHugePages: false
+
   # Comma-separated section:key=value overrides for efs-utils.conf.
   # Example: "mount-watchdog:stunnel_health_check_interval_min=1,mount-watchdog:tls_cert_renewal_interval_min=30"
   efsUtilsConfOverrides: ""
