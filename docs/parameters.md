@@ -115,6 +115,9 @@ Kubernetes version 1.13 or later is required if you are using this feature in Ku
 -----
 
 # Container Arguments for efs-plugin of efs-csi-node daemonset
+
+The Helm chart can render more than one node DaemonSet, each with its own values; see [additional-daemonsets.md](additional-daemonsets.md).
+
 | Parameters                  | Values | Default | Optional | Description                                                                                                                                                                                                                             |
 |-----------------------------|--------|---------|----------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | vol-metrics-opt-in          |        | false   | true     | Opt in to emit volume metrics.                                                                                                                                                                                                          |

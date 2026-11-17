@@ -345,6 +345,20 @@ node:
   # Example: "proxy:read_bypass_denylist_size=20000"
   s3filesUtilsConfOverrides: ""
 
+# Additional node DaemonSets, one per entry, named efs-csi-node-<entry>. Each entry uses the
+# structure of .node and is merged over it, so .node holds the defaults. Use nodeSelector or
+# affinity so that every node runs exactly one efs-csi-node pod.
+# See docs/additional-daemonsets.md.
+#
+# example:
+#   coder:
+#     nodeSelector:
+#       efs-profile: coder
+#     resources:
+#       requests:
+#         memory: 1536Mi
+additionalDaemonSets: {}
+
 storageClasses: []
 # Add StorageClass resources like:
 # - name: efs-sc
