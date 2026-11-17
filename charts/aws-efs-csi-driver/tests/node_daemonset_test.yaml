@@ -255,3 +255,131 @@ tests:
           content:
             name: extra
             mountPath: /extra
+
+  - it: renders only the default node daemonset when additionalDaemonSets is empty
+    asserts:
+      - hasDocuments:
+          count: 1
+      - equal:
+          path: metadata.name
+          value: efs-csi-node
+
+  - it: renders one more daemonset per additionalDaemonSets entry, with its own name and selector
+    set:
+      node:
+        nodeSelector:
+          efs-profile: general
+      additionalDaemonSets:
+        workspace:
+          nodeSelector:
+            efs-profile: workspace
+    asserts:
+      - hasDocuments:
+          count: 2
+      - equal:
+          path: metadata.name
+          value: efs-csi-node
+        documentIndex: 0
+      - equal:
+          path: spec.template.spec.nodeSelector
+          value:
+            kubernetes.io/os: linux
+            efs-profile: general
+        documentIndex: 0
+      - equal:
+          path: metadata.name
+          value: efs-csi-node-workspace
+        documentIndex: 1
+      - equal:
+          path: spec.selector.matchLabels.app
+          value: efs-csi-node-workspace
+        documentIndex: 1
+      - equal:
+          path: spec.template.metadata.labels.app
+          value: efs-csi-node-workspace
+        documentIndex: 1
+      - equal:
+          path: spec.template.spec.nodeSelector
+          value:
+            kubernetes.io/os: linux
+            efs-profile: workspace
+        documentIndex: 1
+
+  - it: takes node values an entry does not set from .node, and the entry's values otherwise
+    set:
+      node:
+        efsUtilsConfOverrides: "mount:port_range_lower_bound=20049,mount:port_range_upper_bound=21699"
+        forceUnmountAfterTimeout: true
+        resources:
+          requests:
+            memory: 8Gi
+      additionalDaemonSets:
+        workspace:
+          efsUtilsConfOverrides: "mount:efs_proxy_worker_threads=2"
+          resources:
+            requests:
+              memory: 1536Mi
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[?(@.name == "efs-plugin")].args
+          content: --efs-utils-conf-overrides=mount:efs_proxy_worker_threads=2
+        documentIndex: 1
+      - notContains:
+          path: spec.template.spec.containers[?(@.name == "efs-plugin")].args
+          content: --efs-utils-conf-overrides=mount:port_range_lower_bound=20049,mount:port_range_upper_bound=21699
+        documentIndex: 1
+      - contains:
+          path: spec.template.spec.containers[?(@.name == "efs-plugin")].args
+          content: --force-unmount-after-timeout=true
+        documentIndex: 1
+      - equal:
+          path: spec.template.spec.containers[?(@.name == "efs-plugin")].resources.requests.memory
+          value: 1536Mi
+        documentIndex: 1
+      - equal:
+          path: spec.template.spec.containers[?(@.name == "efs-plugin")].resources.requests.memory
+          value: 8Gi
+        documentIndex: 0
+
+  - it: overrides a true default with an entry's false
+    set:
+      node:
+        volumeAttachLimitOptIn: true
+        volumeAttachLimit: 50
+      additionalDaemonSets:
+        small:
+          volumeAttachLimitOptIn: false
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[?(@.name == "efs-plugin")].args
+          content: --volume-attach-limit-opt-in=false
+        documentIndex: 1
+      - contains:
+          path: spec.template.spec.containers[?(@.name == "efs-plugin")].args
+          content: --volume-attach-limit-opt-in=true
+        documentIndex: 0
+
+  - it: replaces list values such as tolerations instead of extending them
+    set:
+      node:
+        tolerations:
+          - operator: Exists
+      additionalDaemonSets:
+        workspace:
+          tolerations:
+            - key: workspace
+              operator: Exists
+              effect: NoSchedule
+    asserts:
+      - equal:
+          path: spec.template.spec.tolerations
+          value:
+            - key: workspace
+              operator: Exists
+              effect: NoSchedule
+        documentIndex: 1
+      - equal:
+          path: spec.template.spec.tolerations
+          value:
+            - operator: Exists
+        documentIndex: 0
