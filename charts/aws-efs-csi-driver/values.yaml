@@ -293,6 +293,10 @@ node:
     # When disableMutation is true, some features of the EFS CSI Driver node pods will not function, such as taint removal.
     # Primarily useful in particularly security-sensitive environments, or on multi-tenant clusters that isolate tenants by node.
     disableMutation: false
+  # Limits the node service account to removing the efs.csi.aws.com/agent-not-ready taint from its own Node.
+  # Installed on Kubernetes 1.30 and later, when node.serviceAccount.disableMutation is false.
+  validatingAdmissionPolicy:
+    enabled: true
   healthPort: 9809
   # Liveness probe configuration for the node
   livenessProbe:
