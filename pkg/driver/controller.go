@@ -573,7 +573,7 @@ func (d *Driver) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeRequest)
 					mountTargets, err := localCloud.DescribeAvailableMountTargets(ctx, fileSystemId)
 					if err != nil {
 						klog.Warningf("DeleteVolume: failed to describe mount targets for %v: %v", fileSystemId, err)
-					} else if ip := selectMountTargetIP(mountTargets, d.cloud.GetMetadata().GetAvailabilityZone()); ip != "" {
+					} else if ip := selectMountTargetIP(mountTargets, d.cloud.GetMetadata().GetAvailabilityZoneId(), d.cloud.GetMetadata().GetAvailabilityZone()); ip != "" {
 						mountOptions = append(mountOptions, MountTargetIp+"="+ip)
 					}
 				}
@@ -801,11 +801,20 @@ func buildMountTargetIPMap(ctx context.Context, c cloud.Cloud, fileSystemId stri
 	return string(jsonBytes), nil
 }
 
-// selectMountTargetIP picks the mount target IP for the given preferredAZ.
+// selectMountTargetIP picks the mount target IP for the given preferredAZId, then preferredAZ.
+// AZ ID is preferred because the mount targets may belong to another AWS account, where the
+// same AZ name can map to a different physical AZ.
 // If no mount target exists in the preferred AZ, it falls back to any available mount target.
-func selectMountTargetIP(mountTargets []*cloud.MountTarget, preferredAZ string) string {
+func selectMountTargetIP(mountTargets []*cloud.MountTarget, preferredAZId, preferredAZ string) string {
 	if len(mountTargets) == 0 {
 		return ""
+	}
+	if preferredAZId != "" {
+		for _, mt := range mountTargets {
+			if mt.AZId == preferredAZId {
+				return mt.IPAddress
+			}
+		}
 	}
 	for _, mt := range mountTargets {
 		if mt.AZName == preferredAZ {

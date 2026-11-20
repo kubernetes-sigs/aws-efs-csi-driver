@@ -5973,10 +5973,11 @@ func randStringBytes(n int) string {
 
 func TestSelectMountTargetIP(t *testing.T) {
 	tests := []struct {
-		name         string
-		mountTargets []*cloud.MountTarget
-		preferredAZ  string
-		expectedIP   string
+		name          string
+		mountTargets  []*cloud.MountTarget
+		preferredAZId string
+		preferredAZ   string
+		expectedIP    string
 	}{
 		{
 			name:         "empty mount targets",
@@ -6019,11 +6020,54 @@ func TestSelectMountTargetIP(t *testing.T) {
 			preferredAZ: "us-west-2c",
 			expectedIP:  "10.0.1.1",
 		},
+		{
+			// Cross-account: the controller's AZ name points to a different physical AZ
+			// in the EFS account. The AZ ID match must win over the AZ name match.
+			name: "preferred AZ ID wins over AZ name",
+			mountTargets: []*cloud.MountTarget{
+				{AZName: "eu-west-1a", AZId: "euw1-az3", IPAddress: "10.50.1.99"},
+				{AZName: "eu-west-1b", AZId: "euw1-az1", IPAddress: "10.50.2.128"},
+				{AZName: "eu-west-1c", AZId: "euw1-az2", IPAddress: "10.50.3.74"},
+			},
+			preferredAZId: "euw1-az2",
+			preferredAZ:   "eu-west-1a",
+			expectedIP:    "10.50.3.74",
+		},
+		{
+			name: "preferred AZ ID not found falls back to AZ name",
+			mountTargets: []*cloud.MountTarget{
+				{AZName: "us-west-2a", AZId: "usw2-az1", IPAddress: "10.0.1.1"},
+				{AZName: "us-west-2b", AZId: "usw2-az2", IPAddress: "10.0.2.1"},
+			},
+			preferredAZId: "usw2-az9",
+			preferredAZ:   "us-west-2b",
+			expectedIP:    "10.0.2.1",
+		},
+		{
+			name: "neither AZ ID nor AZ name found falls back to first",
+			mountTargets: []*cloud.MountTarget{
+				{AZName: "us-west-2a", AZId: "usw2-az1", IPAddress: "10.0.1.1"},
+				{AZName: "us-west-2b", AZId: "usw2-az2", IPAddress: "10.0.2.1"},
+			},
+			preferredAZId: "usw2-az9",
+			preferredAZ:   "us-west-2d",
+			expectedIP:    "10.0.1.1",
+		},
+		{
+			name: "empty preferred AZ ID does not match mount targets without AZ ID",
+			mountTargets: []*cloud.MountTarget{
+				{AZName: "us-west-2a", IPAddress: "10.0.1.1"},
+				{AZName: "us-west-2b", IPAddress: "10.0.2.1"},
+			},
+			preferredAZId: "",
+			preferredAZ:   "us-west-2b",
+			expectedIP:    "10.0.2.1",
+		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			result := selectMountTargetIP(tc.mountTargets, tc.preferredAZ)
+			result := selectMountTargetIP(tc.mountTargets, tc.preferredAZId, tc.preferredAZ)
 			if result != tc.expectedIP {
 				t.Errorf("selectMountTargetIP() = %q, want %q", result, tc.expectedIP)
 			}
