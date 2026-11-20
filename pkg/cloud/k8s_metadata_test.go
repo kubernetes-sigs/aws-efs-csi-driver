@@ -18,6 +18,7 @@ var (
 	instanceId     = "i-1234567890abcdef0"
 	nodeRegion     = "us-east-2"
 	nodeZone       = "us-east-2a"
+	nodeZoneId     = "use2-az1"
 )
 
 func TestErrorProducedIfCSI_NODE_NAMENotSet(t *testing.T) {
@@ -103,6 +104,39 @@ func TestRegionAndZoneExtractedCorrectlyFromLabels(t *testing.T) {
 	}
 	if metadata.GetInstanceID() != instanceId {
 		t.Fatalf("Instance ID not extracted correctly, expected %s, got %s", instanceId, metadata.GetInstanceID())
+	}
+}
+
+func TestZoneIdExtractedFromLabel(t *testing.T) {
+	node := createDefaultNode()
+	node.Labels["topology.k8s.aws/zone-id"] = nodeZoneId
+	clientSet := setupKubernetesClient(t, nodeName, node)
+	k8sMp := kubernetesApiMetadataProvider{api: clientSet}
+
+	metadata, err := k8sMp.getMetadata()
+
+	if err != nil {
+		t.Fatalf("Error occurred when getting metadata %v", err)
+	}
+	if metadata.GetAvailabilityZone() != nodeZone {
+		t.Fatalf("Zone not extracted correctly, expected %s, got %s", nodeZone, metadata.GetAvailabilityZone())
+	}
+	if metadata.GetAvailabilityZoneId() != nodeZoneId {
+		t.Fatalf("Zone ID not extracted correctly, expected %s, got %s", nodeZoneId, metadata.GetAvailabilityZoneId())
+	}
+}
+
+func TestZoneIdEmptyIfLabelMissing(t *testing.T) {
+	clientSet := setupKubernetesClient(t, nodeName, createDefaultNode())
+	k8sMp := kubernetesApiMetadataProvider{api: clientSet}
+
+	metadata, err := k8sMp.getMetadata()
+
+	if err != nil {
+		t.Fatalf("Error occurred when getting metadata %v", err)
+	}
+	if metadata.GetAvailabilityZoneId() != "" {
+		t.Fatalf("Expected empty zone ID when label is missing, got %s", metadata.GetAvailabilityZoneId())
 	}
 }
 

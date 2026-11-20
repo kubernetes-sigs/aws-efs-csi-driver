@@ -6041,19 +6041,28 @@ func TestBuildMountTargetIPMap(t *testing.T) {
 		expectedMap  map[string]string
 	}{
 		{
-			name: "success: multiple mount targets",
+			name: "success: multiple mount targets keyed by AZ ID",
 			mountTargets: []*cloud.MountTarget{
-				{AZName: "us-west-2a", IPAddress: "10.0.1.1"},
-				{AZName: "us-west-2b", IPAddress: "10.0.2.1"},
+				{AZName: "us-west-2a", AZId: "usw2-az1", IPAddress: "10.0.1.1"},
+				{AZName: "us-west-2b", AZId: "usw2-az2", IPAddress: "10.0.2.1"},
 			},
-			expectedMap: map[string]string{"us-west-2a": "10.0.1.1", "us-west-2b": "10.0.2.1"},
+			expectedMap: map[string]string{"usw2-az1": "10.0.1.1", "usw2-az2": "10.0.2.1"},
 		},
 		{
 			name: "success: single mount target",
 			mountTargets: []*cloud.MountTarget{
-				{AZName: "us-west-2a", IPAddress: "10.0.1.1"},
+				{AZName: "us-west-2a", AZId: "usw2-az1", IPAddress: "10.0.1.1"},
 			},
-			expectedMap: map[string]string{"us-west-2a": "10.0.1.1"},
+			expectedMap: map[string]string{"usw2-az1": "10.0.1.1"},
+		},
+		{
+			name: "success: AZ names map to different AZ IDs (cross-account), keys are AZ IDs",
+			mountTargets: []*cloud.MountTarget{
+				{AZName: "eu-west-1a", AZId: "euw1-az3", IPAddress: "10.50.1.99"},
+				{AZName: "eu-west-1b", AZId: "euw1-az1", IPAddress: "10.50.2.128"},
+				{AZName: "eu-west-1c", AZId: "euw1-az2", IPAddress: "10.50.3.74"},
+			},
+			expectedMap: map[string]string{"euw1-az3": "10.50.1.99", "euw1-az1": "10.50.2.128", "euw1-az2": "10.50.3.74"},
 		},
 		{
 			name:        "failure: DescribeAvailableMountTargets returns error",

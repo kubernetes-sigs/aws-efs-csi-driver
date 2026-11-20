@@ -85,5 +85,6 @@ func (tmp taskMetadataProvider) getMetadata() (MetadataService, error) {
 		instanceID:       taskId,
 		availabilityZone: az,
 		region:           region,
+		// TMDS v4 task response does not include the AZ ID; availabilityZoneId is left empty.
 	}, nil
 }

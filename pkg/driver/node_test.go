@@ -1297,12 +1297,14 @@ func TestNodeGetVolumeStats(t *testing.T) {
 }
 
 type mockMetadata struct {
-	availabilityZone string
+	availabilityZone   string
+	availabilityZoneId string
 }
 
-func (m *mockMetadata) GetInstanceID() string       { return "test-instance-id" }
-func (m *mockMetadata) GetRegion() string           { return "us-east-1" }
-func (m *mockMetadata) GetAvailabilityZone() string { return m.availabilityZone }
+func (m *mockMetadata) GetInstanceID() string         { return "test-instance-id" }
+func (m *mockMetadata) GetRegion() string             { return "us-east-1" }
+func (m *mockMetadata) GetAvailabilityZone() string   { return m.availabilityZone }
+func (m *mockMetadata) GetAvailabilityZoneId() string { return m.availabilityZoneId }
 
 func TestNodeGetInfo(t *testing.T) {
 	testCases := []struct {
@@ -1968,6 +1970,7 @@ func TestNodePublishVolumeMountTargetIpMap(t *testing.T) {
 	testCases := []struct {
 		name      string
 		nodeAZ    string
+		nodeAZId  string
 		ipMapJSON string
 		// expected mounttargetip value in mount options, empty if none expected
 		expectedIP  string
@@ -1979,15 +1982,47 @@ func TestNodePublishVolumeMountTargetIpMap(t *testing.T) {
 		expectErrCode codes.Code
 	}{
 		{
-			name:       "node AZ found in map",
+			name:       "node AZ ID found in map",
 			nodeAZ:     "us-west-2b",
+			nodeAZId:   "usw2-az2",
+			ipMapJSON:  `{"usw2-az1":"10.0.1.1","usw2-az2":"10.0.2.1","usw2-az3":"10.0.3.1"}`,
+			expectedIP: "10.0.2.1",
+		},
+		{
+			// Cross-account: the node's AZ name points to a different physical AZ in the
+			// EFS account. The AZ ID key must win over a key equal to the node's AZ name.
+			name:       "node AZ ID takes precedence over AZ name",
+			nodeAZ:     "eu-west-1a",
+			nodeAZId:   "euw1-az2",
+			ipMapJSON:  `{"eu-west-1a":"10.50.1.99","euw1-az2":"10.50.3.74"}`,
+			expectedIP: "10.50.3.74",
+		},
+		{
+			name:       "legacy map keyed by AZ name: node AZ ID not in map, falls back to AZ name",
+			nodeAZ:     "us-west-2b",
+			nodeAZId:   "usw2-az2",
 			ipMapJSON:  `{"us-west-2a":"10.0.1.1","us-west-2b":"10.0.2.1","us-west-2c":"10.0.3.1"}`,
 			expectedIP: "10.0.2.1",
 		},
 		{
-			name:       "node AZ not in map falls back to a random available AZ",
+			name:       "legacy map keyed by AZ name: node AZ ID unknown, uses AZ name",
+			nodeAZ:     "us-west-2b",
+			nodeAZId:   "",
+			ipMapJSON:  `{"us-west-2a":"10.0.1.1","us-west-2b":"10.0.2.1","us-west-2c":"10.0.3.1"}`,
+			expectedIP: "10.0.2.1",
+		},
+		{
+			name:       "node AZ not in map falls back to the first AZ in sorted order",
 			nodeAZ:     "us-west-2d",
-			ipMapJSON:  `{"us-west-2a":"10.0.1.1"}`,
+			nodeAZId:   "usw2-az4",
+			ipMapJSON:  `{"usw2-az3":"10.0.3.1","usw2-az1":"10.0.1.1","usw2-az2":"10.0.2.1"}`,
+			expectedIP: "10.0.1.1",
+		},
+		{
+			name:       "single entry map with no match falls back to it",
+			nodeAZ:     "us-west-2d",
+			nodeAZId:   "usw2-az4",
+			ipMapJSON:  `{"usw2-az1":"10.0.1.1"}`,
 			expectedIP: "10.0.1.1",
 		},
 		{
@@ -2075,7 +2110,7 @@ func TestNodePublishVolumeMountTargetIpMap(t *testing.T) {
 
 			mockMounter := mocks.NewMockMounter(mockCtrl)
 			mockCloud := mocks.NewMockCloud(mockCtrl)
-			mockCloud.EXPECT().GetMetadata().Return(&mockMetadata{availabilityZone: tc.nodeAZ}).AnyTimes()
+			mockCloud.EXPECT().GetMetadata().Return(&mockMetadata{availabilityZone: tc.nodeAZ, availabilityZoneId: tc.nodeAZId}).AnyTimes()
 
 			driver := &Driver{
 				endpoint:             "endpoint",
@@ -2663,4 +2698,62 @@ func TestEfsMetaFile(t *testing.T) {
 			t.Errorf("efsMetaPath should be stable under trailing slashes and duplicate separators:\n  a=%s\n  b=%s\n  c=%s", a, b, c)
 		}
 	})
+}
+
+func TestSelectMountTargetIPFromMap(t *testing.T) {
+	testCases := []struct {
+		name       string
+		nodeAZ     string
+		nodeAZId   string
+		ipMap      map[string]string
+		expectedIP string
+	}{
+		{
+			name:       "empty map returns empty IP",
+			nodeAZ:     "us-west-2a",
+			nodeAZId:   "usw2-az1",
+			ipMap:      map[string]string{},
+			expectedIP: "",
+		},
+		{
+			name:       "AZ ID match",
+			nodeAZ:     "us-west-2a",
+			nodeAZId:   "usw2-az1",
+			ipMap:      map[string]string{"usw2-az1": "10.0.1.1", "usw2-az2": "10.0.2.1"},
+			expectedIP: "10.0.1.1",
+		},
+		{
+			name:       "AZ ID match wins over AZ name match",
+			nodeAZ:     "us-west-2a",
+			nodeAZId:   "usw2-az2",
+			ipMap:      map[string]string{"us-west-2a": "10.0.1.1", "usw2-az2": "10.0.2.1"},
+			expectedIP: "10.0.2.1",
+		},
+		{
+			name:       "AZ name match when AZ ID does not match",
+			nodeAZ:     "us-west-2a",
+			nodeAZId:   "usw2-az9",
+			ipMap:      map[string]string{"us-west-2a": "10.0.1.1", "us-west-2b": "10.0.2.1"},
+			expectedIP: "10.0.1.1",
+		},
+		{
+			name:       "no match falls back to first sorted key",
+			nodeAZ:     "us-west-2d",
+			nodeAZId:   "usw2-az4",
+			ipMap:      map[string]string{"usw2-az3": "10.0.3.1", "usw2-az2": "10.0.2.1", "usw2-az1": "10.0.1.1"},
+			expectedIP: "10.0.1.1",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			m := &mockMetadata{availabilityZone: tc.nodeAZ, availabilityZoneId: tc.nodeAZId}
+			// Run several times: the fallback must not depend on map iteration order.
+			for i := 0; i < 20; i++ {
+				if got := selectMountTargetIPFromMap(tc.ipMap, m); got != tc.expectedIP {
+					t.Fatalf("selectMountTargetIPFromMap() = %q, want %q", got, tc.expectedIP)
+				}
+			}
+		})
+	}
 }

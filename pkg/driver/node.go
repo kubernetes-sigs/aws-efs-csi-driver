@@ -27,6 +27,7 @@ import (
 	"path"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -170,8 +171,9 @@ func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 			mountOptions = append(mountOptions, MountTargetIp+"="+v)
 		case MountTargetIpMap:
 			// Parse the AZ→IP map passed from the controller and select the mount target
-			// IP for this node's AZ. If no mount target exists in this AZ, fall back to
-			// any available mount target.
+			// IP for this node's AZ. The map is keyed by AZ ID; maps created by older
+			// driver versions are keyed by AZ name, so fall back to the node's AZ name.
+			// If no mount target exists in this AZ, fall back to the first AZ in sorted order.
 			var ipMap map[string]string
 			if err := json.Unmarshal([]byte(v), &ipMap); err != nil {
 				return nil, status.Errorf(codes.InvalidArgument, "Failed to parse %s: %v", MountTargetIpMap, err)
@@ -184,18 +186,9 @@ func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 					return nil, status.Errorf(codes.InvalidArgument, "Volume context property %q has an invalid IP address %q for availability zone %q", k, ip, az)
 				}
 			}
-			nodeAZ := d.cloud.GetMetadata().GetAvailabilityZone()
-			if ip, ok := ipMap[nodeAZ]; ok {
+			if ip := selectMountTargetIPFromMap(ipMap, d.cloud.GetMetadata()); ip != "" {
 				resolvedMountTargetIP = ip
 				mountOptions = append(mountOptions, MountTargetIp+"="+ip)
-			} else {
-				// No mount target in this node's AZ; pick any available one as fallback.
-				for az, ip := range ipMap {
-					klog.Warningf("No mount target IP for node AZ %s, falling back to AZ %s (IP %s)", nodeAZ, az, ip)
-					resolvedMountTargetIP = ip
-					mountOptions = append(mountOptions, MountTargetIp+"="+ip)
-					break
-				}
 			}
 		case CrossAccount:
 			var err error
@@ -935,4 +928,32 @@ func getVolumeAttachLimit(volumeAttachLimitOptIn bool, volumeAttachLimit int64) 
 
 	klog.V(4).Infof("VolumeAttachLimit is manually set to %d", volumeAttachLimit)
 	return volumeAttachLimit
+}
+
+// selectMountTargetIPFromMap returns the mount target IP for the node's AZ from an AZ→IP map.
+// Lookup order: node AZ ID, node AZ name (maps created by older driver versions), then the
+// first key in sorted order so the fallback is deterministic. Returns "" if the map is empty.
+func selectMountTargetIPFromMap(ipMap map[string]string, m cloud.MetadataService) string {
+	nodeAZId := m.GetAvailabilityZoneId()
+	nodeAZ := m.GetAvailabilityZone()
+	if ip, ok := ipMap[nodeAZId]; ok && nodeAZId != "" {
+		klog.V(2).Infof("Selected mount target IP %s by AZ ID %s", ip, nodeAZId)
+		return ip
+	}
+	if ip, ok := ipMap[nodeAZ]; ok && nodeAZ != "" {
+		klog.V(2).Infof("Selected mount target IP %s by AZ name %s", ip, nodeAZ)
+		return ip
+	}
+	if len(ipMap) == 0 {
+		return ""
+	}
+	keys := make([]string, 0, len(ipMap))
+	for k := range ipMap {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	ip := ipMap[keys[0]]
+	klog.Warningf("No mount target IP for node AZ ID %q or AZ name %q, falling back to %s (IP %s)", nodeAZId, nodeAZ, keys[0], ip)
+	klog.V(2).Infof("Selected mount target IP %s by fallback to %s", ip, keys[0])
+	return ip
 }

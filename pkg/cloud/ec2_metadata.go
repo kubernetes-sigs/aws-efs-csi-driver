@@ -3,8 +3,11 @@ package cloud
 import (
 	"context"
 	"fmt"
+	"io"
+	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/feature/ec2/imds"
+	"k8s.io/klog/v2"
 )
 
 type EC2Metadata interface {
@@ -34,9 +37,35 @@ func (e ec2MetadataProvider) getMetadata() (MetadataService, error) {
 		return nil, fmt.Errorf("could not get valid EC2 availavility zone")
 	}
 
+	// The instance identity document does not include the AZ ID, so read it from IMDS directly.
+	// It is not fatal if it is missing: callers fall back to the AZ name.
+	azId, err := e.getAvailabilityZoneId()
+	if err != nil {
+		klog.Warningf("could not get EC2 availability zone id: %v", err)
+	}
+
 	return &metadata{
-		instanceID:       doc.InstanceID,
-		region:           doc.Region,
-		availabilityZone: doc.AvailabilityZone,
+		instanceID:         doc.InstanceID,
+		region:             doc.Region,
+		availabilityZone:   doc.AvailabilityZone,
+		availabilityZoneId: azId,
 	}, nil
+}
+
+func (e ec2MetadataProvider) getAvailabilityZoneId() (string, error) {
+	output, err := e.ec2MetadataService.GetMetadata(context.TODO(), &imds.GetMetadataInput{
+		Path: "placement/availability-zone-id",
+	})
+	if err != nil {
+		return "", err
+	}
+	if output == nil || output.Content == nil {
+		return "", fmt.Errorf("empty response for placement/availability-zone-id")
+	}
+	defer output.Content.Close()
+	content, err := io.ReadAll(output.Content)
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(string(content)), nil
 }
