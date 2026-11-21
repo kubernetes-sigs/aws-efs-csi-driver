@@ -100,6 +100,17 @@ The static PV does not accept an `az` key — to pin a static cross-account PV t
 If you want to pass any other mountOptions to Amazon EFS CSI driver while mounting, they can be passed in through the Persistent Volume or the Storage Class objects, depending on whether static or dynamic provisioning is used. The following are examples of some mountOptions that can be passed:
 * **lookupcache**: Specifies how the kernel manages its cache of directory entries for a given mount point. Mode can be one of all, none, pos, or positive. Each mode has different functions and for more information you can refer to this [link](https://linux.die.net/man/5/nfs).
 * **iam**: Use the CSI Node Pod's IAM identity to authenticate with Amazon EFS.
+* **workloadiam**: Use the IAM role associated with the service account of the pod mounting the EFS volume. See [Mount with the workload's IAM role](#mount-with-the-workloads-iam-role).
+
+### Mount with the workload's IAM role
+
+Enable `node.workloadIdentity.enabled` in Helm on Kubernetes 1.35 or newer with `CSIServiceAccountTokenSecrets` enabled. The chart configures kubelet to pass a pod-bound AWS STS token in the CSI secrets field and periodically send a fresh token. The node plugin reads the role ARN from the workload's `eks.amazonaws.com/role-arn` service account annotation.
+
+Configure the role to trust your cluster's OIDC provider. Scope the role's trust policy to audience `sts.amazonaws.com` and subject `system:serviceaccount:<namespace>:<service-account>`. Allow the role to mount the file system with `elasticfilesystem:ClientMount`, and grant `elasticfilesystem:ClientWrite` if the workload needs write access. For cross-account mounts, grant access in both the role's permissions policy and the EFS file system policy. Configure the file system policy to require IAM authorization if the workload role is an access boundary.
+
+Set `mountOptions: [workloadiam]` on a static PersistentVolume or on the StorageClass for a dynamically provisioned volume. This option enables IAM authentication and requires encryption in transit. The driver fails the mount if it cannot use the workload role. For existing volumes, unmount and remount to change the IAM role. Unmount all volumes using `workloadiam` before disabling the feature so kubelet can continue to deliver tokens while those mounts are active.
+
+Use a driver image built with the strict web-identity support in the bundled `efs-utils`. The Helm chart grants the node plugin `get` access to service accounts so it can look up their role annotations. Control which workloads may use an annotated service account through your Kubernetes admission policy.
 
 ### Default Mount Options
 When using the EFS CSI driver, be aware that the `noresvport` mount option is enabled by default. This means the client can use any available source port for communication, not just the reserved ports.

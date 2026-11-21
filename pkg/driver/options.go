@@ -47,6 +47,7 @@ type Options struct {
 	ClusterTagKey                   *string
 	ClusterTagIsolation             *string
 	ExtraTags                       *string
+	WorkloadIdentity                *bool
 
 	efsUtilsConfOverridesParsed     []ConfOverride
 	s3filesUtilsConfOverridesParsed []ConfOverride
@@ -67,6 +68,7 @@ func NewOptions() *Options {
 		DeleteAccessPointRootDir: flag.Bool("delete-access-point-root-dir", false,
 			"Opt in to delete access point root directory by DeleteVolume. By default, DeleteVolume will delete the access point behind Persistent Volume and deleting access point will not delete the access point root directory or its contents."),
 		AdaptiveRetryMode:               flag.Bool("adaptive-retry-mode", true, "Opt out to use standard sdk retry configuration. By default, adaptive retry mode will be used to more heavily client side rate limit EFS API requests."),
+		WorkloadIdentity:                flag.Bool("workload-identity", false, "Allow EFS mounts that use the workload pod's service account token"),
 		Tags:                            flag.String("tags", "", "Deprecated: use --extra-tags. Space separated key:value pairs which will be added as tags for EFS resources. For example, 'environment:prod region:us-east-1'. Overrides the default efs.csi.aws.com/cluster tag. Merged with --extra-tags; the same key with different values fails at startup."),
 		MaxInflightMountCallsOptIn:      flag.Bool("max-inflight-mount-calls-opt-in", false, "Opt in to use max inflight mount calls limit."),
 		MaxInflightMountCalls:           flag.Int64("max-inflight-mount-calls", UnsetMaxInflightMountCounts, "New NodePublishVolume operation will be blocked if maximum number of inflight calls is reached. If maxInflightMountCallsOptIn is true, it has to be set to a positive value."),

@@ -1,0 +1,323 @@
+diff --git a/src/efs_utils_common/aws_credentials.py b/src/efs_utils_common/aws_credentials.py
+index 1e3a71b..7ef688b 100644
+--- a/src/efs_utils_common/aws_credentials.py
++++ b/src/efs_utils_common/aws_credentials.py
+@@ -10,6 +10,7 @@
+ import logging
+ import os
+ from datetime import datetime
++from http.client import HTTPException
+
+ try:
+     from configparser import ConfigParser, NoOptionError, NoSectionError
+@@ -89,6 +90,7 @@ def get_aws_security_credentials(
+     aws_creds_uri=None,
+     jwt_path=None,
+     role_arn=None,
++    require_web_identity=False,
+ ):
+     """
+     Lookup AWS security credentials. Adapted credentials provider chain from:
+@@ -103,6 +105,11 @@ def get_aws_security_credentials(
+     if not use_iam:
+         return None, None
+
++    if require_web_identity:
++        return get_aws_security_credentials_from_webidentity(
++            config, role_arn, jwt_path, region, is_fatal=True
++        )
++
+     # attempt to lookup AWS security credentials through the credentials URI the ECS agent generated
+     if aws_creds_uri:
+         return get_aws_security_credentials_from_ecs(config, aws_creds_uri, True)
+@@ -257,27 +264,34 @@ def get_aws_security_credentials_from_webidentity(
+         "Unable to reach %s to retrieve AWS security credentials. See %s for more info."
+         % (sts_endpoint_url, SECURITY_CREDS_WEBIDENTITY_HELP_URL)
+     )
+-    resp = url_request_helper(
+-        config,
+-        webidentity_url,
+-        unsuccessful_resp,
+-        url_error_msg,
+-        headers={"Accept": "application/json"},
+-    )
+-
+-    if resp:
+-        creds = (
+-            resp.get("AssumeRoleWithWebIdentityResponse", {})
+-            .get("AssumeRoleWithWebIdentityResult", {})
+-            .get("Credentials", {})
++    try:
++        resp = url_request_helper(
++            config,
++            webidentity_url,
++            unsuccessful_resp,
++            url_error_msg,
++            headers={"Accept": "application/json"},
+         )
+-        if all(k in creds for k in ["AccessKeyId", "SecretAccessKey", "SessionToken"]):
+-            return {
+-                "AccessKeyId": creds["AccessKeyId"],
+-                "SecretAccessKey": creds["SecretAccessKey"],
+-                "Token": creds["SessionToken"],
+-                "Expiration": creds.get("Expiration"),
+-            }, "webidentity:" + ",".join([role_arn, token_file])
++    except (HTTPException, OSError, UnicodeError, LookupError) as e:
++        logging.debug("%s (%s)", url_error_msg, type(e).__name__)
++        resp = None
++
++    for key in (
++        "AssumeRoleWithWebIdentityResponse",
++        "AssumeRoleWithWebIdentityResult",
++        "Credentials",
++    ):
++        resp = resp.get(key) if isinstance(resp, dict) else None
++    if isinstance(resp, dict) and all(
++        isinstance(resp.get(key), str) and resp[key]
++        for key in ("AccessKeyId", "SecretAccessKey", "SessionToken")
++    ):
++        return {
++            "AccessKeyId": resp["AccessKeyId"],
++            "SecretAccessKey": resp["SecretAccessKey"],
++            "Token": resp["SessionToken"],
++            "Expiration": resp.get("Expiration"),
++        }, "webidentity:" + ",".join([role_arn, token_file])
+
+     # Fail if credentials cannot be fetched from the given aws_creds_uri
+     if is_fatal:
+diff --git a/src/efs_utils_common/constants.py b/src/efs_utils_common/constants.py
+index 6cce97f..9078b57 100644
+--- a/src/efs_utils_common/constants.py
++++ b/src/efs_utils_common/constants.py
+@@ -180,6 +180,7 @@ NON_NFS_OPTIONS = [
+     "verify",
+     "rolearn",
+     "jwtpath",
++    "requirewebidentity",
+     "crossaccount",
+     LEGACY_STUNNEL_MOUNT_OPTION,
+     NFS_MOUNT_OPTION,
+diff --git a/src/efs_utils_common/metadata.py b/src/efs_utils_common/metadata.py
+index 2e609eb..44b223b 100644
+--- a/src/efs_utils_common/metadata.py
++++ b/src/efs_utils_common/metadata.py
+@@ -503,6 +503,7 @@ def _url_request_once(
+     outage = False
+     token_failures = []
+     try:
++        display_url = url.partition("?")[0]
+         req = Request(url)
+         for k, v in headers.items():
+             req.add_header(k, v)
+@@ -525,7 +526,7 @@ def _url_request_once(
+
+         request_resp = urlopen(req, timeout=timeout)
+
+-        return get_resp_obj(request_resp, url, unsuccessful_resp), False
++        return get_resp_obj(request_resp, display_url, unsuccessful_resp), False
+     except socket.timeout:
+         err_msg = "Request timeout"
+     except HTTPError as e:
+@@ -548,13 +549,13 @@ def _url_request_once(
+                 % (url, DISABLE_FETCH_EC2_METADATA_TOKEN_ITEM, get_config_file_path())
+             )
+         err_msg = "Unable to reach the url at %s: status=%d, reason is %s" % (
+-            url,
++            display_url,
+             e.code,
+             e.reason,
+         )
+     except URLError as e:
+         outage = _is_imds_outage(e)
+-        err_msg = "Unable to reach the url at %s, reason is %s" % (url, e.reason)
++        err_msg = "Unable to reach the url at %s, reason is %s" % (display_url, e.reason)
+     except ConnectionResetError as e:
+         # A reset mid-response, including http.client.RemoteDisconnected; raised as before unless IMDS.
+         if not is_instance_metadata_url(url):
+diff --git a/src/efs_utils_common/mount_options.py b/src/efs_utils_common/mount_options.py
+index d53bceb..f290d38 100644
+--- a/src/efs_utils_common/mount_options.py
++++ b/src/efs_utils_common/mount_options.py
+@@ -7,6 +7,9 @@
+ # the License.
+
+
++import re
++from urllib.parse import unquote_plus
++
+ from efs_utils_common.constants import (
+     AP_REGEX_PATTERN,
+     JWTPATH_REGEX_PATTERN,
+@@ -113,6 +116,20 @@ def get_nfs_mount_options(options, config):
+
+
+ def check_unsupported_options(options):
++    if "requirewebidentity" in options and (
++        "tls" not in options
++        or "iam" not in options
++        or not options.get("requirewebidentity")
++        or not options.get("jwtpath")
++        or "rolearn" in options
++        or "awscredsuri" in options
++        or "awsprofile" in options
++    ):
++        fatal_error(
++            "requirewebidentity requires an escaped role ARN, tls, iam, and jwtpath, "
++            "with no alternative credential source"
++        )
++
+     all_unsupported_options = UNSUPPORTED_OPTIONS[:]
+     context = MountContext()
+     if len(context.unsupported_options) > 0:
+@@ -192,6 +209,14 @@ def check_options_validity(options):
+         if not ROLEARN_REGEX_PATTERN.match(options["rolearn"]):
+             fatal_error("rolearn %s is malformed" % options["rolearn"])
+
++    if "requirewebidentity" in options:
++        role_arn = unquote_plus(options.get("requirewebidentity") or "")
++        if not re.fullmatch(
++            r"arn:aws[a-z0-9-]*:iam::[0-9]{12}:role/([!-~]+/)?[A-Za-z0-9_+=,.@-]{1,64}",
++            role_arn,
++        ):
++            fatal_error("The escaped role ARN in requirewebidentity is malformed")
++
+     if options.get("jwtpath") is not None:
+         if not JWTPATH_REGEX_PATTERN.match(options["jwtpath"]):
+             fatal_error("jwtpath %s is malformed" % options["jwtpath"])
+diff --git a/src/efs_utils_common/proxy.py b/src/efs_utils_common/proxy.py
+index 6f3334c..53b9e76 100644
+--- a/src/efs_utils_common/proxy.py
++++ b/src/efs_utils_common/proxy.py
+@@ -15,6 +15,7 @@ import subprocess
+ import sys
+ import time
+ from contextlib import contextmanager
++from urllib.parse import unquote_plus
+
+ try:
+     from configparser import NoOptionError, NoSectionError
+@@ -1091,7 +1092,13 @@ def bootstrap_proxy(
+                 aws_creds_uri = options.get("awscredsuri")
+                 role_arn = options.get("rolearn")
+                 jwt_path = options.get("jwtpath")
+-                if aws_creds_uri:
++                if "requirewebidentity" in options:
++                    kwargs = {
++                        "role_arn": unquote_plus(options["requirewebidentity"]),
++                        "jwt_path": jwt_path,
++                        "require_web_identity": True,
++                    }
++                elif aws_creds_uri:
+                     kwargs = {"aws_creds_uri": aws_creds_uri}
+                 elif role_arn and jwt_path:
+                     kwargs = {"role_arn": role_arn, "jwt_path": jwt_path}
+diff --git a/src/watchdog/__init__.py b/src/watchdog/__init__.py
+index 47ae5b0..325560f 100755
+--- a/src/watchdog/__init__.py
++++ b/src/watchdog/__init__.py
+@@ -28,6 +28,7 @@ import time
+ from collections import namedtuple
+ from contextlib import contextmanager
+ from datetime import datetime, timedelta, timezone
++from http.client import HTTPException
+ from logging.handlers import RotatingFileHandler
+ from signal import SIGHUP, SIGKILL, SIGTERM
+ from typing import Optional
+@@ -300,7 +301,8 @@ def get_aws_security_credentials(
+         role_arn: str
+         token_file: str
+         try:
+-            role_arn, token_file = value.split(",")
++            # The role name can contain a comma. The CSI driver controls the token path.
++            role_arn, token_file = value.rsplit(",", 1)
+         except ValueError:
+             logging.error(
+                 'Improper webidentity credentials source "%s" found from mount state file',
+@@ -607,27 +609,34 @@ def get_aws_security_credentials_from_webidentity(
+         "Unable to reach %s to retrieve AWS security credentials. See %s for more info."
+         % (sts_endpoint_url, SECURITY_CREDS_WEBIDENTITY_HELP_URL)
+     )
+-    resp = url_request_helper(
+-        config,
+-        webidentity_url,
+-        unsuccessful_resp,
+-        url_error_msg,
+-        headers={"Accept": "application/json"},
+-    )
+-
+-    if resp:
+-        creds = (
+-            resp.get("AssumeRoleWithWebIdentityResponse", {})
+-            .get("AssumeRoleWithWebIdentityResult", {})
+-            .get("Credentials", {})
+-        )
+-        if all(k in creds for k in ["AccessKeyId", "SecretAccessKey", "SessionToken"]):
+-            return {
+-                "AccessKeyId": creds["AccessKeyId"],
+-                "SecretAccessKey": creds["SecretAccessKey"],
+-                "Token": creds["SessionToken"],
+-                "Expiration": creds.get("Expiration"),
+-            }
++    try:
++        resp = url_request_helper(
++            config,
++            webidentity_url,
++            unsuccessful_resp,
++            url_error_msg,
++            headers={"Accept": "application/json"},
++        )
++    except (HTTPException, OSError, UnicodeError, LookupError) as e:
++        logging.debug("%s (%s)", url_error_msg, type(e).__name__)
++        resp = None
++
++    for key in (
++        "AssumeRoleWithWebIdentityResponse",
++        "AssumeRoleWithWebIdentityResult",
++        "Credentials",
++    ):
++        resp = resp.get(key) if isinstance(resp, dict) else None
++    if isinstance(resp, dict) and all(
++        isinstance(resp.get(key), str) and resp[key]
++        for key in ("AccessKeyId", "SecretAccessKey", "SessionToken")
++    ):
++        return {
++            "AccessKeyId": resp["AccessKeyId"],
++            "SecretAccessKey": resp["SecretAccessKey"],
++            "Token": resp["SessionToken"],
++            "Expiration": resp.get("Expiration"),
++        }
+
+     return None
+
+@@ -797,6 +806,7 @@ def is_instance_metadata_url(url):
+
+ def url_request_helper(config, url, unsuccessful_resp, url_error_msg, headers={}):
+     try:
++        display_url = url.partition("?")[0]
+         req = Request(url)
+         for k, v in headers.items():
+             req.add_header(k, v)
+@@ -817,7 +827,7 @@ def url_request_helper(config, url, unsuccessful_resp, url_error_msg, headers={}
+
+         request_resp = urlopen(req, timeout=timeout)
+
+-        return get_resp_obj(request_resp, url, unsuccessful_resp)
++        return get_resp_obj(request_resp, display_url, unsuccessful_resp)
+     except socket.timeout:
+         err_msg = "Request timeout"
+     except HTTPError as e:
+@@ -834,12 +844,12 @@ def url_request_helper(config, url, unsuccessful_resp, url_error_msg, headers={}
+                 % (url, DISABLE_FETCH_EC2_METADATA_TOKEN_ITEM, CONFIG_FILE)
+             )
+         err_msg = "Unable to reach the url at %s: status=%d, reason is %s" % (
+-            url,
++            display_url,
+             e.code,
+             e.reason,
+         )
+     except URLError as e:
+-        err_msg = "Unable to reach the url at %s, reason is %s" % (url, e.reason)
++        err_msg = "Unable to reach the url at %s, reason is %s" % (display_url, e.reason)
+
+     if err_msg:
+         logging.debug("%s %s", url_error_msg, err_msg)

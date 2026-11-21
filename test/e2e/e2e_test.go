@@ -44,6 +44,9 @@ var (
 	// Upgrade test flags
 	upgradeNewImageTag  string
 	upgradeNewImageRepo string
+
+	workloadIAMAllowedRoleARN string
+	workloadIAMDeniedRoleARN  string
 )
 
 func init() {
@@ -82,6 +85,8 @@ func init() {
 	flag.StringVar(&CrossAccountSecretCrossaccountMode, "cross-account-secret-crossaccount-mode", "", "value of the crossaccount field in the pre-configured cross-account secret ('true' or unset). When 'true', static PV tests use crossaccount=true (requires Route 53 AZ-specific zones); otherwise, tests use mounttargetip")
 	flag.StringVar(&upgradeNewImageTag, "upgrade-new-image-tag", "", "image tag of the new driver version for upgrade tests")
 	flag.StringVar(&upgradeNewImageRepo, "upgrade-new-image-repo", "", "image repository of the new driver version for upgrade tests (defaults to upgrade-old-image-repo)")
+	flag.StringVar(&workloadIAMAllowedRoleARN, "workload-iam-allowed-role-arn", "", "role that trusts the test service account and can mount the EFS file system")
+	flag.StringVar(&workloadIAMDeniedRoleARN, "workload-iam-denied-role-arn", "", "role that trusts the test service account and is denied by the EFS file system policy")
 	flag.Parse()
 
 	var err error

@@ -43,12 +43,18 @@ FROM public.ecr.aws/eks-distro-build-tooling/python:3.11-gcc-al23 as rpm-provide
 #   docker build --build-arg EFSUTILSSOURCE=local .
 ARG EFSUTILSSOURCE=github
 COPY efs-utils.tar.gz* /tmp/efs-utils-local/
-RUN mkdir -p /tmp/rpms && \
+# Keep workload IAM mounts on the requested role even when STS rejects the token.
+COPY hack/efs-utils-require-web-identity.patch /tmp/
+RUN apply_efs_utils_patch() { \
+      patch --reverse --force --dry-run --silent --fuzz=0 -p1 < /tmp/efs-utils-require-web-identity.patch > /dev/null 2>&1 || \
+      patch --batch --forward --fuzz=0 -p1 < /tmp/efs-utils-require-web-identity.patch; \
+    } && \
+    mkdir -p /tmp/rpms && \
     if [ "$EFSUTILSSOURCE" != "github" ] && [ "$EFSUTILSSOURCE" != "local" ]; \
     then echo "Unsupported EFSUTILSSOURCE=$EFSUTILSSOURCE: use github (default) or local" && exit 1; \
     elif [ "$EFSUTILSSOURCE" = "local" ]; \
     then echo "Installing efs-utils from local tarball" && \
-         yum -y install systemd rpm-build make openssl-devel golang cmake && \
+         yum -y install systemd rpm-build make openssl-devel golang cmake patch && \
          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y && \
          source $HOME/.cargo/env && \
          rustup update && \
@@ -56,11 +62,12 @@ RUN mkdir -p /tmp/rpms && \
          mkdir -p /tmp/efs-utils-src && \
          tar -xzf /tmp/efs-utils-local/efs-utils.tar.gz -C /tmp/efs-utils-src --strip-components=1 && \
          cd /tmp/efs-utils-src && \
+         apply_efs_utils_patch && \
          make rpm-without-system-rust && mv build/amazon-efs-utils*rpm /tmp/rpms && \
          cd / && rm -rf /tmp/efs-utils-src /tmp/efs-utils-local && \
          yum clean all; \
     else echo "Installing efs-utils from github using the highest release tag" && \
-         yum -y install systemd git rpm-build make openssl-devel curl golang cmake && \
+         yum -y install systemd git rpm-build make openssl-devel curl golang cmake patch && \
          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y && \
          source $HOME/.cargo/env && \
          rustup update && \
@@ -74,6 +81,7 @@ RUN mkdir -p /tmp/rpms && \
          if [ -z "$EFS_UTILS_TAG" ]; then echo "No vX.Y.Z release tag found in aws/efs-utils" && exit 1; fi && \
          echo "Building efs-utils $EFS_UTILS_TAG" && \
          git checkout "$EFS_UTILS_TAG" && \
+         apply_efs_utils_patch && \
          make rpm-without-system-rust && mv build/amazon-efs-utils*rpm /tmp/rpms && \
          # clean up efs-utils folder after install
          cd .. && rm -rf efs-utils && \
