@@ -17,3 +17,31 @@ tests:
           path: metadata.annotations
           value:
             helm.sh/resource-policy: keep
+
+  - it: requests AWS STS tokens in secrets and enables republishing when workload identity is enabled
+    capabilities:
+      majorVersion: "1"
+      minorVersion: "35"
+    set:
+      node.workloadIdentity.enabled: true
+    asserts:
+      - equal:
+          path: spec
+          value:
+            attachRequired: false
+            podInfoOnMount: true
+            requiresRepublish: true
+            serviceAccountTokenInSecrets: true
+            tokenRequests:
+              - audience: sts.amazonaws.com
+                expirationSeconds: 3600
+
+  - it: rejects workload identity on Kubernetes versions without CSI token secrets
+    capabilities:
+      majorVersion: "1"
+      minorVersion: "34"
+    set:
+      node.workloadIdentity.enabled: true
+    asserts:
+      - failedTemplate:
+          errorMessage: node.workloadIdentity.enabled requires Kubernetes 1.35 or newer

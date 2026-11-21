@@ -270,6 +270,10 @@ node:
     #   memory: 128Mi
   revisionHistoryLimit: 10
   nodeSelector: {}
+  # Allows EFS volumes with mountOptions: [workloadiam] to use the mounting
+  # pod's IAM role. Requires Kubernetes 1.35+ with CSIServiceAccountTokenSecrets.
+  workloadIdentity:
+    enabled: false
   tolerations:
     - operator: Exists
   affinity:
