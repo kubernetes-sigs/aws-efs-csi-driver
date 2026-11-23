@@ -12,6 +12,7 @@ For most highly concurrent workloads, we recommend increasing the default timeou
 * The node DaemonSet uses the `RollingUpdate` strategy by default. Set [rolling update](https://kubernetes.io/docs/tasks/manage-daemon/update-daemon-set/) parameters such as `maxUnavailable` and `maxSurge` with `node.rollingUpdate`.
 * To use another strategy, set the full DaemonSet `updateStrategy` with `node.updateStrategy`, for example `type: OnDelete`. `node.updateStrategy` and `node.rollingUpdate` cannot both be set.
 * With `OnDelete`, a change to the node pod spec, such as new resource requests or a new image, does not restart running `efs-csi-node` pods. A node gets the new pod only when its `efs-csi-node` pod is deleted, for example when the node is replaced. This keeps existing mounts running, and nodes provisioned afterwards are sized for the new requests. Nodes that are not replaced keep running the old version.
+* Chart versions 3.4.1 and older also had `node.updateStrategy`, with the same meaning. Chart 4.0.0 removed it, and chart versions 4.0.0 to 4.6.0 ignore it. If your values file still contains `node.updateStrategy` from an older chart, it takes effect again after an upgrade to this version. Remove it, or check that it is the strategy you want, before you upgrade. If it is set together with `node.rollingUpdate`, the upgrade fails with an error.
 
 ## Efs-proxy OOMKilled under heavy NFS write workloads
 
