@@ -9,8 +9,9 @@ Alternatively, if you would prefer not to allocate these resources to your contr
 For most highly concurrent workloads, we recommend increasing the default timeout argument set in the [external-provisioner](https://github.com/kubernetes-csi/external-provisioner) from 15 seconds to 60 seconds. This will avoid provisioning failures due to throttling and resource contention in the controller container. 
 
 ## Update Strategy
-* Amazon EFS CSI driver uses the `RollingUpdate` strategy and only allows you to configure parameters under [rolling update](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#rolling-update-deployment), such as `maxUnavailable` and `maxSurge`.
-* Changing the update strategy (e.g. to `OnDelete`) is not supported.
+* The node DaemonSet uses the `RollingUpdate` strategy by default. Set [rolling update](https://kubernetes.io/docs/tasks/manage-daemon/update-daemon-set/) parameters such as `maxUnavailable` and `maxSurge` with `node.rollingUpdate`.
+* To use another strategy, set the full DaemonSet `updateStrategy` with `node.updateStrategy`, for example `type: OnDelete`. `node.updateStrategy` and `node.rollingUpdate` cannot both be set.
+* With `OnDelete`, a change to the node pod spec, such as new resource requests or a new image, does not restart running `efs-csi-node` pods. A node gets the new pod only when its `efs-csi-node` pod is deleted, for example when the node is replaced. This keeps existing mounts running, and nodes provisioned afterwards are sized for the new requests. Nodes that are not replaced keep running the old version.
 
 ## Efs-proxy OOMKilled under heavy NFS write workloads
 

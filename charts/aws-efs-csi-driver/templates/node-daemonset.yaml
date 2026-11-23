@@ -13,7 +13,13 @@ spec:
   {{- if or (kindIs "float64" .Values.node.revisionHistoryLimit) (kindIs "int64" .Values.node.revisionHistoryLimit) }}
   revisionHistoryLimit: {{ .Values.node.revisionHistoryLimit }}
   {{- end }}
-  {{- if .Values.node.rollingUpdate }}
+  {{- if and .Values.node.updateStrategy .Values.node.rollingUpdate }}
+  {{- fail "node.updateStrategy and node.rollingUpdate cannot both be set; put the rollingUpdate settings under node.updateStrategy.rollingUpdate" }}
+  {{- end }}
+  {{- if .Values.node.updateStrategy }}
+  updateStrategy:
+    {{- toYaml .Values.node.updateStrategy | nindent 4 }}
+  {{- else if .Values.node.rollingUpdate }}
   updateStrategy: 
     type: RollingUpdate
     rollingUpdate:

@@ -333,7 +333,13 @@ node:
   volumeMounts: []
   kubeletPath: /var/lib/kubelet
 
-  # rollingUpdate for node deamonset updateStrategy.
+  # updateStrategy for the node DaemonSet, rendered as is. Cannot be set together with
+  # node.rollingUpdate. With OnDelete, a change to the node pod spec (for example new
+  # resource requests) does not restart running pods. Each node gets the new pod when its
+  # efs-csi-node pod is deleted, for example when the node is replaced.
+  updateStrategy: {}
+  #  type: OnDelete
+  # rollingUpdate for node deamonset updateStrategy. Renders type: RollingUpdate.
   rollingUpdate: {}
   #  maxSurge: 0
   #  maxUnavailable: 20%
