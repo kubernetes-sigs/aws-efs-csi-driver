@@ -299,3 +299,72 @@ tests:
           content:
             name: extra
             mountPath: /extra
+
+  - it: enables the registrar health endpoint and liveness probe on 127.0.0.1 by default
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[?(@.name == "csi-driver-registrar")].args
+          content: --http-endpoint=127.0.0.1:9810
+      - equal:
+          path: spec.template.spec.containers[?(@.name == "csi-driver-registrar")].livenessProbe.httpGet
+          value:
+            host: 127.0.0.1
+            path: /healthz
+            port: 9810
+      - equal:
+          path: spec.template.spec.containers[?(@.name == "csi-driver-registrar")].livenessProbe.failureThreshold
+          value: 3
+      - equal:
+          path: spec.template.spec.containers[?(@.name == "csi-driver-registrar")].ports
+          value:
+            - name: registrar-hz
+              containerPort: 9810
+              protocol: TCP
+
+  - it: uses sidecars.nodeDriverRegistrar.healthPort for the registrar endpoint, port and probe
+    set:
+      sidecars:
+        nodeDriverRegistrar:
+          healthPort: 19810
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[?(@.name == "csi-driver-registrar")].args
+          content: --http-endpoint=127.0.0.1:19810
+      - equal:
+          path: spec.template.spec.containers[?(@.name == "csi-driver-registrar")].ports[0].containerPort
+          value: 19810
+      - equal:
+          path: spec.template.spec.containers[?(@.name == "csi-driver-registrar")].livenessProbe.httpGet.port
+          value: 19810
+
+  # Assert the full list so that any --http-endpoint argument fails the test.
+  - it: turns off the registrar endpoint, port and probe when healthPort is 0
+    set:
+      node:
+        logLevel: 2
+      sidecars:
+        nodeDriverRegistrar:
+          healthPort: 0
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[?(@.name == "csi-driver-registrar")].args
+          value:
+            - --csi-address=$(ADDRESS)
+            - --kubelet-registration-path=$(DRIVER_REG_SOCK_PATH)
+            - --v=2
+      - notExists:
+          path: spec.template.spec.containers[?(@.name == "csi-driver-registrar")].ports
+      - notExists:
+          path: spec.template.spec.containers[?(@.name == "csi-driver-registrar")].livenessProbe
+
+  - it: keeps the registrar endpoint but turns off the probe when livenessProbe is null
+    set:
+      sidecars:
+        nodeDriverRegistrar:
+          livenessProbe: null
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[?(@.name == "csi-driver-registrar")].args
+          content: --http-endpoint=127.0.0.1:9810
+      - notExists:
+          path: spec.template.spec.containers[?(@.name == "csi-driver-registrar")].livenessProbe

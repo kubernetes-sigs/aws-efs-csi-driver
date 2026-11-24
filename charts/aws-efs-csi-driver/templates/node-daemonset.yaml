@@ -175,6 +175,17 @@ spec:
             - --csi-address=$(ADDRESS)
             - --kubelet-registration-path=$(DRIVER_REG_SOCK_PATH)
             - --v={{ .Values.node.logLevel }}
+            {{- with .Values.sidecars.nodeDriverRegistrar.healthPort }}
+            - --http-endpoint=127.0.0.1:{{ . }}
+            {{- end }}
+          {{- with .Values.sidecars.nodeDriverRegistrar.healthPort }}
+          # With hostNetwork this is a hostPort, so the scheduler keeps a second
+          # efs-csi-node pod off the node.
+          ports:
+            - name: registrar-hz
+              containerPort: {{ . }}
+              protocol: TCP
+          {{- end }}
           env:
             - name: ADDRESS
               value: /csi/csi.sock
@@ -189,6 +200,14 @@ spec:
               mountPath: /csi
             - name: registration-dir
               mountPath: /registration
+          {{- if and .Values.sidecars.nodeDriverRegistrar.healthPort .Values.sidecars.nodeDriverRegistrar.livenessProbe }}
+          livenessProbe:
+            httpGet:
+              host: 127.0.0.1
+              path: /healthz
+              port: {{ .Values.sidecars.nodeDriverRegistrar.healthPort }}
+            {{- toYaml .Values.sidecars.nodeDriverRegistrar.livenessProbe | nindent 12 }}
+          {{- end }}
           {{- with .Values.sidecars.nodeDriverRegistrar.resources }}
           resources: {{ toYaml . | nindent 12 }}
           {{- end }}

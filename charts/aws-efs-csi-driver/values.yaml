@@ -34,6 +34,17 @@ sidecars:
     securityContext:
       readOnlyRootFilesystem: true
       allowPrivilegeEscalation: false
+    # Registrar health endpoint (127.0.0.1:<healthPort>/healthz), also declared as a
+    # hostPort, so it must be free on the node. /healthz fails when the registration
+    # socket is missing or does not respond, and the liveness probe restarts the
+    # registrar. 0 turns off the endpoint, the port and the probe.
+    healthPort: 9810
+    # Registrar liveness probe. null turns off only the probe ({} is merged with these defaults).
+    livenessProbe:
+      initialDelaySeconds: 10
+      timeoutSeconds: 3
+      periodSeconds: 10
+      failureThreshold: 3
   csiProvisioner:
     image:
       repository: public.ecr.aws/csi-components/csi-provisioner

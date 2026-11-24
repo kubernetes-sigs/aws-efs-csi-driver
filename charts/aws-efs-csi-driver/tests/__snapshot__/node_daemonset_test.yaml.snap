@@ -97,6 +97,7 @@ renders a daemonset with the default values:
                 - --csi-address=$(ADDRESS)
                 - --kubelet-registration-path=$(DRIVER_REG_SOCK_PATH)
                 - --v=2
+                - --http-endpoint=127.0.0.1:9810
               env:
                 - name: ADDRESS
                   value: /csi/csi.sock
@@ -108,7 +109,20 @@ renders a daemonset with the default values:
                       fieldPath: spec.nodeName
               image: public.ecr.aws/csi-components/csi-node-driver-registrar:v0.0.0
               imagePullPolicy: IfNotPresent
+              livenessProbe:
+                failureThreshold: 3
+                httpGet:
+                  host: 127.0.0.1
+                  path: /healthz
+                  port: 9810
+                initialDelaySeconds: 10
+                periodSeconds: 10
+                timeoutSeconds: 3
               name: csi-driver-registrar
+              ports:
+                - containerPort: 9810
+                  name: registrar-hz
+                  protocol: TCP
               securityContext:
                 allowPrivilegeEscalation: false
                 readOnlyRootFilesystem: true

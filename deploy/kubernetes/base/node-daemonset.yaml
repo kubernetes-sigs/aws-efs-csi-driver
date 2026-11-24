@@ -113,6 +113,11 @@ spec:
             - --csi-address=$(ADDRESS)
             - --kubelet-registration-path=$(DRIVER_REG_SOCK_PATH)
             - --v=2
+            - --http-endpoint=127.0.0.1:9810
+          ports:
+            - name: registrar-hz
+              containerPort: 9810
+              protocol: TCP
           env:
             - name: ADDRESS
               value: /csi/csi.sock
@@ -127,6 +132,15 @@ spec:
               mountPath: /csi
             - name: registration-dir
               mountPath: /registration
+          livenessProbe:
+            httpGet:
+              host: 127.0.0.1
+              path: /healthz
+              port: 9810
+            initialDelaySeconds: 10
+            timeoutSeconds: 3
+            periodSeconds: 10
+            failureThreshold: 3
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
