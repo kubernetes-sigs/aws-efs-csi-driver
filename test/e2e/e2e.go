@@ -436,6 +436,9 @@ func claimName(pv v1.PersistentVolume) string {
 var _ = ginkgo.Describe("[efs-csi]", func() {
 	f := framework.NewDefaultFramework("efs")
 	f.NamespacePodSecurityEnforceLevel = admissionapi.LevelPrivileged
+	ginkgo.It("should authorize EFS mounts by workload role and refresh the token", func(ctx ginkgo.SpecContext) {
+		testWorkloadIAM(ctx, f)
+	})
 	for _, config := range fileSystemTestConfigs {
 		config := config // Local copy
 		ginkgo.Context(fmt.Sprintf("[%s]", config.FSType), func() {

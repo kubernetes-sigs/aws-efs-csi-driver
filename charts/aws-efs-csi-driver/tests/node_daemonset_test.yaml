@@ -31,6 +31,14 @@ tests:
           path: spec.template.spec.containers[?(@.name == "efs-plugin")].image
           value: public.ecr.aws/efs-csi-driver/amazon/aws-efs-csi-driver:v0.0.0
 
+  - it: enables workload identity in the node plugin
+    set:
+      node.workloadIdentity.enabled: true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[?(@.name == "efs-plugin")].args
+          content: --workload-identity
+
   - it: forwards the optional node settings that are not in values.yaml
     set:
       node:

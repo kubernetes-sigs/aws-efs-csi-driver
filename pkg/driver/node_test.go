@@ -945,6 +945,13 @@ func TestNodeUnpublishVolume(t *testing.T) {
 		expectError         errtyp
 	}{
 		{
+			name: "fail: nil request",
+			expectError: errtyp{
+				code:    "InvalidArgument",
+				message: "Target path not provided",
+			},
+		},
+		{
 			name: "success: normal",
 			req: &csi.NodeUnpublishVolumeRequest{
 				VolumeId:   volumeId,
@@ -1048,14 +1055,17 @@ func TestNodeUnpublishVolume(t *testing.T) {
 
 // TestNodePublishUnpublishVolumeConcurrent exercises concurrent
 // NodePublishVolume and NodeUnpublishVolume calls (with volMetricsOptIn
-// enabled) to guard against concurrent map read/write panics on the
-// package-level volumeIdCounter map. Run with `go test -race` to verify
-// there is no data race.
+// and the mount limit enabled) to check that the volume metrics and mount
+// counters are safe to use concurrently. Run with `go test -race`.
 func TestNodePublishUnpublishVolumeConcurrent(t *testing.T) {
+	const numGoroutines = 50
+	const numVolumes = 5
+
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
-	mockMounter, driver, ctx := setup(mockCtrl, NewVolStatter(), true, UnsetMaxInflightMountCounts)
+	mockMounter, driver, ctx := setup(mockCtrl, NewVolStatter(), true, numGoroutines)
+	driver.metaDir = t.TempDir()
 
 	stdVolCap := &csi.VolumeCapability{
 		AccessType: &csi.VolumeCapability_Mount{
@@ -1072,9 +1082,6 @@ func TestNodePublishUnpublishVolumeConcurrent(t *testing.T) {
 	mockMounter.EXPECT().Mount(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 	mockMounter.EXPECT().GetDeviceName(gomock.Any()).Return("", 1, nil).AnyTimes()
 	mockMounter.EXPECT().Unmount(gomock.Any()).Return(nil).AnyTimes()
-
-	const numGoroutines = 50
-	const numVolumes = 5
 
 	var wg sync.WaitGroup
 	for i := 0; i < numGoroutines; i++ {
@@ -1985,9 +1992,9 @@ func TestNodePublishVolumeMountTargetIpMap(t *testing.T) {
 			expectedIP: "10.0.2.1",
 		},
 		{
-			name:       "node AZ not in map falls back to a random available AZ",
+			name:       "node AZ not in map falls back to the first available AZ in sorted order",
 			nodeAZ:     "us-west-2d",
-			ipMapJSON:  `{"us-west-2a":"10.0.1.1"}`,
+			ipMapJSON:  `{"us-west-2b":"10.0.2.1","us-west-2a":"10.0.1.1"}`,
 			expectedIP: "10.0.1.1",
 		},
 		{

@@ -56,8 +56,9 @@ type Driver struct {
 	clusterTag               clusterTagConfig
 	lockManager              LockManagerMap
 	inFlightMountTracker     *InFlightMountTracker
-	// inFlightUnpublish holds the target paths with a NodeUnpublishVolume in progress.
-	inFlightUnpublish        sync.Map
+	// inFlightTargetOps prevents unmounts and token updates from racing on the same target.
+	inFlightTargetOps        sync.Map
+	workloadIdentity         *workloadIdentity
 	volumeAttachLimit        int64
 	forceUnmountAfterTimeout bool
 	unmountTimeout           time.Duration
@@ -66,19 +67,27 @@ type Driver struct {
 }
 
 func NewDriver(options *Options, efsUtilsCfgPath string) *Driver {
-	cloud, err := cloud.NewCloud(*options.AdaptiveRetryMode)
+	awsCloud, err := cloud.NewCloud(*options.AdaptiveRetryMode)
 	if err != nil {
 		klog.Fatalln(err)
 	}
 
 	nodeCaps := SetNodeCapOptInFeatures(*options.VolMetricsOptIn)
 	watchdog := newExecWatchdog(efsUtilsCfgPath, *options.EfsUtilsStaticFilesPath, *options.DebugLogs, *options.EfsCloudWatchLogEnabled, *options.S3FilesCloudWatchLogEnabled, *options.S3FilesCloudWatchMetricsEnabled, options.efsUtilsConfOverridesParsed, options.s3filesUtilsConfOverridesParsed, "amazon-efs-mount-watchdog")
+	var workload *workloadIdentity
+	if options.WorkloadIdentity != nil && *options.WorkloadIdentity {
+		client, err := cloud.DefaultKubernetesAPIClient()
+		if err != nil {
+			klog.Fatalf("Workload identity requires access to the Kubernetes API: %v", err)
+		}
+		workload = &workloadIdentity{client: client.CoreV1(), tokenDir: workloadTokenDir}
+	}
 	return &Driver{
 		endpoint:                 *options.Endpoint,
-		nodeID:                   cloud.GetMetadata().GetInstanceID(),
+		nodeID:                   awsCloud.GetMetadata().GetInstanceID(),
 		mounter:                  newNodeMounter(),
 		efsWatchdog:              watchdog,
-		cloud:                    cloud,
+		cloud:                    awsCloud,
 		nodeCaps:                 nodeCaps,
 		volStatter:               NewVolStatter(),
 		volMetricsOptIn:          *options.VolMetricsOptIn,
@@ -95,6 +104,7 @@ func NewDriver(options *Options, efsUtilsCfgPath string) *Driver {
 		forceUnmountAfterTimeout: *options.ForceUnmountAfterTimeout,
 		unmountTimeout:           *options.UnmountTimeout,
 		metaDir:                  "/csi/mounts",
+		workloadIdentity:         workload,
 	}
 }
 

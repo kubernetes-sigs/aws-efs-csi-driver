@@ -28,6 +28,23 @@ The E2E flags that you can pass to `go test` are defined in [e2e_test.go](https:
 ### Running Cross-Account E2E Tests
 Cross-account tests verify EFS behaviors when the filesystem is in a different AWS account than the EKS cluster. The same standard e2e test suite runs against a cluster pre-configured with cross-account Secret and StorageClass.
 
+### Running the workload IAM test
+
+Install the local chart on a test cluster with workload IAM enabled. Use a test EFS file system that the cluster's nodes can reach. Configure two IAM roles to trust the cluster's OIDC provider for audience `sts.amazonaws.com`. The test creates service accounts named `workload-iam-allowed` and `workload-iam-denied` in a namespace named `efs-<suffix>`. In the test roles' trust policies, use `StringLike` subject conditions scoped to `system:serviceaccount:efs-*:workload-iam-allowed` and `system:serviceaccount:efs-*:workload-iam-denied`, respectively.
+
+Allow the first role to use `elasticfilesystem:ClientMount` and list the root directory. Configure the file system policy to deny `elasticfilesystem:ClientMount` to the second role. Both roles must be assumable so that the test can distinguish an EFS denial from an STS failure.
+
+```sh
+go test -v -timeout 90m ./test/e2e/... \
+  -ginkgo.focus='should authorize EFS mounts by workload role' \
+  --file-system-id="$FS_ID" --region="$REGION" \
+  --create-file-system=false --create-s3files-file-system=false \
+  --workload-iam-allowed-role-arn="$ALLOWED_ROLE_ARN" \
+  --workload-iam-denied-role-arn="$DENIED_ROLE_ARN"
+```
+
+The test checks that the second pod receives an EFS mount denial. It waits for kubelet to replace the authorized pod's token and then checks that the same mount is still readable. The wait follows the token lifetime configured in the installed `CSIDriver`.
+
 ### Running Upgrade Test
 
 The upgrade test verifies that existing mounts survive a driver upgrade and that new mounts work after upgrading. It installs the latest released driver from the public Helm chart, writes data to a volume, upgrades to the new version using the local chart, then confirms that pre-upgrade data is still readable, writes to the existing mount still work, and new mounts can be created and used.

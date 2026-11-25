@@ -22,11 +22,13 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"net"
 	"os"
 	"path"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -113,12 +115,19 @@ func (d *Driver) NodeUnstageVolume(ctx context.Context, req *csi.NodeUnstageVolu
 }
 
 func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolumeRequest) (*csi.NodePublishVolumeResponse, error) {
-	klog.V(4).Infof("NodePublishVolume: called with args %+v", util.SanitizeRequest(*req))
+	klog.V(4).Infof("NodePublishVolume: requested mount of volume %q at %q", req.GetVolumeId(), req.GetTargetPath())
 	mountOptions := []string{}
 
 	target := req.GetTargetPath()
 	if len(target) == 0 {
 		return nil, status.Error(codes.InvalidArgument, "Target path not provided")
+	}
+	if d.workloadIdentity != nil {
+		key := filepath.Clean(target)
+		if _, busy := d.inFlightTargetOps.LoadOrStore(key, struct{}{}); busy {
+			return nil, status.Errorf(codes.Aborted, "A mount or unmount for target %q is already in progress", target)
+		}
+		defer d.inFlightTargetOps.Delete(key)
 	}
 
 	volCap := req.GetVolumeCapability()
@@ -141,7 +150,7 @@ func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 		}
 
 		defer func() {
-			klog.V(4).Infof("NodePublishVolume: volume operation finished for volumeId: %s with %d inflight count before decrementing", req.GetVolumeId(), d.inFlightMountTracker.count)
+			klog.V(4).Infof("NodePublishVolume: volume operation finished for volume %q", req.GetVolumeId())
 			d.inFlightMountTracker.decrement()
 		}()
 	}
@@ -154,7 +163,9 @@ func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 	volContext := req.GetVolumeContext()
 	for k, v := range volContext {
 		switch strings.ToLower(k) {
-		case "storage.kubernetes.io/csiprovisioneridentity":
+		case "storage.kubernetes.io/csiprovisioneridentity", podName, podNamespace, podUID,
+			"csi.storage.k8s.io/serviceaccount.name", "csi.storage.k8s.io/ephemeral",
+			"csi.storage.k8s.io/serviceaccount.tokens":
 			continue
 		case "encryptintransit":
 			var err error
@@ -189,8 +200,9 @@ func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 				resolvedMountTargetIP = ip
 				mountOptions = append(mountOptions, MountTargetIp+"="+ip)
 			} else {
-				// No mount target in this node's AZ; pick any available one as fallback.
-				for az, ip := range ipMap {
+				// Pick the same fallback when kubelet republishes the volume.
+				for _, az := range slices.Sorted(maps.Keys(ipMap)) {
+					ip := ipMap[az]
 					klog.Warningf("No mount target IP for node AZ %s, falling back to AZ %s (IP %s)", nodeAZ, az, ip)
 					resolvedMountTargetIP = ip
 					mountOptions = append(mountOptions, MountTargetIp+"="+ip)
@@ -258,7 +270,11 @@ func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 		mountOptions = append(mountOptions, "ro")
 	}
 
+	workloadIAM := false
 	if m := volCap.GetMount(); m != nil {
+		workloadIAM = slices.ContainsFunc(m.MountFlags, func(flag string) bool {
+			return strings.EqualFold(flag, workloadIAMMountOption)
+		})
 		for _, f := range m.MountFlags {
 			// Reject control characters in user-supplied mount options.
 			if i := strings.IndexFunc(f, func(r rune) bool { return unicode.IsControl(r) }); i >= 0 {
@@ -269,6 +285,9 @@ func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 			// Not sure if `accesspoint` is allowed to have mixed case, but this shouldn't hurt,
 			// and it simplifies both matches (HasPrefix, hasOption) below.
 			f = strings.ToLower(f)
+			if f == workloadIAMMountOption {
+				continue
+			}
 			if strings.HasPrefix(f, "accesspoint=") {
 				// The MountOptions Access Point ID
 				moapid := f[12:]
@@ -296,7 +315,7 @@ func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 				}
 			}
 
-			if strings.HasPrefix(f, "awscredsuri") {
+			if !workloadIAM && strings.HasPrefix(f, "awscredsuri") {
 				klog.Warning("awscredsuri mount option is not supported by efs-csi-driver.")
 				continue
 			}
@@ -309,6 +328,28 @@ func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 			if !hasOption(mountOptions, f) {
 				mountOptions = append(mountOptions, f)
 			}
+		}
+	}
+	if workloadIAM && (d.workloadIdentity == nil || fsType != util.FileSystemTypeEFS || !encryptInTransit) {
+		return nil, status.Error(codes.FailedPrecondition, "The workloadiam mount option requires workload identity to be enabled, an EFS volume, and encryption in transit")
+	}
+	if workloadIAM && !hasOption(mountOptions, "iam") {
+		mountOptions = append(mountOptions, "iam")
+	}
+	if d.workloadIdentity != nil {
+		_, refCount, err := d.mounter.GetDeviceName(target)
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "Could not check whether the target is already mounted: %v", err)
+		}
+		if refCount != 0 {
+			if workloadIAM {
+				if _, err := d.prepareWorkloadMount(ctx, req, mountOptions, true); err != nil {
+					return nil, err
+				}
+			} else if _, err := os.Stat(d.workloadTargetDir(target)); !os.IsNotExist(err) {
+				return nil, status.Error(codes.FailedPrecondition, "Existing mount may use workload IAM credentials")
+			}
+			return &csi.NodePublishVolumeResponse{}, nil
 		}
 	}
 	if fsType == util.FileSystemTypeS3Files {
@@ -324,8 +365,24 @@ func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 		return nil, status.Errorf(codes.Internal, "Could not create dir %q: %v", target, err)
 	}
 
+	helperOptions := mountOptions
+	if workloadIAM {
+		var err error
+		helperOptions, err = d.prepareWorkloadMount(ctx, req, mountOptions, false)
+		if err != nil {
+			_ = os.Remove(target)
+			return nil, err
+		}
+	}
 	klog.V(5).Infof("NodePublishVolume: mounting %s at %s with options %v", source, target, mountOptions)
-	if err := d.mounter.Mount(source, target, fsType.String(), mountOptions); err != nil {
+	if err := d.mounter.Mount(source, target, fsType.String(), helperOptions); err != nil {
+		if workloadIAM {
+			if _, count, checkErr := d.mounter.GetDeviceName(target); checkErr == nil && count == 0 {
+				if cleanupErr := d.removeWorkloadToken(target); cleanupErr != nil {
+					klog.Warningf("NodePublishVolume: %v", cleanupErr)
+				}
+			}
+		}
 		os.Remove(target)
 		return nil, status.Errorf(codes.Internal, "Could not mount %q at %q: %v", source, target, err)
 	}
@@ -366,7 +423,7 @@ func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 }
 
 func (d *Driver) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpublishVolumeRequest) (*csi.NodeUnpublishVolumeResponse, error) {
-	klog.V(4).Infof("NodeUnpublishVolume: called with args %+v", util.SanitizeRequest(*req))
+	klog.V(4).Infof("NodeUnpublishVolume: requested unmount of volume %q at %q", req.GetVolumeId(), req.GetTargetPath())
 
 	target := req.GetTargetPath()
 	if len(target) == 0 {
@@ -376,10 +433,10 @@ func (d *Driver) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpublish
 	// An unmount of an unresponsive mount can outlive kubelet's RPC timeout.
 	// Reject a retry for the same target instead of piling up blocked calls.
 	key := filepath.Clean(target)
-	if _, busy := d.inFlightUnpublish.LoadOrStore(key, struct{}{}); busy {
+	if _, busy := d.inFlightTargetOps.LoadOrStore(key, struct{}{}); busy {
 		return nil, status.Errorf(codes.Aborted, "NodeUnpublishVolume for target %q is already in progress", target)
 	}
-	defer d.inFlightUnpublish.Delete(key)
+	defer d.inFlightTargetOps.Delete(key)
 
 	if d.forceUnmountAfterTimeout {
 		klog.V(5).Infof("NodeUnpublishVolume: will retry unmount %s with force after timeout %v", target, d.unmountTimeout)
@@ -403,6 +460,9 @@ func (d *Driver) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpublish
 		if refCount == 0 {
 			klog.V(5).Infof("NodeUnpublishVolume: %s target not mounted", target)
 			d.removeEfsMeta(target)
+			if err := d.removeWorkloadToken(target); err != nil {
+				return nil, err
+			}
 			return &csi.NodeUnpublishVolumeResponse{}, nil
 		}
 
@@ -434,6 +494,9 @@ func (d *Driver) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpublish
 		volumeIdCounterMu.Unlock()
 	}
 
+	if err := d.removeWorkloadToken(target); err != nil {
+		return nil, err
+	}
 	return &csi.NodeUnpublishVolumeResponse{}, nil
 }
 
