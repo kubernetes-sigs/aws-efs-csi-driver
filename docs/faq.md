@@ -82,5 +82,72 @@ It depends on which provisioning mode you used (see the [cross-account mount exa
 
 If you are still on a driver version that baked a single random mount target IP into every PV, upgrade to `v3.1.0` or newer to get the default per-node AZ selection feature.
 
+## fsGroup in securityContext is not respected — UID/GID is set only by the access point
+
+**A pod's `securityContext` does not set the ownership of a dynamically provisioned
+(`efs-ap`) volume.** The volume root is owned by the UID/GID on its access point,
+which the driver takes from the StorageClass `uid`/`gid` parameters or allocates
+from `gidRangeStart`/`gidRangeEnd`. `fsGroup` and `runAsUser` are not consulted.
+This is a property of access points, not a bug; see upstream issue
+[#1202](https://github.com/kubernetes-sigs/aws-efs-csi-driver/issues/1202).
+
+With this StorageClass and pod:
+
+```yaml
+# StorageClass
+parameters:
+  provisioningMode: efs-ap
+  fileSystemId: fs-0123456789abcdef0
+  directoryPerms: "700"
+  gidRangeStart: "1000"
+  gidRangeEnd: "2000"
+---
+# Pod
+securityContext:
+  fsGroup: 1035
+  runAsUser: 1035
+```
+
+the volume root is owned by the GID the driver allocated, not by `1035`:
+
+```
+$ ls -ld /var/lib/postgresql/data
+drwx------ 2 1000 1000 6144 Jan  1 00:00 /var/lib/postgresql/data
+```
+
+This is not a permissions failure:
+[user identity enforcement](https://docs.aws.amazon.com/efs/latest/ug/enforce-identity-access-points.html)
+replaces the client's UID/GID with the access point's own, so access does not depend
+on the UID the pod runs as. What breaks is applications that check directory
+ownership before starting. For example, PostgreSQL exits with
+`data directory "..." has wrong ownership`.
+
+**To pin ownership, set `uid` and `gid` on the StorageClass:**
+
+```yaml
+parameters:
+  provisioningMode: efs-ap
+  fileSystemId: fs-0123456789abcdef0
+  directoryPerms: "700"
+  uid: "1035"
+  gid: "1035"
+```
+
+The access point is then created as `1035:1035`, and a pod running as `1035` sees
+the ownership it expects. `uid`/`gid` take precedence over `gidRangeStart`/
+`gidRangeEnd`, which the driver does not consult when both are set. EFS applies
+this ownership only when it creates the root directory; a directory that already
+exists keeps its current owner, so `uid`/`gid` will not change it.
+
+`uid`/`gid` are fixed values on a cluster-scoped object and are not templated, so
+workloads that run as different UIDs need one StorageClass per UID. If you need
+ownership to vary per pod, use
+[static provisioning](../examples/kubernetes/efs/static_provisioning/README.md)
+without an access point: nothing then overrides the client identity, so the pod's
+own UID reaches EFS and an init container can `chown` the directory. This trades
+away isolation — there is no access point to confine clients to a subdirectory or
+to enforce an identity. Use it only within a single trust boundary, and see
+[Tenant Isolation](#tenant-isolation) below.
+
 ## Tenant Isolation
 Refer to the [EKS Best Practices Guide on Tenant Isolation](https://docs.aws.amazon.com/eks/latest/best-practices/tenant-isolation.html).
