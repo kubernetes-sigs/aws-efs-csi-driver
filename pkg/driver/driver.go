@@ -33,7 +33,9 @@ import (
 const (
 	driverName = "efs.csi.aws.com"
 
-	// AgentNotReadyTaintKey contains the key of taints to be removed on driver startup
+	// AgentNotReadyTaintKey contains the key of taints to be removed on driver startup. The efs-csi-node
+	// ValidatingAdmissionPolicy limits the node service account to removing taints with this key, so change it together
+	// with agentNotReadyTaintKey in charts/aws-efs-csi-driver/templates/_helpers.tpl.
 	AgentNotReadyNodeTaintKey = "efs.csi.aws.com/agent-not-ready"
 )
 
