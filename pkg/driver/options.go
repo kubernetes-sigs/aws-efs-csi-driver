@@ -34,6 +34,7 @@ type Options struct {
 	VolumeAttachLimit               *int64
 	ForceUnmountAfterTimeout        *bool
 	UnmountTimeout                  *time.Duration
+	DisableTransparentHugePages     *bool
 	DebugLogs                       *bool
 	EfsCloudWatchLogEnabled         *bool
 	S3FilesCloudWatchLogEnabled     *bool
@@ -74,6 +75,7 @@ func NewOptions() *Options {
 		VolumeAttachLimit:               flag.Int64("volume-attach-limit", UnsetVolumeAttachLimit, "Maximum number of volumes that can be attached to a node. If volumeAttachLimitOptIn is true, it has to be set to a positive value."),
 		ForceUnmountAfterTimeout:        flag.Bool("force-unmount-after-timeout", false, "Enable force unmount if normal unmount times out during NodeUnpublishVolume."),
 		UnmountTimeout:                  flag.Duration("unmount-timeout", DefaultUnmountTimeout, "Timeout for unmounting a volume during NodeUnpublishVolume when forceUnmountAfterTimeout is true. If the timeout is reached, the volume will be forcibly unmounted. The default value is 30 seconds."),
+		DisableTransparentHugePages:     flag.Bool("disable-transparent-huge-pages", false, "Turn off transparent huge pages (prctl PR_SET_THP_DISABLE) for the driver and every process it starts: mount.efs, amazon-efs-mount-watchdog, efs-proxy and stunnel. Use it on nodes where /sys/kernel/mm/transparent_hugepage/enabled is \"always\"."),
 		DebugLogs:                       flag.Bool("debug-logs", false, "Set klog verbosity to level 5 and enable debug logging in efs-utils."),
 		EfsCloudWatchLogEnabled:         flag.Bool("efs-cloudwatch-log-enabled", false, "Enable CloudWatch logging for EFS in efs-utils.conf."),
 		S3FilesCloudWatchLogEnabled:     flag.Bool("s3files-cloudwatch-log-enabled", true, "Enable CloudWatch logging for S3Files in s3files-utils.conf."),

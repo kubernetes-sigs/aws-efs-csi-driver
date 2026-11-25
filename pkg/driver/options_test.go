@@ -75,6 +75,9 @@ func TestParseFlagsWithDefaultValue(t *testing.T) {
 	if *opts.UnmountTimeout != DefaultUnmountTimeout {
 		t.Errorf("Expected unmount-timeout %d, got %d", DefaultUnmountTimeout, *opts.UnmountTimeout)
 	}
+	if *opts.DisableTransparentHugePages != false {
+		t.Errorf("Expected disable-transparent-huge-pages false, got %v", *opts.DisableTransparentHugePages)
+	}
 	if *opts.EfsCloudWatchLogEnabled != false {
 		t.Errorf("Expected efs-cloudwatch-log-enabled false, got %v", *opts.EfsCloudWatchLogEnabled)
 	}
@@ -117,6 +120,7 @@ func TestParseFlagsWithCustomValues(t *testing.T) {
 		"--volume-attach-limit=15",
 		"--force-unmount-after-timeout=true",
 		"--unmount-timeout=60s",
+		"--disable-transparent-huge-pages=true",
 		"--efs-cloudwatch-log-enabled=true",
 		"--s3files-cloudwatch-log-enabled=false",
 		"--s3files-cloudwatch-metrics-enabled=false",
@@ -180,6 +184,9 @@ func TestParseFlagsWithCustomValues(t *testing.T) {
 
 	if *opts.UnmountTimeout != 60*time.Second {
 		t.Errorf("Expected unmount-timeout 60 seconds, got %v", *opts.UnmountTimeout)
+	}
+	if *opts.DisableTransparentHugePages != true {
+		t.Errorf("Expected disable-transparent-huge-pages true, got %v", *opts.DisableTransparentHugePages)
 	}
 	if *opts.EfsCloudWatchLogEnabled != true {
 		t.Errorf("Expected efs-cloudwatch-log-enabled true, got %v", *opts.EfsCloudWatchLogEnabled)
