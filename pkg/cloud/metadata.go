@@ -37,12 +37,14 @@ type MetadataService interface {
 	GetInstanceID() string
 	GetRegion() string
 	GetAvailabilityZone() string
+	GetAvailabilityZoneId() string
 }
 
 type metadata struct {
-	instanceID       string
-	region           string
-	availabilityZone string
+	instanceID         string
+	region             string
+	availabilityZone   string
+	availabilityZoneId string
 }
 
 var _ MetadataService = &metadata{}
@@ -62,6 +64,13 @@ func (m *metadata) GetRegion() string {
 // GetAvailabilityZone returns the Availability Zone which the instance is in.
 func (m *metadata) GetAvailabilityZone() string {
 	return m.availabilityZone
+}
+
+// GetAvailabilityZoneId returns the Availability Zone ID (e.g. use1-az1) which the instance is in.
+// AZ IDs identify the same physical AZ across AWS accounts, unlike AZ names.
+// Returns an empty string if the metadata source does not provide it.
+func (m *metadata) GetAvailabilityZoneId() string {
+	return m.availabilityZoneId
 }
 
 // GetNewMetadataProvider returns a MetadataProvider on which can be invoked getMetadata() to extract the metadata.

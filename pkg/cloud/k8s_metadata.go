@@ -53,8 +53,9 @@ func (k kubernetesApiMetadataProvider) getMetadata() (MetadataService, error) {
 	}
 
 	return &metadata{
-		instanceID:       instanceID,
-		region:           node.Labels["topology.kubernetes.io/region"],
-		availabilityZone: node.Labels["topology.kubernetes.io/zone"],
+		instanceID:         instanceID,
+		region:             node.Labels["topology.kubernetes.io/region"],
+		availabilityZone:   node.Labels["topology.kubernetes.io/zone"],
+		availabilityZoneId: node.Labels["topology.k8s.aws/zone-id"],
 	}, nil
 }

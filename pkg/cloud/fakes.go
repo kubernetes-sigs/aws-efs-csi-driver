@@ -18,7 +18,7 @@ type FakeCloudProvider struct {
 
 func NewFakeCloudProvider() *FakeCloudProvider {
 	return &FakeCloudProvider{
-		m:            &metadata{"instanceID", "region", "az"},
+		m:            &metadata{instanceID: "instanceID", region: "region", availabilityZone: "az", availabilityZoneId: "az-id"},
 		fileSystems:  make(map[string]*FileSystem),
 		accessPoints: make(map[string]*AccessPoint),
 		mountTargets: make(map[string]*MountTarget),

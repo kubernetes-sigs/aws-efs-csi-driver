@@ -421,7 +421,7 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 				volContext[MountTargetIp] = mountTarget.IPAddress
 			} else {
 				// No az specified and crossaccount DNS disabled: fetch all mount targets
-				// and pass the AZ→IP map so each node can pick its own AZ's mount target.
+				// and pass the AZ ID→IP map so each node can pick its own AZ's mount target.
 				ipMapJSON, err := buildMountTargetIPMap(ctx, localCloud, accessPointsOptions.FileSystemId)
 				if err != nil {
 					return nil, status.Errorf(codes.Internal, "Failed to build mount target IP map for file system %v: %v", accessPointsOptions.FileSystemId, err)
@@ -573,7 +573,7 @@ func (d *Driver) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeRequest)
 					mountTargets, err := localCloud.DescribeAvailableMountTargets(ctx, fileSystemId)
 					if err != nil {
 						klog.Warningf("DeleteVolume: failed to describe mount targets for %v: %v", fileSystemId, err)
-					} else if ip := selectMountTargetIP(mountTargets, d.cloud.GetMetadata().GetAvailabilityZone()); ip != "" {
+					} else if ip := selectMountTargetIP(mountTargets, d.cloud.GetMetadata().GetAvailabilityZoneId(), d.cloud.GetMetadata().GetAvailabilityZone()); ip != "" {
 						mountOptions = append(mountOptions, MountTargetIp+"="+ip)
 					}
 				}
@@ -782,7 +782,9 @@ func createListOfVariableSubstitutions(volumeParams map[string]string) []string 
 	return variableSubstitutions
 }
 
-// buildMountTargetIPMap fetches all available mount targets and returns a JSON-encoded AZ→IP map.
+// buildMountTargetIPMap fetches all available mount targets and returns a JSON-encoded AZ ID→IP map.
+// The map is keyed by AZ ID because AZ names map to different physical AZs in different AWS
+// accounts, while AZ IDs are consistent across accounts (cross-account mounts).
 func buildMountTargetIPMap(ctx context.Context, c cloud.Cloud, fileSystemId string) (string, error) {
 	mountTargets, err := c.DescribeAvailableMountTargets(ctx, fileSystemId)
 	if err != nil {
@@ -790,7 +792,7 @@ func buildMountTargetIPMap(ctx context.Context, c cloud.Cloud, fileSystemId stri
 	}
 	ipMap := make(map[string]string, len(mountTargets))
 	for _, mt := range mountTargets {
-		ipMap[mt.AZName] = mt.IPAddress
+		ipMap[mt.AZId] = mt.IPAddress
 	}
 	jsonBytes, err := json.Marshal(ipMap)
 	if err != nil {
@@ -799,11 +801,20 @@ func buildMountTargetIPMap(ctx context.Context, c cloud.Cloud, fileSystemId stri
 	return string(jsonBytes), nil
 }
 
-// selectMountTargetIP picks the mount target IP for the given preferredAZ.
+// selectMountTargetIP picks the mount target IP for the given preferredAZId, then preferredAZ.
+// AZ ID is preferred because the mount targets may belong to another AWS account, where the
+// same AZ name can map to a different physical AZ.
 // If no mount target exists in the preferred AZ, it falls back to any available mount target.
-func selectMountTargetIP(mountTargets []*cloud.MountTarget, preferredAZ string) string {
+func selectMountTargetIP(mountTargets []*cloud.MountTarget, preferredAZId, preferredAZ string) string {
 	if len(mountTargets) == 0 {
 		return ""
+	}
+	if preferredAZId != "" {
+		for _, mt := range mountTargets {
+			if mt.AZId == preferredAZId {
+				return mt.IPAddress
+			}
+		}
 	}
 	for _, mt := range mountTargets {
 		if mt.AZName == preferredAZ {
